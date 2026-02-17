@@ -22,7 +22,7 @@ export default function Avatar({ avatar, size = 'md', className = '' }: AvatarPr
     <div
       className={`
         clay-sm flex items-center justify-center
-        bg-gradient-to-br from-clay-lavender/50 to-clay-pink/30
+        bg-grape-50/80
         rounded-full ${sizeMap[size]} ${className}
       `}
     >

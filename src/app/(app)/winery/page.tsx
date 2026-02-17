@@ -146,7 +146,7 @@ export default function WineryPage() {
 
         {bottles.length === 0 ? (
           /* Empty state */
-          <div className="clay p-8 text-center bg-gradient-to-br from-clay-lavender/20 to-white">
+          <div className="clay p-8 text-center">
             <div className="text-5xl mb-4 animate-float">{'\u{1F37E}'}</div>
             <p className="text-warm-sub text-sm leading-relaxed">
               아직 완성된 와인이 없어요.
@@ -158,7 +158,7 @@ export default function WineryPage() {
         ) : (
           <>
             {/* Bottle grid */}
-            <div className="clay p-5 bg-gradient-to-br from-white to-clay-cream/20">
+            <div className="clay p-5">
               {/* Cellar shelf decorative bar */}
               <div className="w-full h-0.5 bg-gradient-to-r from-transparent via-amber-800/20 to-transparent mb-4 rounded-full" />
 
@@ -182,7 +182,7 @@ export default function WineryPage() {
 
             {/* Selected bottle detail panel */}
             {selectedBottle && (
-              <div className="clay-sm mt-3 p-5 bg-gradient-to-br from-clay-lavender/30 to-clay-cream/20 animate-slide-up relative">
+              <div className="clay-sm mt-3 p-5 bg-grape-50/60 animate-slide-up relative">
                 {/* Close button */}
                 <button
                   onClick={() => setSelectedBottle(null)}
@@ -244,7 +244,7 @@ export default function WineryPage() {
           <span className="mr-1">{'\u{1F5FA}\u{FE0F}'}</span>티어 로드맵
         </h3>
 
-        <div className="clay p-5 bg-gradient-to-br from-white to-clay-lavender/10">
+        <div className="clay p-5">
           <div className="relative">
             {/* Vertical connecting line */}
             <div className="absolute left-[22px] top-4 bottom-4 w-0.5 bg-gradient-to-b from-grape-300 via-grape-200 to-warm-border/30" />

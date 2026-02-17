@@ -70,8 +70,8 @@ export default function GiftBoardModal({ boardTitle, onGift, onClose }: GiftBoar
                 className={`
                   w-full clay-sm p-3 flex items-center gap-3 transition-all
                   ${selectedFriend === friend.user.id
-                    ? 'ring-2 ring-grape-400 bg-gradient-to-br from-clay-lavender/40 to-white'
-                    : 'bg-gradient-to-br from-white to-clay-lavender/10'
+                    ? 'ring-2 ring-grape-400 bg-grape-50'
+                    : ''
                   }
                 `}
               >

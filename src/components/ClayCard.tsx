@@ -11,13 +11,13 @@ interface ClayCardProps {
 }
 
 const colorBg: Record<string, string> = {
-  white: 'from-white to-grape-50/30',
-  pink: 'from-clay-pink/60 to-clay-pink/30',
-  mint: 'from-clay-mint/60 to-clay-mint/30',
-  lavender: 'from-clay-lavender/60 to-clay-lavender/30',
-  peach: 'from-clay-peach/60 to-clay-peach/30',
-  cream: 'from-clay-cream/60 to-clay-cream/30',
-  yellow: 'from-clay-yellow/60 to-clay-yellow/30',
+  white: '',
+  pink: 'bg-pink-50/50',
+  mint: 'bg-emerald-50/50',
+  lavender: 'bg-grape-50/60',
+  peach: 'bg-orange-50/50',
+  cream: 'bg-amber-50/40',
+  yellow: 'bg-yellow-50/40',
 };
 
 export default function ClayCard({
@@ -34,7 +34,7 @@ export default function ClayCard({
       onClick={onClick}
       className={`
         ${base}
-        bg-gradient-to-br ${colorBg[color]}
+        ${colorBg[color]}
         p-5
         ${onClick ? 'cursor-pointer active:scale-[0.98] transition-transform' : ''}
         ${className}

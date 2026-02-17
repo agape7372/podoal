@@ -15,10 +15,10 @@ interface FriendCardProps {
   activeBoardCount?: number;
 }
 
-const statusGradient: Record<string, string> = {
-  accepted: 'from-white to-clay-lavender/20',
-  pending: 'from-white to-clay-peach/20',
-  favorite: 'from-clay-yellow/15 to-clay-lavender/20',
+const statusBg: Record<string, string> = {
+  accepted: '',
+  pending: 'bg-orange-50/40',
+  favorite: 'bg-amber-50/40',
 };
 
 export default function FriendCard({
@@ -38,12 +38,12 @@ export default function FriendCard({
     setLoading(false);
   };
 
-  const gradient = friend.isFavorite
-    ? statusGradient.favorite
-    : statusGradient[friend.status] || statusGradient.accepted;
+  const bg = friend.isFavorite
+    ? statusBg.favorite
+    : statusBg[friend.status] || statusBg.accepted;
 
   return (
-    <div className={`clay-sm p-4 bg-gradient-to-br ${gradient} transition-all`}>
+    <div className={`clay-sm p-4 ${bg} transition-all`}>
       <div className="flex items-center gap-3">
         <Avatar avatar={friend.user.avatar} size="lg" />
         <div className="flex-1 min-w-0">
@@ -107,7 +107,7 @@ export default function FriendCard({
       {friend.status === 'accepted' && onViewBoards && (
         <button
           onClick={() => onViewBoards(friend.user.id)}
-          className="mt-3 w-full clay-button px-3 py-2 rounded-xl text-xs font-medium text-grape-500 bg-gradient-to-r from-grape-50 to-clay-lavender/30 transition-all active:scale-[0.98] flex items-center justify-center gap-1.5"
+          className="mt-3 w-full clay-button px-3 py-2 rounded-xl text-xs font-medium text-grape-500 bg-grape-50 transition-all active:scale-[0.98] flex items-center justify-center gap-1.5"
         >
           <span>🍇</span>
           <span>포도판 보기</span>

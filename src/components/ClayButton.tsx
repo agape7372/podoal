@@ -11,10 +11,10 @@ interface ClayButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variantStyles = {
-  primary: 'bg-gradient-to-br from-grape-400 to-grape-500 text-white',
-  secondary: 'bg-gradient-to-br from-clay-lavender to-grape-100 text-grape-700',
-  ghost: 'bg-transparent text-grape-600 shadow-none hover:bg-grape-50',
-  danger: 'bg-gradient-to-br from-red-300 to-red-400 text-white',
+  primary: 'bg-grape-500 hover:bg-grape-600 text-white',
+  secondary: 'bg-grape-50 hover:bg-grape-100 text-grape-700',
+  ghost: 'bg-transparent text-grape-600 shadow-none border-transparent hover:bg-grape-50',
+  danger: 'bg-red-400 hover:bg-red-500 text-white',
 };
 
 const sizeStyles = {

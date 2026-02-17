@@ -61,15 +61,15 @@ export default function HomePage() {
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-3 mb-6">
-        <div className="clay-sm p-4 text-center bg-gradient-to-br from-clay-lavender/40 to-white">
+        <div className="clay-sm p-4 text-center">
           <p className="text-2xl font-bold text-grape-600">{boards.length}</p>
           <p className="text-xs leading-normal tracking-wide text-warm-sub mt-0.5">전체</p>
         </div>
-        <div className="clay-sm p-4 text-center bg-gradient-to-br from-clay-peach/40 to-white">
+        <div className="clay-sm p-4 text-center">
           <p className="text-2xl font-bold text-orange-500">{activeCount}</p>
           <p className="text-xs leading-normal tracking-wide text-warm-sub mt-0.5">진행중</p>
         </div>
-        <div className="clay-sm p-4 text-center bg-gradient-to-br from-clay-mint/40 to-white">
+        <div className="clay-sm p-4 text-center">
           <p className="text-2xl font-bold text-green-500">{completedCount}</p>
           <p className="text-xs leading-normal tracking-wide text-warm-sub mt-0.5">완료</p>
         </div>
@@ -128,7 +128,7 @@ export default function HomePage() {
       {boards.length > 0 && (
         <button
           onClick={() => router.push('/board/create')}
-          className="fixed bottom-24 right-6 w-14 h-14 clay-float rounded-full flex items-center justify-center text-2xl bg-gradient-to-br from-grape-400 to-grape-500 text-white shadow-lg active:scale-95 transition-transform z-40"
+          className="fixed bottom-24 right-6 w-14 h-14 rounded-full flex items-center justify-center text-2xl bg-grape-500 text-white shadow-lg shadow-grape-500/25 active:scale-95 transition-all hover:bg-grape-600 z-40"
         >
           +
         </button>

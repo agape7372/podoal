@@ -24,7 +24,7 @@ export default function MessagePopup() {
 
   return (
     <div className={`fixed top-4 left-4 right-4 z-[100] ${visible ? 'popup-enter' : 'opacity-0 transition-opacity duration-300'}`}>
-      <div className="max-w-lg mx-auto clay-float p-4 bg-gradient-to-br from-white to-clay-lavender/30">
+      <div className="max-w-lg mx-auto clay-float p-4">
         <div className="flex items-start gap-3">
           <Avatar avatar={popupMessage.sender.avatar} size="md" />
           <div className="flex-1 min-w-0">

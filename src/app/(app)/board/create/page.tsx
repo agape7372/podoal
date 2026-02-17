@@ -129,7 +129,7 @@ export default function CreateBoardPage() {
                 className={`
                   clay-button px-3 py-2 rounded-xl text-sm whitespace-nowrap flex-shrink-0
                   ${selectedCategory === cat.id
-                    ? 'ring-2 ring-grape-400 clay-pressed bg-gradient-to-br from-clay-lavender/60 to-grape-100'
+                    ? 'ring-2 ring-grape-400 clay-pressed bg-grape-50'
                     : ''
                   }
                 `}
@@ -147,8 +147,7 @@ export default function CreateBoardPage() {
                 onClick={() => handleSelectTemplate(template)}
                 className={`
                   clay p-4 text-left transition-all active:scale-[0.97]
-                  bg-gradient-to-br from-white to-clay-lavender/20
-                  hover:from-clay-lavender/30 hover:to-white
+                  hover:bg-grape-50/40
                 `}
               >
                 <div className="text-2xl mb-2">{template.icon}</div>

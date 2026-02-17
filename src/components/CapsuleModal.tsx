@@ -261,7 +261,7 @@ export default function CapsuleModal({ boardId, isOwner, onClose }: CapsuleModal
                         <div
                           key={capsule.id}
                           className={`
-                            clay-sm p-4 bg-gradient-to-br from-grape-50 to-clay-lavender/30
+                            clay-sm p-4 bg-grape-50
                             transition-all duration-500
                             ${isJustOpened ? 'animate-bounce-in ring-2 ring-grape-300' : ''}
                           `}

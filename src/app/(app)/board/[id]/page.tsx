@@ -126,7 +126,7 @@ export default function BoardDetailPage() {
 
         {/* Gifted info */}
         {board.giftedFrom && (
-          <div className="inline-flex items-center gap-2 clay-sm px-3 py-1.5 bg-gradient-to-r from-clay-pink/30 to-clay-lavender/30">
+          <div className="inline-flex items-center gap-2 clay-sm px-3 py-1.5 bg-grape-50">
             <Avatar avatar={board.giftedFrom.avatar} size="sm" />
             <span className="text-xs text-warm-sub">
               {board.giftedFrom.name}님이 선물한 포도판
@@ -136,7 +136,7 @@ export default function BoardDetailPage() {
       </div>
 
       {/* Grape Board */}
-      <div className="clay-float p-6 mb-6 bg-gradient-to-br from-white to-clay-lavender/20">
+      <div className="clay-float p-6 mb-6">
         <GrapeBoard
           board={board}
           onFill={handleFillSticker}
@@ -167,8 +167,8 @@ export default function BoardDetailPage() {
                     className={`
                       w-full clay p-4 text-center transition-all
                       ${isUnlocked
-                        ? 'bg-gradient-to-br from-clay-yellow/40 to-clay-mint/30 reward-glow cursor-pointer'
-                        : 'bg-gradient-to-br from-clay-lavender/30 to-white'
+                        ? 'bg-amber-50/60 reward-glow cursor-pointer'
+                        : 'bg-grape-50/60'
                       }
                     `}
                   >
@@ -197,7 +197,7 @@ export default function BoardDetailPage() {
           <h3 className="text-sm font-semibold text-warm-sub mb-3">최근 활동</h3>
           <div className="space-y-2">
             {board.stickers.slice(-5).reverse().map((sticker) => (
-              <div key={sticker.id} className="clay-sm p-3 flex items-center gap-2 bg-gradient-to-r from-white to-grape-50/30">
+              <div key={sticker.id} className="clay-sm p-3 flex items-center gap-2">
                 <span className="text-lg">🍇</span>
                 <span className="text-sm text-warm-text">
                   {sticker.position + 1}번째 포도알

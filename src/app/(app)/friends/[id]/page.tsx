@@ -124,7 +124,7 @@ export default function FriendDetailPage() {
       </button>
 
       {/* Friend profile card */}
-      <div className="clay p-5 mb-6 bg-gradient-to-br from-clay-lavender/40 to-clay-pink/20">
+      <div className="clay p-5 mb-6 bg-grape-50/80">
         <div className="flex items-center gap-4 mb-4">
           <Avatar avatar={friend.avatar} size="xl" />
           <div className="flex-1 min-w-0">
@@ -154,7 +154,7 @@ export default function FriendDetailPage() {
             disabled={favoriteLoading}
             className={`clay-button px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
               isFavorite
-                ? 'bg-gradient-to-br from-clay-yellow/60 to-clay-yellow/30 text-grape-700'
+                ? 'bg-amber-50/60 text-grape-700'
                 : 'text-warm-sub'
             }`}
           >
@@ -172,7 +172,7 @@ export default function FriendDetailPage() {
 
       {/* Cheer sent feedback */}
       {cheerSent && (
-        <div className="clay-sm p-3 mb-4 bg-gradient-to-br from-clay-mint/50 to-clay-mint/20 text-center animate-bounce-in">
+        <div className="clay-sm p-3 mb-4 bg-emerald-50/60 text-center animate-bounce-in">
           <span className="text-sm font-medium text-grape-600">
             💜 응원을 보냈어요!
           </span>

@@ -23,9 +23,9 @@ const typeColors: Record<string, string> = {
 };
 
 const typeBgColors: Record<string, string> = {
-  sticker: 'from-grape-50/60 to-clay-lavender/30',
-  board_complete: 'from-green-50/60 to-clay-mint/30',
-  capsule_open: 'from-blue-50/60 to-cyan-50/30',
+  sticker: 'bg-grape-50/60',
+  board_complete: 'bg-emerald-50/60',
+  capsule_open: 'bg-blue-50/60',
 };
 
 export default function VinePage() {
@@ -101,7 +101,7 @@ export default function VinePage() {
       </div>
 
       {/* Summary */}
-      <div className="clay-sm p-4 mb-6 bg-gradient-to-br from-clay-mint/30 to-clay-lavender/20 text-center">
+      <div className="clay-sm p-4 mb-6 bg-emerald-50/60 text-center">
         <p className="text-sm text-warm-text">
           최근 90일간 <span className="font-bold text-grape-600">{timeline.length}</span>일 활동했어요
         </p>
@@ -151,7 +151,7 @@ export default function VinePage() {
                   <div
                     key={`${group.date}-${actIndex}`}
                     className={`
-                      clay-sm p-3.5 bg-gradient-to-br ${typeBgColors[activity.type] || 'from-white to-grape-50/20'}
+                      clay-sm p-3.5 ${typeBgColors[activity.type] || ''}
                       transition-all duration-300
                     `}
                     style={{

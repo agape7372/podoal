@@ -62,7 +62,7 @@ export default function RewardReveal({ reward, isCompleted, onClose }: RewardRev
           className={`
             clay-float p-8 text-center
             ${isCompleted ? 'cursor-pointer reward-glow' : 'opacity-75'}
-            bg-gradient-to-br from-clay-lavender/40 to-clay-pink/30
+            bg-grape-50/80
           `}
         >
           <div className="text-6xl mb-4 animate-float">
@@ -82,7 +82,7 @@ export default function RewardReveal({ reward, isCompleted, onClose }: RewardRev
         </div>
       ) : (
         /* Revealed reward */
-        <div className="clay-float p-6 animate-reward-reveal bg-gradient-to-br from-white to-clay-cream/50">
+        <div className="clay-float p-6 animate-reward-reveal">
           <div className="text-center">
             <div className="text-5xl mb-3">
               {reward.type === 'letter' ? '💌' : reward.type === 'giftcard' ? '🎁' : '⭐'}
@@ -93,7 +93,7 @@ export default function RewardReveal({ reward, isCompleted, onClose }: RewardRev
             <h3 className="text-xl font-bold text-grape-700 mb-4">
               {reward.title}
             </h3>
-            <div className="clay-sm p-5 bg-gradient-to-br from-clay-cream/60 to-white text-left">
+            <div className="clay-sm p-5 text-left">
               <p className="text-warm-text whitespace-pre-wrap leading-relaxed">
                 {reward.content}
               </p>

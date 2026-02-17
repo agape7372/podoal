@@ -100,7 +100,7 @@ export default function ShareCardModal({ board, userName, onClose }: ShareCardMo
         </p>
 
         {/* Preview */}
-        <div className="clay bg-gradient-to-br from-clay-lavender/40 to-white p-4 mb-5 flex items-center justify-center">
+        <div className="clay p-4 mb-5 flex items-center justify-center">
           {loading ? (
             <div className="text-center py-12">
               <div className="text-4xl animate-float mb-3">🍇</div>

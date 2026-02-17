@@ -5,13 +5,13 @@ import { useAppStore } from '@/lib/store';
 import { feedbackTap } from '@/lib/feedback';
 
 const menuItems = [
-  { path: '/friends', icon: '👥', label: '친구', color: 'from-clay-pink/40 to-white' },
-  { path: '/messages', icon: '💌', label: '메시지', color: 'from-clay-lavender/40 to-white', badge: 'unread' },
-  { path: '/stats', icon: '📊', label: '통계', color: 'from-clay-mint/40 to-white' },
-  { path: '/vine', icon: '🌿', label: '포도덩쿨', color: 'from-clay-cream/40 to-white' },
-  { path: '/sound-test', icon: '🔊', label: '효과음', color: 'from-clay-yellow/40 to-white' },
-  { path: '/settings', icon: '⚙️', label: '설정', color: 'from-clay-peach/40 to-white' },
-  { path: '/notifications', icon: '🔔', label: '알림 설정', color: 'from-clay-lavender/40 to-white' },
+  { path: '/friends', icon: '👥', label: '친구', color: 'bg-pink-50/60' },
+  { path: '/messages', icon: '💌', label: '메시지', color: 'bg-grape-50/60', badge: 'unread' },
+  { path: '/stats', icon: '📊', label: '통계', color: 'bg-emerald-50/60' },
+  { path: '/vine', icon: '🌿', label: '포도덩쿨', color: 'bg-amber-50/60' },
+  { path: '/sound-test', icon: '🔊', label: '효과음', color: 'bg-amber-50/60' },
+  { path: '/settings', icon: '⚙️', label: '설정', color: 'bg-orange-50/60' },
+  { path: '/notifications', icon: '🔔', label: '알림 설정', color: 'bg-grape-50/60' },
 ];
 
 export default function MorePage() {
@@ -27,7 +27,7 @@ export default function MorePage() {
           <button
             key={item.path}
             onClick={() => { feedbackTap(); router.push(item.path); }}
-            className={`clay-sm p-4 text-center bg-gradient-to-br ${item.color} transition-all active:scale-[0.97]`}
+            className={`clay-sm p-4 text-center ${item.color} transition-all active:scale-[0.97]`}
           >
             <span className="text-3xl relative inline-block">
               {item.icon}

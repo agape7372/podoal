@@ -94,7 +94,7 @@ export default function StatsPage() {
       {activeTab === 'summary' && (
         <>
           {/* Profile & Streak */}
-          <div className="clay-float p-6 mb-5 bg-gradient-to-br from-clay-lavender/40 to-clay-pink/20 text-center">
+          <div className="clay-float p-6 mb-5 bg-grape-50/80 text-center">
             <Avatar avatar={user?.avatar || 'grape'} size="xl" className="mx-auto mb-3" />
             <h2 className="text-lg font-bold text-grape-700">{user?.name}</h2>
             <div className="mt-4 flex items-center justify-center gap-2">
@@ -107,7 +107,7 @@ export default function StatsPage() {
           </div>
 
           {/* Weekly chart */}
-          <div className="clay p-5 mb-5 bg-gradient-to-br from-white to-clay-cream/30">
+          <div className="clay p-5 mb-5">
             <h3 className="text-sm font-semibold text-warm-text mb-4">이번 주 활동</h3>
             <div className="flex items-end justify-between gap-2 h-28">
               {stats.dailyStickers.map((day) => (
@@ -147,19 +147,19 @@ export default function StatsPage() {
       {activeTab === 'heatmap' && (
         <>
           {/* Heatmap */}
-          <div className="clay p-5 mb-5 bg-gradient-to-br from-white to-clay-cream/30">
+          <div className="clay p-5 mb-5">
             <h3 className="text-sm font-semibold text-warm-text mb-4">활동 히트맵 (90일)</h3>
             <Heatmap data={stats.heatmap} />
           </div>
 
           {/* Streak section */}
           <div className="grid grid-cols-2 gap-3 mb-5">
-            <div className="clay-sm p-5 text-center bg-gradient-to-br from-clay-peach/40 to-white">
+            <div className="clay-sm p-5 text-center bg-orange-50/60">
               <span className="text-3xl">{'🔥'}</span>
               <p className="text-2xl font-bold text-grape-600 mt-2">{stats.currentStreak}일</p>
               <p className="text-[10px] text-warm-sub mt-1">현재 연속 달성</p>
             </div>
-            <div className="clay-sm p-5 text-center bg-gradient-to-br from-clay-yellow/40 to-white">
+            <div className="clay-sm p-5 text-center bg-amber-50/60">
               <span className="text-3xl">{'🏆'}</span>
               <p className="text-2xl font-bold text-grape-600 mt-2">{stats.longestStreak}일</p>
               <p className="text-[10px] text-warm-sub mt-1">최장 연속 달성</p>
@@ -167,7 +167,7 @@ export default function StatsPage() {
           </div>
 
           {/* Average daily */}
-          <div className="clay-sm p-5 mb-5 bg-gradient-to-br from-clay-mint/40 to-white text-center">
+          <div className="clay-sm p-5 mb-5 bg-emerald-50/60 text-center">
             <span className="text-3xl">{'📊'}</span>
             <p className="text-2xl font-bold text-grape-600 mt-2">{stats.averageDaily}</p>
             <p className="text-[10px] text-warm-sub mt-1">일평균 포도알 (최근 30일)</p>
@@ -179,7 +179,7 @@ export default function StatsPage() {
       {activeTab === 'analysis' && (
         <>
           {/* Day of week activity */}
-          <div className="clay p-5 mb-5 bg-gradient-to-br from-white to-clay-cream/30">
+          <div className="clay p-5 mb-5">
             <h3 className="text-sm font-semibold text-warm-text mb-4">요일별 활동</h3>
             <DayOfWeekChart data={dayOfWeekData} />
             <p className="text-xs text-warm-light text-center mt-3">
@@ -188,7 +188,7 @@ export default function StatsPage() {
           </div>
 
           {/* Completion rate */}
-          <div className="clay p-5 mb-5 bg-gradient-to-br from-white to-clay-lavender/20 text-center">
+          <div className="clay p-5 mb-5 text-center">
             <h3 className="text-sm font-semibold text-warm-text mb-4">완료율</h3>
             <CircularProgress value={stats.completionRate} />
             <p className="text-xs text-warm-sub mt-3">
@@ -197,13 +197,13 @@ export default function StatsPage() {
           </div>
 
           {/* Monthly trend */}
-          <div className="clay p-5 mb-5 bg-gradient-to-br from-white to-clay-cream/30">
+          <div className="clay p-5 mb-5">
             <h3 className="text-sm font-semibold text-warm-text mb-4">월별 추이</h3>
             <MonthlyChart data={stats.monthlyTrend} />
           </div>
 
           {/* Category breakdown */}
-          <div className="clay p-5 mb-5 bg-gradient-to-br from-white to-clay-pink/10">
+          <div className="clay p-5 mb-5">
             <h3 className="text-sm font-semibold text-warm-text mb-4">카테고리 분포</h3>
             <CategoryBreakdown data={stats.categoryBreakdown} />
           </div>
@@ -217,16 +217,16 @@ export default function StatsPage() {
 
 function StatCard({ icon, label, value, color }: { icon: string; label: string; value: number; color: string }) {
   const bgMap: Record<string, string> = {
-    lavender: 'from-clay-lavender/40 to-white',
-    peach: 'from-clay-peach/40 to-white',
-    mint: 'from-clay-mint/40 to-white',
-    pink: 'from-clay-pink/40 to-white',
-    yellow: 'from-clay-yellow/40 to-white',
-    cream: 'from-clay-cream/40 to-white',
+    lavender: 'bg-grape-50/60',
+    peach: 'bg-orange-50/60',
+    mint: 'bg-emerald-50/60',
+    pink: 'bg-pink-50/60',
+    yellow: 'bg-amber-50/60',
+    cream: 'bg-amber-50/60',
   };
 
   return (
-    <div className={`clay-sm p-4 text-center bg-gradient-to-br ${bgMap[color] || bgMap.lavender}`}>
+    <div className={`clay-sm p-4 text-center ${bgMap[color] || bgMap.lavender}`}>
       <span className="text-2xl">{icon}</span>
       <p className="text-2xl font-bold text-grape-600 mt-1">{value}</p>
       <p className="text-[10px] text-warm-sub mt-0.5">{label}</p>

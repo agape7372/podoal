@@ -78,7 +78,7 @@ export default function FriendsPage() {
       <h1 className="text-2xl font-bold text-grape-700 mb-6">👥 친구</h1>
 
       {/* Add friend */}
-      <div className="clay p-4 mb-6 bg-gradient-to-br from-white to-clay-lavender/20">
+      <div className="clay p-4 mb-6">
         <p className="text-sm font-medium text-warm-text mb-3">친구 추가하기</p>
         <div className="flex gap-2">
           <ClayInput

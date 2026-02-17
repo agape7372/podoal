@@ -142,7 +142,7 @@ export default function RelayDetailPage() {
       </div>
 
       {/* Info */}
-      <div className="clay-sm p-4 mb-6 bg-gradient-to-br from-clay-lavender/30 to-white">
+      <div className="clay-sm p-4 mb-6">
         <div className="flex items-center gap-4 text-sm text-warm-sub">
           <span>{relay.totalStickers}알</span>
           <span>|</span>
@@ -154,7 +154,7 @@ export default function RelayDetailPage() {
 
       {/* Relay completed celebration */}
       {isRelayCompleted && (
-        <div className="clay p-6 mb-6 bg-gradient-to-br from-clay-yellow/40 to-clay-peach/30 text-center">
+        <div className="clay p-6 mb-6 bg-amber-50/60 text-center">
           <div className="text-4xl mb-2">{'\uD83C\uDF89'}</div>
           <p className="font-bold text-grape-700 text-lg mb-1">릴레이 완료!</p>
           <p className="text-sm text-warm-sub">
@@ -199,8 +199,8 @@ export default function RelayDetailPage() {
                 <div
                   className={`flex-1 mb-3 p-4 rounded-2xl transition-all ${
                     isActive
-                      ? 'clay bg-gradient-to-br from-grape-50 to-clay-lavender/30 ring-2 ring-grape-300'
-                      : 'clay-sm bg-gradient-to-br from-white to-gray-50/50'
+                      ? 'clay bg-grape-50 ring-2 ring-grape-300'
+                      : 'clay-sm'
                   }`}
                 >
                   <div className="flex items-center justify-between">
@@ -272,7 +272,7 @@ export default function RelayDetailPage() {
 
       {/* Action area */}
       {message && (
-        <div className="clay-sm p-3 mb-4 bg-gradient-to-br from-clay-peach/30 to-white text-center">
+        <div className="clay-sm p-3 mb-4 text-center">
           <p className="text-sm text-warm-text">{message}</p>
         </div>
       )}
@@ -293,7 +293,7 @@ export default function RelayDetailPage() {
 
       {/* Info: if it's my turn but board is not completed */}
       {isMyTurn && hasBoard && !myBoardCompleted && (
-        <div className="clay-sm p-4 text-center bg-gradient-to-br from-grape-50 to-clay-lavender/20">
+        <div className="clay-sm p-4 text-center bg-grape-50">
           <p className="text-sm text-warm-sub">
             포도판을 완성하면 다음 참가자에게 바통을 넘길 수 있어요!
           </p>

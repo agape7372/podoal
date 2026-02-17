@@ -46,7 +46,7 @@ export default function SettingsPage() {
       <h1 className="text-2xl font-bold text-grape-700 mb-6">설정</h1>
 
       {/* Sound & Haptic */}
-      <section className="clay p-5 mb-4 bg-gradient-to-br from-white to-clay-lavender/20">
+      <section className="clay p-5 mb-4">
         <h2 className="text-sm font-semibold text-warm-sub mb-4">사운드 & 진동</h2>
 
         <div className="space-y-4">
@@ -115,7 +115,7 @@ export default function SettingsPage() {
 
       {/* Sound picker panel */}
       {showSoundPicker && settings.soundEnabled && (
-        <section className="clay p-4 mb-4 bg-gradient-to-br from-clay-cream/30 to-clay-lavender/20">
+        <section className="clay p-4 mb-4">
           <h2 className="text-sm font-semibold text-grape-600 mb-3">🍇 포도알 소리 선택</h2>
           <div className="grid grid-cols-2 gap-2 max-h-[400px] overflow-y-auto pr-1">
             {FILL_SOUNDS.map((s) => {
@@ -150,7 +150,7 @@ export default function SettingsPage() {
       )}
 
       {/* Haptic toggle */}
-      <section className="clay p-5 mb-4 bg-gradient-to-br from-white to-clay-lavender/20">
+      <section className="clay p-5 mb-4">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-warm-text">진동 피드백</p>
@@ -176,7 +176,7 @@ export default function SettingsPage() {
       </section>
 
       {/* Notifications */}
-      <section className="clay p-5 mb-4 bg-gradient-to-br from-white to-clay-pink/10">
+      <section className="clay p-5 mb-4">
         <h2 className="text-sm font-semibold text-warm-sub mb-4">알림</h2>
         <div className="space-y-4">
           <div className="flex items-center justify-between">
@@ -230,7 +230,7 @@ export default function SettingsPage() {
       <section className="mb-4">
         <button
           onClick={() => router.push('/notifications')}
-          className="clay w-full p-4 text-left bg-gradient-to-br from-white to-grape-50/30 active:scale-[0.98] transition-transform"
+          className="clay w-full p-4 text-left active:scale-[0.98] transition-transform"
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -246,7 +246,7 @@ export default function SettingsPage() {
       </section>
 
       {/* App info */}
-      <section className="clay p-5 bg-gradient-to-br from-white to-clay-cream/20">
+      <section className="clay p-5">
         <h2 className="text-sm font-semibold text-warm-sub mb-3">앱 정보</h2>
         <div className="space-y-2">
           <div className="flex justify-between">

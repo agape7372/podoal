@@ -56,10 +56,10 @@ export default function MessagesPage() {
 
   const typeBg = (type: string) => {
     switch (type) {
-      case 'cheer': return 'from-clay-lavender/40 to-white';
-      case 'celebration': return 'from-clay-yellow/40 to-white';
-      case 'gift': return 'from-clay-pink/40 to-white';
-      default: return 'from-white to-grape-50/20';
+      case 'cheer': return 'bg-grape-50/60';
+      case 'celebration': return 'bg-amber-50/60';
+      case 'gift': return 'bg-pink-50/60';
+      default: return '';
     }
   };
 
@@ -85,7 +85,7 @@ export default function MessagesPage() {
               onClick={() => !msg.isRead && handleMarkRead(msg.id)}
               className={`
                 w-full clay-sm p-4 text-left transition-all
-                bg-gradient-to-br ${typeBg(msg.type)}
+                ${typeBg(msg.type)}
                 ${!msg.isRead ? 'ring-2 ring-grape-300/50' : 'opacity-80'}
               `}
             >

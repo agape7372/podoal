@@ -18,7 +18,7 @@ export default function Navigation() {
   const unreadCount = useAppStore((s) => s.unreadCount);
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-xl border-t border-warm-border/50 bottom-nav">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-gray-100 bottom-nav">
       <div className="max-w-lg mx-auto flex items-center justify-around py-2">
         {navItems.map((item) => {
           const isActive = pathname.startsWith(item.path);

@@ -84,7 +84,7 @@ export default function RelayListPage() {
                     <div
                       key={relay.id}
                       onClick={() => router.push(`/relay/${relay.id}`)}
-                      className="clay p-4 bg-gradient-to-br from-white to-clay-lavender/20 cursor-pointer active:scale-[0.98] transition-transform"
+                      className="clay p-4 cursor-pointer active:scale-[0.98] transition-transform"
                     >
                       <div className="flex items-start justify-between mb-3">
                         <div>
@@ -182,7 +182,7 @@ export default function RelayListPage() {
                     <div
                       key={relay.id}
                       onClick={() => router.push(`/relay/${relay.id}`)}
-                      className="clay p-4 bg-gradient-to-br from-white to-clay-mint/20 cursor-pointer active:scale-[0.98] transition-transform opacity-80"
+                      className="clay p-4 bg-emerald-50/60 cursor-pointer active:scale-[0.98] transition-transform opacity-80"
                     >
                       <div className="flex items-start justify-between mb-3">
                         <div>

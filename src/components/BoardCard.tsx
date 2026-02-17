@@ -13,10 +13,10 @@ export default function BoardCard({ board }: BoardCardProps) {
   const progress = Math.round((board.filledCount / board.totalStickers) * 100);
 
   const colorByProgress = () => {
-    if (board.isCompleted) return 'from-clay-mint/50 to-clay-yellow/30';
-    if (progress >= 70) return 'from-clay-lavender/50 to-clay-pink/30';
-    if (progress >= 30) return 'from-clay-peach/50 to-clay-cream/30';
-    return 'from-white to-clay-lavender/20';
+    if (board.isCompleted) return 'bg-emerald-50/60';
+    if (progress >= 70) return 'bg-grape-50/60';
+    if (progress >= 30) return 'bg-orange-50/60';
+    return '';
   };
 
   return (
@@ -24,7 +24,7 @@ export default function BoardCard({ board }: BoardCardProps) {
       onClick={() => router.push(`/board/${board.id}`)}
       className={`
         clay w-full p-4 text-left
-        bg-gradient-to-br ${colorByProgress()}
+        ${colorByProgress()}
         active:scale-[0.98] transition-transform
       `}
     >

@@ -43,6 +43,18 @@ export default function CreateRelayPage() {
     );
   };
 
+  const moveFriend = (userId: string, direction: -1 | 1) => {
+    setSelectedFriendIds((prev) => {
+      const idx = prev.indexOf(userId);
+      if (idx < 0) return prev;
+      const newIdx = idx + direction;
+      if (newIdx < 0 || newIdx >= prev.length) return prev;
+      const next = [...prev];
+      [next[idx], next[newIdx]] = [next[newIdx], next[idx]];
+      return next;
+    });
+  };
+
   const handleCreate = async () => {
     if (!title.trim()) {
       setError('제목을 입력해주세요');
@@ -126,8 +138,8 @@ export default function CreateRelayPage() {
                   clay-button p-4 rounded-2xl text-center transition-all
                   ${
                     totalStickers === size.value
-                      ? 'ring-2 ring-grape-400 bg-gradient-to-br from-clay-lavender/60 to-clay-lavender/30'
-                      : 'bg-gradient-to-br from-white to-grape-50/30'
+                      ? 'ring-2 ring-grape-400 bg-grape-50'
+                      : ''
                   }
                 `}
               >
@@ -159,7 +171,7 @@ export default function CreateRelayPage() {
               ))}
             </div>
           ) : friends.length === 0 ? (
-            <div className="clay-sm p-6 text-center bg-gradient-to-br from-white to-gray-50/50">
+            <div className="clay-sm p-6 text-center">
               <p className="text-sm text-warm-sub mb-1">
                 아직 친구가 없어요
               </p>
@@ -187,8 +199,8 @@ export default function CreateRelayPage() {
                       w-full flex items-center gap-3 p-3 rounded-2xl transition-all
                       ${
                         isSelected
-                          ? 'clay bg-gradient-to-br from-grape-50 to-clay-lavender/30 ring-2 ring-grape-300'
-                          : 'clay-sm bg-gradient-to-br from-white to-gray-50/50'
+                          ? 'clay bg-grape-50 ring-2 ring-grape-300'
+                          : 'clay-sm'
                       }
                     `}
                   >
@@ -227,30 +239,60 @@ export default function CreateRelayPage() {
           )}
         </div>
 
-        {/* Order preview */}
+        {/* Order preview & reorder */}
         {orderedParticipants.length > 1 && (
           <div>
-            <label className="block text-sm font-medium text-warm-sub mb-3 ml-1">
-              릴레이 순서 미리보기
+            <label className="block text-sm font-medium text-warm-sub mb-2 ml-1">
+              릴레이 순서
             </label>
-            <div className="clay p-4 bg-gradient-to-br from-white to-clay-lavender/10">
-              <div className="flex items-center gap-2 flex-wrap">
-                {orderedParticipants.map((p, idx) => (
-                  <div key={p.id} className="flex items-center gap-2">
-                    <div className="flex flex-col items-center">
-                      <Avatar avatar={p.avatar} size="sm" />
-                      <span className="text-xs text-warm-sub mt-1">
-                        {p.isCreator ? '나' : p.name}
-                      </span>
+            <p className="text-xs text-warm-light mb-3 ml-1">
+              버튼으로 친구 순서를 변경할 수 있어요
+            </p>
+            <div className="clay p-4 space-y-2">
+              {orderedParticipants.map((p, idx) => (
+                <div
+                  key={p.id}
+                  className={`flex items-center gap-3 p-2.5 rounded-xl transition-all ${
+                    p.isCreator
+                      ? 'bg-grape-50'
+                      : 'bg-white/60'
+                  }`}
+                >
+                  <span className="text-xs font-bold text-grape-500 w-5 text-center flex-shrink-0">
+                    {idx + 1}
+                  </span>
+                  <Avatar avatar={p.avatar} size="sm" />
+                  <span className="text-sm font-medium text-warm-text flex-1">
+                    {p.isCreator ? `${p.name} (나)` : p.name}
+                  </span>
+                  {!p.isCreator && (
+                    <div className="flex gap-1 flex-shrink-0">
+                      <button
+                        onClick={() => moveFriend(p.id, -1)}
+                        disabled={idx <= 1}
+                        className={`w-7 h-7 rounded-lg flex items-center justify-center text-sm transition-all ${
+                          idx <= 1
+                            ? 'text-gray-300 bg-gray-50'
+                            : 'text-grape-500 clay-button'
+                        }`}
+                      >
+                        {'\u25B2'}
+                      </button>
+                      <button
+                        onClick={() => moveFriend(p.id, 1)}
+                        disabled={idx >= orderedParticipants.length - 1}
+                        className={`w-7 h-7 rounded-lg flex items-center justify-center text-sm transition-all ${
+                          idx >= orderedParticipants.length - 1
+                            ? 'text-gray-300 bg-gray-50'
+                            : 'text-grape-500 clay-button'
+                        }`}
+                      >
+                        {'\u25BC'}
+                      </button>
                     </div>
-                    {idx < orderedParticipants.length - 1 && (
-                      <div className="text-grape-400 font-bold text-lg mx-1">
-                        {'\u2192'}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
         )}

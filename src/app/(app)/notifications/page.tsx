@@ -175,7 +175,7 @@ export default function NotificationsPage() {
       <h1 className="text-2xl font-bold text-grape-700 mb-6">알림 설정</h1>
 
       {/* Global toggle */}
-      <section className="clay p-5 mb-4 bg-gradient-to-br from-white to-grape-50/50">
+      <section className="clay p-5 mb-4">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-base font-bold text-warm-text">전체 알림</p>
@@ -192,7 +192,7 @@ export default function NotificationsPage() {
       </section>
 
       {/* DND section */}
-      <section className={`clay p-5 mb-4 bg-gradient-to-br from-white to-clay-lavender/20 transition-opacity ${!settings.globalEnabled ? 'opacity-50 pointer-events-none' : ''}`}>
+      <section className={`clay p-5 mb-4 transition-opacity ${!settings.globalEnabled ? 'opacity-50 pointer-events-none' : ''}`}>
         <h2 className="text-sm font-semibold text-warm-sub mb-4">방해금지 시간</h2>
         <div className="flex items-center gap-3">
           <div className="flex-1">
@@ -221,7 +221,7 @@ export default function NotificationsPage() {
       </section>
 
       {/* Category toggles */}
-      <section className={`clay p-5 mb-4 bg-gradient-to-br from-white to-clay-pink/10 transition-opacity ${!settings.globalEnabled ? 'opacity-50 pointer-events-none' : ''}`}>
+      <section className={`clay p-5 mb-4 transition-opacity ${!settings.globalEnabled ? 'opacity-50 pointer-events-none' : ''}`}>
         <h2 className="text-sm font-semibold text-warm-sub mb-4">카테고리 알림</h2>
         <div className="space-y-4">
           {CATEGORY_ITEMS.map((item) => (
@@ -243,7 +243,7 @@ export default function NotificationsPage() {
       </section>
 
       {/* Reminders section */}
-      <section className={`clay p-5 mb-4 bg-gradient-to-br from-white to-clay-mint/20 transition-opacity ${!settings.globalEnabled ? 'opacity-50 pointer-events-none' : ''}`}>
+      <section className={`clay p-5 mb-4 transition-opacity ${!settings.globalEnabled ? 'opacity-50 pointer-events-none' : ''}`}>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-sm font-semibold text-warm-sub">리마인더 관리</h2>
           <button

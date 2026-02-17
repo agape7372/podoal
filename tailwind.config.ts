@@ -22,7 +22,7 @@ const config: Config = {
           900: '#581c87',
         },
         clay: {
-          bg: '#FFF8F3',
+          bg: '#F9F8FC',
           surface: '#FFFFFF',
           pink: '#FFD4E0',
           mint: '#C5EBD6',
@@ -44,10 +44,10 @@ const config: Config = {
         'clay-xl': '36px',
       },
       boxShadow: {
-        clay: '8px 8px 16px rgba(0, 0, 0, 0.08), -4px -4px 12px rgba(255, 255, 255, 0.9), inset 2px 2px 4px rgba(255, 255, 255, 0.7), inset -1px -1px 3px rgba(0, 0, 0, 0.04)',
-        'clay-sm': '4px 4px 8px rgba(0, 0, 0, 0.06), -2px -2px 6px rgba(255, 255, 255, 0.9), inset 1px 1px 2px rgba(255, 255, 255, 0.7), inset -1px -1px 2px rgba(0, 0, 0, 0.03)',
-        'clay-pressed': 'inset 4px 4px 8px rgba(0, 0, 0, 0.08), inset -2px -2px 6px rgba(255, 255, 255, 0.6), 2px 2px 4px rgba(255, 255, 255, 0.5)',
-        'clay-float': '12px 12px 24px rgba(0, 0, 0, 0.1), -6px -6px 16px rgba(255, 255, 255, 0.95), inset 3px 3px 6px rgba(255, 255, 255, 0.8), inset -2px -2px 4px rgba(0, 0, 0, 0.05)',
+        clay: '0 2px 8px rgba(0, 0, 0, 0.06)',
+        'clay-sm': '0 1px 4px rgba(0, 0, 0, 0.05)',
+        'clay-pressed': 'inset 0 2px 4px rgba(0, 0, 0, 0.06)',
+        'clay-float': '0 4px 16px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.04)',
       },
       fontFamily: {
         sans: ['"Noto Sans KR"', 'system-ui', '-apple-system', 'sans-serif'],
