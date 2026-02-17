@@ -1,0 +1,98 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  avatar    String   @default("grape")
+  createdAt DateTime @default(now())
+
+  boards         Board[]      @relation("BoardOwner")
+  receivedBoards Board[]      @relation("BoardReceiver")
+  giftedBoards   Board[]      @relation("BoardGifter")
+  sentFriendReqs Friendship[] @relation("FriendRequester")
+  recvFriendReqs Friendship[] @relation("FriendReceiver")
+  sentMessages   Message[]    @relation("MessageSender")
+  recvMessages   Message[]    @relation("MessageReceiver")
+  stickers       Sticker[]
+}
+
+model Board {
+  id            String   @id @default(cuid())
+  title         String
+  description   String   @default("")
+  totalStickers Int      @default(10)
+  ownerId       String
+  giftedToId    String?
+  giftedFromId  String?
+  isCompleted   Boolean  @default(false)
+  completedAt   DateTime?
+  createdAt     DateTime @default(now())
+
+  owner      User      @relation("BoardOwner", fields: [ownerId], references: [id])
+  giftedTo   User?     @relation("BoardReceiver", fields: [giftedToId], references: [id])
+  giftedFrom User?     @relation("BoardGifter", fields: [giftedFromId], references: [id])
+  stickers   Sticker[]
+  reward     Reward?
+}
+
+model Sticker {
+  id       String   @id @default(cuid())
+  boardId  String
+  position Int
+  filledAt DateTime @default(now())
+  filledBy String
+
+  board  Board @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  filler User  @relation(fields: [filledBy], references: [id])
+
+  @@unique([boardId, position])
+}
+
+model Reward {
+  id       String @id @default(cuid())
+  boardId  String @unique
+  type     String // "letter" | "giftcard" | "wish"
+  title    String
+  content  String
+  imageUrl String @default("")
+
+  board Board @relation(fields: [boardId], references: [id], onDelete: Cascade)
+}
+
+model Friendship {
+  id          String   @id @default(cuid())
+  requesterId String
+  receiverId  String
+  status      String   @default("pending") // "pending" | "accepted"
+  isFavorite  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  requester User @relation("FriendRequester", fields: [requesterId], references: [id])
+  receiver  User @relation("FriendReceiver", fields: [receiverId], references: [id])
+
+  @@unique([requesterId, receiverId])
+}
+
+model Message {
+  id         String   @id @default(cuid())
+  senderId   String
+  receiverId String
+  boardId    String?
+  content    String
+  type       String   @default("cheer") // "cheer" | "celebration" | "gift"
+  emoji      String   @default("🍇")
+  isRead     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  sender   User @relation("MessageSender", fields: [senderId], references: [id])
+  receiver User @relation("MessageReceiver", fields: [receiverId], references: [id])
+}

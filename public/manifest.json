@@ -1,0 +1,10 @@
+{
+  "name": "포도알 - 칭찬 스티커 보상표",
+  "short_name": "포도알",
+  "description": "포도알 칭찬 스티커로 목표를 달성하고 소중한 사람에게 응원을 보내세요",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FFF8F3",
+  "theme_color": "#9B7ED8",
+  "icons": []
+}

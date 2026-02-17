@@ -1,0 +1,195 @@
+'use client';
+
+import { useEffect, useState, useCallback } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import { api } from '@/lib/api';
+import { useAppStore } from '@/lib/store';
+import GrapeBoard from '@/components/GrapeBoard';
+import RewardReveal from '@/components/RewardReveal';
+import GiftBoardModal from '@/components/GiftBoardModal';
+import ClayButton from '@/components/ClayButton';
+import Avatar from '@/components/Avatar';
+import type { BoardDetail } from '@/types';
+
+export default function BoardDetailPage() {
+  const { id } = useParams<{ id: string }>();
+  const router = useRouter();
+  const user = useAppStore((s) => s.user);
+  const [board, setBoard] = useState<BoardDetail | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [showGift, setShowGift] = useState(false);
+  const [showReward, setShowReward] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  const fetchBoard = useCallback(async () => {
+    try {
+      const data = await api<{ board: BoardDetail }>(`/api/boards/${id}`);
+      setBoard(data.board);
+    } catch {
+      router.replace('/home');
+    } finally {
+      setLoading(false);
+    }
+  }, [id, router]);
+
+  useEffect(() => {
+    fetchBoard();
+  }, [fetchBoard]);
+
+  const handleFillSticker = async (position: number) => {
+    await api(`/api/boards/${id}/stickers`, {
+      method: 'POST',
+      json: { position },
+    });
+    await fetchBoard();
+  };
+
+  const handleGift = async (friendId: string) => {
+    await api(`/api/boards/${id}/gift`, {
+      method: 'POST',
+      json: { friendId },
+    });
+  };
+
+  const handleDelete = async () => {
+    if (!confirm('정말 삭제할까요?')) return;
+    setDeleting(true);
+    try {
+      await api(`/api/boards/${id}`, { method: 'DELETE' });
+      router.replace('/home');
+    } catch {
+      setDeleting(false);
+    }
+  };
+
+  if (loading || !board) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <div className="text-5xl animate-float mb-4">🍇</div>
+          <p className="text-warm-sub">포도판 불러오는 중...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const isOwner = user?.id === board.owner.id;
+  const filledCount = board.stickers.length;
+  const progress = Math.round((filledCount / board.totalStickers) * 100);
+
+  return (
+    <div className="pb-4">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-4">
+        <button onClick={() => router.push('/home')} className="text-warm-sub text-sm">
+          ← 돌아가기
+        </button>
+        {isOwner && (
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowGift(true)}
+              className="clay-button px-3 py-1.5 rounded-xl text-sm"
+            >
+              🎁 선물
+            </button>
+            <button
+              onClick={handleDelete}
+              disabled={deleting}
+              className="clay-button px-3 py-1.5 rounded-xl text-sm text-red-400"
+            >
+              삭제
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Board info */}
+      <div className="text-center mb-6">
+        <h1 className="text-2xl font-bold text-grape-700 mb-1">{board.title}</h1>
+        {board.description && (
+          <p className="text-sm text-warm-sub mb-2">{board.description}</p>
+        )}
+
+        {/* Gifted info */}
+        {board.giftedFrom && (
+          <div className="inline-flex items-center gap-2 clay-sm px-3 py-1.5 bg-gradient-to-r from-clay-pink/30 to-clay-lavender/30">
+            <Avatar avatar={board.giftedFrom.avatar} size="sm" />
+            <span className="text-xs text-warm-sub">
+              {board.giftedFrom.name}님이 선물한 포도판
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Grape Board */}
+      <div className="clay-float p-6 mb-6 bg-gradient-to-br from-white to-clay-lavender/20">
+        <GrapeBoard
+          board={board}
+          onFill={handleFillSticker}
+          canFill={isOwner && !board.isCompleted}
+        />
+      </div>
+
+      {/* Reward section */}
+      {board.reward && (
+        <div className="mb-6">
+          {showReward ? (
+            <RewardReveal
+              reward={board.reward}
+              isCompleted={board.isCompleted}
+              onClose={() => setShowReward(false)}
+            />
+          ) : (
+            <button
+              onClick={() => setShowReward(true)}
+              className={`
+                w-full clay p-5 text-center transition-all
+                ${board.isCompleted
+                  ? 'bg-gradient-to-br from-clay-yellow/40 to-clay-mint/30 reward-glow'
+                  : 'bg-gradient-to-br from-clay-lavender/30 to-white'
+                }
+              `}
+            >
+              <span className="text-3xl">{board.isCompleted ? '🎁' : '🔒'}</span>
+              <p className="text-sm font-medium text-grape-600 mt-2">
+                {board.isCompleted ? '보상 확인하기' : `${board.totalStickers - filledCount}알 더 채우면 열려요`}
+              </p>
+              <p className="text-xs text-warm-sub mt-1">
+                {progress}% 달성
+              </p>
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Recent sticker activity */}
+      {board.stickers.length > 0 && (
+        <div>
+          <h3 className="text-sm font-semibold text-warm-sub mb-3">최근 활동</h3>
+          <div className="space-y-2">
+            {board.stickers.slice(-5).reverse().map((sticker) => (
+              <div key={sticker.id} className="clay-sm p-3 flex items-center gap-2 bg-gradient-to-r from-white to-grape-50/30">
+                <span className="text-lg">🍇</span>
+                <span className="text-sm text-warm-text">
+                  {sticker.position + 1}번째 포도알
+                </span>
+                <span className="text-xs text-warm-light ml-auto">
+                  {new Date(sticker.filledAt).toLocaleDateString('ko-KR')}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Gift modal */}
+      {showGift && (
+        <GiftBoardModal
+          boardTitle={board.title}
+          onGift={handleGift}
+          onClose={() => setShowGift(false)}
+        />
+      )}
+    </div>
+  );
+}
