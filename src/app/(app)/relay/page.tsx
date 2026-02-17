@@ -7,6 +7,7 @@ import { api } from '@/lib/api';
 import ClayButton from '@/components/ClayButton';
 import Avatar from '@/components/Avatar';
 import type { RelayInfo } from '@/types';
+import { feedbackTap } from '@/lib/feedback';
 
 export default function RelayListPage() {
   const router = useRouter();
@@ -83,7 +84,7 @@ export default function RelayListPage() {
                   return (
                     <div
                       key={relay.id}
-                      onClick={() => router.push(`/relay/${relay.id}`)}
+                      onClick={() => { feedbackTap(); router.push(`/relay/${relay.id}`); }}
                       className="clay p-4 cursor-pointer active:scale-[0.98] transition-transform"
                     >
                       <div className="flex items-start justify-between mb-3">
@@ -165,7 +166,7 @@ export default function RelayListPage() {
           {completedRelays.length > 0 && (
             <div>
               <button
-                onClick={() => setShowCompleted(!showCompleted)}
+                onClick={() => { feedbackTap(); setShowCompleted(!showCompleted); }}
                 className="flex items-center gap-2 text-sm font-semibold text-warm-sub mb-3"
               >
                 <span

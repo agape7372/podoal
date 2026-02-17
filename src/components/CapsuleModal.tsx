@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import ClayButton from './ClayButton';
 import type { TimeCapsuleInfo } from '@/types';
+import { feedbackCapsuleOpen, feedbackSuccess, feedbackTap } from '@/lib/feedback';
 
 interface CapsuleModalProps {
   boardId: string;
@@ -64,6 +65,7 @@ export default function CapsuleModal({ boardId, isOwner, onClose }: CapsuleModal
       setMessage('');
       setEmoji('🍇');
       setOpenAt('');
+      feedbackSuccess();
       await fetchCapsules();
       setTab('list');
     } catch (e) {
@@ -77,6 +79,7 @@ export default function CapsuleModal({ boardId, isOwner, onClose }: CapsuleModal
     setOpeningId(capsuleId);
     try {
       await api(`/api/capsules/${capsuleId}/open`, { method: 'POST' });
+      feedbackCapsuleOpen();
       setJustOpenedId(capsuleId);
       await fetchCapsules();
       // Clear just-opened animation after a delay
@@ -121,7 +124,7 @@ export default function CapsuleModal({ boardId, isOwner, onClose }: CapsuleModal
         <div className="flex gap-2 mb-5">
           {isOwner && (
             <button
-              onClick={() => setTab('create')}
+              onClick={() => { feedbackTap(); setTab('create'); }}
               className={`
                 flex-1 px-4 py-2.5 rounded-xl text-sm font-medium transition-all
                 ${tab === 'create'
@@ -134,7 +137,7 @@ export default function CapsuleModal({ boardId, isOwner, onClose }: CapsuleModal
             </button>
           )}
           <button
-            onClick={() => setTab('list')}
+            onClick={() => { feedbackTap(); setTab('list'); }}
             className={`
               flex-1 px-4 py-2.5 rounded-xl text-sm font-medium transition-all
               ${tab === 'list'

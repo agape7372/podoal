@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Avatar from './Avatar';
 import ClayButton from './ClayButton';
 import type { FriendInfo } from '@/types';
+import { feedbackSuccess, feedbackTap } from '@/lib/feedback';
 
 interface FriendCardProps {
   friend: FriendInfo;
@@ -35,6 +36,7 @@ export default function FriendCard({
   const handleAccept = async () => {
     setLoading(true);
     await onAccept?.(friend.id);
+    feedbackSuccess();
     setLoading(false);
   };
 
@@ -71,21 +73,21 @@ export default function FriendCard({
           ) : (
             <>
               <button
-                onClick={() => onViewBoards?.(friend.user.id)}
+                onClick={() => { feedbackTap(); onViewBoards?.(friend.user.id); }}
                 className="clay-button p-2 rounded-xl text-sm font-medium text-grape-500 transition-all active:scale-95"
                 title="포도판 보기"
               >
                 🍇
               </button>
               <button
-                onClick={() => onSendCheer?.(friend.user.id)}
+                onClick={() => { feedbackTap(); onSendCheer?.(friend.user.id); }}
                 className="clay-button p-2 rounded-xl text-lg transition-all active:scale-95"
                 title="응원 보내기"
               >
                 💜
               </button>
               <button
-                onClick={() => onToggleFavorite?.(friend.id)}
+                onClick={() => { feedbackTap(); onToggleFavorite?.(friend.id); }}
                 className="clay-button p-2 rounded-xl text-lg transition-all active:scale-95"
                 title={friend.isFavorite ? '즐겨찾기 해제' : '즐겨찾기'}
               >

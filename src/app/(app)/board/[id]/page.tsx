@@ -11,6 +11,7 @@ import ShareCardModal from '@/components/ShareCardModal';
 import CapsuleModal from '@/components/CapsuleModal';
 import Avatar from '@/components/Avatar';
 import type { BoardDetail } from '@/types';
+import { feedbackTap } from '@/lib/feedback';
 
 export default function BoardDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -83,25 +84,25 @@ export default function BoardDetailPage() {
     <div className="pb-4">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <button onClick={() => router.push('/home')} className="text-warm-sub text-sm">
+        <button onClick={() => { feedbackTap(); router.push('/home'); }} className="text-warm-sub text-sm">
           ← 돌아가기
         </button>
         {isOwner && (
           <div className="flex gap-2">
             <button
-              onClick={() => setShowShare(true)}
+              onClick={() => { feedbackTap(); setShowShare(true); }}
               className="clay-button px-3 py-1.5 rounded-xl text-sm"
             >
               📤 공유
             </button>
             <button
-              onClick={() => setShowCapsule(true)}
+              onClick={() => { feedbackTap(); setShowCapsule(true); }}
               className="clay-button px-3 py-1.5 rounded-xl text-sm"
             >
               💊 동결건조
             </button>
             <button
-              onClick={() => setShowGift(true)}
+              onClick={() => { feedbackTap(); setShowGift(true); }}
               className="clay-button px-3 py-1.5 rounded-xl text-sm"
             >
               🎁 선물

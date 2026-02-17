@@ -7,6 +7,7 @@ import CheerModal from '@/components/CheerModal';
 import ClayButton from '@/components/ClayButton';
 import ClayInput from '@/components/ClayInput';
 import type { FriendInfo } from '@/types';
+import { feedbackSuccess, feedbackTap } from '@/lib/feedback';
 
 export default function FriendsPage() {
   const [friends, setFriends] = useState<FriendInfo[]>([]);
@@ -37,6 +38,7 @@ export default function FriendsPage() {
     setAddSuccess('');
     try {
       await api('/api/friends', { method: 'POST', json: { email: addEmail.trim() } });
+      feedbackSuccess();
       setAddSuccess('친구 요청을 보냈어요!');
       setAddEmail('');
     } catch (e) {
@@ -118,7 +120,7 @@ export default function FriendsPage() {
       {/* Tab */}
       <div className="flex gap-2 mb-4">
         <button
-          onClick={() => setTab('friends')}
+          onClick={() => { feedbackTap(); setTab('friends'); }}
           className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
             tab === 'friends' ? 'clay-pressed text-grape-600' : 'clay-button text-warm-sub'
           }`}
@@ -126,7 +128,7 @@ export default function FriendsPage() {
           전체 ({friends.length})
         </button>
         <button
-          onClick={() => setTab('favorite')}
+          onClick={() => { feedbackTap(); setTab('favorite'); }}
           className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
             tab === 'favorite' ? 'clay-pressed text-grape-600' : 'clay-button text-warm-sub'
           }`}

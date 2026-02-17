@@ -8,6 +8,7 @@ import BoardCard from '@/components/BoardCard';
 import ClayButton from '@/components/ClayButton';
 import Avatar from '@/components/Avatar';
 import type { BoardSummary } from '@/types';
+import { feedbackTap } from '@/lib/feedback';
 
 export default function HomePage() {
   const router = useRouter();
@@ -80,7 +81,7 @@ export default function HomePage() {
         {(['all', 'active', 'completed'] as const).map((f) => (
           <button
             key={f}
-            onClick={() => setFilter(f)}
+            onClick={() => { feedbackTap(); setFilter(f); }}
             className={`
               px-4 py-2 rounded-xl text-sm font-medium transition-all
               ${filter === f
@@ -127,7 +128,7 @@ export default function HomePage() {
       {/* FAB */}
       {boards.length > 0 && (
         <button
-          onClick={() => router.push('/board/create')}
+          onClick={() => { feedbackTap(); router.push('/board/create'); }}
           className="fixed bottom-24 right-6 w-14 h-14 rounded-full flex items-center justify-center text-2xl bg-grape-500 text-white shadow-lg shadow-grape-500/25 active:scale-95 transition-all hover:bg-grape-600 z-40"
         >
           +

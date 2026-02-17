@@ -9,6 +9,7 @@ import Avatar from '@/components/Avatar';
 import { useAppStore } from '@/lib/store';
 import { BOARD_SIZES } from '@/types';
 import type { FriendInfo } from '@/types';
+import { feedbackSuccess, feedbackTap } from '@/lib/feedback';
 
 export default function CreateRelayPage() {
   const router = useRouter();
@@ -76,6 +77,7 @@ export default function CreateRelayPage() {
           friendIds: selectedFriendIds,
         },
       });
+      feedbackSuccess();
       router.replace(`/relay/${data.relay.id}`);
     } catch (e) {
       setError(e instanceof Error ? e.message : '생성에 실패했어요');
@@ -102,7 +104,7 @@ export default function CreateRelayPage() {
     <div className="pb-4">
       {/* Back button */}
       <button
-        onClick={() => router.push('/relay')}
+        onClick={() => { feedbackTap(); router.push('/relay'); }}
         className="clay-button px-3 py-2 rounded-xl text-sm text-warm-sub mb-4"
       >
         {'\u2190'} 릴레이 목록

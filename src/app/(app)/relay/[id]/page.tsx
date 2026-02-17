@@ -7,6 +7,7 @@ import { useAppStore } from '@/lib/store';
 import ClayButton from '@/components/ClayButton';
 import Avatar from '@/components/Avatar';
 import type { RelayInfo } from '@/types';
+import { feedbackRelay, feedbackSuccess, feedbackTap } from '@/lib/feedback';
 
 interface RelayDetailParticipant {
   id: string;
@@ -61,6 +62,7 @@ export default function RelayDetailPage() {
     setMessage('');
     try {
       await api(`/api/relays/${relayId}/join`, { method: 'POST' });
+      feedbackSuccess();
       setMessage('릴레이에 참여했어요!');
       await fetchRelay();
     } catch (e) {
@@ -77,6 +79,7 @@ export default function RelayDetailPage() {
         `/api/relays/${relayId}/pass`,
         { method: 'POST' }
       );
+      feedbackRelay();
       setMessage(data.message);
       await fetchRelay();
     } catch (e) {
@@ -127,7 +130,7 @@ export default function RelayDetailPage() {
     <div className="pb-4">
       {/* Back button */}
       <button
-        onClick={() => router.push('/relay')}
+        onClick={() => { feedbackTap(); router.push('/relay'); }}
         className="clay-button px-3 py-2 rounded-xl text-sm text-warm-sub mb-4"
       >
         {'\u2190'} 릴레이 목록

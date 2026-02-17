@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import type { BoardSummary } from '@/types';
 import Avatar from './Avatar';
+import { feedbackTap } from '@/lib/feedback';
 
 interface BoardCardProps {
   board: BoardSummary;
@@ -21,7 +22,7 @@ export default function BoardCard({ board }: BoardCardProps) {
 
   return (
     <button
-      onClick={() => router.push(`/board/${board.id}`)}
+      onClick={() => { feedbackTap(); router.push(`/board/${board.id}`); }}
       className={`
         clay w-full p-4 text-left
         ${colorByProgress()}

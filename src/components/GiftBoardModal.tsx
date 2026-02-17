@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Avatar from './Avatar';
 import ClayButton from './ClayButton';
 import type { FriendInfo } from '@/types';
+import { feedbackSuccess, feedbackTap } from '@/lib/feedback';
 
 interface GiftBoardModalProps {
   boardTitle: string;
@@ -31,6 +32,7 @@ export default function GiftBoardModal({ boardTitle, onGift, onClose }: GiftBoar
     if (!selectedFriend) return;
     setSending(true);
     await onGift(selectedFriend);
+    feedbackSuccess();
     setSending(false);
     onClose();
   };
@@ -66,7 +68,7 @@ export default function GiftBoardModal({ boardTitle, onGift, onClose }: GiftBoar
             {friends.map((friend) => (
               <button
                 key={friend.id}
-                onClick={() => setSelectedFriend(friend.user.id)}
+                onClick={() => { feedbackTap(); setSelectedFriend(friend.user.id); }}
                 className={`
                   w-full clay-sm p-3 flex items-center gap-3 transition-all
                   ${selectedFriend === friend.user.id

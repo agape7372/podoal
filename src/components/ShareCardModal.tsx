@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import ClayButton from './ClayButton';
 import { generateShareCard } from '@/lib/shareCard';
 import type { BoardDetail, ShareCardData } from '@/types';
+import { feedbackSuccess } from '@/lib/feedback';
 
 interface ShareCardModalProps {
   board: BoardDetail;
@@ -52,6 +53,7 @@ export default function ShareCardModal({ board, userName, onClose }: ShareCardMo
 
   const handleDownload = () => {
     if (!imageBlob) return;
+    feedbackSuccess();
     const url = URL.createObjectURL(imageBlob);
     const a = document.createElement('a');
     a.href = url;

@@ -10,6 +10,7 @@ import { BOARD_SIZES, REWARD_TYPE_LABELS } from '@/types';
 import type { RewardType } from '@/types';
 import { TEMPLATE_CATEGORIES, getTemplatesByCategory } from '@/lib/templates';
 import type { HabitTemplate } from '@/lib/templates';
+import { feedbackSuccess, feedbackTap } from '@/lib/feedback';
 
 export default function CreateBoardPage() {
   const router = useRouter();
@@ -28,6 +29,7 @@ export default function CreateBoardPage() {
   const stepLabels = ['템플릿', '기본 정보', '포도 크기', '보상 설정'];
 
   const handleSelectTemplate = (template: HabitTemplate) => {
+    feedbackTap();
     setTemplateId(template.id);
     setTitle(`${template.icon} ${template.name}`);
     setDescription(template.description);
@@ -70,6 +72,7 @@ export default function CreateBoardPage() {
           }],
         },
       });
+      feedbackSuccess();
       router.replace(`/board/${data.board.id}`);
     } catch (e) {
       setError(e instanceof Error ? e.message : '생성에 실패했어요');

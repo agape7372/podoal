@@ -6,6 +6,7 @@ import { useAppStore } from '@/lib/store';
 import Avatar from '@/components/Avatar';
 import Heatmap from '@/components/Heatmap';
 import type { EnhancedStats } from '@/types';
+import { feedbackTap } from '@/lib/feedback';
 
 type Tab = 'summary' | 'heatmap' | 'analysis';
 
@@ -78,7 +79,7 @@ export default function StatsPage() {
         {tabs.map((tab) => (
           <button
             key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
+            onClick={() => { feedbackTap(); setActiveTab(tab.key); }}
             className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
               activeTab === tab.key
                 ? 'clay-button bg-white text-grape-700 shadow-sm'
