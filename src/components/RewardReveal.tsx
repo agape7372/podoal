@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import type { RewardInfo } from '@/types';
 import { REWARD_TYPE_LABELS } from '@/types';
 import ClayButton from './ClayButton';
+import { feedbackReward } from '@/lib/feedback';
 
 interface RewardRevealProps {
   reward: RewardInfo;
@@ -24,6 +25,7 @@ export default function RewardReveal({ reward, isCompleted, onClose }: RewardRev
     if (!isCompleted) return;
     setIsRevealed(true);
     triggerConfetti();
+    feedbackReward();
   };
 
   useEffect(() => {
