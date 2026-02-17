@@ -22,7 +22,7 @@ export default function BoardDetailPage() {
   const [showGift, setShowGift] = useState(false);
   const [showShare, setShowShare] = useState(false);
   const [showCapsule, setShowCapsule] = useState(false);
-  const [showReward, setShowReward] = useState<string | null>(null);
+  const [revealedRewards, setRevealedRewards] = useState<Set<string>>(new Set());
   const [deleting, setDeleting] = useState(false);
 
   const fetchBoard = useCallback(async () => {
@@ -153,18 +153,21 @@ export default function BoardDetailPage() {
           </h3>
           {board.rewards.map((reward) => {
             const isUnlocked = filledCount >= reward.triggerAt;
+            const isRevealed = revealedRewards.has(reward.id);
             const remaining = reward.triggerAt - filledCount;
             return (
               <div key={reward.id}>
-                {showReward === reward.id ? (
+                {isRevealed ? (
                   <RewardReveal
                     reward={reward}
                     isCompleted={isUnlocked}
-                    onClose={() => setShowReward(null)}
                   />
                 ) : (
                   <button
-                    onClick={() => isUnlocked && setShowReward(reward.id)}
+                    onClick={() => {
+                      if (!isUnlocked) return;
+                      setRevealedRewards((prev) => new Set(prev).add(reward.id));
+                    }}
                     className={`
                       w-full clay p-4 text-center transition-all
                       ${isUnlocked
