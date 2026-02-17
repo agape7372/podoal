@@ -10,13 +10,8 @@ interface GrapeStickerProps {
   onClick: () => void;
 }
 
-const sizeMap = {
-  sm: 'w-10 h-10',
-  md: 'w-12 h-12',
-  lg: 'w-14 h-14',
-};
-
 export default function GrapeSticker({
+  position,
   isFilled,
   isJustFilled,
   isFilling,
@@ -29,23 +24,25 @@ export default function GrapeSticker({
       onClick={onClick}
       disabled={!canFill || isFilling}
       className={`
-        ${sizeMap[size]}
-        rounded-full no-select
+        w-full h-full rounded-full no-select relative
         transition-all duration-200
         flex items-center justify-center
         ${isFilled
-          ? `clay-grape ${isJustFilled ? 'animate-grape-fill' : ''}`
-          : 'clay-grape-empty'
+          ? `grape-filled ${isJustFilled ? 'animate-grape-fill' : ''}`
+          : 'grape-empty'
         }
-        ${isFilling ? 'animate-pulse' : ''}
-        ${canFill ? '' : isFilled ? '' : 'opacity-90'}
+        ${isFilling ? 'animate-pulse scale-90' : ''}
+        ${canFill ? 'cursor-pointer active:scale-90' : ''}
       `}
-      aria-label={isFilled ? '채워진 포도알' : '빈 포도알'}
+      aria-label={isFilled ? '채워진 포도알' : `포도알 ${position + 1}`}
     >
-      {isFilled ? (
-        <span className={`text-lg ${isJustFilled ? 'animate-pop' : ''}`}>🍇</span>
-      ) : (
-        <span className="text-warm-light/50 text-xs">○</span>
+      {!isFilled && (
+        <span className={`
+          font-medium select-none text-warm-light/40
+          ${size === 'lg' ? 'text-xs' : size === 'md' ? 'text-[10px]' : 'text-[8px]'}
+        `}>
+          {position + 1}
+        </span>
       )}
     </button>
   );

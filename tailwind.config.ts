@@ -52,6 +52,19 @@ const config: Config = {
       fontFamily: {
         sans: ['"Noto Sans KR"', 'system-ui', '-apple-system', 'sans-serif'],
       },
+      lineHeight: {
+        snug: '1.4',
+        normal: '1.6',
+        relaxed: '1.7',
+        loose: '1.85',
+      },
+      letterSpacing: {
+        tighter: '-0.03em',
+        tight: '-0.02em',
+        normal: '-0.01em',
+        wide: '0.01em',
+        wider: '0.03em',
+      },
       animation: {
         'bounce-in': 'bounceIn 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97)',
         'pop': 'pop 0.3s cubic-bezier(0.36, 0.07, 0.19, 0.97)',

@@ -31,7 +31,9 @@ export async function GET(
         },
         orderBy: { position: 'asc' },
       },
-      reward: true,
+      rewards: {
+        orderBy: { triggerAt: 'asc' },
+      },
     },
   });
 
@@ -44,35 +46,36 @@ export async function GET(
     return authResponse('Forbidden', 403);
   }
 
-  // Hide reward content if the board is not completed
-  const reward = board.reward
-    ? board.isCompleted
-      ? board.reward
-      : {
-          id: board.reward.id,
-          boardId: board.reward.boardId,
-          type: board.reward.type,
-          title: board.reward.title,
-          content: '',
-          imageUrl: '',
-        }
-    : null;
+  const filledCount = board.stickers.length;
+
+  // Process rewards: hide content/imageUrl for rewards where filledCount < triggerAt
+  const rewards = board.rewards.map((reward) => {
+    const isUnlocked = filledCount >= reward.triggerAt;
+    return {
+      id: reward.id,
+      type: reward.type,
+      title: reward.title,
+      content: isUnlocked ? reward.content : '',
+      imageUrl: isUnlocked ? reward.imageUrl : '',
+      triggerAt: reward.triggerAt,
+    };
+  });
 
   const result = {
     id: board.id,
     title: board.title,
     description: board.description,
     totalStickers: board.totalStickers,
-    filledCount: board.stickers.length,
+    filledCount,
     isCompleted: board.isCompleted,
     completedAt: board.completedAt,
     createdAt: board.createdAt,
     owner: board.owner,
     giftedTo: board.giftedTo,
     giftedFrom: board.giftedFrom,
-    hasReward: !!board.reward,
+    rewardCount: board.rewards.length,
     stickers: board.stickers,
-    reward,
+    rewards,
   };
 
   return Response.json({ board: result });

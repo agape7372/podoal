@@ -25,8 +25,7 @@ export async function GET() {
       owner: { select: userProfileSelect },
       giftedTo: { select: userProfileSelect },
       giftedFrom: { select: userProfileSelect },
-      reward: { select: { id: true } },
-      _count: { select: { stickers: true } },
+      _count: { select: { stickers: true, rewards: true } },
     },
     orderBy: { createdAt: 'desc' },
   });
@@ -43,7 +42,7 @@ export async function GET() {
     owner: board.owner,
     giftedTo: board.giftedTo,
     giftedFrom: board.giftedFrom,
-    hasReward: !!board.reward,
+    rewardCount: board._count.rewards,
   }));
 
   return Response.json({ boards: result });
@@ -56,14 +55,26 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
-  const { title, description, totalStickers, reward } = body;
+  const { title, description, totalStickers, rewards } = body;
 
-  if (!title || !totalStickers || !reward) {
-    return authResponse('Missing required fields: title, totalStickers, reward', 400);
+  if (!title || !totalStickers || !rewards || !Array.isArray(rewards) || rewards.length === 0) {
+    return authResponse('Missing required fields: title, totalStickers, rewards (array)', 400);
   }
 
-  if (!reward.type || !reward.title || !reward.content) {
-    return authResponse('Missing required reward fields: type, title, content', 400);
+  // Validate each reward
+  for (const reward of rewards) {
+    if (!reward.type || !reward.title || !reward.content || !reward.triggerAt) {
+      return authResponse('Each reward must have: type, title, content, triggerAt', 400);
+    }
+    if (reward.triggerAt < 1 || reward.triggerAt > totalStickers) {
+      return authResponse(`triggerAt must be between 1 and ${totalStickers}`, 400);
+    }
+  }
+
+  // Check for duplicate triggerAt values
+  const triggerAts = rewards.map((r: { triggerAt: number }) => r.triggerAt);
+  if (new Set(triggerAts).size !== triggerAts.length) {
+    return authResponse('Each reward must have a unique triggerAt value', 400);
   }
 
   const board = await prisma.$transaction(async (tx) => {
@@ -76,15 +87,19 @@ export async function POST(request: Request) {
       },
     });
 
-    await tx.reward.create({
-      data: {
-        boardId: newBoard.id,
-        type: reward.type,
-        title: reward.title,
-        content: reward.content,
-        imageUrl: reward.imageUrl || '',
-      },
-    });
+    // Create all rewards
+    for (const reward of rewards) {
+      await tx.reward.create({
+        data: {
+          boardId: newBoard.id,
+          type: reward.type,
+          title: reward.title,
+          content: reward.content,
+          imageUrl: reward.imageUrl || '',
+          triggerAt: reward.triggerAt,
+        },
+      });
+    }
 
     return tx.board.findUnique({
       where: { id: newBoard.id },
@@ -92,8 +107,7 @@ export async function POST(request: Request) {
         owner: { select: userProfileSelect },
         giftedTo: { select: userProfileSelect },
         giftedFrom: { select: userProfileSelect },
-        reward: { select: { id: true } },
-        _count: { select: { stickers: true } },
+        _count: { select: { stickers: true, rewards: true } },
       },
     });
   });
@@ -114,7 +128,7 @@ export async function POST(request: Request) {
     owner: board.owner,
     giftedTo: board.giftedTo,
     giftedFrom: board.giftedFrom,
-    hasReward: !!board.reward,
+    rewardCount: board._count.rewards,
   };
 
   return Response.json({ board: result }, { status: 201 });

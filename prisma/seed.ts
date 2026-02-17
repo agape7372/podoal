@@ -80,6 +80,7 @@ async function main() {
       type: 'wish',
       title: '소원 하나 들어줄게!',
       content: '열심히 책 읽은 우리 아이에게 소원 하나를 들어줄게요! 뭐든 말해봐! 🌟',
+      triggerAt: 10,
     },
   });
 

@@ -39,7 +39,7 @@ export default function BoardCard({ board }: BoardCardProps) {
           )}
 
           {/* Mini grape preview */}
-          <div className="flex flex-wrap gap-1 mb-2">
+          <div className="flex flex-wrap gap-[3px] mb-2">
             {Array.from({ length: Math.min(board.totalStickers, 10) }, (_, i) => {
               const isFilled = i < board.filledCount;
               return (
@@ -47,8 +47,8 @@ export default function BoardCard({ board }: BoardCardProps) {
                   key={i}
                   className={`w-4 h-4 rounded-full ${
                     isFilled
-                      ? 'bg-gradient-to-br from-grape-400 to-grape-500'
-                      : 'bg-grape-100'
+                      ? 'grape-filled-mini'
+                      : 'border-[1.5px] border-grape-200 bg-grape-50/50'
                   }`}
                 />
               );
@@ -82,7 +82,7 @@ export default function BoardCard({ board }: BoardCardProps) {
               <span className="text-[10px] text-warm-sub">선물</span>
             </div>
           )}
-          {board.hasReward && (
+          {board.rewardCount > 0 && (
             <div className="text-xl">{board.isCompleted ? '🎁' : '🔒'}</div>
           )}
         </div>

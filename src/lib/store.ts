@@ -3,6 +3,47 @@
 import { create } from 'zustand';
 import type { UserProfile, BoardSummary, FriendInfo, MessageInfo } from '@/types';
 
+// ─── Settings ──────────────────────────────────────────────
+
+export interface AppSettings {
+  soundEnabled: boolean;
+  hapticEnabled: boolean;
+  soundVolume: number;
+  showMessagePopup: boolean;
+  realtimeNotifications: boolean;
+}
+
+const SETTINGS_STORAGE_KEY = 'podoal-app-settings';
+
+const DEFAULT_SETTINGS: AppSettings = {
+  soundEnabled: true,
+  hapticEnabled: true,
+  soundVolume: 0.5,
+  showMessagePopup: true,
+  realtimeNotifications: true,
+};
+
+function loadSettings(): AppSettings {
+  if (typeof window === 'undefined') return DEFAULT_SETTINGS;
+  try {
+    const raw = localStorage.getItem(SETTINGS_STORAGE_KEY);
+    if (!raw) return DEFAULT_SETTINGS;
+    return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
+  } catch {
+    return DEFAULT_SETTINGS;
+  }
+}
+
+function saveSettings(settings: AppSettings): void {
+  try {
+    localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
+  } catch {
+    // localStorage may be unavailable
+  }
+}
+
+// ─── Store ─────────────────────────────────────────────────
+
 interface AppState {
   user: UserProfile | null;
   boards: BoardSummary[];
@@ -10,6 +51,7 @@ interface AppState {
   messages: MessageInfo[];
   unreadCount: number;
   popupMessage: MessageInfo | null;
+  settings: AppSettings;
 
   setUser: (user: UserProfile | null) => void;
   setBoards: (boards: BoardSummary[]) => void;
@@ -20,6 +62,7 @@ interface AppState {
   showPopup: (message: MessageInfo) => void;
   hidePopup: () => void;
   toggleFavorite: (friendId: string) => void;
+  updateSettings: (partial: Partial<AppSettings>) => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -29,6 +72,7 @@ export const useAppStore = create<AppState>((set) => ({
   messages: [],
   unreadCount: 0,
   popupMessage: null,
+  settings: loadSettings(),
 
   setUser: (user) => set({ user }),
   setBoards: (boards) => set({ boards }),
@@ -48,4 +92,10 @@ export const useAppStore = create<AppState>((set) => ({
         f.id === friendId ? { ...f, isFavorite: !f.isFavorite } : f
       ),
     })),
+  updateSettings: (partial) =>
+    set((state) => {
+      const updated = { ...state.settings, ...partial };
+      saveSettings(updated);
+      return { settings: updated };
+    }),
 }));

@@ -1,0 +1,382 @@
+'use client';
+
+// ─── Settings ──────────────────────────────────────────────
+
+interface FeedbackSettings {
+  soundEnabled: boolean;
+  hapticEnabled: boolean;
+  soundVolume: number; // 0-1
+}
+
+const DEFAULT_SETTINGS: FeedbackSettings = {
+  soundEnabled: true,
+  hapticEnabled: true,
+  soundVolume: 0.5,
+};
+
+const STORAGE_KEY = 'podoal-feedback-settings';
+
+export function getSettings(): FeedbackSettings {
+  if (typeof window === 'undefined') return DEFAULT_SETTINGS;
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return DEFAULT_SETTINGS;
+    return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
+  } catch {
+    return DEFAULT_SETTINGS;
+  }
+}
+
+export function updateSettings(partial: Partial<FeedbackSettings>): FeedbackSettings {
+  const current = getSettings();
+  const updated = { ...current, ...partial };
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+  } catch {
+    // localStorage may be unavailable
+  }
+  return updated;
+}
+
+// ─── AudioContext singleton ────────────────────────────────
+
+let audioCtx: AudioContext | null = null;
+
+function getAudioContext(): AudioContext {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+  }
+  // Resume suspended context (autoplay policy)
+  if (audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
+  return audioCtx;
+}
+
+// ─── Sound helper ──────────────────────────────────────────
+
+function playTone(
+  frequency: number,
+  duration: number,
+  type: OscillatorType = 'sine',
+  volumeMultiplier: number = 1,
+  startTime?: number,
+): void {
+  const settings = getSettings();
+  if (!settings.soundEnabled) return;
+
+  try {
+    const ctx = getAudioContext();
+    const t = startTime ?? ctx.currentTime;
+
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = type;
+    osc.frequency.setValueAtTime(frequency, t);
+
+    const vol = settings.soundVolume * volumeMultiplier;
+    gain.gain.setValueAtTime(vol, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + duration);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start(t);
+    osc.stop(t + duration);
+  } catch {
+    // Web Audio API not available
+  }
+}
+
+function playToneRamp(
+  freqStart: number,
+  freqEnd: number,
+  duration: number,
+  type: OscillatorType = 'sine',
+  volumeMultiplier: number = 1,
+  startTime?: number,
+): void {
+  const settings = getSettings();
+  if (!settings.soundEnabled) return;
+
+  try {
+    const ctx = getAudioContext();
+    const t = startTime ?? ctx.currentTime;
+
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = type;
+    osc.frequency.setValueAtTime(freqStart, t);
+    osc.frequency.linearRampToValueAtTime(freqEnd, t + duration);
+
+    const vol = settings.soundVolume * volumeMultiplier;
+    gain.gain.setValueAtTime(vol, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + duration);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start(t);
+    osc.stop(t + duration);
+  } catch {
+    // Web Audio API not available
+  }
+}
+
+// ─── Sound effects ─────────────────────────────────────────
+
+/** Short bubbly pop for tapping a grape */
+export function playPop(): void {
+  const settings = getSettings();
+  if (!settings.soundEnabled) return;
+
+  try {
+    const ctx = getAudioContext();
+    const t = ctx.currentTime;
+
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(600, t);
+    osc.frequency.exponentialRampToValueAtTime(200, t + 0.1);
+
+    const vol = settings.soundVolume * 0.4;
+    gain.gain.setValueAtTime(vol, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start(t);
+    osc.stop(t + 0.1);
+  } catch {
+    // Web Audio API not available
+  }
+}
+
+/** Satisfying "fill" sound when grape is filled - rising tone */
+export function playFill(): void {
+  const settings = getSettings();
+  if (!settings.soundEnabled) return;
+
+  try {
+    const ctx = getAudioContext();
+    const t = ctx.currentTime;
+
+    // Rising sine wave
+    playToneRamp(300, 800, 0.25, 'sine', 0.4, t);
+    // Overlay with a soft triangle harmonic
+    playToneRamp(450, 1200, 0.2, 'triangle', 0.15, t + 0.05);
+  } catch {
+    // Web Audio API not available
+  }
+}
+
+/** Celebration jingle for sending cheer - 3-note ascending */
+export function playCheer(): void {
+  const settings = getSettings();
+  if (!settings.soundEnabled) return;
+
+  try {
+    const ctx = getAudioContext();
+    const t = ctx.currentTime;
+    const notes = [523.25, 659.25, 783.99]; // C5, E5, G5
+
+    notes.forEach((freq, i) => {
+      playTone(freq, 0.2, 'sine', 0.35, t + i * 0.12);
+    });
+  } catch {
+    // Web Audio API not available
+  }
+}
+
+/** Reward unlock fanfare - 5-note ascending melody */
+export function playReward(): void {
+  const settings = getSettings();
+  if (!settings.soundEnabled) return;
+
+  try {
+    const ctx = getAudioContext();
+    const t = ctx.currentTime;
+    // C5, E5, G5, B5, C6
+    const notes = [523.25, 659.25, 783.99, 987.77, 1046.5];
+
+    notes.forEach((freq, i) => {
+      playTone(freq, 0.25, 'sine', 0.3, t + i * 0.1);
+      // Add a subtle triangle layer for richness
+      playTone(freq * 2, 0.15, 'triangle', 0.08, t + i * 0.1 + 0.02);
+    });
+  } catch {
+    // Web Audio API not available
+  }
+}
+
+/** Board completion celebration - cheerful chord */
+export function playComplete(): void {
+  const settings = getSettings();
+  if (!settings.soundEnabled) return;
+
+  try {
+    const ctx = getAudioContext();
+    const t = ctx.currentTime;
+
+    // Major chord: C5, E5, G5 played together, then resolve up
+    const chord = [523.25, 659.25, 783.99];
+    chord.forEach((freq) => {
+      playTone(freq, 0.5, 'sine', 0.2, t);
+      playTone(freq, 0.5, 'triangle', 0.08, t);
+    });
+
+    // Ascending resolution after chord
+    const resolution = [880, 1046.5]; // A5, C6
+    resolution.forEach((freq, i) => {
+      playTone(freq, 0.35, 'sine', 0.25, t + 0.35 + i * 0.12);
+    });
+  } catch {
+    // Web Audio API not available
+  }
+}
+
+/** Subtle UI click for buttons */
+export function playClick(): void {
+  const settings = getSettings();
+  if (!settings.soundEnabled) return;
+
+  try {
+    const ctx = getAudioContext();
+    const t = ctx.currentTime;
+
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(1000, t);
+    osc.frequency.exponentialRampToValueAtTime(600, t + 0.03);
+
+    const vol = settings.soundVolume * 0.15;
+    gain.gain.setValueAtTime(vol, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.03);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start(t);
+    osc.stop(t + 0.03);
+  } catch {
+    // Web Audio API not available
+  }
+}
+
+/** Success feedback - 2-note positive */
+export function playSuccess(): void {
+  const settings = getSettings();
+  if (!settings.soundEnabled) return;
+
+  try {
+    const ctx = getAudioContext();
+    const t = ctx.currentTime;
+
+    playTone(523.25, 0.15, 'sine', 0.35, t);       // C5
+    playTone(783.99, 0.25, 'sine', 0.35, t + 0.12); // G5
+  } catch {
+    // Web Audio API not available
+  }
+}
+
+/** Gentle error tone - descending */
+export function playError(): void {
+  const settings = getSettings();
+  if (!settings.soundEnabled) return;
+
+  try {
+    const ctx = getAudioContext();
+    const t = ctx.currentTime;
+
+    playTone(440, 0.15, 'sine', 0.25, t);       // A4
+    playTone(330, 0.25, 'sine', 0.25, t + 0.12); // E4
+  } catch {
+    // Web Audio API not available
+  }
+}
+
+// ─── Haptic patterns ──────────────────────────────────────
+
+function vibrate(pattern: number | number[]): void {
+  const settings = getSettings();
+  if (!settings.hapticEnabled) return;
+
+  try {
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+      navigator.vibrate(pattern);
+    }
+  } catch {
+    // Vibration API not available
+  }
+}
+
+/** Short 10ms vibration */
+export function hapticTap(): void {
+  vibrate(10);
+}
+
+/** Fill pattern [30, 50, 30] */
+export function hapticFill(): void {
+  vibrate([30, 50, 30]);
+}
+
+/** Success pattern [50, 30, 100] */
+export function hapticSuccess(): void {
+  vibrate([50, 30, 100]);
+}
+
+/** Reward pattern [100, 50, 100, 50, 200] */
+export function hapticReward(): void {
+  vibrate([100, 50, 100, 50, 200]);
+}
+
+// ─── Combined feedback functions ──────────────────────────
+
+/** Click + tap - for UI button taps */
+export function feedbackTap(): void {
+  playClick();
+  hapticTap();
+}
+
+/** Fill sound + fill haptic - when a grape is filled */
+export function feedbackFill(): void {
+  playFill();
+  hapticFill();
+}
+
+/** Cheer jingle + success haptic - for sending cheers */
+export function feedbackCheer(): void {
+  playCheer();
+  hapticSuccess();
+}
+
+/** Reward fanfare + reward haptic - when reward is unlocked */
+export function feedbackReward(): void {
+  playReward();
+  hapticReward();
+}
+
+/** Completion celebration + reward haptic - when board is completed */
+export function feedbackComplete(): void {
+  playComplete();
+  hapticReward();
+}
+
+/** Success tones + success haptic */
+export function feedbackSuccess(): void {
+  playSuccess();
+  hapticSuccess();
+}
+
+/** Error tone + tap haptic */
+export function feedbackError(): void {
+  playError();
+  hapticTap();
+}

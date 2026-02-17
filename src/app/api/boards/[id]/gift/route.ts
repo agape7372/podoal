@@ -33,7 +33,7 @@ export async function POST(
   const board = await prisma.board.findUnique({
     where: { id: boardId },
     include: {
-      reward: true,
+      rewards: true,
     },
   });
 
@@ -73,15 +73,16 @@ export async function POST(
       },
     });
 
-    // Copy the reward if one exists
-    if (board.reward) {
+    // Copy all rewards
+    for (const reward of board.rewards) {
       await tx.reward.create({
         data: {
           boardId: newBoard.id,
-          type: board.reward.type,
-          title: board.reward.title,
-          content: board.reward.content,
-          imageUrl: board.reward.imageUrl,
+          type: reward.type,
+          title: reward.title,
+          content: reward.content,
+          imageUrl: reward.imageUrl,
+          triggerAt: reward.triggerAt,
         },
       });
     }
@@ -92,8 +93,7 @@ export async function POST(
         owner: { select: userProfileSelect },
         giftedTo: { select: userProfileSelect },
         giftedFrom: { select: userProfileSelect },
-        reward: { select: { id: true } },
-        _count: { select: { stickers: true } },
+        _count: { select: { stickers: true, rewards: true } },
       },
     });
   });
@@ -114,7 +114,7 @@ export async function POST(
     owner: giftedBoard.owner,
     giftedTo: giftedBoard.giftedTo,
     giftedFrom: giftedBoard.giftedFrom,
-    hasReward: !!giftedBoard.reward,
+    rewardCount: giftedBoard._count.rewards,
   };
 
   return Response.json(result, { status: 201 });

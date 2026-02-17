@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { CHEER_EMOJIS } from '@/types';
+import { feedbackCheer, feedbackTap } from '@/lib/feedback';
 import ClayButton from './ClayButton';
 
 interface CheerModalProps {
@@ -30,6 +31,7 @@ export default function CheerModal({ recipientName, onSend, onClose }: CheerModa
     if (!selectedMsg) return;
     setSending(true);
     await onSend(selectedMsg, selectedEmoji);
+    feedbackCheer();
     setSending(false);
     onClose();
   };

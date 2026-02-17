@@ -18,7 +18,7 @@ export default function BoardDetailPage() {
   const [board, setBoard] = useState<BoardDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [showGift, setShowGift] = useState(false);
-  const [showReward, setShowReward] = useState(false);
+  const [showReward, setShowReward] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
 
   const fetchBoard = useCallback(async () => {
@@ -130,35 +130,50 @@ export default function BoardDetailPage() {
         />
       </div>
 
-      {/* Reward section */}
-      {board.reward && (
-        <div className="mb-6">
-          {showReward ? (
-            <RewardReveal
-              reward={board.reward}
-              isCompleted={board.isCompleted}
-              onClose={() => setShowReward(false)}
-            />
-          ) : (
-            <button
-              onClick={() => setShowReward(true)}
-              className={`
-                w-full clay p-5 text-center transition-all
-                ${board.isCompleted
-                  ? 'bg-gradient-to-br from-clay-yellow/40 to-clay-mint/30 reward-glow'
-                  : 'bg-gradient-to-br from-clay-lavender/30 to-white'
-                }
-              `}
-            >
-              <span className="text-3xl">{board.isCompleted ? '🎁' : '🔒'}</span>
-              <p className="text-sm font-medium text-grape-600 mt-2">
-                {board.isCompleted ? '보상 확인하기' : `${board.totalStickers - filledCount}알 더 채우면 열려요`}
-              </p>
-              <p className="text-xs text-warm-sub mt-1">
-                {progress}% 달성
-              </p>
-            </button>
-          )}
+      {/* Rewards section */}
+      {board.rewards.length > 0 && (
+        <div className="mb-6 space-y-3">
+          <h3 className="text-sm font-semibold text-warm-sub">
+            🎁 보상 ({board.rewards.filter((r) => filledCount >= r.triggerAt).length}/{board.rewards.length})
+          </h3>
+          {board.rewards.map((reward) => {
+            const isUnlocked = filledCount >= reward.triggerAt;
+            const remaining = reward.triggerAt - filledCount;
+            return (
+              <div key={reward.id}>
+                {showReward === reward.id ? (
+                  <RewardReveal
+                    reward={reward}
+                    isCompleted={isUnlocked}
+                    onClose={() => setShowReward(null)}
+                  />
+                ) : (
+                  <button
+                    onClick={() => isUnlocked && setShowReward(reward.id)}
+                    className={`
+                      w-full clay p-4 text-center transition-all
+                      ${isUnlocked
+                        ? 'bg-gradient-to-br from-clay-yellow/40 to-clay-mint/30 reward-glow cursor-pointer'
+                        : 'bg-gradient-to-br from-clay-lavender/30 to-white'
+                      }
+                    `}
+                  >
+                    <div className="flex items-center justify-center gap-2">
+                      <span className="text-2xl">{isUnlocked ? '🎁' : '🔒'}</span>
+                      <div className="text-left">
+                        <p className="text-sm font-medium text-grape-600">
+                          {isUnlocked ? reward.title : `${remaining}알 더 채우면 열려요`}
+                        </p>
+                        <p className="text-xs text-warm-sub">
+                          {reward.triggerAt}알 달성 보상
+                        </p>
+                      </div>
+                    </div>
+                  </button>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 

@@ -95,10 +95,28 @@ export async function POST(
       });
     }
 
+    // Check if any reward's triggerAt matches the new filledCount
+    const unlockedReward = await tx.reward.findFirst({
+      where: {
+        boardId,
+        triggerAt: filledCount,
+      },
+    });
+
     return {
       sticker,
       filledCount,
       isCompleted: filledCount >= board.totalStickers,
+      unlockedReward: unlockedReward
+        ? {
+            id: unlockedReward.id,
+            type: unlockedReward.type,
+            title: unlockedReward.title,
+            content: unlockedReward.content,
+            imageUrl: unlockedReward.imageUrl,
+            triggerAt: unlockedReward.triggerAt,
+          }
+        : null,
     };
   });
 

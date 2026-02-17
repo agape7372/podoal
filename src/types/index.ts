@@ -21,12 +21,12 @@ export interface BoardSummary {
   owner: UserProfile;
   giftedTo: UserProfile | null;
   giftedFrom: UserProfile | null;
-  hasReward: boolean;
+  rewardCount: number;
 }
 
 export interface BoardDetail extends BoardSummary {
   stickers: StickerInfo[];
-  reward: RewardInfo | null;
+  rewards: RewardInfo[];
 }
 
 export interface StickerInfo {
@@ -42,6 +42,7 @@ export interface RewardInfo {
   title: string;
   content: string;
   imageUrl: string;
+  triggerAt: number;
 }
 
 export interface FriendInfo {

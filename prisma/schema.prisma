@@ -41,7 +41,7 @@ model Board {
   giftedTo   User?     @relation("BoardReceiver", fields: [giftedToId], references: [id])
   giftedFrom User?     @relation("BoardGifter", fields: [giftedFromId], references: [id])
   stickers   Sticker[]
-  reward     Reward?
+  rewards    Reward[]
 }
 
 model Sticker {
@@ -58,14 +58,17 @@ model Sticker {
 }
 
 model Reward {
-  id       String @id @default(cuid())
-  boardId  String @unique
-  type     String // "letter" | "giftcard" | "wish"
-  title    String
-  content  String
-  imageUrl String @default("")
+  id          String @id @default(cuid())
+  boardId     String
+  type        String // "letter" | "giftcard" | "wish"
+  title       String
+  content     String
+  imageUrl    String @default("")
+  triggerAt   Int    // sticker count to trigger this reward (e.g. 3, 5, 10)
 
   board Board @relation(fields: [boardId], references: [id], onDelete: Cascade)
+
+  @@unique([boardId, triggerAt])
 }
 
 model Friendship {

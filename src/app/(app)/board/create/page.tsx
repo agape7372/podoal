@@ -35,11 +35,12 @@ export default function CreateBoardPage() {
           title: title.trim(),
           description: description.trim(),
           totalStickers,
-          reward: {
+          rewards: [{
             type: rewardType,
             title: rewardTitle.trim(),
             content: rewardContent.trim(),
-          },
+            triggerAt: totalStickers,
+          }],
         },
       });
       router.replace(`/board/${data.board.id}`);

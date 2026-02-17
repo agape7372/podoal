@@ -2,13 +2,14 @@
 
 import { usePathname, useRouter } from 'next/navigation';
 import { useAppStore } from '@/lib/store';
+import { feedbackTap } from '@/lib/feedback';
 
 const navItems = [
   { path: '/home', icon: '🏠', label: '홈' },
   { path: '/board/create', icon: '🍇', label: '만들기' },
   { path: '/friends', icon: '👥', label: '친구' },
   { path: '/messages', icon: '💌', label: '메시지' },
-  { path: '/stats', icon: '📊', label: '통계' },
+  { path: '/settings', icon: '⚙️', label: '설정' },
 ];
 
 export default function Navigation() {
@@ -24,7 +25,7 @@ export default function Navigation() {
           return (
             <button
               key={item.path}
-              onClick={() => router.push(item.path)}
+              onClick={() => { feedbackTap(); router.push(item.path); }}
               className={`
                 flex flex-col items-center gap-0.5 py-1 px-2 rounded-xl no-select
                 transition-all duration-200

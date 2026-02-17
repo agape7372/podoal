@@ -45,10 +45,10 @@ export default function HomePage() {
         <div className="flex items-center gap-3">
           <Avatar avatar={user?.avatar || 'grape'} size="lg" />
           <div>
-            <h1 className="text-xl font-bold text-grape-700">
+            <h1 className="text-2xl font-bold tracking-tight text-grape-700">
               {user?.name}님
             </h1>
-            <p className="text-xs text-warm-sub">오늘도 화이팅! 🍇</p>
+            <p className="text-xs leading-normal tracking-wide text-warm-sub">오늘도 화이팅! 🍇</p>
           </div>
         </div>
         <button
@@ -61,17 +61,17 @@ export default function HomePage() {
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-3 mb-6">
-        <div className="clay-sm p-3 text-center bg-gradient-to-br from-clay-lavender/40 to-white">
+        <div className="clay-sm p-4 text-center bg-gradient-to-br from-clay-lavender/40 to-white">
           <p className="text-2xl font-bold text-grape-600">{boards.length}</p>
-          <p className="text-[10px] text-warm-sub mt-0.5">전체</p>
+          <p className="text-xs leading-normal tracking-wide text-warm-sub mt-0.5">전체</p>
         </div>
-        <div className="clay-sm p-3 text-center bg-gradient-to-br from-clay-peach/40 to-white">
+        <div className="clay-sm p-4 text-center bg-gradient-to-br from-clay-peach/40 to-white">
           <p className="text-2xl font-bold text-orange-500">{activeCount}</p>
-          <p className="text-[10px] text-warm-sub mt-0.5">진행중</p>
+          <p className="text-xs leading-normal tracking-wide text-warm-sub mt-0.5">진행중</p>
         </div>
-        <div className="clay-sm p-3 text-center bg-gradient-to-br from-clay-mint/40 to-white">
+        <div className="clay-sm p-4 text-center bg-gradient-to-br from-clay-mint/40 to-white">
           <p className="text-2xl font-bold text-green-500">{completedCount}</p>
-          <p className="text-[10px] text-warm-sub mt-0.5">완료</p>
+          <p className="text-xs leading-normal tracking-wide text-warm-sub mt-0.5">완료</p>
         </div>
       </div>
 
@@ -104,12 +104,12 @@ export default function HomePage() {
       ) : filteredBoards.length === 0 ? (
         <div className="text-center py-16">
           <div className="text-5xl mb-4">🍇</div>
-          <p className="text-warm-sub mb-1">
+          <p className="text-sm leading-relaxed text-warm-sub mb-1">
             {filter === 'all' ? '아직 포도판이 없어요' : filter === 'active' ? '진행중인 포도판이 없어요' : '완료한 포도판이 없어요'}
           </p>
           {filter === 'all' && (
             <>
-              <p className="text-sm text-warm-light mb-5">첫 번째 포도판을 만들어 보세요!</p>
+              <p className="text-sm leading-relaxed text-warm-light mb-5">첫 번째 포도판을 만들어 보세요!</p>
               <ClayButton onClick={() => router.push('/board/create')}>
                 🍇 포도판 만들기
               </ClayButton>

@@ -55,15 +55,11 @@ export async function POST() {
         type: 'wish',
         title: '테스트 보상!',
         content: '개발 테스트 보상입니다 🎉',
+        triggerAt: 10,
       },
     });
 
-    // Fill a few stickers
-    for (let i = 0; i < 3; i++) {
-      await prisma.sticker.create({
-        data: { boardId: board.id, position: i, filledBy: user.id },
-      });
-    }
+    // Board starts empty so developer can test filling from scratch
   }
 
   const token = await createToken(user.id);
