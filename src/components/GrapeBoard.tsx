@@ -47,7 +47,6 @@ export default function GrapeBoard({ board, onFill, canFill }: GrapeBoardProps) 
   }, [canFill, filledPositions, fillingPos, filledCount, board.totalStickers, board.rewards, onFill]);
 
   const layoutRows = CLUSTER_LAYOUTS[board.totalStickers] || CLUSTER_LAYOUTS[10];
-  const maxCols = Math.max(...layoutRows);
 
   const grapeSize = 52;
   const sizeClass: 'sm' | 'md' | 'lg' = 'lg';

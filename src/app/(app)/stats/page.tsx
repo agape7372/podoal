@@ -32,7 +32,6 @@ export default function StatsPage() {
   // Day-of-week breakdown calculated client-side from heatmap data
   const dayOfWeekData = useMemo(() => {
     if (!stats) return [];
-    const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
     const counts = [0, 0, 0, 0, 0, 0, 0];
     for (const d of stats.heatmap) {
       const date = new Date(d.date);

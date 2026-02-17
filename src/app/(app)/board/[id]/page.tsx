@@ -9,7 +9,6 @@ import RewardReveal from '@/components/RewardReveal';
 import GiftBoardModal from '@/components/GiftBoardModal';
 import ShareCardModal from '@/components/ShareCardModal';
 import CapsuleModal from '@/components/CapsuleModal';
-import ClayButton from '@/components/ClayButton';
 import Avatar from '@/components/Avatar';
 import type { BoardDetail } from '@/types';
 
@@ -79,7 +78,6 @@ export default function BoardDetailPage() {
 
   const isOwner = user?.id === board.owner.id;
   const filledCount = board.stickers.length;
-  const progress = Math.round((filledCount / board.totalStickers) * 100);
 
   return (
     <div className="pb-4">

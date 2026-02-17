@@ -7,3 +7,12 @@ prisma/*.db
 prisma/*.db-journal
 .env
 .env.local
+.env.*.local
+.DS_Store
+Thumbs.db
+*.log
+*.tmp
+.cache
+*.png
+!public/**/*.png
+take-screenshot*.mjs

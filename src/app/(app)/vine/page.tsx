@@ -47,11 +47,6 @@ export default function VinePage() {
     return { month, day, weekday };
   };
 
-  const formatFullDate = (dateStr: string) => {
-    const d = new Date(dateStr + 'T00:00:00');
-    return `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일`;
-  };
-
   if (loading) {
     return (
       <div className="pb-4">

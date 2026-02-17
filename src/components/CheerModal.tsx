@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { CHEER_EMOJIS } from '@/types';
-import { feedbackCheer, feedbackTap } from '@/lib/feedback';
+import { feedbackCheer } from '@/lib/feedback';
 import ClayButton from './ClayButton';
 
 interface CheerModalProps {
