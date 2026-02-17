@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Navigation from '@/components/Navigation';
 import MessagePopup from '@/components/MessagePopup';
+import InstallPrompt from '@/components/InstallPrompt';
 import { useAppStore } from '@/lib/store';
 import { useSSE } from '@/lib/useSSE';
 import { fetchUser } from '@/lib/api';
@@ -22,6 +23,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       }
     });
   }, [router, setUser]);
+
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    }
+  }, []);
 
   useSSE();
 
@@ -42,6 +49,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <main className="max-w-lg mx-auto px-4 pt-4 safe-top">
         {children}
       </main>
+      <InstallPrompt />
       <Navigation />
     </div>
   );

@@ -15,14 +15,19 @@ model User {
   avatar    String   @default("grape")
   createdAt DateTime @default(now())
 
-  boards         Board[]      @relation("BoardOwner")
-  receivedBoards Board[]      @relation("BoardReceiver")
-  giftedBoards   Board[]      @relation("BoardGifter")
-  sentFriendReqs Friendship[] @relation("FriendRequester")
-  recvFriendReqs Friendship[] @relation("FriendReceiver")
-  sentMessages   Message[]    @relation("MessageSender")
-  recvMessages   Message[]    @relation("MessageReceiver")
-  stickers       Sticker[]
+  boards              Board[]              @relation("BoardOwner")
+  receivedBoards      Board[]              @relation("BoardReceiver")
+  giftedBoards        Board[]              @relation("BoardGifter")
+  sentFriendReqs      Friendship[]         @relation("FriendRequester")
+  recvFriendReqs      Friendship[]         @relation("FriendReceiver")
+  sentMessages        Message[]            @relation("MessageSender")
+  recvMessages        Message[]            @relation("MessageReceiver")
+  stickers            Sticker[]
+  capsules            TimeCapsule[]
+  relayCreated        Relay[]              @relation("RelayCreator")
+  relayParticipations RelayParticipant[]
+  notificationSetting NotificationSetting?
+  reminders           Reminder[]
 }
 
 model Board {
@@ -30,6 +35,7 @@ model Board {
   title         String
   description   String   @default("")
   totalStickers Int      @default(10)
+  templateId    String?
   ownerId       String
   giftedToId    String?
   giftedFromId  String?
@@ -37,11 +43,14 @@ model Board {
   completedAt   DateTime?
   createdAt     DateTime @default(now())
 
-  owner      User      @relation("BoardOwner", fields: [ownerId], references: [id])
-  giftedTo   User?     @relation("BoardReceiver", fields: [giftedToId], references: [id])
-  giftedFrom User?     @relation("BoardGifter", fields: [giftedFromId], references: [id])
-  stickers   Sticker[]
-  rewards    Reward[]
+  owner             User               @relation("BoardOwner", fields: [ownerId], references: [id])
+  giftedTo          User?              @relation("BoardReceiver", fields: [giftedToId], references: [id])
+  giftedFrom        User?              @relation("BoardGifter", fields: [giftedFromId], references: [id])
+  stickers          Sticker[]
+  rewards           Reward[]
+  capsules          TimeCapsule[]
+  relayParticipants RelayParticipant[]
+  reminders         Reminder[]
 }
 
 model Sticker {
@@ -98,4 +107,73 @@ model Message {
 
   sender   User @relation("MessageSender", fields: [senderId], references: [id])
   receiver User @relation("MessageReceiver", fields: [receiverId], references: [id])
+}
+
+model TimeCapsule {
+  id        String   @id @default(cuid())
+  boardId   String
+  userId    String
+  message   String
+  emoji     String   @default("🍇")
+  openAt    DateTime
+  isOpened  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  board Board @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id])
+}
+
+model Relay {
+  id            String   @id @default(cuid())
+  title         String
+  templateId    String?
+  totalStickers Int      @default(10)
+  creatorId     String
+  status        String   @default("active") // active | completed
+  createdAt     DateTime @default(now())
+
+  creator      User               @relation("RelayCreator", fields: [creatorId], references: [id])
+  participants RelayParticipant[]
+}
+
+model RelayParticipant {
+  id       String   @id @default(cuid())
+  relayId  String
+  userId   String
+  boardId  String?
+  order    Int
+  status   String   @default("pending") // pending | active | completed
+  joinedAt DateTime @default(now())
+
+  relay Relay  @relation(fields: [relayId], references: [id], onDelete: Cascade)
+  user  User   @relation(fields: [userId], references: [id])
+  board Board? @relation(fields: [boardId], references: [id])
+}
+
+model NotificationSetting {
+  id              String  @id @default(cuid())
+  userId          String  @unique
+  globalEnabled   Boolean @default(true)
+  dndStart        String  @default("22:00")
+  dndEnd          String  @default("08:00")
+  cheerEnabled    Boolean @default(true)
+  rewardEnabled   Boolean @default(true)
+  relayEnabled    Boolean @default(true)
+  reminderEnabled Boolean @default(true)
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model Reminder {
+  id        String   @id @default(cuid())
+  userId    String
+  boardId   String?
+  time      String
+  days      String   @default("1,2,3,4,5,6,7")
+  message   String   @default("")
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  user  User   @relation(fields: [userId], references: [id])
+  board Board? @relation(fields: [boardId], references: [id])
 }

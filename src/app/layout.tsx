@@ -12,12 +12,17 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: '#9B7ED8',
+  themeColor: '#8b5cf6',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ko">
+      <head>
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <link rel="apple-touch-icon" href="/icons/icon.svg" />
+      </head>
       <body className="min-h-dvh bg-clay-bg text-warm-text antialiased">
         {children}
       </body>

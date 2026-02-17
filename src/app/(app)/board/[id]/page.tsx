@@ -7,6 +7,8 @@ import { useAppStore } from '@/lib/store';
 import GrapeBoard from '@/components/GrapeBoard';
 import RewardReveal from '@/components/RewardReveal';
 import GiftBoardModal from '@/components/GiftBoardModal';
+import ShareCardModal from '@/components/ShareCardModal';
+import CapsuleModal from '@/components/CapsuleModal';
 import ClayButton from '@/components/ClayButton';
 import Avatar from '@/components/Avatar';
 import type { BoardDetail } from '@/types';
@@ -18,6 +20,8 @@ export default function BoardDetailPage() {
   const [board, setBoard] = useState<BoardDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [showGift, setShowGift] = useState(false);
+  const [showShare, setShowShare] = useState(false);
+  const [showCapsule, setShowCapsule] = useState(false);
   const [showReward, setShowReward] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
 
@@ -86,6 +90,18 @@ export default function BoardDetailPage() {
         </button>
         {isOwner && (
           <div className="flex gap-2">
+            <button
+              onClick={() => setShowShare(true)}
+              className="clay-button px-3 py-1.5 rounded-xl text-sm"
+            >
+              📤 공유
+            </button>
+            <button
+              onClick={() => setShowCapsule(true)}
+              className="clay-button px-3 py-1.5 rounded-xl text-sm"
+            >
+              💊 동결건조
+            </button>
             <button
               onClick={() => setShowGift(true)}
               className="clay-button px-3 py-1.5 rounded-xl text-sm"
@@ -195,6 +211,24 @@ export default function BoardDetailPage() {
             ))}
           </div>
         </div>
+      )}
+
+      {/* Share card modal */}
+      {showShare && (
+        <ShareCardModal
+          board={board}
+          userName={user?.name || '익명'}
+          onClose={() => setShowShare(false)}
+        />
+      )}
+
+      {/* Capsule modal */}
+      {showCapsule && (
+        <CapsuleModal
+          boardId={id}
+          isOwner={isOwner}
+          onClose={() => setShowCapsule(false)}
+        />
       )}
 
       {/* Gift modal */}

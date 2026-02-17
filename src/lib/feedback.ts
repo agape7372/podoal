@@ -363,3 +363,82 @@ export function feedbackError(): void {
   playError();
   hapticTap();
 }
+
+/** Relay baton pass - chain link sound */
+export function playRelay(): void {
+  const settings = getSettings();
+  if (!settings.soundEnabled) return;
+
+  try {
+    const ctx = getAudioContext();
+    const t = ctx.currentTime;
+    // Ascending chain: E5, A5, C#6
+    playTone(659.25, 0.15, 'triangle', 0.3, t);
+    playTone(880, 0.15, 'triangle', 0.3, t + 0.1);
+    playTone(1108.73, 0.25, 'sine', 0.35, t + 0.2);
+    // Sparkle
+    playTone(2217.46, 0.15, 'sine', 0.08, t + 0.25);
+  } catch {
+    // Web Audio API not available
+  }
+}
+
+/** Capsule open - crystalline thaw sound */
+export function playCapsuleOpen(): void {
+  const settings = getSettings();
+  if (!settings.soundEnabled) return;
+
+  try {
+    const ctx = getAudioContext();
+    const t = ctx.currentTime;
+    // Ice crack: descending noise-like
+    playToneRamp(2000, 800, 0.1, 'sawtooth', 0.1, t);
+    // Thaw shimmer: ascending
+    playToneRamp(400, 1200, 0.4, 'sine', 0.25, t + 0.08);
+    // Reveal chime
+    playTone(1046.5, 0.3, 'sine', 0.2, t + 0.2);
+    playTone(1318.5, 0.3, 'sine', 0.15, t + 0.25);
+  } catch {
+    // Web Audio API not available
+  }
+}
+
+/** Wine bottling - cork pop + pour */
+export function playBottle(): void {
+  const settings = getSettings();
+  if (!settings.soundEnabled) return;
+
+  try {
+    const ctx = getAudioContext();
+    const t = ctx.currentTime;
+    // Cork pop
+    playToneRamp(300, 1500, 0.05, 'square', 0.15, t);
+    // Pour glug
+    playTone(220, 0.15, 'sine', 0.2, t + 0.08);
+    playTone(260, 0.12, 'sine', 0.15, t + 0.18);
+    // Satisfaction chime
+    playTone(523.25, 0.3, 'sine', 0.25, t + 0.3);
+    playTone(659.25, 0.3, 'sine', 0.2, t + 0.35);
+    playTone(783.99, 0.4, 'sine', 0.25, t + 0.4);
+  } catch {
+    // Web Audio API not available
+  }
+}
+
+/** Relay baton pass feedback */
+export function feedbackRelay(): void {
+  playRelay();
+  hapticSuccess();
+}
+
+/** Capsule open feedback */
+export function feedbackCapsuleOpen(): void {
+  playCapsuleOpen();
+  hapticReward();
+}
+
+/** Wine bottling feedback */
+export function feedbackBottle(): void {
+  playBottle();
+  hapticSuccess();
+}

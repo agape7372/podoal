@@ -7,9 +7,9 @@ import { feedbackTap } from '@/lib/feedback';
 const navItems = [
   { path: '/home', icon: '🏠', label: '홈' },
   { path: '/board/create', icon: '🍇', label: '만들기' },
-  { path: '/friends', icon: '👥', label: '친구' },
-  { path: '/messages', icon: '💌', label: '메시지' },
-  { path: '/settings', icon: '⚙️', label: '설정' },
+  { path: '/relay', icon: '🔗', label: '릴레이' },
+  { path: '/winery', icon: '🍷', label: '와이너리' },
+  { path: '/more', icon: '☰', label: '더보기', badge: 'unread' },
 ];
 
 export default function Navigation() {
@@ -37,7 +37,7 @@ export default function Navigation() {
             >
               <span className="text-xl relative">
                 {item.icon}
-                {item.path === '/messages' && unreadCount > 0 && (
+                {item.badge === 'unread' && unreadCount > 0 && (
                   <span className="absolute -top-1 -right-2 bg-red-400 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
                     {unreadCount > 9 ? '9+' : unreadCount}
                   </span>

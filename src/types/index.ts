@@ -93,3 +93,110 @@ export const BOARD_SIZES = [
   { value: 20, label: '20알', description: '큰 포도송이' },
   { value: 30, label: '30알', description: '왕 포도송이' },
 ];
+
+// ─── New Feature Types ────────────────────────────────
+
+export interface TimeCapsuleInfo {
+  id: string;
+  boardId: string;
+  userId: string;
+  message: string;
+  emoji: string;
+  openAt: string;
+  isOpened: boolean;
+  createdAt: string;
+}
+
+export interface RelayParticipantInfo {
+  id: string;
+  userId: string;
+  user: UserProfile;
+  boardId: string | null;
+  order: number;
+  status: 'pending' | 'active' | 'completed';
+}
+
+export interface RelayInfo {
+  id: string;
+  title: string;
+  templateId: string | null;
+  totalStickers: number;
+  creatorId: string;
+  creator: UserProfile;
+  status: 'active' | 'completed';
+  participants: RelayParticipantInfo[];
+  createdAt: string;
+}
+
+export interface NotificationSettingInfo {
+  globalEnabled: boolean;
+  dndStart: string;
+  dndEnd: string;
+  cheerEnabled: boolean;
+  rewardEnabled: boolean;
+  relayEnabled: boolean;
+  reminderEnabled: boolean;
+}
+
+export interface ReminderInfo {
+  id: string;
+  boardId: string | null;
+  boardTitle?: string;
+  time: string;
+  days: string;
+  message: string;
+  isActive: boolean;
+}
+
+export interface HabitTemplate {
+  id: string;
+  category: string;
+  icon: string;
+  name: string;
+  description: string;
+  suggestedSize: number;
+  suggestedReward: string;
+}
+
+export interface WineryTier {
+  level: number;
+  minGrapes: number;
+  name: string;
+  icon: string;
+}
+
+export interface HeatmapData {
+  date: string;
+  count: number;
+}
+
+export interface EnhancedStats {
+  totalBoards: number;
+  completedBoards: number;
+  totalStickers: number;
+  recentStickers: number;
+  messagesSent: number;
+  messagesReceived: number;
+  friendsCount: number;
+  boardsGifted: number;
+  boardsReceived: number;
+  streak: number;
+  dailyStickers: { date: string; count: number }[];
+  heatmap: HeatmapData[];
+  longestStreak: number;
+  currentStreak: number;
+  averageDaily: number;
+  mostActiveDay: string;
+  completionRate: number;
+  monthlyTrend: { month: string; count: number }[];
+  categoryBreakdown: { category: string; count: number }[];
+}
+
+export interface ShareCardData {
+  title: string;
+  progress: number;
+  filledCount: number;
+  totalStickers: number;
+  userName: string;
+  completedAt?: string;
+}

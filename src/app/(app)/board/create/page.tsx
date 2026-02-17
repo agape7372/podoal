@@ -8,10 +8,14 @@ import ClayCard from '@/components/ClayCard';
 import { api } from '@/lib/api';
 import { BOARD_SIZES, REWARD_TYPE_LABELS } from '@/types';
 import type { RewardType } from '@/types';
+import { TEMPLATE_CATEGORIES, getTemplatesByCategory } from '@/lib/templates';
+import type { HabitTemplate } from '@/lib/templates';
 
 export default function CreateBoardPage() {
   const router = useRouter();
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(0);
+  const [templateId, setTemplateId] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState('health');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [totalStickers, setTotalStickers] = useState(10);
@@ -20,6 +24,28 @@ export default function CreateBoardPage() {
   const [rewardContent, setRewardContent] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const stepLabels = ['템플릿', '기본 정보', '포도 크기', '보상 설정'];
+
+  const handleSelectTemplate = (template: HabitTemplate) => {
+    setTemplateId(template.id);
+    setTitle(`${template.icon} ${template.name}`);
+    setDescription(template.description);
+    setTotalStickers(template.suggestedSize);
+    setRewardTitle(`${template.name} 달성 보상`);
+    setRewardContent(template.suggestedReward);
+    setStep(1);
+  };
+
+  const handleSkipTemplate = () => {
+    setTemplateId(null);
+    setTitle('');
+    setDescription('');
+    setTotalStickers(10);
+    setRewardTitle('');
+    setRewardContent('');
+    setStep(1);
+  };
 
   const handleCreate = async () => {
     if (!title.trim()) { setError('제목을 입력해주세요'); return; }
@@ -35,6 +61,7 @@ export default function CreateBoardPage() {
           title: title.trim(),
           description: description.trim(),
           totalStickers,
+          templateId,
           rewards: [{
             type: rewardType,
             title: rewardTitle.trim(),
@@ -59,13 +86,15 @@ export default function CreateBoardPage() {
     '칭찬 받기 ⭐',
   ];
 
+  const categoryTemplates = getTemplatesByCategory(selectedCategory);
+
   return (
     <div className="pb-4">
       <h1 className="text-2xl font-bold text-grape-700 mb-6">🍇 새 포도판 만들기</h1>
 
       {/* Step indicator */}
       <div className="flex items-center gap-2 mb-6">
-        {[1, 2, 3].map((s) => (
+        {[0, 1, 2, 3].map((s) => (
           <div key={s} className="flex items-center gap-2">
             <div
               className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all ${
@@ -82,9 +111,69 @@ export default function CreateBoardPage() {
           </div>
         ))}
         <span className="text-sm text-warm-sub ml-2">
-          {step === 1 ? '기본 정보' : step === 2 ? '포도 크기' : '보상 설정'}
+          {stepLabels[step]}
         </span>
       </div>
+
+      {/* Step 0: Template selection */}
+      {step === 0 && (
+        <div className="space-y-5 animate-fade-in">
+          <p className="text-sm text-warm-sub">추천 템플릿으로 빠르게 시작하거나, 직접 만들어보세요!</p>
+
+          {/* Category tabs */}
+          <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-hide">
+            {TEMPLATE_CATEGORIES.map((cat) => (
+              <button
+                key={cat.id}
+                onClick={() => setSelectedCategory(cat.id)}
+                className={`
+                  clay-button px-3 py-2 rounded-xl text-sm whitespace-nowrap flex-shrink-0
+                  ${selectedCategory === cat.id
+                    ? 'ring-2 ring-grape-400 clay-pressed bg-gradient-to-br from-clay-lavender/60 to-grape-100'
+                    : ''
+                  }
+                `}
+              >
+                {cat.icon} {cat.name}
+              </button>
+            ))}
+          </div>
+
+          {/* Template grid */}
+          <div className="grid grid-cols-2 gap-3">
+            {categoryTemplates.map((template) => (
+              <button
+                key={template.id}
+                onClick={() => handleSelectTemplate(template)}
+                className={`
+                  clay p-4 text-left transition-all active:scale-[0.97]
+                  bg-gradient-to-br from-white to-clay-lavender/20
+                  hover:from-clay-lavender/30 hover:to-white
+                `}
+              >
+                <div className="text-2xl mb-2">{template.icon}</div>
+                <p className="font-semibold text-sm text-grape-700 mb-1">{template.name}</p>
+                <p className="text-xs text-warm-sub line-clamp-2">{template.description}</p>
+                <div className="mt-2 flex items-center gap-1">
+                  <span className="text-xs text-grape-400">{template.suggestedSize}알</span>
+                </div>
+              </button>
+            ))}
+          </div>
+
+          {/* Skip to custom */}
+          <div className="pt-2">
+            <ClayButton
+              variant="ghost"
+              fullWidth
+              size="lg"
+              onClick={handleSkipTemplate}
+            >
+              ✨ 직접 만들기
+            </ClayButton>
+          </div>
+        </div>
+      )}
 
       {/* Step 1: Basic info */}
       {step === 1 && (
@@ -118,13 +207,18 @@ export default function CreateBoardPage() {
             onChange={(e) => setDescription(e.target.value)}
           />
 
-          <ClayButton
-            fullWidth
-            size="lg"
-            onClick={() => { if (title.trim()) setStep(2); else setError('제목을 입력해주세요'); }}
-          >
-            다음 →
-          </ClayButton>
+          <div className="flex gap-3">
+            <ClayButton variant="ghost" onClick={() => setStep(0)} fullWidth>
+              ← 이전
+            </ClayButton>
+            <ClayButton
+              fullWidth
+              size="lg"
+              onClick={() => { if (title.trim()) setStep(2); else setError('제목을 입력해주세요'); }}
+            >
+              다음 →
+            </ClayButton>
+          </div>
         </div>
       )}
 

@@ -1,11 +1,13 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAppStore } from '@/lib/store';
 import { updateSettings as updateFeedbackSettings } from '@/lib/feedback';
 import { FILL_SOUNDS } from '@/lib/sounds';
 
 export default function SettingsPage() {
+  const router = useRouter();
   const settings = useAppStore((s) => s.settings);
   const updateSettings = useAppStore((s) => s.updateSettings);
   const [showSoundPicker, setShowSoundPicker] = useState(false);
@@ -222,6 +224,25 @@ export default function SettingsPage() {
             </button>
           </div>
         </div>
+      </section>
+
+      {/* Notification settings link */}
+      <section className="mb-4">
+        <button
+          onClick={() => router.push('/notifications')}
+          className="clay w-full p-4 text-left bg-gradient-to-br from-white to-grape-50/30 active:scale-[0.98] transition-transform"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <span className="text-xl">🔔</span>
+              <div>
+                <p className="text-sm font-medium text-warm-text">알림 설정</p>
+                <p className="text-xs text-warm-sub">방해금지, 리마인더, 카테고리별 설정</p>
+              </div>
+            </div>
+            <span className="text-warm-light text-sm">{'>'}</span>
+          </div>
+        </button>
       </section>
 
       {/* App info */}

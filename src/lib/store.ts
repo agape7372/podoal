@@ -1,7 +1,7 @@
 'use client';
 
 import { create } from 'zustand';
-import type { UserProfile, BoardSummary, FriendInfo, MessageInfo } from '@/types';
+import type { UserProfile, BoardSummary, FriendInfo, MessageInfo, RelayInfo, TimeCapsuleInfo } from '@/types';
 
 // ─── Settings ──────────────────────────────────────────────
 
@@ -51,6 +51,8 @@ interface AppState {
   boards: BoardSummary[];
   friends: FriendInfo[];
   messages: MessageInfo[];
+  relays: RelayInfo[];
+  capsules: TimeCapsuleInfo[];
   unreadCount: number;
   popupMessage: MessageInfo | null;
   settings: AppSettings;
@@ -60,6 +62,8 @@ interface AppState {
   setFriends: (friends: FriendInfo[]) => void;
   setMessages: (messages: MessageInfo[]) => void;
   addMessage: (message: MessageInfo) => void;
+  setRelays: (relays: RelayInfo[]) => void;
+  setCapsules: (capsules: TimeCapsuleInfo[]) => void;
   setUnreadCount: (count: number) => void;
   showPopup: (message: MessageInfo) => void;
   hidePopup: () => void;
@@ -72,6 +76,8 @@ export const useAppStore = create<AppState>((set) => ({
   boards: [],
   friends: [],
   messages: [],
+  relays: [],
+  capsules: [],
   unreadCount: 0,
   popupMessage: null,
   settings: loadSettings(),
@@ -85,6 +91,8 @@ export const useAppStore = create<AppState>((set) => ({
       messages: [message, ...state.messages],
       unreadCount: state.unreadCount + 1,
     })),
+  setRelays: (relays) => set({ relays }),
+  setCapsules: (capsules) => set({ capsules }),
   setUnreadCount: (count) => set({ unreadCount: count }),
   showPopup: (message) => set({ popupMessage: message }),
   hidePopup: () => set({ popupMessage: null }),
