@@ -6,6 +6,7 @@ interface FeedbackSettings {
   soundEnabled: boolean;
   hapticEnabled: boolean;
   soundVolume: number; // 0-1
+  fillSoundId?: number;
 }
 
 const DEFAULT_SETTINGS: FeedbackSettings = {
@@ -127,51 +128,15 @@ function playToneRamp(
 
 // ─── Sound effects ─────────────────────────────────────────
 
-/** Short bubbly pop for tapping a grape */
-export function playPop(): void {
-  const settings = getSettings();
-  if (!settings.soundEnabled) return;
-
-  try {
-    const ctx = getAudioContext();
-    const t = ctx.currentTime;
-
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(600, t);
-    osc.frequency.exponentialRampToValueAtTime(200, t + 0.1);
-
-    const vol = settings.soundVolume * 0.4;
-    gain.gain.setValueAtTime(vol, t);
-    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
-
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-
-    osc.start(t);
-    osc.stop(t + 0.1);
-  } catch {
-    // Web Audio API not available
-  }
-}
-
-/** Satisfying "fill" sound when grape is filled - rising tone */
+/** Play the user's selected fill sound */
 export function playFill(): void {
   const settings = getSettings();
   if (!settings.soundEnabled) return;
-
   try {
-    const ctx = getAudioContext();
-    const t = ctx.currentTime;
-
-    // Rising sine wave
-    playToneRamp(300, 800, 0.25, 'sine', 0.4, t);
-    // Overlay with a soft triangle harmonic
-    playToneRamp(450, 1200, 0.2, 'triangle', 0.15, t + 0.05);
+    const { playFillSoundById, DEFAULT_FILL_SOUND_ID } = require('@/lib/sounds');
+    playFillSoundById(settings.fillSoundId ?? DEFAULT_FILL_SOUND_ID);
   } catch {
-    // Web Audio API not available
+    // sounds module not available
   }
 }
 
@@ -193,7 +158,7 @@ export function playCheer(): void {
   }
 }
 
-/** Reward unlock fanfare - 5-note ascending melody */
+/** Reward unlock fanfare - sparkly ascending with shimmer */
 export function playReward(): void {
   const settings = getSettings();
   if (!settings.soundEnabled) return;
@@ -201,20 +166,23 @@ export function playReward(): void {
   try {
     const ctx = getAudioContext();
     const t = ctx.currentTime;
-    // C5, E5, G5, B5, C6
+    // Magical ascending: C5, E5, G5, B5, C6
     const notes = [523.25, 659.25, 783.99, 987.77, 1046.5];
-
     notes.forEach((freq, i) => {
-      playTone(freq, 0.25, 'sine', 0.3, t + i * 0.1);
-      // Add a subtle triangle layer for richness
-      playTone(freq * 2, 0.15, 'triangle', 0.08, t + i * 0.1 + 0.02);
+      playTone(freq, 0.3, 'sine', 0.35, t + i * 0.09);
+      // Sparkle shimmer overtone
+      playTone(freq * 2, 0.2, 'sine', 0.1, t + i * 0.09 + 0.02);
+    });
+    // Final sparkle chord
+    [1046.5, 1318.5, 1568].forEach((freq) => {
+      playTone(freq, 0.6, 'sine', 0.15, t + 0.5);
     });
   } catch {
     // Web Audio API not available
   }
 }
 
-/** Board completion celebration - cheerful chord */
+/** Board completion celebration - grand fanfare with rising chord */
 export function playComplete(): void {
   const settings = getSettings();
   if (!settings.soundEnabled) return;
@@ -223,17 +191,32 @@ export function playComplete(): void {
     const ctx = getAudioContext();
     const t = ctx.currentTime;
 
-    // Major chord: C5, E5, G5 played together, then resolve up
-    const chord = [523.25, 659.25, 783.99];
-    chord.forEach((freq) => {
-      playTone(freq, 0.5, 'sine', 0.2, t);
-      playTone(freq, 0.5, 'triangle', 0.08, t);
+    // Drum-like kick
+    const kick = ctx.createOscillator(); const kg = ctx.createGain();
+    kick.type = 'sine'; kick.frequency.setValueAtTime(200, t);
+    kick.frequency.exponentialRampToValueAtTime(60, t + 0.08);
+    kg.gain.setValueAtTime(settings.soundVolume * 0.5, t);
+    kg.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+    kick.connect(kg); kg.connect(ctx.destination);
+    kick.start(t); kick.stop(t + 0.12);
+
+    // Rising fanfare: G4, B4, D5, G5
+    const fanfare = [392, 494, 587, 784];
+    fanfare.forEach((freq, i) => {
+      playTone(freq, 0.35, 'sine', 0.35, t + 0.05 + i * 0.08);
+      playTone(freq * 1.5, 0.2, 'sine', 0.08, t + 0.05 + i * 0.08);
     });
 
-    // Ascending resolution after chord
-    const resolution = [880, 1046.5]; // A5, C6
-    resolution.forEach((freq, i) => {
-      playTone(freq, 0.35, 'sine', 0.25, t + 0.35 + i * 0.12);
+    // Grand major chord: C5, E5, G5, C6
+    const grand = [523.25, 659.25, 783.99, 1046.5];
+    grand.forEach((freq) => {
+      playTone(freq, 0.8, 'sine', 0.2, t + 0.4);
+      playTone(freq, 0.6, 'triangle', 0.06, t + 0.4);
+    });
+
+    // Sparkle top
+    [1568, 2093, 2637].forEach((freq, i) => {
+      playTone(freq, 0.3, 'sine', 0.08, t + 0.55 + i * 0.1);
     });
   } catch {
     // Web Audio API not available

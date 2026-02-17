@@ -1,11 +1,15 @@
 'use client';
 
+import { useState } from 'react';
 import { useAppStore } from '@/lib/store';
 import { updateSettings as updateFeedbackSettings } from '@/lib/feedback';
+import { FILL_SOUNDS } from '@/lib/sounds';
 
 export default function SettingsPage() {
   const settings = useAppStore((s) => s.settings);
   const updateSettings = useAppStore((s) => s.updateSettings);
+  const [showSoundPicker, setShowSoundPicker] = useState(false);
+  const [playingId, setPlayingId] = useState<number | null>(null);
 
   const handleToggle = (key: 'soundEnabled' | 'hapticEnabled' | 'showMessagePopup' | 'realtimeNotifications') => {
     const newValue = !settings[key];
@@ -19,6 +23,21 @@ export default function SettingsPage() {
     updateSettings({ soundVolume: value });
     updateFeedbackSettings({ soundVolume: value });
   };
+
+  const handleSelectSound = (id: number) => {
+    updateSettings({ fillSoundId: id });
+    updateFeedbackSettings({ fillSoundId: id });
+    playSound(id);
+  };
+
+  const playSound = (id: number) => {
+    setPlayingId(id);
+    const sound = FILL_SOUNDS.find((s) => s.id === id);
+    if (sound) sound.play();
+    setTimeout(() => setPlayingId(null), 400);
+  };
+
+  const currentSound = FILL_SOUNDS.find((s) => s.id === settings.fillSoundId) || FILL_SOUNDS[13];
 
   return (
     <div className="pb-4">
@@ -45,68 +64,118 @@ export default function SettingsPage() {
                 }
               `}
             >
-              <div
-                className={`
-                  w-5 h-5 rounded-full bg-white shadow-md absolute top-1
-                  transition-all duration-200
-                  ${settings.soundEnabled ? 'left-6' : 'left-1'}
-                `}
-              />
+              <div className={`
+                w-5 h-5 rounded-full bg-white shadow-md absolute top-1
+                transition-all duration-200
+                ${settings.soundEnabled ? 'left-6' : 'left-1'}
+              `} />
             </button>
           </div>
 
-          {/* Volume slider */}
           {settings.soundEnabled && (
-            <div className="pl-1">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-xs text-warm-light">볼륨</span>
-                <span className="text-xs text-grape-500 font-medium">
-                  {Math.round(settings.soundVolume * 100)}%
-                </span>
+            <>
+              {/* Volume slider */}
+              <div className="pl-1">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs text-warm-light">볼륨</span>
+                  <span className="text-xs text-grape-500 font-medium">
+                    {Math.round(settings.soundVolume * 100)}%
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={Math.round(settings.soundVolume * 100)}
+                  onChange={(e) => handleVolumeChange(Number(e.target.value) / 100)}
+                  className="w-full h-2 rounded-full appearance-none bg-grape-100 accent-grape-500"
+                />
               </div>
-              <input
-                type="range"
-                min="0"
-                max="100"
-                value={Math.round(settings.soundVolume * 100)}
-                onChange={(e) => handleVolumeChange(Number(e.target.value) / 100)}
-                className="w-full h-2 rounded-full appearance-none bg-grape-100 accent-grape-500"
-              />
-            </div>
-          )}
 
-          {/* Haptic toggle */}
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-warm-text">진동 피드백</p>
-              <p className="text-xs text-warm-light">터치 시 진동 반응</p>
-            </div>
-            <button
-              onClick={() => handleToggle('hapticEnabled')}
-              className={`
-                w-12 h-7 rounded-full transition-all duration-200 relative
-                ${settings.hapticEnabled
-                  ? 'bg-gradient-to-r from-grape-400 to-grape-500'
-                  : 'bg-gray-200'
-                }
-              `}
-            >
-              <div
-                className={`
-                  w-5 h-5 rounded-full bg-white shadow-md absolute top-1
-                  transition-all duration-200
-                  ${settings.hapticEnabled ? 'left-6' : 'left-1'}
-                `}
-              />
-            </button>
+              {/* Fill sound picker button */}
+              <button
+                onClick={() => setShowSoundPicker(!showSoundPicker)}
+                className="w-full clay-button p-3 rounded-2xl flex items-center justify-between"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="text-xl">{currentSound.emoji}</span>
+                  <div className="text-left">
+                    <p className="text-sm font-medium text-warm-text">포도알 소리 설정</p>
+                    <p className="text-xs text-warm-light">{currentSound.name} - {currentSound.desc}</p>
+                  </div>
+                </div>
+                <span className="text-warm-light text-sm">{showSoundPicker ? '▲' : '▼'}</span>
+              </button>
+            </>
+          )}
+        </div>
+      </section>
+
+      {/* Sound picker panel */}
+      {showSoundPicker && settings.soundEnabled && (
+        <section className="clay p-4 mb-4 bg-gradient-to-br from-clay-cream/30 to-clay-lavender/20">
+          <h2 className="text-sm font-semibold text-grape-600 mb-3">🍇 포도알 소리 선택</h2>
+          <div className="grid grid-cols-2 gap-2 max-h-[400px] overflow-y-auto pr-1">
+            {FILL_SOUNDS.map((s) => {
+              const isSelected = settings.fillSoundId === s.id;
+              return (
+                <button
+                  key={s.id}
+                  onClick={() => handleSelectSound(s.id)}
+                  className={`
+                    p-3 rounded-xl text-left transition-all active:scale-95
+                    ${isSelected
+                      ? 'bg-gradient-to-br from-grape-400 to-grape-500 text-white shadow-md'
+                      : 'clay-button'
+                    }
+                    ${playingId === s.id ? 'scale-95' : ''}
+                  `}
+                >
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <span className="text-lg">{s.emoji}</span>
+                    <span className={`text-sm font-bold ${isSelected ? 'text-white' : 'text-grape-700'}`}>
+                      {s.name}
+                    </span>
+                  </div>
+                  <p className={`text-[10px] leading-tight ${isSelected ? 'text-white/80' : 'text-warm-light'}`}>
+                    {s.desc}
+                  </p>
+                </button>
+              );
+            })}
           </div>
+        </section>
+      )}
+
+      {/* Haptic toggle */}
+      <section className="clay p-5 mb-4 bg-gradient-to-br from-white to-clay-lavender/20">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-warm-text">진동 피드백</p>
+            <p className="text-xs text-warm-light">터치 시 진동 반응</p>
+          </div>
+          <button
+            onClick={() => handleToggle('hapticEnabled')}
+            className={`
+              w-12 h-7 rounded-full transition-all duration-200 relative
+              ${settings.hapticEnabled
+                ? 'bg-gradient-to-r from-grape-400 to-grape-500'
+                : 'bg-gray-200'
+              }
+            `}
+          >
+            <div className={`
+              w-5 h-5 rounded-full bg-white shadow-md absolute top-1
+              transition-all duration-200
+              ${settings.hapticEnabled ? 'left-6' : 'left-1'}
+            `} />
+          </button>
         </div>
       </section>
 
       {/* Notifications */}
       <section className="clay p-5 mb-4 bg-gradient-to-br from-white to-clay-pink/10">
         <h2 className="text-sm font-semibold text-warm-sub mb-4">알림</h2>
-
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
@@ -123,16 +192,13 @@ export default function SettingsPage() {
                 }
               `}
             >
-              <div
-                className={`
-                  w-5 h-5 rounded-full bg-white shadow-md absolute top-1
-                  transition-all duration-200
-                  ${settings.showMessagePopup ? 'left-6' : 'left-1'}
-                `}
-              />
+              <div className={`
+                w-5 h-5 rounded-full bg-white shadow-md absolute top-1
+                transition-all duration-200
+                ${settings.showMessagePopup ? 'left-6' : 'left-1'}
+              `} />
             </button>
           </div>
-
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-warm-text">실시간 알림</p>
@@ -148,13 +214,11 @@ export default function SettingsPage() {
                 }
               `}
             >
-              <div
-                className={`
-                  w-5 h-5 rounded-full bg-white shadow-md absolute top-1
-                  transition-all duration-200
-                  ${settings.realtimeNotifications ? 'left-6' : 'left-1'}
-                `}
-              />
+              <div className={`
+                w-5 h-5 rounded-full bg-white shadow-md absolute top-1
+                transition-all duration-200
+                ${settings.realtimeNotifications ? 'left-6' : 'left-1'}
+              `} />
             </button>
           </div>
         </div>

@@ -9,6 +9,7 @@ export interface AppSettings {
   soundEnabled: boolean;
   hapticEnabled: boolean;
   soundVolume: number;
+  fillSoundId: number;
   showMessagePopup: boolean;
   realtimeNotifications: boolean;
 }
@@ -19,6 +20,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   soundEnabled: true,
   hapticEnabled: true,
   soundVolume: 0.5,
+  fillSoundId: 13,
   showMessagePopup: true,
   realtimeNotifications: true,
 };
