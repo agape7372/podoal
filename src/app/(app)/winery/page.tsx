@@ -116,7 +116,7 @@ export default function WineryPage() {
                   style={{ width: `${tierProgress}%` }}
                 >
                   {/* Animated shimmer on progress bar */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-[shimmer_2s_infinite]" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer" />
                 </div>
               </div>
               <p className="text-xs text-warm-sub mt-2">

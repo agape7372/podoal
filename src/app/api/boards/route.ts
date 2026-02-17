@@ -55,7 +55,7 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
-  const { title, description, totalStickers, rewards } = body;
+  const { title, description, totalStickers, rewards, templateId } = body;
 
   if (!title || !totalStickers || !rewards || !Array.isArray(rewards) || rewards.length === 0) {
     return authResponse('Missing required fields: title, totalStickers, rewards (array)', 400);
@@ -83,6 +83,7 @@ export async function POST(request: Request) {
         title,
         description: description || '',
         totalStickers,
+        templateId: templateId || null,
         ownerId: userId,
       },
     });

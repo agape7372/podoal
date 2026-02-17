@@ -73,7 +73,7 @@ export default function FriendDetailPage() {
   };
 
   const handleGiftBoard = () => {
-    router.push(`/board/new?giftTo=${friendId}`);
+    router.push(`/board/create?giftTo=${friendId}`);
   };
 
   const activeBoards = boards.filter((b) => !b.isCompleted);

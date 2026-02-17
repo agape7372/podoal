@@ -77,6 +77,7 @@ const config: Config = {
         'grape-fill': 'grapeFill 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)',
         'reward-reveal': 'rewardReveal 1s cubic-bezier(0.34, 1.56, 0.64, 1)',
         'confetti': 'confetti 1s ease-out forwards',
+        'shimmer': 'shimmer 2s infinite',
       },
       keyframes: {
         bounceIn: {
@@ -128,6 +129,10 @@ const config: Config = {
         confetti: {
           '0%': { transform: 'translateY(0) rotate(0deg)', opacity: '1' },
           '100%': { transform: 'translateY(-200px) rotate(720deg)', opacity: '0' },
+        },
+        shimmer: {
+          '0%': { transform: 'translateX(-100%)' },
+          '100%': { transform: 'translateX(100%)' },
         },
       },
     },
