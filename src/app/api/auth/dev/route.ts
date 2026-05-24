@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-import { createToken } from '@/lib/auth';
+import { applyAuthCookie, createToken } from '@/lib/auth';
 import bcrypt from 'bcryptjs';
 
 export async function POST() {
@@ -70,10 +70,5 @@ export async function POST() {
     avatar: user.avatar,
   };
 
-  const response = Response.json({ user: profile });
-  response.headers.set(
-    'Set-Cookie',
-    `token=${token}; HttpOnly; Path=/; Max-Age=${7 * 24 * 60 * 60}; SameSite=Lax`
-  );
-  return response;
+  return applyAuthCookie(Response.json({ user: profile }), token);
 }

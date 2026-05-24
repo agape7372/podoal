@@ -57,24 +57,52 @@ export async function POST(request: Request) {
   const body = await request.json();
   const { title, description, totalStickers, rewards, templateId } = body;
 
-  if (!title || !totalStickers || !rewards || !Array.isArray(rewards) || rewards.length === 0) {
-    return authResponse('Missing required fields: title, totalStickers, rewards (array)', 400);
+  if (
+    typeof title !== 'string' ||
+    title.trim().length === 0 ||
+    title.length > 80
+  ) {
+    return authResponse('제목은 1~80자여야 합니다.', 400);
+  }
+  if (description !== undefined && (typeof description !== 'string' || description.length > 200)) {
+    return authResponse('설명은 200자 이하여야 합니다.', 400);
+  }
+  if (![10, 15, 20, 30].includes(totalStickers)) {
+    return authResponse('포도알 개수는 10/15/20/30 중 하나여야 합니다.', 400);
+  }
+  if (!Array.isArray(rewards) || rewards.length === 0 || rewards.length > 10) {
+    return authResponse('보상은 1~10개여야 합니다.', 400);
+  }
+  if (templateId !== undefined && templateId !== null && (typeof templateId !== 'string' || templateId.length > 64)) {
+    return authResponse('잘못된 templateId 입니다.', 400);
   }
 
-  // Validate each reward
+  const VALID_REWARD_TYPES = new Set(['letter', 'giftcard', 'wish']);
   for (const reward of rewards) {
-    if (!reward.type || !reward.title || !reward.content || !reward.triggerAt) {
-      return authResponse('Each reward must have: type, title, content, triggerAt', 400);
+    if (
+      typeof reward.type !== 'string' ||
+      !VALID_REWARD_TYPES.has(reward.type) ||
+      typeof reward.title !== 'string' ||
+      reward.title.trim().length === 0 ||
+      reward.title.length > 80 ||
+      typeof reward.content !== 'string' ||
+      reward.content.length > 500 ||
+      typeof reward.triggerAt !== 'number'
+    ) {
+      return authResponse('보상 형식이 올바르지 않습니다.', 400);
     }
-    if (reward.triggerAt < 1 || reward.triggerAt > totalStickers) {
-      return authResponse(`triggerAt must be between 1 and ${totalStickers}`, 400);
+    if (!Number.isInteger(reward.triggerAt) || reward.triggerAt < 1 || reward.triggerAt > totalStickers) {
+      return authResponse(`triggerAt은 1~${totalStickers} 사이의 정수여야 합니다.`, 400);
+    }
+    if (reward.imageUrl !== undefined && (typeof reward.imageUrl !== 'string' || reward.imageUrl.length > 1024)) {
+      return authResponse('imageUrl이 올바르지 않습니다.', 400);
     }
   }
 
   // Check for duplicate triggerAt values
   const triggerAts = rewards.map((r: { triggerAt: number }) => r.triggerAt);
   if (new Set(triggerAts).size !== triggerAts.length) {
-    return authResponse('Each reward must have a unique triggerAt value', 400);
+    return authResponse('각 보상의 triggerAt 값은 달라야 합니다.', 400);
   }
 
   const board = await prisma.$transaction(async (tx) => {
