@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "prebuild": "DATABASE_URL=file:./_seed.db prisma db push --skip-generate --accept-data-loss --schema=./prisma/schema.prisma",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
