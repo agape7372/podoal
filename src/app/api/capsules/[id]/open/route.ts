@@ -28,16 +28,10 @@ export async function POST(
     return authResponse('Capsule is already opened', 400);
   }
 
-  const now = new Date();
-  const openAt = new Date(capsule.openAt);
-
-  // Compare: current time must be >= openAt date
-  // We compare at the start-of-day level: the capsule can be opened on or after the openAt date
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const openAtStart = new Date(openAt.getFullYear(), openAt.getMonth(), openAt.getDate());
-
-  if (todayStart.getTime() < openAtStart.getTime()) {
-    return authResponse('This capsule cannot be opened yet', 400);
+  // Exact timestamp comparison (was previously date-only which let capsules
+  // open up to ~24h early depending on server/user timezones).
+  if (Date.now() < capsule.openAt.getTime()) {
+    return authResponse('아직 캡슐을 열 수 없어요', 400);
   }
 
   const updated = await prisma.timeCapsule.update({

@@ -10,10 +10,16 @@ interface RewardRevealProps {
   reward: RewardInfo;
   isCompleted: boolean;
   onClose?: () => void;
+  initialRevealed?: boolean;
 }
 
-export default function RewardReveal({ reward, isCompleted, onClose }: RewardRevealProps) {
-  const [isRevealed, setIsRevealed] = useState(false);
+export default function RewardReveal({
+  reward,
+  isCompleted,
+  onClose,
+  initialRevealed = false,
+}: RewardRevealProps) {
+  const [isRevealed, setIsRevealed] = useState(initialRevealed);
   const [showConfetti, setShowConfetti] = useState(false);
 
   const triggerConfetti = useCallback(() => {
