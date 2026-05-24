@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppStore } from '@/lib/store';
-import { updateSettings as updateFeedbackSettings } from '@/lib/feedback';
 import { FILL_SOUNDS } from '@/lib/sounds';
 
 export default function SettingsPage() {
@@ -14,21 +13,15 @@ export default function SettingsPage() {
   const [playingId, setPlayingId] = useState<number | null>(null);
 
   const handleToggle = (key: 'soundEnabled' | 'hapticEnabled' | 'showMessagePopup' | 'realtimeNotifications') => {
-    const newValue = !settings[key];
-    updateSettings({ [key]: newValue });
-    if (key === 'soundEnabled' || key === 'hapticEnabled') {
-      updateFeedbackSettings({ [key]: newValue });
-    }
+    updateSettings({ [key]: !settings[key] });
   };
 
   const handleVolumeChange = (value: number) => {
     updateSettings({ soundVolume: value });
-    updateFeedbackSettings({ soundVolume: value });
   };
 
   const handleSelectSound = (id: number) => {
     updateSettings({ fillSoundId: id });
-    updateFeedbackSettings({ fillSoundId: id });
     playSound(id);
   };
 

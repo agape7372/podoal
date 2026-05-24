@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { memo, useCallback, useMemo, useState } from 'react';
 import GrapeSticker from './GrapeSticker';
 import { feedbackFill, feedbackComplete, feedbackReward } from '@/lib/feedback';
 import type { BoardDetail } from '@/types';
@@ -19,11 +19,14 @@ const CLUSTER_LAYOUTS: Record<number, number[]> = {
   30: [4, 5, 6, 5, 5, 3, 2],
 };
 
-export default function GrapeBoard({ board, onFill, canFill }: GrapeBoardProps) {
+function GrapeBoardInner({ board, onFill, canFill }: GrapeBoardProps) {
   const [fillingPos, setFillingPos] = useState<number | null>(null);
   const [justFilled, setJustFilled] = useState<number | null>(null);
 
-  const filledPositions = new Set(board.stickers.map((s) => s.position));
+  const filledPositions = useMemo(
+    () => new Set(board.stickers.map((s) => s.position)),
+    [board.stickers],
+  );
   const filledCount = filledPositions.size;
   const progress = Math.round((filledCount / board.totalStickers) * 100);
 
@@ -46,24 +49,24 @@ export default function GrapeBoard({ board, onFill, canFill }: GrapeBoardProps) 
     }
   }, [canFill, filledPositions, fillingPos, filledCount, board.totalStickers, board.rewards, onFill]);
 
-  const layoutRows = CLUSTER_LAYOUTS[board.totalStickers] || CLUSTER_LAYOUTS[10];
-
   const grapeSize = 52;
   const sizeClass: 'sm' | 'md' | 'lg' = 'lg';
-
-  // Build rows
-  let posIndex = 0;
-  const rows: number[][] = [];
-  for (const count of layoutRows) {
-    const row: number[] = [];
-    for (let i = 0; i < count && posIndex < board.totalStickers; i++) {
-      row.push(posIndex++);
-    }
-    rows.push(row);
-  }
-
-  // Vertical overlap: each row overlaps the previous by ~22%
   const rowOverlap = grapeSize * 0.22;
+
+  // Hex layout depends only on totalStickers, so memoize.
+  const rows = useMemo<number[][]>(() => {
+    const layoutRows = CLUSTER_LAYOUTS[board.totalStickers] || CLUSTER_LAYOUTS[10];
+    let posIndex = 0;
+    const built: number[][] = [];
+    for (const count of layoutRows) {
+      const row: number[] = [];
+      for (let i = 0; i < count && posIndex < board.totalStickers; i++) {
+        row.push(posIndex++);
+      }
+      built.push(row);
+    }
+    return built;
+  }, [board.totalStickers]);
 
   return (
     <div className="flex flex-col items-center gap-5">
@@ -200,3 +203,6 @@ export default function GrapeBoard({ board, onFill, canFill }: GrapeBoardProps) 
     </div>
   );
 }
+
+export default memo(GrapeBoardInner);
+

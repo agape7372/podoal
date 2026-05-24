@@ -7,6 +7,7 @@ import MessagePopup from '@/components/MessagePopup';
 import InstallPrompt from '@/components/InstallPrompt';
 import { useAppStore } from '@/lib/store';
 import { useSSE } from '@/lib/useSSE';
+import { useReminderScheduler } from '@/lib/useReminderScheduler';
 import { fetchUser } from '@/lib/api';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -31,6 +32,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }, []);
 
   useSSE();
+  useReminderScheduler();
 
   if (!user) {
     return (
