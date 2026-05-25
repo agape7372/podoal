@@ -78,7 +78,7 @@ function AuthPageInner() {
     // Probe which social providers have credentials wired up. Failure is
     // non-fatal — the worst case is the buttons render as "ready" and click
     // produces the same friendly error redirect as before.
-    fetch('/api/auth/oauth/status')
+    fetch('/api/auth/providers')
       .then((r) => r.ok ? r.json() : null)
       .then((data) => { if (data?.providers) setProviderStatus(data.providers); })
       .catch(() => {});
