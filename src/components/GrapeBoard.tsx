@@ -31,23 +31,35 @@ function GrapeBoardInner({ board, onFill, canFill }: GrapeBoardProps) {
   const progress = Math.round((filledCount / board.totalStickers) * 100);
 
   const handleFill = useCallback(async (position: number) => {
-    if (!canFill || filledPositions.has(position) || fillingPos !== null) return;
+    // Parent optimistically adds the sticker to board.stickers on click, so
+    // filledPositions.has(position) blocks any repeat tap on the same grape
+    // without us having to serialize across positions. Allowing concurrent
+    // fills lets the user tap a whole row without waiting on each round-trip.
+    if (!canFill || filledPositions.has(position)) return;
+
+    // Fire feedback immediately — the parent updates the UI synchronously, so
+    // the user should hear/feel the fill the instant their finger lands, not
+    // after a network round-trip.
+    setJustFilled(position);
+    feedbackFill();
+    const newFilledCount = filledCount + 1;
+    if (newFilledCount >= board.totalStickers) {
+      setTimeout(() => feedbackComplete(), 400);
+    } else if (board.rewards?.some((r) => r.triggerAt === newFilledCount)) {
+      setTimeout(() => feedbackReward(), 300);
+    }
+    setTimeout(() => setJustFilled((p) => (p === position ? null : p)), 600);
+
     setFillingPos(position);
     try {
       await onFill(position);
-      setJustFilled(position);
-      feedbackFill();
-      const newFilledCount = filledCount + 1;
-      if (newFilledCount >= board.totalStickers) {
-        setTimeout(() => feedbackComplete(), 400);
-      } else if (board.rewards?.some((r) => r.triggerAt === newFilledCount)) {
-        setTimeout(() => feedbackReward(), 300);
-      }
-      setTimeout(() => setJustFilled(null), 600);
+    } catch {
+      // Parent (board page) handles rollback + error banner. Swallowed here to
+      // avoid an unhandled promise rejection on mobile.
     } finally {
-      setFillingPos(null);
+      setFillingPos((p) => (p === position ? null : p));
     }
-  }, [canFill, filledPositions, fillingPos, filledCount, board.totalStickers, board.rewards, onFill]);
+  }, [canFill, filledPositions, filledCount, board.totalStickers, board.rewards, onFill]);
 
   const grapeSize = 52;
   const sizeClass: 'sm' | 'md' | 'lg' = 'lg';

@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import ClayButton from '@/components/ClayButton';
 import ClayInput from '@/components/ClayInput';
 import { AVATAR_EMOJIS, AVATAR_OPTIONS } from '@/types';
@@ -10,8 +10,40 @@ import { useAppStore } from '@/lib/store';
 
 type Mode = 'welcome' | 'login' | 'register';
 
+function describeOAuthError(code: string): string {
+  if (code.startsWith('oauth_not_configured')) {
+    const provider = code.split(':')[1] || '소셜';
+    const ko = provider === 'google' ? '구글' : provider === 'kakao' ? '카카오' : provider === 'naver' ? '네이버' : provider;
+    return `${ko} 로그인이 아직 준비 중이에요. 잠시 후 다시 시도해주세요.`;
+  }
+  if (code.startsWith('oauth_email_taken_by_')) {
+    const provider = code.replace('oauth_email_taken_by_', '');
+    const ko = provider === 'google' ? '구글' : provider === 'kakao' ? '카카오' : provider === 'naver' ? '네이버' : provider;
+    return `같은 이메일이 이미 ${ko}로 가입돼 있어요. ${ko}로 로그인해주세요.`;
+  }
+  if (code.includes('bad_state')) return '세션이 만료됐어요. 다시 시도해주세요.';
+  if (code.includes('missing_code')) return '로그인이 취소됐어요.';
+  if (code.includes('token_failed') || code.includes('userinfo_failed') || code.includes('create_failed')) {
+    return '소셜 로그인 처리 중 오류가 발생했어요. 잠시 후 다시 시도해주세요.';
+  }
+  return '로그인 중 오류가 발생했어요.';
+}
+
 export default function AuthPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-dvh flex items-center justify-center">
+        <div className="text-5xl animate-float">🍇</div>
+      </div>
+    }>
+      <AuthPageInner />
+    </Suspense>
+  );
+}
+
+function AuthPageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const setUser = useAppStore((s) => s.setUser);
   const [mode, setMode] = useState<Mode>('welcome');
   const [name, setName] = useState('');
@@ -21,8 +53,23 @@ export default function AuthPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(true);
+  type ProviderInfo = { real: boolean; ready: boolean };
+  const [providerStatus, setProviderStatus] = useState<Record<string, ProviderInfo>>({
+    google: { real: false, ready: true },
+    kakao: { real: false, ready: true },
+    naver: { real: false, ready: true },
+  });
 
   useEffect(() => {
+    const oauthError = searchParams.get('error');
+    if (oauthError) {
+      setError(describeOAuthError(oauthError));
+      // Clean up the URL so the error doesn't stick on refresh.
+      const url = new URL(window.location.href);
+      url.searchParams.delete('error');
+      url.searchParams.delete('provider');
+      window.history.replaceState({}, '', url.toString());
+    }
     fetchUser().then((u) => {
       if (u) {
         setUser(u);
@@ -31,7 +78,14 @@ export default function AuthPage() {
         setChecking(false);
       }
     });
-  }, [router, setUser]);
+    // Probe which providers run real OAuth vs guest-fallback. Either way the
+    // button is clickable — guest mode generates a randomized account so users
+    // can try the app immediately while real OAuth is being set up.
+    fetch('/api/auth/providers')
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => { if (data?.providers) setProviderStatus(data.providers); })
+      .catch(() => {});
+  }, [router, setUser, searchParams]);
 
   const handleSubmit = async () => {
     setError('');
@@ -74,39 +128,101 @@ export default function AuthPage() {
           <div className="text-7xl mb-4 animate-float">🍇</div>
           <h1 className="text-3xl font-extrabold text-grape-700 mb-2">포도알</h1>
           <p className="text-warm-sub mb-2">칭찬 스티커 보상표</p>
-          <p className="text-sm text-warm-light mb-10">
+          <p className="text-sm text-warm-light mb-8">
             포도알을 하나씩 채우며 목표를 달성하고,<br />
             소중한 사람에게 응원과 보상을 주고받아요
           </p>
+
+          {error && (
+            <div className="mb-4 p-3 rounded-2xl bg-red-50 border border-red-200 text-red-700 text-sm">
+              {error}
+            </div>
+          )}
+
           <div className="space-y-3">
-            <ClayButton fullWidth size="lg" onClick={() => setMode('login')}>
-              로그인
+            {/* Kakao */}
+            <a
+              href="/api/auth/oauth/kakao"
+              className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl font-semibold transition-transform active:scale-[0.97] shadow-sm relative"
+              style={{ background: '#FEE500', color: '#191919' }}
+            >
+              <span className="text-lg">💬</span>
+              <span>카카오로 시작</span>
+              {!providerStatus.kakao?.real && (
+                <span className="absolute right-3 text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-black/10">체험</span>
+              )}
+            </a>
+
+            {/* Naver */}
+            <a
+              href="/api/auth/oauth/naver"
+              className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl font-semibold text-white transition-transform active:scale-[0.97] shadow-sm relative"
+              style={{ background: '#03C75A' }}
+            >
+              <span className="font-extrabold">N</span>
+              <span>네이버로 시작</span>
+              {!providerStatus.naver?.real && (
+                <span className="absolute right-3 text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-white/25">체험</span>
+              )}
+            </a>
+
+            {/* Google */}
+            <a
+              href="/api/auth/oauth/google"
+              className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl font-semibold transition-transform active:scale-[0.97] shadow-sm border border-warm-border/40 relative"
+              style={{ background: '#ffffff', color: '#3c4043' }}
+            >
+              <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
+                <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615Z" fill="#4285F4"/>
+                <path d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18Z" fill="#34A853"/>
+                <path d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332Z" fill="#FBBC05"/>
+                <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58Z" fill="#EA4335"/>
+              </svg>
+              <span>Google로 시작</span>
+              {!providerStatus.google?.real && (
+                <span className="absolute right-3 text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-600">체험</span>
+              )}
+            </a>
+
+            {/* Divider */}
+            <div className="flex items-center gap-3 py-1">
+              <div className="flex-1 h-px bg-warm-border/40" />
+              <span className="text-xs text-warm-light">또는</span>
+              <div className="flex-1 h-px bg-warm-border/40" />
+            </div>
+
+            {/* Email */}
+            <ClayButton fullWidth size="lg" onClick={() => { setError(''); setMode('register'); }}>
+              📧 이메일로 시작
             </ClayButton>
-            <ClayButton fullWidth size="lg" variant="secondary" onClick={() => setMode('register')}>
-              새로 시작하기
-            </ClayButton>
-            {process.env.NODE_ENV !== 'production' && (
-              <button
-                onClick={async () => {
-                  setLoading(true);
-                  try {
-                    const res = await fetch('/api/auth/dev', { method: 'POST' });
-                    const data = await res.json();
-                    if (data.user) {
-                      setUser(data.user);
-                      router.replace('/home');
-                    }
-                  } catch {
-                    setError('개발자 모드 진입 실패');
+            <button
+              onClick={() => { setError(''); setMode('login'); }}
+              className="w-full text-center text-sm text-grape-500 py-1"
+            >
+              이미 계정이 있나요? 이메일로 로그인
+            </button>
+
+            {/* Dev mode */}
+            <button
+              onClick={async () => {
+                setLoading(true);
+                try {
+                  const res = await fetch('/api/auth/dev', { method: 'POST' });
+                  const data = await res.json();
+                  if (data.user) {
+                    setUser(data.user);
+                    router.replace('/home');
                   }
-                  setLoading(false);
-                }}
-                disabled={loading}
-                className="w-full py-3 rounded-2xl text-sm font-medium text-warm-sub border-2 border-dashed border-warm-border/60 hover:border-grape-300 hover:text-grape-500 transition-all"
-              >
-                {loading ? '진입중...' : '🛠 개발자 모드로 시작'}
-              </button>
-            )}
+                } catch {
+                  setError('개발자 모드 진입 실패');
+                }
+                setLoading(false);
+              }}
+              disabled={loading}
+              className="w-full py-2.5 rounded-2xl text-xs font-medium text-warm-light hover:text-grape-500 transition-all"
+            >
+              {loading ? '진입중...' : '🛠 개발자 모드'}
+            </button>
           </div>
         </div>
       )}
@@ -114,10 +230,10 @@ export default function AuthPage() {
       {/* Login Form */}
       {mode === 'login' && (
         <div className="w-full max-w-sm animate-slide-up">
-          <button onClick={() => setMode('welcome')} className="text-warm-sub mb-6 text-sm">
+          <button onClick={() => { setError(''); setMode('welcome'); }} className="text-warm-sub mb-6 text-sm">
             ← 돌아가기
           </button>
-          <h2 className="text-2xl font-bold text-grape-700 mb-6">로그인</h2>
+          <h2 className="text-2xl font-bold text-grape-700 mb-6">이메일로 로그인</h2>
           <div className="space-y-4">
             <ClayInput
               label="이메일"
@@ -151,10 +267,10 @@ export default function AuthPage() {
       {/* Register Form */}
       {mode === 'register' && (
         <div className="w-full max-w-sm animate-slide-up">
-          <button onClick={() => setMode('welcome')} className="text-warm-sub mb-6 text-sm">
+          <button onClick={() => { setError(''); setMode('welcome'); }} className="text-warm-sub mb-6 text-sm">
             ← 돌아가기
           </button>
-          <h2 className="text-2xl font-bold text-grape-700 mb-6">새로 시작하기</h2>
+          <h2 className="text-2xl font-bold text-grape-700 mb-6">이메일로 시작하기</h2>
           <div className="space-y-4">
             {/* Avatar selection */}
             <div>
@@ -195,7 +311,7 @@ export default function AuthPage() {
             <ClayInput
               label="비밀번호"
               type="password"
-              placeholder="4자리 이상"
+              placeholder="8자리 이상"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}

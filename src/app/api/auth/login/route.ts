@@ -38,6 +38,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // OAuth-only account (no password set) — point the user back to the social login.
+    if (!user.password) {
+      const provider = user.provider || 'social';
+      return Response.json(
+        { error: `이 계정은 ${provider} 로그인으로 가입했어요. 첫 화면에서 해당 버튼을 눌러주세요.` },
+        { status: 409 }
+      );
+    }
+
     // Compare password
     const isPasswordValid = await bcrypt.compare(password, user.password);
 
