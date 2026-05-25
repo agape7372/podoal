@@ -51,17 +51,64 @@ export default function BoardDetailPage() {
   }, [fetchBoard]);
 
   const handleFillSticker = async (position: number) => {
+    if (!board || !user) return;
+
+    // Optimistic update: show the grape as filled immediately so the tap
+    // feels instant even when the round-trip to Neon (us-east) is ~400ms.
+    const tempId = `temp-${position}-${Date.now()}`;
+    const optimisticSticker = {
+      id: tempId,
+      position,
+      filledAt: new Date().toISOString(),
+      filledBy: { id: user.id, name: user.name, email: user.email, avatar: user.avatar },
+    } as BoardDetail['stickers'][number];
+
+    setBoard((prev) => prev ? {
+      ...prev,
+      stickers: [...prev.stickers, optimisticSticker],
+      filledCount: prev.filledCount + 1,
+    } : prev);
+
     try {
-      await api(`/api/boards/${id}/stickers`, {
+      const result = await api<{
+        sticker: BoardDetail['stickers'][number];
+        filledCount: number;
+        isCompleted: boolean;
+        unlockedReward: { id: string; type: string; title: string; triggerAt: number } | null;
+      }>(`/api/boards/${id}/stickers`, {
         method: 'POST',
         json: { position },
       });
       setErrorMessage(null);
-      await fetchBoard();
+
+      // Reconcile: replace the temp sticker with the server's authoritative one
+      // and lock in the server's filledCount / completion flag.
+      setBoard((prev) => prev ? {
+        ...prev,
+        stickers: [
+          ...prev.stickers.filter((s) => s.id !== tempId),
+          result.sticker,
+        ],
+        filledCount: result.filledCount,
+        isCompleted: result.isCompleted,
+      } : prev);
+
+      // Reward unlocks are rare; only re-fetch when one fires so the
+      // reward card can update from "locked" to "tap to reveal".
+      if (result.unlockedReward) {
+        fetchBoard();
+      }
     } catch (err) {
+      // Rollback the optimistic sticker on failure.
+      setBoard((prev) => prev ? {
+        ...prev,
+        stickers: prev.stickers.filter((s) => s.id !== tempId),
+        filledCount: Math.max(0, prev.filledCount - 1),
+      } : prev);
       const msg = err instanceof Error ? err.message : '포도알을 채우지 못했어요';
       setErrorMessage(`${msg} — 잠시 후 다시 시도해주세요.`);
-      // Best-effort resync so the optimistic UI doesn't drift further out of date.
+      // Best-effort full resync in case the failure was due to drift (e.g.
+      // another lambda already created the sticker).
       fetchBoard().catch(() => {});
     }
   };
