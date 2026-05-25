@@ -1,0 +1,190 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         String   @id @default(cuid())
+  name       String
+  email      String   @unique
+  password   String?  // null for OAuth-only users (Google/Kakao/Naver)
+  avatar     String   @default("grape")
+  provider   String?  // "google" | "kakao" | "naver" — null = email/password
+  providerId String?  // user id from the OAuth provider
+  createdAt  DateTime @default(now())
+
+  boards              Board[]              @relation("BoardOwner")
+  receivedBoards      Board[]              @relation("BoardReceiver")
+  giftedBoards        Board[]              @relation("BoardGifter")
+  sentFriendReqs      Friendship[]         @relation("FriendRequester")
+  recvFriendReqs      Friendship[]         @relation("FriendReceiver")
+  sentMessages        Message[]            @relation("MessageSender")
+  recvMessages        Message[]            @relation("MessageReceiver")
+  stickers            Sticker[]
+  capsules            TimeCapsule[]
+  relayCreated        Relay[]              @relation("RelayCreator")
+  relayParticipations RelayParticipant[]
+  notificationSetting NotificationSetting?
+  reminders           Reminder[]
+
+  @@unique([provider, providerId])
+}
+
+model Board {
+  id            String   @id @default(cuid())
+  title         String
+  description   String   @default("")
+  totalStickers Int      @default(10)
+  templateId    String?
+  ownerId       String
+  giftedToId    String?
+  giftedFromId  String?
+  isCompleted   Boolean  @default(false)
+  completedAt   DateTime?
+  createdAt     DateTime @default(now())
+
+  owner             User               @relation("BoardOwner", fields: [ownerId], references: [id])
+  giftedTo          User?              @relation("BoardReceiver", fields: [giftedToId], references: [id])
+  giftedFrom        User?              @relation("BoardGifter", fields: [giftedFromId], references: [id])
+  stickers          Sticker[]
+  rewards           Reward[]
+  capsules          TimeCapsule[]
+  relayParticipants RelayParticipant[]
+  reminders         Reminder[]
+  messages          Message[]
+}
+
+model Sticker {
+  id       String   @id @default(cuid())
+  boardId  String
+  position Int
+  filledAt DateTime @default(now())
+  filledBy String
+
+  board  Board @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  filler User  @relation(fields: [filledBy], references: [id])
+
+  @@unique([boardId, position])
+}
+
+model Reward {
+  id          String    @id @default(cuid())
+  boardId     String
+  type        String    // "letter" | "giftcard" | "wish"
+  title       String
+  content     String
+  imageUrl    String    @default("")
+  triggerAt   Int       // sticker count to trigger this reward (e.g. 3, 5, 10)
+  unlockedAt  DateTime? // set when the sticker count first reaches triggerAt (single-shot guard)
+  revealedAt  DateTime? // set when the user opens the reward to see its contents
+
+  board Board @relation(fields: [boardId], references: [id], onDelete: Cascade)
+
+  @@unique([boardId, triggerAt])
+}
+
+model Friendship {
+  id          String   @id @default(cuid())
+  requesterId String
+  receiverId  String
+  status      String   @default("pending") // "pending" | "accepted"
+  isFavorite  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  requester User @relation("FriendRequester", fields: [requesterId], references: [id])
+  receiver  User @relation("FriendReceiver", fields: [receiverId], references: [id])
+
+  @@unique([requesterId, receiverId])
+}
+
+model Message {
+  id         String   @id @default(cuid())
+  senderId   String
+  receiverId String
+  boardId    String?
+  content    String
+  type       String   @default("cheer") // "cheer" | "celebration" | "gift"
+  emoji      String   @default("🍇")
+  isRead     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  sender   User   @relation("MessageSender", fields: [senderId], references: [id])
+  receiver User   @relation("MessageReceiver", fields: [receiverId], references: [id])
+  board    Board? @relation(fields: [boardId], references: [id], onDelete: SetNull)
+}
+
+model TimeCapsule {
+  id        String   @id @default(cuid())
+  boardId   String
+  userId    String
+  message   String
+  emoji     String   @default("🍇")
+  openAt    DateTime
+  isOpened  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  board Board @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id])
+}
+
+model Relay {
+  id            String   @id @default(cuid())
+  title         String
+  templateId    String?
+  totalStickers Int      @default(10)
+  creatorId     String
+  status        String   @default("active") // active | completed
+  createdAt     DateTime @default(now())
+
+  creator      User               @relation("RelayCreator", fields: [creatorId], references: [id])
+  participants RelayParticipant[]
+}
+
+model RelayParticipant {
+  id       String   @id @default(cuid())
+  relayId  String
+  userId   String
+  boardId  String?
+  order    Int
+  status   String   @default("pending") // pending | active | completed
+  joinedAt DateTime @default(now())
+
+  relay Relay  @relation(fields: [relayId], references: [id], onDelete: Cascade)
+  user  User   @relation(fields: [userId], references: [id])
+  board Board? @relation(fields: [boardId], references: [id])
+
+  @@unique([relayId, userId])
+  @@unique([relayId, order])
+}
+
+model NotificationSetting {
+  id              String  @id @default(cuid())
+  userId          String  @unique
+  globalEnabled   Boolean @default(true)
+  dndStart        String  @default("22:00")
+  dndEnd          String  @default("08:00")
+  cheerEnabled    Boolean @default(true)
+  rewardEnabled   Boolean @default(true)
+  relayEnabled    Boolean @default(true)
+  reminderEnabled Boolean @default(true)
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model Reminder {
+  id        String   @id @default(cuid())
+  userId    String
+  boardId   String?
+  time      String
+  days      String   @default("1,2,3,4,5,6,7")
+  message   String   @default("")
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  user  User   @relation(fields: [userId], references: [id])
+  board Board? @relation(fields: [boardId], references: [id])
+}

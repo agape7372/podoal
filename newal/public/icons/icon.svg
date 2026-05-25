@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <radialGradient id="grape" cx="40%" cy="35%" r="60%">
+      <stop offset="0%" stop-color="#c084fc"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </radialGradient>
+    <radialGradient id="grapeShine" cx="35%" cy="30%" r="50%">
+      <stop offset="0%" stop-color="#e9d5ff" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#c084fc" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="stem" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#65a30d"/>
+      <stop offset="100%" stop-color="#4d7c0f"/>
+    </linearGradient>
+    <linearGradient id="leaf" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#84cc16"/>
+      <stop offset="100%" stop-color="#65a30d"/>
+    </linearGradient>
+  </defs>
+  <!-- Background circle -->
+  <circle cx="256" cy="256" r="256" fill="#f8f5ff"/>
+  <!-- Stem -->
+  <rect x="248" y="70" width="16" height="80" rx="8" fill="url(#stem)"/>
+  <!-- Leaf -->
+  <ellipse cx="300" cy="110" rx="45" ry="22" fill="url(#leaf)" transform="rotate(-20, 300, 110)"/>
+  <line x1="300" y1="95" x2="290" y2="125" stroke="#4d7c0f" stroke-width="2" transform="rotate(-20, 300, 110)"/>
+  <!-- Grape cluster - Row 1 (2 grapes) -->
+  <circle cx="226" cy="185" r="38" fill="url(#grape)"/>
+  <circle cx="226" cy="185" r="38" fill="url(#grapeShine)"/>
+  <circle cx="286" cy="185" r="38" fill="url(#grape)"/>
+  <circle cx="286" cy="185" r="38" fill="url(#grapeShine)"/>
+  <!-- Row 2 (3 grapes) -->
+  <circle cx="196" cy="250" r="38" fill="url(#grape)"/>
+  <circle cx="196" cy="250" r="38" fill="url(#grapeShine)"/>
+  <circle cx="256" cy="250" r="38" fill="url(#grape)"/>
+  <circle cx="256" cy="250" r="38" fill="url(#grapeShine)"/>
+  <circle cx="316" cy="250" r="38" fill="url(#grape)"/>
+  <circle cx="316" cy="250" r="38" fill="url(#grapeShine)"/>
+  <!-- Row 3 (2 grapes) -->
+  <circle cx="226" cy="315" r="38" fill="url(#grape)"/>
+  <circle cx="226" cy="315" r="38" fill="url(#grapeShine)"/>
+  <circle cx="286" cy="315" r="38" fill="url(#grape)"/>
+  <circle cx="286" cy="315" r="38" fill="url(#grapeShine)"/>
+  <!-- Row 4 (1 grape) -->
+  <circle cx="256" cy="378" r="38" fill="url(#grape)"/>
+  <circle cx="256" cy="378" r="38" fill="url(#grapeShine)"/>
+</svg>
