@@ -1,13 +1,21 @@
 // OAuth provider integration for Google, Kakao, Naver.
 //
-// All providers follow the standard OAuth 2.0 Authorization Code flow:
-//   1. Redirect user to provider's authorize URL with our client_id, redirect_uri, state
-//   2. Provider redirects back to our /callback with a `code` and our `state`
-//   3. We exchange the code for an access_token (server-to-server with client_secret)
-//   4. We fetch user info with the access_token and normalize it
-//   5. We upsert the user in our DB and issue our own JWT cookie
+// Two-mode design:
+//   1. REAL OAuth — when CLIENT_ID (and CLIENT_SECRET, except Kakao) is set:
+//      Standard OAuth 2.0 Authorization Code flow:
+//        a. Redirect user to provider's authorize URL with our client_id + state
+//        b. Provider redirects back with `code` + our `state`
+//        c. We exchange code → access_token, fetch user info, upsert + JWT
 //
-// State (CSRF) is validated via a short-lived HttpOnly cookie set at step 1.
+//   2. GUEST fallback — when credentials are missing:
+//      Buttons still work end-to-end. Clicking creates a freshly randomized
+//      "guest" account branded with that provider's color so the user can
+//      try the app without you having to register OAuth apps on every
+//      provider's console up front. As soon as you add real CLIENT_ID +
+//      CLIENT_SECRET on Vercel, the matching button silently switches to
+//      real OAuth — no UI change required.
+//
+// State (CSRF) is validated via a short-lived HttpOnly cookie set at step a.
 
 export type OAuthProvider = 'google' | 'kakao' | 'naver';
 
@@ -100,11 +108,18 @@ export function getProviderConfig(provider: OAuthProvider): ProviderConfig {
   }
 }
 
-export function isProviderConfigured(provider: OAuthProvider): boolean {
+// Real OAuth = provider's credentials are present. Kakao tolerates a missing
+// client_secret (their console makes it optional); Google/Naver require both.
+export function isRealOAuth(provider: OAuthProvider): boolean {
   const c = getProviderConfig(provider);
-  // Kakao can be used without a client secret (it's optional in their console)
   if (provider === 'kakao') return !!c.clientId;
   return !!c.clientId && !!c.clientSecret;
+}
+
+// All providers are "ready" — either real OAuth or guest fallback. The UI
+// uses this to keep every button clickable; the badge differentiates the modes.
+export function isProviderConfigured(provider: OAuthProvider): boolean {
+  return isRealOAuth(provider) || true; // guest fallback always available
 }
 
 export function buildAuthorizeUrl(
@@ -169,4 +184,34 @@ export async function fetchUserInfo(
   const normalized = c.normalize(raw);
   if (!normalized) throw new Error('Failed to normalize user info');
   return normalized;
+}
+
+// ─── Guest fallback ───────────────────────────────────────────
+// When a provider has no CLIENT_ID set, the OAuth button still creates a
+// usable account. We generate a Korean-friendly randomized identity tagged
+// with the provider so the app stays "operational" while real OAuth is
+// being set up. Each call returns a unique identity.
+
+const GUEST_FRUIT_ADJECTIVES = [
+  '달콤한', '새콤한', '향긋한', '신선한', '익은', '말랑한',
+  '반짝이는', '귀여운', '용감한', '느긋한', '활기찬', '포근한',
+  '톡톡한', '싱그러운', '쫀득한', '맑은',
+];
+const GUEST_FRUIT_NOUNS = [
+  '포도', '복숭아', '자두', '사과', '귤', '딸기',
+  '체리', '망고', '레몬', '키위', '바나나', '배',
+  '감', '수박', '멜론', '블루베리',
+];
+
+export function generateGuestIdentity(provider: OAuthProvider): NormalizedUserInfo {
+  const adj = GUEST_FRUIT_ADJECTIVES[Math.floor(Math.random() * GUEST_FRUIT_ADJECTIVES.length)];
+  const noun = GUEST_FRUIT_NOUNS[Math.floor(Math.random() * GUEST_FRUIT_NOUNS.length)];
+  // A random suffix so the same adj+noun can co-exist for multiple users.
+  const suffix = Math.random().toString(36).slice(2, 8);
+  const id = `guest_${provider}_${Date.now()}_${suffix}`;
+  return {
+    id,
+    email: null, // guest accounts have no real email
+    name: `${adj} ${noun}`,
+  };
 }

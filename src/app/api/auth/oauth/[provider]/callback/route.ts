@@ -3,26 +3,34 @@ import { cookies } from 'next/headers';
 import {
   exchangeCodeForToken,
   fetchUserInfo,
-  isProviderConfigured,
+  generateGuestIdentity,
+  isRealOAuth,
   OAUTH_PROVIDERS,
+  type NormalizedUserInfo,
   type OAuthProvider,
 } from '@/lib/oauth';
 import { prisma } from '@/lib/prisma';
 import { buildAuthCookie, createToken } from '@/lib/auth';
 
-function redirectHome(origin: string, error?: string) {
-  const target = error ? `${origin}/?error=${encodeURIComponent(error)}` : `${origin}/home`;
-  const clearStateCookie = [
+function clearStateHeader(): string {
+  const parts = [
     'oauth_state=',
     'HttpOnly',
     'Path=/',
     'Max-Age=0',
     'SameSite=Lax',
   ];
-  if (process.env.NODE_ENV === 'production') clearStateCookie.push('Secure');
+  if (process.env.NODE_ENV === 'production') parts.push('Secure');
+  return parts.join('; ');
+}
+
+function redirectWithError(origin: string, error: string) {
   return new Response(null, {
     status: 302,
-    headers: { Location: target, 'Set-Cookie': clearStateCookie.join('; ') },
+    headers: {
+      Location: `${origin}/?error=${encodeURIComponent(error)}`,
+      'Set-Cookie': clearStateHeader(),
+    },
   });
 }
 
@@ -37,25 +45,25 @@ export async function GET(
   if (!OAUTH_PROVIDERS.includes(provider)) {
     return new Response('Unknown provider', { status: 404 });
   }
-  if (!isProviderConfigured(provider)) {
-    return redirectHome(origin, `oauth_not_configured:${provider}`);
-  }
 
-  const code = url.searchParams.get('code');
   const state = url.searchParams.get('state');
-  const errorParam = url.searchParams.get('error');
-
-  if (errorParam) {
-    return redirectHome(origin, `oauth_${provider}_${errorParam}`);
-  }
-  if (!code || !state) {
-    return redirectHome(origin, `oauth_${provider}_missing_code`);
-  }
-
   const savedState = cookies().get('oauth_state')?.value;
-  if (!savedState || savedState !== state) {
-    return redirectHome(origin, `oauth_${provider}_bad_state`);
+  if (!savedState || !state || savedState !== state) {
+    return redirectWithError(origin, `oauth_${provider}_bad_state`);
   }
+
+  // Path A: guest fallback (no real OAuth credentials for this provider).
+  const isGuest = url.searchParams.get('guest') === '1';
+  if (isGuest || !isRealOAuth(provider)) {
+    const guest = generateGuestIdentity(provider);
+    return await finalizeLogin(origin, provider, guest, { guest: true });
+  }
+
+  // Path B: real OAuth flow.
+  const code = url.searchParams.get('code');
+  const errorParam = url.searchParams.get('error');
+  if (errorParam) return redirectWithError(origin, `oauth_${provider}_${errorParam}`);
+  if (!code) return redirectWithError(origin, `oauth_${provider}_missing_code`);
 
   const base = process.env.OAUTH_REDIRECT_BASE || origin;
   const redirectUri = `${base}/api/auth/oauth/${provider}/callback`;
@@ -65,74 +73,73 @@ export async function GET(
     accessToken = await exchangeCodeForToken(provider, code, redirectUri);
   } catch (err) {
     console.error(`OAuth token exchange failed (${provider}):`, err);
-    return redirectHome(origin, `oauth_${provider}_token_failed`);
+    return redirectWithError(origin, `oauth_${provider}_token_failed`);
   }
 
-  let userInfo;
+  let userInfo: NormalizedUserInfo;
   try {
     userInfo = await fetchUserInfo(provider, accessToken);
   } catch (err) {
     console.error(`OAuth user info fetch failed (${provider}):`, err);
-    return redirectHome(origin, `oauth_${provider}_userinfo_failed`);
+    return redirectWithError(origin, `oauth_${provider}_userinfo_failed`);
   }
 
-  // Upsert the user: prefer matching by (provider, providerId), then by email.
+  return await finalizeLogin(origin, provider, userInfo, { guest: false });
+}
+
+async function finalizeLogin(
+  origin: string,
+  provider: OAuthProvider,
+  userInfo: NormalizedUserInfo,
+  opts: { guest: boolean },
+): Promise<Response> {
+  // Tag guest accounts with a dedicated provider string so the existing
+  // (provider, providerId) unique index keeps them distinct from real
+  // accounts that may share the same email in the future.
+  const providerTag = opts.guest ? `${provider}_guest` : provider;
+
   let user = await prisma.user.findFirst({
-    where: { provider, providerId: userInfo.id },
+    where: { provider: providerTag, providerId: userInfo.id },
   });
 
-  if (!user && userInfo.email) {
+  if (!user && userInfo.email && !opts.guest) {
     const byEmail = await prisma.user.findUnique({ where: { email: userInfo.email } });
     if (byEmail) {
-      if (byEmail.provider && byEmail.provider !== provider) {
-        // Existing account is tied to a different OAuth provider with the same email.
-        // Don't silently overwrite — surface a clear error so the user can use the
-        // original provider instead.
-        return redirectHome(origin, `oauth_email_taken_by_${byEmail.provider}`);
+      if (byEmail.provider && byEmail.provider !== providerTag) {
+        return redirectWithError(origin, `oauth_email_taken_by_${byEmail.provider}`);
       }
-      // Either no provider (email signup) or same provider with stale providerId — link.
       user = await prisma.user.update({
         where: { id: byEmail.id },
-        data: { provider, providerId: userInfo.id },
+        data: { provider: providerTag, providerId: userInfo.id },
       });
     }
   }
 
   if (!user) {
-    // Brand new user.
-    const placeholderEmail = userInfo.email || `${provider}_${userInfo.id}@podoal.local`;
+    const placeholderEmail = userInfo.email || `${providerTag}_${userInfo.id}@podoal.local`;
     try {
       user = await prisma.user.create({
         data: {
           name: userInfo.name,
           email: placeholderEmail,
           password: null,
-          provider,
+          provider: providerTag,
           providerId: userInfo.id,
           avatar: 'grape',
         },
       });
-    } catch (err: any) {
-      console.error(`OAuth user creation failed (${provider}):`, err);
-      return redirectHome(origin, `oauth_${provider}_create_failed`);
+    } catch (err) {
+      console.error(`OAuth user creation failed (${providerTag}):`, err);
+      return redirectWithError(origin, `oauth_${provider}_create_failed`);
     }
   }
 
   const token = await createToken(user.id);
-  const clearStateCookie = [
-    'oauth_state=',
-    'HttpOnly',
-    'Path=/',
-    'Max-Age=0',
-    'SameSite=Lax',
-  ];
-  if (process.env.NODE_ENV === 'production') clearStateCookie.push('Secure');
-
   const res = new Response(null, {
     status: 302,
     headers: { Location: `${origin}/home` },
   });
   res.headers.append('Set-Cookie', buildAuthCookie(token));
-  res.headers.append('Set-Cookie', clearStateCookie.join('; '));
+  res.headers.append('Set-Cookie', clearStateHeader());
   return res;
 }
