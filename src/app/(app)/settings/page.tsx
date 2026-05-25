@@ -110,7 +110,7 @@ export default function SettingsPage() {
       {showSoundPicker && settings.soundEnabled && (
         <section className="clay p-4 mb-4">
           <h2 className="text-sm font-semibold text-grape-600 mb-3">🍇 포도알 소리 선택</h2>
-          <div className="grid grid-cols-2 gap-2 max-h-[400px] overflow-y-auto pr-1">
+          <div className="grid grid-cols-2 gap-2 max-h-[400px] overflow-y-auto pr-2">
             {FILL_SOUNDS.map((s) => {
               const isSelected = settings.fillSoundId === s.id;
               return (

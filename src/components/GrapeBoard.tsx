@@ -99,7 +99,7 @@ function GrapeBoardInner({ board, onFill, canFill }: GrapeBoardProps) {
       </div>
 
       {/* Grape bunch container */}
-      <div className="relative flex flex-col items-center w-full overflow-x-auto snap-x snap-mandatory scrollbar-hide" style={{ WebkitOverflowScrolling: 'touch' }}>
+      <div className="relative flex flex-col items-center w-full overflow-x-auto snap-x snap-mandatory scrollbar-hide py-2" style={{ WebkitOverflowScrolling: 'touch' }}>
         <div className="flex flex-col items-center snap-center min-w-fit mx-auto">
         {/* Stem & Leaf SVG */}
         <svg

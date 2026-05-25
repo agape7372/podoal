@@ -129,7 +129,7 @@ export default function HomePage() {
       {boards.length > 0 && (
         <button
           onClick={() => { feedbackTap(); router.push('/board/create'); }}
-          className="fixed bottom-24 right-6 w-14 h-14 rounded-full flex items-center justify-center text-2xl bg-grape-500 text-white shadow-lg shadow-grape-500/25 active:scale-95 transition-all hover:bg-grape-600 z-40"
+          className="fixed bottom-24 right-6 w-14 h-14 rounded-full flex items-center justify-center text-2xl bg-grape-500 text-white shadow-lg shadow-grape-500/25 active:scale-95 transition-all hover:bg-grape-600 z-40 safe-bottom"
         >
           +
         </button>

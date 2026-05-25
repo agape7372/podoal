@@ -46,7 +46,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="min-h-dvh pb-20">
+    <div className="min-h-dvh pb-[160px]">
       <MessagePopup />
       <main className="max-w-lg mx-auto px-4 pt-4 safe-top">
         {children}
