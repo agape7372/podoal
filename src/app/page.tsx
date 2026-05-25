@@ -85,28 +85,26 @@ export default function AuthPage() {
             <ClayButton fullWidth size="lg" variant="secondary" onClick={() => setMode('register')}>
               새로 시작하기
             </ClayButton>
-            {process.env.NODE_ENV !== 'production' && (
-              <button
-                onClick={async () => {
-                  setLoading(true);
-                  try {
-                    const res = await fetch('/api/auth/dev', { method: 'POST' });
-                    const data = await res.json();
-                    if (data.user) {
-                      setUser(data.user);
-                      router.replace('/home');
-                    }
-                  } catch {
-                    setError('개발자 모드 진입 실패');
+            <button
+              onClick={async () => {
+                setLoading(true);
+                try {
+                  const res = await fetch('/api/auth/dev', { method: 'POST' });
+                  const data = await res.json();
+                  if (data.user) {
+                    setUser(data.user);
+                    router.replace('/home');
                   }
-                  setLoading(false);
-                }}
-                disabled={loading}
-                className="w-full py-3 rounded-2xl text-sm font-medium text-warm-sub border-2 border-dashed border-warm-border/60 hover:border-grape-300 hover:text-grape-500 transition-all"
-              >
-                {loading ? '진입중...' : '🛠 개발자 모드로 시작'}
-              </button>
-            )}
+                } catch {
+                  setError('개발자 모드 진입 실패');
+                }
+                setLoading(false);
+              }}
+              disabled={loading}
+              className="w-full py-3 rounded-2xl text-sm font-medium text-warm-sub border-2 border-dashed border-warm-border/60 hover:border-grape-300 hover:text-grape-500 transition-all"
+            >
+              {loading ? '진입중...' : '🛠 개발자 모드로 시작'}
+            </button>
           </div>
         </div>
       )}

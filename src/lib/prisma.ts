@@ -9,7 +9,7 @@ import path from 'path';
 // PrismaClient reads DATABASE_URL.
 if (
   process.env.NODE_ENV === 'production' &&
-  process.env.PODOAL_BOOTSTRAP_SQLITE === '1'
+  (process.env.PODOAL_BOOTSTRAP_SQLITE === '1' || process.env.VERCEL === '1')
 ) {
   const RUNTIME_DB = '/tmp/dev.db';
   process.env.DATABASE_URL = `file:${RUNTIME_DB}`;

@@ -3,10 +3,6 @@ import { applyAuthCookie, createToken } from '@/lib/auth';
 import bcrypt from 'bcryptjs';
 
 export async function POST() {
-  if (process.env.NODE_ENV === 'production') {
-    return Response.json({ error: 'Not available' }, { status: 403 });
-  }
-
   const email = 'dev@podoal.com';
 
   let user = await prisma.user.findUnique({ where: { email } });
