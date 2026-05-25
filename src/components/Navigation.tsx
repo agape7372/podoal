@@ -38,7 +38,7 @@ export default function Navigation() {
               <span className="text-xl relative">
                 {item.icon}
                 {item.badge === 'unread' && unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-2 bg-red-400 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                  <span className="absolute -top-1 -right-2 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] px-1 flex items-center justify-center ring-2 ring-white">
                     {unreadCount > 9 ? '9+' : unreadCount}
                   </span>
                 )}

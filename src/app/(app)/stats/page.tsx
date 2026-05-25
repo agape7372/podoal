@@ -75,7 +75,7 @@ export default function StatsPage() {
       <h1 className="text-2xl font-bold text-grape-700 mb-4">통계</h1>
 
       {/* Tab navigation */}
-      <div className="flex gap-1 mb-5 p-1 clay-sm bg-gray-50 rounded-xl">
+      <div className="flex gap-1 mb-5 p-1.5 clay-sm bg-gray-50 rounded-xl overflow-hidden">
         {tabs.map((tab) => (
           <button
             key={tab.key}

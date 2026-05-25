@@ -124,7 +124,7 @@ export default function CreateBoardPage() {
           <p className="text-sm text-warm-sub">추천 템플릿으로 빠르게 시작하거나, 직접 만들어보세요!</p>
 
           {/* Category tabs */}
-          <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-hide">
+          <div className="flex gap-2 overflow-x-auto py-2 -mx-1 px-2 scrollbar-hide">
             {TEMPLATE_CATEGORIES.map((cat) => (
               <button
                 key={cat.id}

@@ -151,7 +151,7 @@ export default function CapsuleModal({ boardId, isOwner, onClose }: CapsuleModal
         </div>
 
         {/* Content area */}
-        <div className="flex-1 overflow-y-auto min-h-0">
+        <div className="flex-1 overflow-y-auto min-h-0 pb-4">
           {tab === 'create' && isOwner && (
             <div className="space-y-4">
               {/* Message textarea */}

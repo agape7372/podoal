@@ -55,7 +55,7 @@ export default function InstallPrompt() {
   if (!showBanner) return null;
 
   return (
-    <div className="fixed bottom-[72px] left-0 right-0 z-40 px-4 pb-2 safe-bottom animate-slide-up">
+    <div className="fixed bottom-[72px] left-0 right-0 z-30 px-4 pb-2 safe-bottom animate-slide-up">
       <div className="max-w-lg mx-auto clay p-4 bg-gradient-to-r from-grape-500 to-grape-600 text-white">
         <div className="flex items-center gap-3">
           <span className="text-3xl flex-shrink-0">🍇</span>
