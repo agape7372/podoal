@@ -44,6 +44,10 @@ function GrapeBoardInner({ board, onFill, canFill }: GrapeBoardProps) {
         setTimeout(() => feedbackReward(), 300);
       }
       setTimeout(() => setJustFilled(null), 600);
+    } catch {
+      // Parent (board page) already surfaces the failure via its error banner.
+      // Swallowing here prevents an unhandled promise rejection that would
+      // otherwise bubble to window.onunhandledrejection on mobile.
     } finally {
       setFillingPos(null);
     }

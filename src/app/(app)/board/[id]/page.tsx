@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { useAppStore } from '@/lib/store';
@@ -24,13 +24,23 @@ export default function BoardDetailPage() {
   const [showCapsule, setShowCapsule] = useState(false);
   const [revealing, setRevealing] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const initialLoadDoneRef = useRef(false);
 
   const fetchBoard = useCallback(async () => {
     try {
       const data = await api<{ board: BoardDetail }>(`/api/boards/${id}`);
       setBoard(data.board);
+      setErrorMessage(null);
+      initialLoadDoneRef.current = true;
     } catch {
-      router.replace('/home');
+      // First load failure → board genuinely missing or no permission, bail home.
+      // Later failures → keep the UI mounted; surface a banner so the user can retry.
+      if (!initialLoadDoneRef.current) {
+        router.replace('/home');
+      } else {
+        setErrorMessage('일시적으로 동기화에 실패했어요. 잠시 후 다시 시도해주세요.');
+      }
     } finally {
       setLoading(false);
     }
@@ -41,18 +51,32 @@ export default function BoardDetailPage() {
   }, [fetchBoard]);
 
   const handleFillSticker = async (position: number) => {
-    await api(`/api/boards/${id}/stickers`, {
-      method: 'POST',
-      json: { position },
-    });
-    await fetchBoard();
+    try {
+      await api(`/api/boards/${id}/stickers`, {
+        method: 'POST',
+        json: { position },
+      });
+      setErrorMessage(null);
+      await fetchBoard();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : '포도알을 채우지 못했어요';
+      setErrorMessage(`${msg} — 잠시 후 다시 시도해주세요.`);
+      // Best-effort resync so the optimistic UI doesn't drift further out of date.
+      fetchBoard().catch(() => {});
+    }
   };
 
   const handleGift = async (friendId: string) => {
-    await api(`/api/boards/${id}/gift`, {
-      method: 'POST',
-      json: { friendId },
-    });
+    try {
+      await api(`/api/boards/${id}/gift`, {
+        method: 'POST',
+        json: { friendId },
+      });
+      setErrorMessage(null);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : '선물 전송에 실패했어요';
+      setErrorMessage(`${msg} — 잠시 후 다시 시도해주세요.`);
+    }
   };
 
   const handleRevealReward = async (rewardId: string) => {
@@ -60,7 +84,11 @@ export default function BoardDetailPage() {
     setRevealing(rewardId);
     try {
       await api(`/api/boards/${id}/rewards/${rewardId}/reveal`, { method: 'POST' });
+      setErrorMessage(null);
       await fetchBoard();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : '보상을 열지 못했어요';
+      setErrorMessage(`${msg} — 잠시 후 다시 시도해주세요.`);
     } finally {
       setRevealing(null);
     }
@@ -72,7 +100,9 @@ export default function BoardDetailPage() {
     try {
       await api(`/api/boards/${id}`, { method: 'DELETE' });
       router.replace('/home');
-    } catch {
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : '삭제에 실패했어요';
+      setErrorMessage(`${msg} — 잠시 후 다시 시도해주세요.`);
       setDeleting(false);
     }
   };
@@ -128,6 +158,20 @@ export default function BoardDetailPage() {
           </div>
         )}
       </div>
+
+      {errorMessage && (
+        <div className="mb-3 p-3 rounded-2xl bg-red-50/80 border border-red-200/60 text-red-700 text-sm flex items-start gap-2">
+          <span className="text-base leading-tight">⚠️</span>
+          <span className="flex-1 leading-snug">{errorMessage}</span>
+          <button
+            onClick={() => setErrorMessage(null)}
+            className="text-red-400 hover:text-red-600 text-lg leading-none px-1"
+            aria-label="알림 닫기"
+          >
+            ×
+          </button>
+        </div>
+      )}
 
       {/* Board info */}
       <div className="text-center mb-6">
