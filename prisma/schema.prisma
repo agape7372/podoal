@@ -8,12 +8,14 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  name      String
-  email     String   @unique
-  password  String
-  avatar    String   @default("grape")
-  createdAt DateTime @default(now())
+  id         String   @id @default(cuid())
+  name       String
+  email      String   @unique
+  password   String?  // null for OAuth-only users (Google/Kakao/Naver)
+  avatar     String   @default("grape")
+  provider   String?  // "google" | "kakao" | "naver" — null = email/password
+  providerId String?  // user id from the OAuth provider
+  createdAt  DateTime @default(now())
 
   boards              Board[]              @relation("BoardOwner")
   receivedBoards      Board[]              @relation("BoardReceiver")
@@ -28,6 +30,8 @@ model User {
   relayParticipations RelayParticipant[]
   notificationSetting NotificationSetting?
   reminders           Reminder[]
+
+  @@unique([provider, providerId])
 }
 
 model Board {
