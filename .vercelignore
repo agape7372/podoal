@@ -1,0 +1,4 @@
+# newal/ is a sibling sub-project (visual redesign port) — it has its own
+# package.json/tsconfig/build pipeline and is meant to live in agape7372/newal.
+# Excluded here so Vercel doesn't include it in the podoal deploy.
+newal/
