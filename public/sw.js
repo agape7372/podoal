@@ -1,4 +1,8 @@
-const CACHE_NAME = 'podoal-v1';
+// IMPORTANT: bump CACHE_VERSION whenever you change which assets you want to
+// invalidate on the next deploy. The activate handler deletes every cache
+// whose name doesn't match the current value, so users get a fresh shell.
+const CACHE_VERSION = '2026-05-24-1';
+const CACHE_NAME = `podoal-${CACHE_VERSION}`;
 const APP_SHELL = ['/', '/home', '/manifest.json'];
 
 // Install: cache app shell
@@ -23,7 +27,10 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Fetch: Network First for API, Cache First for static assets
+// Fetch: Network First for API, Cache First for static assets.
+// Next.js hash-named chunks under /_next/static/ are intentionally NOT cached
+// here — the network already serves them with immutable headers, and caching
+// them under our own key risks serving stale chunks after a deploy.
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
@@ -31,21 +38,28 @@ self.addEventListener('fetch', (event) => {
   // Skip non-GET requests
   if (request.method !== 'GET') return;
 
-  // API calls: Network First
+  // Hash-named Next.js chunks: always hit the network (browser HTTP cache
+  // handles long-term caching for these).
+  if (url.pathname.startsWith('/_next/static/')) {
+    return;
+  }
+
+  // API calls: Network First (don't cache so auth-gated responses don't leak
+  // across users; offline GETs simply fail).
   if (url.pathname.startsWith('/api/')) {
     event.respondWith(
-      fetch(request)
-        .then((response) => {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
-          return response;
-        })
-        .catch(() => caches.match(request))
+      fetch(request).catch(
+        () =>
+          new Response(JSON.stringify({ error: 'offline' }), {
+            status: 503,
+            headers: { 'Content-Type': 'application/json' },
+          })
+      )
     );
     return;
   }
 
-  // Static assets: Cache First
+  // Static assets: Cache First with background refresh.
   event.respondWith(
     caches.match(request).then((cached) => {
       if (cached) return cached;

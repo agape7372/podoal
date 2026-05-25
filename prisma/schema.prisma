@@ -51,6 +51,7 @@ model Board {
   capsules          TimeCapsule[]
   relayParticipants RelayParticipant[]
   reminders         Reminder[]
+  messages          Message[]
 }
 
 model Sticker {
@@ -67,13 +68,15 @@ model Sticker {
 }
 
 model Reward {
-  id          String @id @default(cuid())
+  id          String    @id @default(cuid())
   boardId     String
-  type        String // "letter" | "giftcard" | "wish"
+  type        String    // "letter" | "giftcard" | "wish"
   title       String
   content     String
-  imageUrl    String @default("")
-  triggerAt   Int    // sticker count to trigger this reward (e.g. 3, 5, 10)
+  imageUrl    String    @default("")
+  triggerAt   Int       // sticker count to trigger this reward (e.g. 3, 5, 10)
+  unlockedAt  DateTime? // set when the sticker count first reaches triggerAt (single-shot guard)
+  revealedAt  DateTime? // set when the user opens the reward to see its contents
 
   board Board @relation(fields: [boardId], references: [id], onDelete: Cascade)
 
@@ -105,8 +108,9 @@ model Message {
   isRead     Boolean  @default(false)
   createdAt  DateTime @default(now())
 
-  sender   User @relation("MessageSender", fields: [senderId], references: [id])
-  receiver User @relation("MessageReceiver", fields: [receiverId], references: [id])
+  sender   User   @relation("MessageSender", fields: [senderId], references: [id])
+  receiver User   @relation("MessageReceiver", fields: [receiverId], references: [id])
+  board    Board? @relation(fields: [boardId], references: [id], onDelete: SetNull)
 }
 
 model TimeCapsule {
@@ -148,6 +152,9 @@ model RelayParticipant {
   relay Relay  @relation(fields: [relayId], references: [id], onDelete: Cascade)
   user  User   @relation(fields: [userId], references: [id])
   board Board? @relation(fields: [boardId], references: [id])
+
+  @@unique([relayId, userId])
+  @@unique([relayId, order])
 }
 
 model NotificationSetting {

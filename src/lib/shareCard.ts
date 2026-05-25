@@ -5,10 +5,28 @@ export async function generateShareCard(data: ShareCardData): Promise<Blob> {
   const HEIGHT = 1350;
   const PADDING = 60;
 
+  // Make sure Noto Sans KR is actually loaded before we measure or draw text.
+  // Without this, the first render after a cold load can fall back to serif
+  // and produce a card with broken-looking Korean text.
+  if (typeof document !== 'undefined' && 'fonts' in document) {
+    try {
+      await Promise.all([
+        document.fonts.load('bold 48px "Noto Sans KR"'),
+        document.fonts.load('bold 56px "Noto Sans KR"'),
+        document.fonts.load('30px "Noto Sans KR"'),
+      ]);
+    } catch {
+      // Fonts API not available or font missing — fall back to system sans.
+    }
+  }
+
   const canvas = document.createElement('canvas');
   canvas.width = WIDTH;
   canvas.height = HEIGHT;
-  const ctx = canvas.getContext('2d')!;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) {
+    throw new Error('Canvas 2D context is not available on this device.');
+  }
 
   // ─── Background: Purple gradient ────────────────────
   const bgGrad = ctx.createLinearGradient(0, 0, WIDTH, HEIGHT);

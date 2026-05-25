@@ -48,16 +48,22 @@ export async function GET(
 
   const filledCount = board.stickers.length;
 
-  // Process rewards: hide content/imageUrl for rewards where filledCount < triggerAt
+  // Process rewards:
+  // - title is always visible (for the locked preview)
+  // - content/imageUrl are revealed ONLY after the user has opened the reward
+  //   (revealedAt is set). Unlocked-but-not-yet-revealed stays as a "click to open"
+  //   surprise.
   const rewards = board.rewards.map((reward) => {
-    const isUnlocked = filledCount >= reward.triggerAt;
+    const isRevealed = reward.revealedAt !== null;
     return {
       id: reward.id,
       type: reward.type,
       title: reward.title,
-      content: isUnlocked ? reward.content : '',
-      imageUrl: isUnlocked ? reward.imageUrl : '',
+      content: isRevealed ? reward.content : '',
+      imageUrl: isRevealed ? reward.imageUrl : '',
       triggerAt: reward.triggerAt,
+      unlockedAt: reward.unlockedAt ? reward.unlockedAt.toISOString() : null,
+      revealedAt: reward.revealedAt ? reward.revealedAt.toISOString() : null,
     };
   });
 

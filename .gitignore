@@ -5,6 +5,8 @@ out
 next-env.d.ts
 prisma/*.db
 prisma/*.db-journal
+prisma/**/*.db
+prisma/**/*.db-journal
 .env
 .env.local
 .env.*.local

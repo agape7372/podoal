@@ -1,42 +1,43 @@
 'use client';
 
-// ─── Settings ──────────────────────────────────────────────
+import { useAppStore } from './store';
+
+// ─── Settings access ───────────────────────────────────────
+// Feedback used to maintain its own localStorage key in parallel with the
+// Zustand store, which caused UI/audio drift when only one side updated.
+// We now read directly from the Zustand store, which is the single source of
+// truth and is itself persisted to localStorage in store.ts.
 
 interface FeedbackSettings {
   soundEnabled: boolean;
   hapticEnabled: boolean;
-  soundVolume: number; // 0-1
-  fillSoundId?: number;
+  soundVolume: number;
+  fillSoundId: number;
 }
 
-const DEFAULT_SETTINGS: FeedbackSettings = {
-  soundEnabled: true,
-  hapticEnabled: true,
-  soundVolume: 0.5,
-};
-
-const STORAGE_KEY = 'podoal-feedback-settings';
-
-export function getSettings(): FeedbackSettings {
-  if (typeof window === 'undefined') return DEFAULT_SETTINGS;
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return DEFAULT_SETTINGS;
-    return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
-  } catch {
-    return DEFAULT_SETTINGS;
+function getSettings(): FeedbackSettings {
+  if (typeof window === 'undefined') {
+    return {
+      soundEnabled: true,
+      hapticEnabled: true,
+      soundVolume: 0.5,
+      fillSoundId: 13,
+    };
   }
+  const s = useAppStore.getState().settings;
+  return {
+    soundEnabled: s.soundEnabled,
+    hapticEnabled: s.hapticEnabled,
+    soundVolume: s.soundVolume,
+    fillSoundId: s.fillSoundId,
+  };
 }
 
-export function updateSettings(partial: Partial<FeedbackSettings>): FeedbackSettings {
-  const current = getSettings();
-  const updated = { ...current, ...partial };
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-  } catch {
-    // localStorage may be unavailable
-  }
-  return updated;
+// Backwards-compat shim so existing call sites that used `updateSettings`
+// keep working. Always routes through the Zustand store now.
+export function updateSettings(partial: Partial<FeedbackSettings>): void {
+  if (typeof window === 'undefined') return;
+  useAppStore.getState().updateSettings(partial);
 }
 
 // ─── AudioContext singleton ────────────────────────────────

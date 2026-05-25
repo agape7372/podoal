@@ -22,7 +22,7 @@ export default function BoardDetailPage() {
   const [showGift, setShowGift] = useState(false);
   const [showShare, setShowShare] = useState(false);
   const [showCapsule, setShowCapsule] = useState(false);
-  const [revealedRewards, setRevealedRewards] = useState<Set<string>>(new Set());
+  const [revealing, setRevealing] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
 
   const fetchBoard = useCallback(async () => {
@@ -53,6 +53,17 @@ export default function BoardDetailPage() {
       method: 'POST',
       json: { friendId },
     });
+  };
+
+  const handleRevealReward = async (rewardId: string) => {
+    if (revealing) return;
+    setRevealing(rewardId);
+    try {
+      await api(`/api/boards/${id}/rewards/${rewardId}/reveal`, { method: 'POST' });
+      await fetchBoard();
+    } finally {
+      setRevealing(null);
+    }
   };
 
   const handleDelete = async () => {
@@ -153,27 +164,31 @@ export default function BoardDetailPage() {
           </h3>
           {board.rewards.map((reward) => {
             const isUnlocked = filledCount >= reward.triggerAt;
-            const isRevealed = revealedRewards.has(reward.id);
+            const isRevealed = reward.revealedAt !== null;
             const remaining = reward.triggerAt - filledCount;
+            const isRevealing = revealing === reward.id;
             return (
               <div key={reward.id}>
                 {isRevealed ? (
                   <RewardReveal
                     reward={reward}
                     isCompleted={isUnlocked}
+                    initialRevealed
                   />
                 ) : (
                   <button
                     onClick={() => {
-                      if (!isUnlocked) return;
-                      setRevealedRewards((prev) => new Set(prev).add(reward.id));
+                      if (!isUnlocked || isRevealing) return;
+                      handleRevealReward(reward.id);
                     }}
+                    disabled={isRevealing}
                     className={`
                       w-full clay p-4 text-center transition-all
                       ${isUnlocked
                         ? 'bg-amber-50/60 reward-glow cursor-pointer'
                         : 'bg-grape-50/60'
                       }
+                      ${isRevealing ? 'opacity-60' : ''}
                     `}
                   >
                     <div className="flex items-center justify-center gap-2">

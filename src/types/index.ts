@@ -43,6 +43,8 @@ export interface RewardInfo {
   content: string;
   imageUrl: string;
   triggerAt: number;
+  unlockedAt: string | null;
+  revealedAt: string | null;
 }
 
 export interface FriendInfo {

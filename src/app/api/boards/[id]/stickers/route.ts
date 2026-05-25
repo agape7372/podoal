@@ -33,6 +33,12 @@ export async function POST(
     return authResponse('Board not found', 404);
   }
 
+  // Ownership check: only the owner (which includes the receiver of a gifted board
+  // after transfer, and the participant who created their own relay board) may fill.
+  if (board.ownerId !== userId && board.giftedToId !== userId) {
+    return authResponse('Forbidden', 403);
+  }
+
   if (board.isCompleted) {
     return authResponse('Board is already completed', 400);
   }
@@ -95,28 +101,53 @@ export async function POST(
       });
     }
 
-    // Check if any reward's triggerAt matches the new filledCount
-    const unlockedReward = await tx.reward.findFirst({
+    // Atomic single-shot reward unlock: try to claim every reward whose
+    // triggerAt has now been reached AND that hasn't been unlocked yet.
+    // updateMany returns the count of rows actually updated, so concurrent
+    // requests that race past the same threshold won't double-fire.
+    const claim = await tx.reward.updateMany({
       where: {
         boardId,
-        triggerAt: filledCount,
+        triggerAt: { lte: filledCount },
+        unlockedAt: null,
       },
+      data: { unlockedAt: new Date() },
     });
+
+    let unlockedReward: {
+      id: string;
+      type: string;
+      title: string;
+      triggerAt: number;
+    } | null = null;
+    if (claim.count > 0) {
+      // Surface the highest triggerAt reward we just unlocked (typically the
+      // one matching this fill). Content/imageUrl stay hidden until the user
+      // taps to reveal — see /reveal route.
+      const justUnlocked = await tx.reward.findFirst({
+        where: {
+          boardId,
+          triggerAt: { lte: filledCount },
+          unlockedAt: { not: null },
+          revealedAt: null,
+        },
+        orderBy: { triggerAt: 'desc' },
+      });
+      if (justUnlocked) {
+        unlockedReward = {
+          id: justUnlocked.id,
+          type: justUnlocked.type,
+          title: justUnlocked.title,
+          triggerAt: justUnlocked.triggerAt,
+        };
+      }
+    }
 
     return {
       sticker,
       filledCount,
       isCompleted: filledCount >= board.totalStickers,
-      unlockedReward: unlockedReward
-        ? {
-            id: unlockedReward.id,
-            type: unlockedReward.type,
-            title: unlockedReward.title,
-            content: unlockedReward.content,
-            imageUrl: unlockedReward.imageUrl,
-            triggerAt: unlockedReward.triggerAt,
-          }
-        : null,
+      unlockedReward,
     };
   });
 

@@ -1,10 +1,20 @@
 import { NextRequest } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
-import { createToken } from "@/lib/auth";
+import { applyAuthCookie, createToken } from "@/lib/auth";
+import { clientKey, rateLimit } from "@/lib/rateLimit";
+
+const registerLimit = rateLimit({
+  windowMs: 60 * 60_000,
+  max: 5,
+  message: "잠시 후 다시 시도해주세요.",
+});
 
 export async function POST(request: NextRequest) {
   try {
+    const blocked = registerLimit(clientKey(request));
+    if (blocked) return blocked;
+
     const body = await request.json();
     const { name, email, password } = body;
 
@@ -25,10 +35,32 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate password length
-    if (password.length < 4) {
+    // Validate password length (min 8 chars)
+    if (typeof password !== "string" || password.length < 8) {
       return Response.json(
-        { error: "Password must be at least 4 characters." },
+        { error: "비밀번호는 8자 이상이어야 합니다." },
+        { status: 400 }
+      );
+    }
+    if (password.length > 128) {
+      return Response.json(
+        { error: "비밀번호가 너무 깁니다 (최대 128자)." },
+        { status: 400 }
+      );
+    }
+
+    // Validate name length
+    if (typeof name !== "string" || name.trim().length === 0 || name.length > 40) {
+      return Response.json(
+        { error: "이름은 1~40자여야 합니다." },
+        { status: 400 }
+      );
+    }
+
+    // Validate email length
+    if (typeof email !== "string" || email.length > 254) {
+      return Response.json(
+        { error: "이메일 형식이 올바르지 않습니다." },
         { status: 400 }
       );
     }
@@ -55,13 +87,7 @@ export async function POST(request: NextRequest) {
       avatar: user.avatar,
     };
 
-    // Set cookie and return response
-    const response = Response.json({ user: profile });
-    response.headers.set(
-      "Set-Cookie",
-      `token=${token}; HttpOnly; Path=/; Max-Age=${7 * 24 * 60 * 60}; SameSite=Lax`
-    );
-    return response;
+    return applyAuthCookie(Response.json({ user: profile }), token);
   } catch (error: any) {
     // Handle duplicate email error (Prisma unique constraint violation)
     if (error?.code === "P2002") {

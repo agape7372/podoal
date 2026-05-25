@@ -37,8 +37,20 @@ export async function POST(
     return authResponse('이미 참여한 릴레이예요', 400);
   }
 
-  // Create a board for this participant and link it
+  // Race-safe join: re-check inside the transaction and only create the board
+  // if no boardId has been assigned yet. Double-clicks or duplicate requests
+  // get rejected here instead of producing two orphaned boards.
   const result = await prisma.$transaction(async (tx) => {
+    const fresh = await tx.relayParticipant.findUnique({
+      where: { id: participant.id },
+    });
+    if (!fresh) {
+      throw new Error('PARTICIPANT_GONE');
+    }
+    if (fresh.boardId) {
+      throw new Error('ALREADY_JOINED');
+    }
+
     const board = await tx.board.create({
       data: {
         title: `${relay.title} - 릴레이`,
@@ -57,7 +69,18 @@ export async function POST(
     });
 
     return { participant: updated, board };
+  }).catch((err: Error) => {
+    if (err.message === 'ALREADY_JOINED') return 'ALREADY_JOINED' as const;
+    if (err.message === 'PARTICIPANT_GONE') return 'PARTICIPANT_GONE' as const;
+    throw err;
   });
+
+  if (result === 'ALREADY_JOINED') {
+    return authResponse('이미 참여한 릴레이예요', 400);
+  }
+  if (result === 'PARTICIPANT_GONE') {
+    return authResponse('참가자 정보가 사라졌어요', 404);
+  }
 
   return Response.json({
     message: '릴레이에 참여했어요!',

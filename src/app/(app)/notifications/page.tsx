@@ -146,6 +146,22 @@ export default function NotificationsPage() {
     fetchData();
   };
 
+  const [notifPermission, setNotifPermission] = useState<NotificationPermission | 'unsupported'>(
+    typeof window !== 'undefined' && 'Notification' in window
+      ? Notification.permission
+      : 'unsupported'
+  );
+
+  const requestNotifPermission = async () => {
+    if (notifPermission === 'unsupported') return;
+    try {
+      const result = await Notification.requestPermission();
+      setNotifPermission(result);
+    } catch {
+      // ignore
+    }
+  };
+
   if (loading) {
     return (
       <div className="pb-4">
@@ -252,6 +268,32 @@ export default function NotificationsPage() {
           >
             + 리마인더 추가
           </button>
+        </div>
+
+        {/* Notification permission + open-tab limitation notice */}
+        <div className="mb-4 p-3 rounded-xl bg-amber-50/60 border border-amber-100">
+          <p className="text-xs text-amber-900 leading-relaxed">
+            ⏰ 현재 리마인더는 <b>앱이 켜져 있는 동안</b>에만 알림이 발송됩니다.
+            백그라운드 푸시는 준비 중이에요.
+          </p>
+          {notifPermission === 'default' && (
+            <button
+              onClick={requestNotifPermission}
+              className="mt-2 text-xs font-medium text-grape-600 underline"
+            >
+              알림 권한 허용하기
+            </button>
+          )}
+          {notifPermission === 'denied' && (
+            <p className="mt-2 text-xs text-amber-800">
+              브라우저 알림 권한이 차단되어 있어요. 브라우저 설정에서 허용해주세요.
+            </p>
+          )}
+          {notifPermission === 'unsupported' && (
+            <p className="mt-2 text-xs text-amber-800">
+              이 브라우저는 알림을 지원하지 않아요.
+            </p>
+          )}
         </div>
 
         {reminders.length === 0 ? (
