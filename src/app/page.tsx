@@ -53,6 +53,9 @@ function AuthPageInner() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(true);
+  const [providerStatus, setProviderStatus] = useState<Record<string, boolean>>({
+    google: false, kakao: false, naver: false,
+  });
 
   useEffect(() => {
     const oauthError = searchParams.get('error');
@@ -72,6 +75,13 @@ function AuthPageInner() {
         setChecking(false);
       }
     });
+    // Probe which social providers have credentials wired up. Failure is
+    // non-fatal — the worst case is the buttons render as "ready" and click
+    // produces the same friendly error redirect as before.
+    fetch('/api/auth/oauth/status')
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => { if (data?.providers) setProviderStatus(data.providers); })
+      .catch(() => {});
   }, [router, setUser, searchParams]);
 
   const handleSubmit = async () => {
@@ -129,28 +139,31 @@ function AuthPageInner() {
           <div className="space-y-3">
             {/* Kakao */}
             <a
-              href="/api/auth/oauth/kakao"
-              className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl font-semibold transition-transform active:scale-[0.97] shadow-sm"
+              href={providerStatus.kakao ? '/api/auth/oauth/kakao' : '#'}
+              onClick={(e) => { if (!providerStatus.kakao) { e.preventDefault(); setError('카카오 로그인은 아직 준비 중이에요.'); } }}
+              className={`flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl font-semibold transition-transform active:scale-[0.97] shadow-sm ${providerStatus.kakao ? '' : 'opacity-50 cursor-not-allowed'}`}
               style={{ background: '#FEE500', color: '#191919' }}
             >
               <span className="text-lg">💬</span>
-              <span>카카오로 시작</span>
+              <span>카카오로 시작{!providerStatus.kakao && ' (준비 중)'}</span>
             </a>
 
             {/* Naver */}
             <a
-              href="/api/auth/oauth/naver"
-              className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl font-semibold text-white transition-transform active:scale-[0.97] shadow-sm"
+              href={providerStatus.naver ? '/api/auth/oauth/naver' : '#'}
+              onClick={(e) => { if (!providerStatus.naver) { e.preventDefault(); setError('네이버 로그인은 아직 준비 중이에요.'); } }}
+              className={`flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl font-semibold text-white transition-transform active:scale-[0.97] shadow-sm ${providerStatus.naver ? '' : 'opacity-50 cursor-not-allowed'}`}
               style={{ background: '#03C75A' }}
             >
               <span className="font-extrabold">N</span>
-              <span>네이버로 시작</span>
+              <span>네이버로 시작{!providerStatus.naver && ' (준비 중)'}</span>
             </a>
 
             {/* Google */}
             <a
-              href="/api/auth/oauth/google"
-              className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl font-semibold transition-transform active:scale-[0.97] shadow-sm border border-warm-border/40"
+              href={providerStatus.google ? '/api/auth/oauth/google' : '#'}
+              onClick={(e) => { if (!providerStatus.google) { e.preventDefault(); setError('Google 로그인은 아직 준비 중이에요.'); } }}
+              className={`flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl font-semibold transition-transform active:scale-[0.97] shadow-sm border border-warm-border/40 ${providerStatus.google ? '' : 'opacity-50 cursor-not-allowed'}`}
               style={{ background: '#ffffff', color: '#3c4043' }}
             >
               <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
@@ -159,7 +172,7 @@ function AuthPageInner() {
                 <path d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332Z" fill="#FBBC05"/>
                 <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58Z" fill="#EA4335"/>
               </svg>
-              <span>Google로 시작</span>
+              <span>Google로 시작{!providerStatus.google && ' (준비 중)'}</span>
             </a>
 
             {/* Divider */}
