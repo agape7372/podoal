@@ -28,7 +28,7 @@ export default function GrapeSticker({
         transition-all duration-200
         flex items-center justify-center
         ${isFilled
-          ? `grape-filled ${isJustFilled ? 'animate-wiggle-once' : ''}`
+          ? `grape-filled ${isJustFilled ? 'animate-grape-fill' : ''}`
           : 'grape-empty'
         }
         ${isFilling ? 'animate-pulse scale-90' : ''}
@@ -37,12 +37,10 @@ export default function GrapeSticker({
       aria-label={isFilled ? '채워진 포도알' : `포도알 ${position + 1}`}
     >
       {!isFilled && (
-        <span
-          className={`
-            font-display select-none text-warm-light/55
-            ${size === 'lg' ? 'text-[13px]' : size === 'md' ? 'text-[11px]' : 'text-[9px]'}
-          `}
-        >
+        <span className={`
+          font-medium select-none text-warm-light/40
+          ${size === 'lg' ? 'text-xs' : size === 'md' ? 'text-[10px]' : 'text-[8px]'}
+        `}>
           {position + 1}
         </span>
       )}

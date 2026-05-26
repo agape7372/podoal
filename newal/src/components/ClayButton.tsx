@@ -12,17 +12,17 @@ interface ClayButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantStyles: Record<NonNullable<ClayButtonProps['variant']>, string> = {
   primary:
-    'bg-grape-500 hover:bg-grape-600 text-white border-grape-600/30 shadow-clay-sm',
+    'bg-pop-red hover:bg-pop-red-dark text-white border-pop-ink',
   secondary:
-    'bg-grape-50 hover:bg-grape-100 text-grape-700 border-grape-100',
+    'bg-clay-cream hover:bg-clay-yellow text-pop-ink border-pop-ink',
   ghost:
-    'bg-transparent text-grape-700 border-transparent hover:bg-grape-50 shadow-none',
+    'bg-transparent text-pop-ink border-transparent hover:bg-clay-yellow/60 shadow-none',
   danger:
-    'bg-juice-500 hover:bg-juice-600 text-white border-juice-600/30 shadow-clay-sm',
+    'bg-pop-red-dark hover:bg-pop-red text-white border-pop-ink',
   joyful:
-    'text-white border-transparent shadow-clay-puffy ' +
-    'bg-gradient-to-br from-grape-500 via-grape-500 to-juice-400 ' +
-    'hover:from-grape-600 hover:to-juice-500',
+    'text-pop-ink border-pop-ink ' +
+    'bg-gradient-to-br from-pop-mustard via-pop-mustard to-pop-red ' +
+    'hover:from-pop-red hover:to-pop-mustard hover:text-white',
 };
 
 const sizeStyles = {
@@ -45,8 +45,7 @@ export default function ClayButton({
     <button
       disabled={disabled || loading}
       className={`
-        clay-button font-semibold no-select
-        transition-all duration-150
+        clay-button font-bold no-select
         ${variantStyles[variant]}
         ${sizeStyles[size]}
         ${fullWidth ? 'w-full' : ''}
