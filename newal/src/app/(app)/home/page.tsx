@@ -145,8 +145,8 @@ export default function HomePage() {
       {boards.length > 0 && (
         <button
           onClick={() => { feedbackTap(); router.push('/board/create'); }}
-          className="fixed bottom-28 right-6 w-14 h-14 rounded-full flex items-center justify-center text-3xl text-white bg-pop-red border-[2px] border-pop-ink active:translate-x-[3px] active:translate-y-[4px] transition-all z-40 safe-bottom"
-          style={{ boxShadow: '3px 4px 0 #2A2434' }}
+          className="fixed bottom-28 right-6 w-14 h-14 rounded-full flex items-center justify-center text-3xl text-white bg-pop-red border-[1.5px] border-pop-ink active:translate-x-[1.5px] active:translate-y-[2px] transition-all z-40 safe-bottom"
+          style={{ boxShadow: '2px 3px 0 rgba(42, 36, 52, 0.40)' }}
           aria-label="새 포도판 만들기"
         >
           +

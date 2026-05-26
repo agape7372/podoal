@@ -104,51 +104,51 @@ body {
   .clay {
     background: var(--clay-surface);
     border-radius: 24px;
-    border: 1.8px solid var(--pop-ink);
+    border: 1.5px solid var(--pop-ink);
     box-shadow:
-      3px 4px 0 var(--pop-ink),
+      2px 3px 0 rgba(42, 36, 52, 0.45),
       0 0 0 1px rgba(255, 255, 255, 0.5) inset;
   }
 
   .clay-sm {
     background: var(--clay-surface);
     border-radius: 16px;
-    border: 1.5px solid var(--pop-ink);
+    border: 1.3px solid var(--pop-ink);
     box-shadow:
-      2px 2px 0 var(--pop-ink);
+      1.5px 2px 0 rgba(42, 36, 52, 0.35);
   }
 
   .clay-pressed {
     background: #F2EBD6;
     border-radius: 20px;
-    border: 1.5px solid var(--pop-ink);
+    border: 1.3px solid var(--pop-ink);
     box-shadow:
-      inset 0 2px 4px rgba(42, 36, 52, 0.15);
+      inset 0 2px 4px rgba(42, 36, 52, 0.12);
   }
 
   .clay-float {
     background: var(--clay-surface);
     border-radius: 28px;
-    border: 2px solid var(--pop-ink);
+    border: 1.5px solid var(--pop-ink);
     box-shadow:
-      4px 5px 0 var(--pop-ink),
-      0 8px 18px rgba(42, 36, 52, 0.08);
+      2.5px 3.5px 0 rgba(42, 36, 52, 0.40),
+      0 6px 14px rgba(42, 36, 52, 0.05);
   }
 
   .clay-puffy {
     background: var(--clay-surface);
     border-radius: 28px;
-    border: 2px solid var(--pop-ink);
+    border: 1.8px solid var(--pop-ink);
     box-shadow:
-      5px 6px 0 var(--pop-ink),
-      0 12px 24px rgba(42, 36, 52, 0.12);
+      3px 4px 0 rgba(42, 36, 52, 0.45),
+      0 10px 20px rgba(42, 36, 52, 0.08);
   }
 
   .clay-button {
     background: var(--clay-surface);
     border-radius: 18px;
-    border: 1.8px solid var(--pop-ink);
-    box-shadow: 2px 3px 0 var(--pop-ink);
+    border: 1.5px solid var(--pop-ink);
+    box-shadow: 1.5px 2px 0 rgba(42, 36, 52, 0.35);
     transition: all 0.12s ease;
     cursor: pointer;
     user-select: none;
@@ -156,12 +156,12 @@ body {
 
   .clay-button:hover {
     transform: translate(-1px, -1px);
-    box-shadow: 3px 4px 0 var(--pop-ink);
+    box-shadow: 2.5px 3px 0 rgba(42, 36, 52, 0.40);
   }
 
   .clay-button:active {
-    transform: translate(2px, 3px);
-    box-shadow: 0 0 0 var(--pop-ink);
+    transform: translate(1.5px, 2px);
+    box-shadow: 0 0 0 rgba(42, 36, 52, 0);
   }
 
   /* Kitsch utility: rotated sticker label */
@@ -249,8 +249,8 @@ body {
   .clay-input {
     background: var(--clay-surface);
     border-radius: 14px;
-    border: 1.8px solid var(--pop-ink);
-    box-shadow: 2px 3px 0 var(--pop-ink);
+    border: 1.5px solid var(--pop-ink);
+    box-shadow: 1.5px 2px 0 rgba(42, 36, 52, 0.30);
     outline: none;
     padding: 14px 18px;
     font-size: 15px;
@@ -260,7 +260,7 @@ body {
   }
 
   .clay-input:focus {
-    box-shadow: 3px 4px 0 var(--pop-red);
+    box-shadow: 2px 3px 0 rgba(229, 90, 77, 0.55);
     border-color: var(--pop-ink);
     background: #FFFCF3;
   }
