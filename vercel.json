@@ -2,7 +2,7 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
   "regions": ["icn1"],
-  "buildCommand": "npm run build",
-  "installCommand": "npm install",
-  "outputDirectory": ".next"
+  "installCommand": "cd newal && npm install",
+  "buildCommand": "cd newal && npm run build",
+  "outputDirectory": "newal/.next"
 }
