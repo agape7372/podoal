@@ -1,7 +1,5 @@
 'use client';
 
-import PixelFruit, { type FruitKind } from './PixelFruit';
-
 interface AvatarProps {
   avatar: string;
   size?: 'sm' | 'md' | 'lg' | 'xl';
@@ -15,18 +13,14 @@ const sizeMap = {
   xl: { box: 'w-20 h-20', sprite: 56 },
 };
 
-const VALID_KINDS: FruitKind[] = [
+const VALID = new Set([
   'grape', 'strawberry', 'orange', 'blueberry',
   'cherry', 'peach', 'apple', 'watermelon',
-];
-
-function isValidKind(s: string): s is FruitKind {
-  return (VALID_KINDS as string[]).includes(s);
-}
+]);
 
 export default function Avatar({ avatar, size = 'md', className = '' }: AvatarProps) {
   const dims = sizeMap[size];
-  const kind: FruitKind = isValidKind(avatar) ? avatar : 'grape';
+  const kind = VALID.has(avatar) ? avatar : 'grape';
 
   return (
     <div
@@ -37,7 +31,14 @@ export default function Avatar({ avatar, size = 'md', className = '' }: AvatarPr
       `}
       style={{ borderRadius: '50%' }}
     >
-      <PixelFruit kind={kind} size={dims.sprite} />
+      <img
+        src={`/avatars/${kind}.svg`}
+        alt=""
+        width={dims.sprite}
+        height={dims.sprite}
+        draggable={false}
+        aria-hidden="true"
+      />
     </div>
   );
 }

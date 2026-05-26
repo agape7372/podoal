@@ -101,3 +101,9 @@ npm run db:studio    # Prisma Studio GUI
 - 프로젝트 가이드: [`CLAUDE.md`](./CLAUDE.md)
 - OAuth 콘솔 설정: [`docs/OAUTH_SETUP.md`](./docs/OAUTH_SETUP.md)
 - 환경변수 템플릿: [`.env.example`](./.env.example)
+
+## 크레딧
+
+- 아바타 일러스트: [Microsoft Fluent UI Emoji](https://github.com/microsoft/fluentui-emoji) (MIT) — `public/avatars/` 8개 fruit SVG.
+- 본문 폰트: [Maru Buri](https://github.com/naver/nanumfont) (네이버 무료 폰트, 상용 가능).
+- 그 외 일러스트·마스코트·디자인 토큰은 newal 자체 제작.

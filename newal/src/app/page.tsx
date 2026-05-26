@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import ClayButton from '@/components/ClayButton';
 import ClayInput from '@/components/ClayInput';
 import Podo from '@/components/mascot/Podo';
-import PixelFruit, { type FruitKind } from '@/components/PixelFruit';
 import { AVATAR_OPTIONS } from '@/types';
 import { api, fetchUser } from '@/lib/api';
 import { useAppStore } from '@/lib/store';
@@ -278,6 +277,7 @@ function AuthPageInner() {
                     key={av}
                     onClick={() => setAvatar(av)}
                     type="button"
+                    aria-label={av}
                     className={`
                       w-12 h-12 rounded-2xl flex items-center justify-center transition-all
                       ${avatar === av
@@ -287,7 +287,8 @@ function AuthPageInner() {
                     `}
                     style={avatar === av ? { boxShadow: 'inset 0 2px 4px rgba(42,36,52,0.18), 0 0 0 2.5px #E55A4D' } : undefined}
                   >
-                    <PixelFruit kind={av as FruitKind} size={32} />
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={`/avatars/${av}.svg`} alt="" width={30} height={30} draggable={false} />
                   </button>
                 ))}
               </div>
