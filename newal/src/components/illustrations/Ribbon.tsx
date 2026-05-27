@@ -7,7 +7,7 @@ interface RibbonProps {
 export default function Ribbon({
   size = 40,
   className = '',
-  color = '#FF8FA3',
+  color = '#DCC4F2',
 }: RibbonProps) {
   return (
     <svg

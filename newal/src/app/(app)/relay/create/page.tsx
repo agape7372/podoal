@@ -301,7 +301,7 @@ export default function CreateRelayPage() {
 
         {/* Error */}
         {error && (
-          <p className="text-juice-600 text-sm text-center">{error}</p>
+          <p className="text-grape-700 text-sm text-center">{error}</p>
         )}
 
         {/* Create button */}

@@ -32,7 +32,7 @@ export default function MorePage() {
             <span className="text-3xl relative inline-block">
               {item.icon}
               {item.badge === 'unread' && unreadCount > 0 && (
-                <span className="absolute -top-1 -right-2 bg-juice-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                <span className="absolute -top-1 -right-2 bg-grape-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
                   {unreadCount > 9 ? '9+' : unreadCount}
                 </span>
               )}

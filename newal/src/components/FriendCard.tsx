@@ -18,7 +18,7 @@ interface FriendCardProps {
 
 const statusBg: Record<string, string> = {
   accepted: '',
-  pending: 'bg-sunshine-200/35',
+  pending: 'bg-lime-200/35',
   favorite: 'bg-clay-cream/60',
 };
 

@@ -145,8 +145,8 @@ export default function HomePage() {
       {boards.length > 0 && (
         <button
           onClick={() => { feedbackTap(); router.push('/board/create'); }}
-          className="fixed bottom-28 right-6 w-14 h-14 rounded-full flex items-center justify-center text-3xl text-white bg-pop-red border-[1.5px] border-pop-ink active:translate-x-[1.5px] active:translate-y-[2px] transition-all z-40 safe-bottom"
-          style={{ boxShadow: '2px 3px 0 rgba(42, 36, 52, 0.40)' }}
+          className="fixed bottom-28 right-6 w-14 h-14 rounded-full flex items-center justify-center text-3xl text-white bg-grape-500 border-[1.3px] border-warm-border active:translate-x-[1.5px] active:translate-y-[2px] transition-all z-40 safe-bottom"
+          style={{ boxShadow: '2px 3px 0 rgba(47, 42, 63, 0.10)' }}
           aria-label="새 포도판 만들기"
         >
           +
@@ -159,8 +159,8 @@ export default function HomePage() {
 function StatChip({ label, value, accent }: { label: string; value: number; accent: 'grape' | 'juice' | 'leaf' }) {
   const accentColor = {
     grape: 'text-grape-700',
-    juice: 'text-pop-red',
-    leaf: 'text-pop-cyan-dark',
+    juice: 'text-grape-500',
+    leaf: 'text-lime-700',
   }[accent];
   return (
     <div className="clay-sm flex-shrink-0 inline-flex items-baseline gap-2 px-4 py-2.5" style={{ borderRadius: '999px' }}>

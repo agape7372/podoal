@@ -36,21 +36,21 @@ export default function Navigation() {
                 className={`
                   relative flex flex-col items-center gap-0.5 py-1.5 px-3 rounded-2xl no-select
                   transition-all duration-200
-                  ${isActive ? 'text-pop-ink' : 'text-warm-sub hover:text-pop-ink'}
+                  ${isActive ? 'text-warm-text' : 'text-warm-sub hover:text-warm-text'}
                 `}
                 aria-current={isActive ? 'page' : undefined}
               >
                 {/* Active indicator dot */}
                 <span
-                  className={`absolute top-0 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full border-[1.5px] border-pop-ink transition-all duration-200 ${
-                    isActive ? 'bg-pop-red opacity-100' : 'opacity-0'
+                  className={`absolute top-0 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full border-[1.5px] border-warm-text transition-all duration-200 ${
+                    isActive ? 'bg-grape-500 opacity-100' : 'opacity-0'
                   }`}
                   aria-hidden="true"
                 />
                 <span className="text-xl relative">
                   {item.icon}
                   {item.badge === 'unread' && unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-2 bg-pop-red text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] px-1 flex items-center justify-center border-[1.5px] border-pop-ink">
+                    <span className="absolute -top-1 -right-2 bg-grape-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] px-1 flex items-center justify-center border-[1.5px] border-warm-text">
                       {unreadCount > 9 ? '9+' : unreadCount}
                     </span>
                   )}

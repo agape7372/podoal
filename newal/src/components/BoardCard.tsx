@@ -51,7 +51,7 @@ export default function BoardCard({ board }: BoardCardProps) {
           {/* Progress bar */}
           <div className="w-full h-2 rounded-full bg-clay-bg overflow-hidden">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-grape-500 via-grape-400 to-juice-400 transition-all"
+              className="h-full rounded-full bg-gradient-to-r from-grape-500 via-grape-400 to-lime-300 transition-all"
               style={{ width: `${progress}%` }}
             />
           </div>

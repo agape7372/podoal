@@ -28,30 +28,27 @@
 }
 
 :root {
-  --grape-primary: #9B7ED8;
-  --grape-light: #C9B0EE;
-  --grape-dark: #7B5FB8;
-  --grape-deepest: #4A3679;
-  --clay-bg: #FBF4E3;
-  --clay-surface: #FFFAF0;
-  --clay-pink: #FFD4D4;
-  --clay-mint: #C6E6D5;
-  --clay-lavender: #E4D6F8;
-  --clay-peach: #FFD9B5;
-  --clay-cream: #FFF1D6;
-  --clay-yellow: #FFEEA8;
-  --warm-text: #2A2434;
-  --warm-sub: #5C5263;
-  --warm-border: #2A2434;
-  --juice-400: #FF8FA3;
-  --juice-500: #FF6B8A;
-  --leaf-500: #6BBE7E;
-  --sunshine-500: #FFC845;
-  --pop-red: #E55A4D;
-  --pop-mustard: #F2A93B;
-  --pop-cyan: #4BA8B0;
-  --pop-ink: #2A2434;
-  --shadow-tint: 42, 36, 52;
+  --grape-primary: #DCC4F2;
+  --grape-light: #EBE0F6;
+  --grape-mid: #C9A8E8;
+  --grape-deep: #9970C8;
+  --grape-deepest: #5E3F80;
+  --lime-bg: #FBFCEE;
+  --lime-soft: #F7FAD8;
+  --lime-mid: #EFF5BB;
+  --lime-deep: #A8B85A;
+  --clay-bg: #FFFFFF;
+  --clay-surface: #FDFCFE;
+  --clay-pink: #FBE6EC;
+  --clay-mint: #E5F2DC;
+  --clay-lavender: #EBE0F6;
+  --clay-peach: #FFE9D8;
+  --clay-cream: #FBFCEE;
+  --clay-yellow: #FBFCEE;
+  --warm-text: #2F2A3F;
+  --warm-sub: #6E6680;
+  --warm-border: #ECE0F3;
+  --shadow-tint: 47, 42, 63;
 }
 
 * {
@@ -80,11 +77,8 @@ p {
 body {
   background: var(--clay-bg);
   background-image:
-    radial-gradient(circle, rgba(42, 36, 52, 0.07) 1px, transparent 1.2px),
-    radial-gradient(at 12% 8%, rgba(229, 90, 77, 0.06) 0%, transparent 35%),
-    radial-gradient(at 88% 92%, rgba(75, 168, 176, 0.05) 0%, transparent 35%);
-  background-size: 18px 18px, auto, auto;
-  background-position: 0 0, 0 0, 0 0;
+    radial-gradient(at 15% 10%, rgba(220, 196, 242, 0.18) 0%, transparent 45%),
+    radial-gradient(at 85% 88%, rgba(247, 250, 216, 0.30) 0%, transparent 45%);
   color: var(--warm-text);
   min-height: 100dvh;
   overscroll-behavior: none;
@@ -99,56 +93,57 @@ body {
   padding-top: max(16px, env(safe-area-inset-top));
 }
 
-/* Claymorphism + Showa-era vending-machine kitsch utilities */
+/* Claymorphism — Lavender + Pale-Lime pastel (V3 palette) */
 @layer components {
   .clay {
     background: var(--clay-surface);
     border-radius: 24px;
-    border: 1.5px solid var(--pop-ink);
+    border: 1.3px solid var(--warm-border);
     box-shadow:
-      2px 3px 0 rgba(42, 36, 52, 0.45),
-      0 0 0 1px rgba(255, 255, 255, 0.5) inset;
+      2px 3px 0 rgba(var(--shadow-tint), 0.05),
+      0 1px 3px rgba(var(--shadow-tint), 0.03),
+      0 0 0 1px rgba(255, 255, 255, 0.7) inset;
   }
 
   .clay-sm {
     background: var(--clay-surface);
     border-radius: 16px;
-    border: 1.3px solid var(--pop-ink);
+    border: 1.2px solid var(--warm-border);
     box-shadow:
-      1.5px 2px 0 rgba(42, 36, 52, 0.35);
+      1.5px 2px 0 rgba(var(--shadow-tint), 0.04);
   }
 
   .clay-pressed {
-    background: #F2EBD6;
+    background: #F8F4FC;
     border-radius: 20px;
-    border: 1.3px solid var(--pop-ink);
+    border: 1.2px solid var(--warm-border);
     box-shadow:
-      inset 0 2px 4px rgba(42, 36, 52, 0.12);
+      inset 0 2px 4px rgba(var(--shadow-tint), 0.07);
   }
 
   .clay-float {
     background: var(--clay-surface);
     border-radius: 28px;
-    border: 1.5px solid var(--pop-ink);
+    border: 1.3px solid var(--warm-border);
     box-shadow:
-      2.5px 3.5px 0 rgba(42, 36, 52, 0.40),
-      0 6px 14px rgba(42, 36, 52, 0.05);
+      2.5px 3.5px 0 rgba(var(--shadow-tint), 0.06),
+      0 6px 14px rgba(var(--shadow-tint), 0.04);
   }
 
   .clay-puffy {
     background: var(--clay-surface);
     border-radius: 28px;
-    border: 1.8px solid var(--pop-ink);
+    border: 1.5px solid var(--warm-border);
     box-shadow:
-      3px 4px 0 rgba(42, 36, 52, 0.45),
-      0 10px 20px rgba(42, 36, 52, 0.08);
+      3px 4px 0 rgba(var(--shadow-tint), 0.07),
+      0 10px 20px rgba(var(--shadow-tint), 0.05);
   }
 
   .clay-button {
     background: var(--clay-surface);
     border-radius: 18px;
-    border: 1.5px solid var(--pop-ink);
-    box-shadow: 1.5px 2px 0 rgba(42, 36, 52, 0.35);
+    border: 1.3px solid var(--warm-border);
+    box-shadow: 1.5px 2px 0 rgba(var(--shadow-tint), 0.05);
     transition: all 0.12s ease;
     cursor: pointer;
     user-select: none;
@@ -156,45 +151,29 @@ body {
 
   .clay-button:hover {
     transform: translate(-1px, -1px);
-    box-shadow: 2.5px 3px 0 rgba(42, 36, 52, 0.40);
+    box-shadow: 2.5px 3px 0 rgba(var(--shadow-tint), 0.07);
   }
 
   .clay-button:active {
     transform: translate(1.5px, 2px);
-    box-shadow: 0 0 0 rgba(42, 36, 52, 0);
+    box-shadow: 0 0 0 rgba(var(--shadow-tint), 0);
   }
 
   /* Kitsch utility: rotated sticker label */
-  .kitsch-stamp {
+  /* Rotated sticker label (lavender) */
+  .pastel-stamp {
     display: inline-block;
-    transform: rotate(-6deg);
-    border: 2px solid var(--pop-ink);
-    background: var(--pop-mustard);
-    color: var(--pop-ink);
+    transform: rotate(-4deg);
+    border: 1.3px solid var(--warm-border);
+    background: var(--grape-light);
+    color: var(--warm-text);
     padding: 2px 10px;
     border-radius: 6px;
     font-weight: 700;
-    box-shadow: 2px 2px 0 var(--pop-ink);
+    box-shadow: 1.5px 2px 0 rgba(var(--shadow-tint), 0.06);
   }
-  .kitsch-stamp.red { background: var(--pop-red); color: #fff; }
-  .kitsch-stamp.cyan { background: var(--pop-cyan); color: #fff; }
-
-  /* Diagonal candy stripe background */
-  .kitsch-stripe {
-    background-image: repeating-linear-gradient(
-      45deg,
-      transparent 0,
-      transparent 8px,
-      rgba(229, 90, 77, 0.12) 8px,
-      rgba(229, 90, 77, 0.12) 16px
-    );
-  }
-
-  /* Dot grid background (vending machine mat) */
-  .kitsch-dots {
-    background-image: radial-gradient(circle, rgba(42, 36, 52, 0.15) 1px, transparent 1.4px);
-    background-size: 14px 14px;
-  }
+  .pastel-stamp.lime { background: var(--lime-soft); }
+  .pastel-stamp.deep { background: var(--grape-deep); color: #fff; }
 
   /* Filled grape — clay-pastel 3D with photographic highlight */
   .grape-filled {
@@ -249,8 +228,8 @@ body {
   .clay-input {
     background: var(--clay-surface);
     border-radius: 14px;
-    border: 1.5px solid var(--pop-ink);
-    box-shadow: 1.5px 2px 0 rgba(42, 36, 52, 0.30);
+    border: 1.3px solid var(--warm-border);
+    box-shadow: 1.5px 2px 0 rgba(var(--shadow-tint), 0.04);
     outline: none;
     padding: 14px 18px;
     font-size: 15px;
@@ -260,9 +239,9 @@ body {
   }
 
   .clay-input:focus {
-    box-shadow: 2px 3px 0 rgba(229, 90, 77, 0.55);
-    border-color: var(--pop-ink);
-    background: #FFFCF3;
+    border-color: var(--grape-mid);
+    box-shadow: 2px 3px 0 rgba(var(--shadow-tint), 0.08);
+    background: #FFFFFF;
   }
 
   .clay-input::placeholder {
@@ -352,13 +331,13 @@ body {
 @keyframes rewardGlow {
   0%, 100% {
     box-shadow:
-      0 0 14px rgba(155, 126, 216, 0.25),
-      0 0 28px rgba(255, 107, 138, 0.10);
+      0 0 14px rgba(220, 196, 242, 0.45),
+      0 0 28px rgba(247, 250, 216, 0.30);
   }
   50% {
     box-shadow:
-      0 0 22px rgba(155, 126, 216, 0.38),
-      0 0 44px rgba(255, 107, 138, 0.18);
+      0 0 22px rgba(220, 196, 242, 0.60),
+      0 0 44px rgba(247, 250, 216, 0.45);
   }
 }
 
@@ -400,11 +379,11 @@ body {
   width: 2px;
   background: linear-gradient(
     to bottom,
-    rgba(168, 216, 176, 0) 0%,
-    var(--leaf-500) 8%,
-    var(--grape-primary) 50%,
-    var(--leaf-500) 92%,
-    rgba(168, 216, 176, 0) 100%
+    rgba(220, 196, 242, 0) 0%,
+    var(--lime-deep) 8%,
+    var(--grape-deep) 50%,
+    var(--lime-deep) 92%,
+    rgba(220, 196, 242, 0) 100%
   );
 }
 

@@ -80,7 +80,7 @@ export default function InstallPrompt() {
             </button>
             <button
               onClick={handleInstall}
-              className="clay-button bg-gradient-to-br from-grape-500 to-juice-400 text-white px-4 py-2 rounded-2xl text-sm font-semibold border-transparent"
+              className="clay-button bg-gradient-to-br from-grape-500 to-lime-300 text-white px-4 py-2 rounded-2xl text-sm font-semibold border-transparent"
             >
               설치
             </button>

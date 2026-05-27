@@ -355,7 +355,7 @@ export default function NotificationsPage() {
                   </button>
                   <button
                     onClick={() => deleteReminder(reminder.id)}
-                    className="text-xs text-juice-600 font-medium px-2 py-1"
+                    className="text-xs text-grape-700 font-medium px-2 py-1"
                   >
                     삭제
                   </button>

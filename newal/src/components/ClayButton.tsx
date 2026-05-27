@@ -12,17 +12,17 @@ interface ClayButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantStyles: Record<NonNullable<ClayButtonProps['variant']>, string> = {
   primary:
-    'bg-pop-red hover:bg-pop-red-dark text-white border-pop-ink',
+    'bg-grape-500 hover:bg-grape-600 text-white border-warm-border',
   secondary:
-    'bg-clay-cream hover:bg-clay-yellow text-pop-ink border-pop-ink',
+    'bg-lime-200 hover:bg-lime-300 text-warm-text border-warm-border',
   ghost:
-    'bg-transparent text-pop-ink border-transparent hover:bg-clay-yellow/60 shadow-none',
+    'bg-transparent text-warm-text border-transparent hover:bg-grape-100 shadow-none',
   danger:
-    'bg-pop-red-dark hover:bg-pop-red text-white border-pop-ink',
+    'bg-grape-700 hover:bg-grape-800 text-white border-warm-border',
   joyful:
-    'text-pop-ink border-pop-ink ' +
-    'bg-gradient-to-br from-pop-mustard via-pop-mustard to-pop-red ' +
-    'hover:from-pop-red hover:to-pop-mustard hover:text-white',
+    'text-warm-text border-warm-border ' +
+    'bg-gradient-to-br from-grape-300 via-grape-400 to-lime-300 ' +
+    'hover:from-grape-400 hover:via-grape-500 hover:to-lime-400 hover:text-white',
 };
 
 const sizeStyles = {

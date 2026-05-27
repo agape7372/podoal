@@ -212,7 +212,7 @@ export default function CapsuleModal({ boardId, isOwner, onClose }: CapsuleModal
               </div>
 
               {error && (
-                <p className="text-juice-600 text-sm text-center">{error}</p>
+                <p className="text-grape-700 text-sm text-center">{error}</p>
               )}
 
               <div className="flex gap-3 pt-2">

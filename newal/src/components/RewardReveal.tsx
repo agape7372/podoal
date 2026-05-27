@@ -15,14 +15,14 @@ interface RewardRevealProps {
 }
 
 const SPARKLE_RING = [
-  { x: 50, y: -8, color: '#FFC845', size: 18 },
-  { x: 92, y: 18, color: '#FF8FA3', size: 14 },
-  { x: 100, y: 50, color: '#FFE08A', size: 16 },
-  { x: 92, y: 82, color: '#FF8FA3', size: 12 },
-  { x: 50, y: 108, color: '#FFC845', size: 18 },
-  { x: 8, y: 82, color: '#A8D8B0', size: 14 },
-  { x: 0, y: 50, color: '#FFE08A', size: 16 },
-  { x: 8, y: 18, color: '#A8D8B0', size: 12 },
+  { x: 50, y: -8, color: '#CFDC78', size: 18 },
+  { x: 92, y: 18, color: '#DCC4F2', size: 14 },
+  { x: 100, y: 50, color: '#EFF5BB', size: 16 },
+  { x: 92, y: 82, color: '#DCC4F2', size: 12 },
+  { x: 50, y: 108, color: '#CFDC78', size: 18 },
+  { x: 8, y: 82, color: '#EFF5BB', size: 14 },
+  { x: 0, y: 50, color: '#EFF5BB', size: 16 },
+  { x: 8, y: 18, color: '#EFF5BB', size: 12 },
 ] as const;
 
 export default function RewardReveal({
@@ -50,12 +50,12 @@ export default function RewardReveal({
     if (isRevealed) triggerConfetti();
   }, [isRevealed, triggerConfetti]);
 
-  // Mixed warm-accent confetti palette
+  // Lavender + pale-lime pastel confetti palette
   const confettiColors = [
-    '#9B7ED8', '#B294E2',
-    '#FF8FA3', '#FF6B8A',
-    '#FFE08A', '#FFC845',
-    '#A8D8B0', '#6BBE7E',
+    '#DCC4F2', '#C9A8E8',
+    '#EBE0F6', '#B28CDC',
+    '#F7FAD8', '#EFF5BB',
+    '#CFDC78', '#FBFCEE',
   ];
 
   return (

@@ -305,7 +305,7 @@ export default function CreateBoardPage() {
             />
           </div>
 
-          {error && <p className="text-juice-600 text-sm text-center">{error}</p>}
+          {error && <p className="text-grape-700 text-sm text-center">{error}</p>}
 
           <div className="flex gap-3">
             <ClayButton variant="ghost" onClick={() => setStep(2)} fullWidth>

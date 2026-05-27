@@ -17,8 +17,8 @@ export default function Sun({ size = 48, className = '' }: SunProps) {
       <defs>
         <radialGradient id="sun-fill" cx="50%" cy="50%" r="50%">
           <stop offset="0%" stopColor="#FFF5C9" />
-          <stop offset="60%" stopColor="#FFE08A" />
-          <stop offset="100%" stopColor="#FFC845" />
+          <stop offset="60%" stopColor="#EFF5BB" />
+          <stop offset="100%" stopColor="#CFDC78" />
         </radialGradient>
       </defs>
       {rays.map((deg) => (
@@ -28,7 +28,7 @@ export default function Sun({ size = 48, className = '' }: SunProps) {
           y1="6"
           x2="24"
           y2="11"
-          stroke="#FFC845"
+          stroke="#CFDC78"
           strokeWidth="2.2"
           strokeLinecap="round"
           transform={`rotate(${deg} 24 24)`}

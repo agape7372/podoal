@@ -7,7 +7,7 @@ interface SparkleProps {
 export default function Sparkle({
   size = 20,
   className = '',
-  color = '#FFC845',
+  color = '#CFDC78',
 }: SparkleProps) {
   return (
     <svg

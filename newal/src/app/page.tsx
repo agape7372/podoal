@@ -135,7 +135,7 @@ function AuthPageInner() {
           </p>
 
           {error && (
-            <div className="mb-4 p-3 rounded-2xl bg-juice-200/40 border border-juice-300/60 text-juice-600 text-sm">
+            <div className="mb-4 p-3 rounded-2xl bg-grape-100/40 border border-grape-200/60 text-grape-700 text-sm">
               {error}
             </div>
           )}
@@ -245,7 +245,7 @@ function AuthPageInner() {
               onChange={(e) => setPassword(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
             />
-            {error && <p className="text-juice-600 text-sm text-center">{error}</p>}
+            {error && <p className="text-grape-700 text-sm text-center">{error}</p>}
             <ClayButton variant="joyful" fullWidth size="lg" onClick={handleSubmit} loading={loading}>
               로그인
             </ClayButton>
@@ -314,7 +314,7 @@ function AuthPageInner() {
               onChange={(e) => setPassword(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
             />
-            {error && <p className="text-juice-600 text-sm text-center">{error}</p>}
+            {error && <p className="text-grape-700 text-sm text-center">{error}</p>}
             <ClayButton variant="joyful" fullWidth size="lg" onClick={handleSubmit} loading={loading}>
               시작하기
             </ClayButton>

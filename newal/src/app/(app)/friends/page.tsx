@@ -94,7 +94,7 @@ export default function FriendsPage() {
             추가
           </ClayButton>
         </div>
-        {addError && <p className="text-juice-600 text-xs mt-2">{addError}</p>}
+        {addError && <p className="text-grape-700 text-xs mt-2">{addError}</p>}
         {addSuccess && <p className="text-green-500 text-xs mt-2">{addSuccess}</p>}
       </div>
 

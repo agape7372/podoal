@@ -4,8 +4,8 @@
   "description": "포도알을 한 알씩 채우며 목표를 달성하고, 소중한 사람에게 응원과 보상을 주고받아요.",
   "start_url": "/home",
   "display": "standalone",
-  "background_color": "#FBF9F5",
-  "theme_color": "#9B7ED8",
+  "background_color": "#FFFFFF",
+  "theme_color": "#DCC4F2",
   "orientation": "portrait",
   "icons": [
     { "src": "/icons/icon.svg", "sizes": "any", "type": "image/svg+xml" }

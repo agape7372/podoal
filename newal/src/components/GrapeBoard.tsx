@@ -88,7 +88,7 @@ function GrapeBoardInner({ board, onFill, canFill }: GrapeBoardProps) {
         </div>
         <div className="w-full h-3 rounded-full bg-clay-bg clay-pressed overflow-hidden" style={{ borderRadius: '999px' }}>
           <div
-            className="h-full rounded-full bg-gradient-to-r from-grape-500 via-grape-400 to-juice-400 transition-all duration-500 ease-out"
+            className="h-full rounded-full bg-gradient-to-r from-grape-500 via-grape-400 to-lime-300 transition-all duration-500 ease-out"
             style={{ width: `${progress}%` }}
           />
         </div>
@@ -103,7 +103,7 @@ function GrapeBoardInner({ board, onFill, canFill }: GrapeBoardProps) {
           {/* Completion sparkle: top-right */}
           {board.isCompleted && (
             <div className="absolute -top-2 -right-4 z-20 animate-fade-in">
-              <Sparkle size={28} color="#FFC845" />
+              <Sparkle size={28} color="#CFDC78" />
             </div>
           )}
 

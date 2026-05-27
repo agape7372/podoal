@@ -60,7 +60,7 @@ export default function WineBottle({ bottle, onClick }: WineBottleProps) {
 
         {/* Foil capsule */}
         <div
-          className="bg-gradient-to-b from-sunshine-500 via-sunshine-600 to-[#B07F23] relative z-10"
+          className="bg-gradient-to-b from-lime-500 via-lime-600 to-[#B07F23] relative z-10"
           style={{
             width: dim.neck * 0.92,
             height: 6,
