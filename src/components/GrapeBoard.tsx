@@ -18,7 +18,7 @@ const CLUSTER_LAYOUTS: Record<number, number[]> = {
   10: [3, 4, 2, 1],
   15: [3, 4, 4, 3, 1],
   20: [3, 4, 5, 4, 3, 1],
-  30: [4, 5, 6, 5, 5, 3, 2],
+  30: [3, 4, 5, 5, 4, 4, 3, 2], // max 5/row (was 6 → overflowed the card on the right)
 };
 
 function GrapeBoardInner({ board, onFill, canFill }: GrapeBoardProps) {
@@ -56,9 +56,14 @@ function GrapeBoardInner({ board, onFill, canFill }: GrapeBoardProps) {
     }
   }, [canFill, filledPositions, filledCount, board.totalStickers, board.rewards, onFill]);
 
-  const grapeSize = 52;
+  // Size grapes from the widest row so the whole bunch fits the card without
+  // clipping. Card inner width ≈ 280px on a ~360px phone; target ~270px for a
+  // safe gutter. factor 1.12 accounts for the per-grape horizontal margin.
+  const maxRowCount = Math.max(...(CLUSTER_LAYOUTS[board.totalStickers] || CLUSTER_LAYOUTS[10]));
+  const grapeSize = Math.min(54, Math.floor(270 / (maxRowCount * 1.12)));
   const sizeClass: 'sm' | 'md' | 'lg' = 'lg';
-  const rowOverlap = grapeSize * 0.22;
+  const rowOverlap = grapeSize * 0.15; // gentler vertical nestle (was 0.22 — too crammed)
+  const hMargin = grapeSize * 0.06;    // horizontal breathing room (was ~0.02 — grapes touched)
 
   const rows = useMemo<number[][]>(() => {
     const layoutRows = CLUSTER_LAYOUTS[board.totalStickers] || CLUSTER_LAYOUTS[10];
@@ -134,7 +139,7 @@ function GrapeBoardInner({ board, onFill, canFill }: GrapeBoardProps) {
                       style={{
                         width: `${grapeSize}px`,
                         height: `${grapeSize}px`,
-                        margin: `0 ${grapeSize * 0.02}px`,
+                        margin: `0 ${hMargin}px`,
                       }}
                     >
                       <GrapeSticker
