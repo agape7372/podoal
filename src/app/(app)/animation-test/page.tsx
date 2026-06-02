@@ -83,9 +83,9 @@ const GROUPS: AnimGroup[] = [
                   key={i}
                   className="burst-dot"
                   style={{
-                    ['--a' as string]: `${p.a}deg`,
-                    ['--d' as string]: `${p.d}px`,
-                    ['--delay' as string]: `${p.delay}ms`,
+                    '--a': `${p.a}deg`,
+                    '--d': `${p.d}px`,
+                    '--delay': `${p.delay}ms`,
                   } as CSSProperties}
                 />
               ))}
@@ -327,14 +327,11 @@ export default function AnimationTestPage() {
               {group.items.map((item) => {
                 const id = item.token;
                 const nonce = nonces[id] ?? 0;
-                return (
-                  <button
-                    key={id}
-                    onClick={() => !item.loop && replay(id)}
-                    className={`clay-sm p-3 text-left transition-all ${
-                      item.loop ? 'cursor-default' : 'active:scale-[0.97] cursor-pointer'
-                    }`}
-                  >
+                const cardClass = `clay-sm p-3 text-left transition-all ${
+                  item.loop ? 'cursor-default' : 'active:scale-[0.97] cursor-pointer'
+                }`;
+                const inner = (
+                  <>
                     <div className="h-20 rounded-xl bg-grape-50/50 flex items-center justify-center mb-2 overflow-hidden px-2">
                       {item.render(nonce)}
                     </div>
@@ -348,6 +345,16 @@ export default function AnimationTestPage() {
                     </div>
                     <p className="text-xs text-warm-sub mt-0.5 leading-snug">{item.desc}</p>
                     <code className="text-[10px] text-warm-light block mt-1 truncate">{item.token}</code>
+                  </>
+                );
+                // 반복 모션은 상호작용이 없으므로 비활성 div 로 — 스크린리더/탭 포커스 제외
+                return item.loop ? (
+                  <div key={id} className={cardClass}>
+                    {inner}
+                  </div>
+                ) : (
+                  <button key={id} type="button" onClick={() => replay(id)} className={cardClass}>
+                    {inner}
                   </button>
                 );
               })}
