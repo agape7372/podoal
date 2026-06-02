@@ -1,5 +1,7 @@
 'use client';
 
+import { useMemo, type CSSProperties } from 'react';
+
 interface GrapeStickerProps {
   position: number;
   isFilled: boolean;
@@ -23,6 +25,22 @@ export default function GrapeSticker({
   size,
   onClick,
 }: GrapeStickerProps) {
+  // 채움 입자 12개 — position 기반 결정적 시드로 산출(Math.random 미사용 → SSR/hydration 안전)
+  const dots = useMemo(() => {
+    const N = 12;
+    return Array.from({ length: N }, (_, i) => {
+      const seed = (position * N + i) * 12.9898;
+      const rnd = (k: number) => {
+        const v = Math.sin(seed + k * 78.233) * 43758.5453;
+        return v - Math.floor(v); // 0..1
+      };
+      const a = i * (360 / N) + (rnd(1) - 0.5) * 10; // 30° 균등 + ±5° 지터
+      const d = 11 + rnd(2) * 3;                      // 11~14px (알 크기 비례, 클립 안전)
+      const delay = Math.round(rnd(3) * 30);          // 0~30ms stagger
+      return { a, d, delay };
+    });
+  }, [position]);
+
   return (
     <button
       onClick={onClick}
@@ -51,14 +69,32 @@ export default function GrapeSticker({
         </span>
       )}
 
-      {/* 채워진 직후 1회성 귀여운 보상 이펙트: 소프트 펄스 1 + 말랑 점 3
+      {/* 채워진 직후 1회성 보상: 과즙 채움(주역) + 2겹 플래시 링 + 12입자 버스트
           (버튼 기준 절대배치 자식 — active:scale·grape-jelly-pop transform과 충돌 없음) */}
       {isJustFilled && (
         <>
-          <span className="jelly-pulse" aria-hidden="true" />
-          <span className="jelly-dot d1" aria-hidden="true" />
-          <span className="jelly-dot d2" aria-hidden="true" />
-          <span className="jelly-dot d3" aria-hidden="true" />
+          <span className="grape-juice" aria-hidden="true">
+            <span className="grape-juice__below" />
+            <span className="grape-juice__wave">
+              <i className="w-a" />
+              <i className="w-b" />
+            </span>
+          </span>
+          <span className="grape-ring" aria-hidden="true" />
+          <span className="grape-ring-rim" aria-hidden="true" />
+          <span className="burst-layer" aria-hidden="true">
+            {dots.map((p, i) => (
+              <span
+                key={i}
+                className="burst-dot"
+                style={{
+                  ['--a' as string]: `${p.a.toFixed(1)}deg`,
+                  ['--d' as string]: `${p.d.toFixed(1)}px`,
+                  ['--delay' as string]: `${p.delay}ms`,
+                } as CSSProperties}
+              />
+            ))}
+          </span>
         </>
       )}
     </button>
