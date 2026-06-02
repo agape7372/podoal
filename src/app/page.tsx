@@ -4,7 +4,8 @@ import { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import ClayButton from '@/components/ClayButton';
 import ClayInput from '@/components/ClayInput';
-import { AVATAR_EMOJIS, AVATAR_OPTIONS } from '@/types';
+import Podo from '@/components/mascot/Podo';
+import { AVATAR_OPTIONS } from '@/types';
 import { api, fetchUser } from '@/lib/api';
 import { useAppStore } from '@/lib/store';
 
@@ -33,7 +34,7 @@ export default function AuthPage() {
   return (
     <Suspense fallback={
       <div className="min-h-dvh flex items-center justify-center">
-        <div className="text-5xl animate-float">🍇</div>
+        <Podo size={72} className="animate-float" />
       </div>
     }>
       <AuthPageInner />
@@ -64,7 +65,6 @@ function AuthPageInner() {
     const oauthError = searchParams.get('error');
     if (oauthError) {
       setError(describeOAuthError(oauthError));
-      // Clean up the URL so the error doesn't stick on refresh.
       const url = new URL(window.location.href);
       url.searchParams.delete('error');
       url.searchParams.delete('provider');
@@ -78,9 +78,6 @@ function AuthPageInner() {
         setChecking(false);
       }
     });
-    // Probe which providers run real OAuth vs guest-fallback. Either way the
-    // button is clickable — guest mode generates a randomized account so users
-    // can try the app immediately while real OAuth is being set up.
     fetch('/api/auth/providers')
       .then((r) => r.ok ? r.json() : null)
       .then((data) => { if (data?.providers) setProviderStatus(data.providers); })
@@ -115,7 +112,7 @@ function AuthPageInner() {
   if (checking) {
     return (
       <div className="min-h-dvh flex items-center justify-center">
-        <div className="text-5xl animate-float">🍇</div>
+        <Podo size={88} className="animate-float" />
       </div>
     );
   }
@@ -125,25 +122,28 @@ function AuthPageInner() {
       {/* Logo & Welcome */}
       {mode === 'welcome' && (
         <div className="text-center animate-fade-in w-full max-w-sm">
-          <div className="text-7xl mb-4 animate-float">🍇</div>
-          <h1 className="text-3xl font-extrabold text-grape-700 mb-2">포도알</h1>
-          <p className="text-warm-sub mb-2">칭찬 스티커 보상표</p>
-          <p className="text-sm text-warm-light mb-8">
-            포도알을 하나씩 채우며 목표를 달성하고,<br />
+          <div className="mb-4 flex justify-center">
+            <Podo size={140} className="animate-float" />
+          </div>
+          <h1 className="font-display text-[44px] leading-none font-bold text-grape-700 mb-2 tracking-tight">
+            newal
+          </h1>
+          <p className="font-display text-warm-sub mb-1 text-[15px]">한 알씩, 매일의 기록</p>
+          <p className="text-sm text-warm-light mb-8 leading-relaxed">
+            포도알을 한 알씩 채우며 목표를 달성하고,<br />
             소중한 사람에게 응원과 보상을 주고받아요
           </p>
 
           {error && (
-            <div className="mb-4 p-3 rounded-2xl bg-red-50 border border-red-200 text-red-700 text-sm">
+            <div className="mb-4 p-3 rounded-2xl bg-grape-100/40 border border-grape-200/60 text-grape-700 text-sm">
               {error}
             </div>
           )}
 
           <div className="space-y-3">
-            {/* Kakao */}
             <a
               href="/api/auth/oauth/kakao"
-              className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl font-semibold transition-transform active:scale-[0.97] shadow-sm relative"
+              className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl font-semibold transition-transform active:scale-[0.97] shadow-clay-sm relative"
               style={{ background: '#FEE500', color: '#191919' }}
             >
               <span className="text-lg">💬</span>
@@ -153,10 +153,9 @@ function AuthPageInner() {
               )}
             </a>
 
-            {/* Naver */}
             <a
               href="/api/auth/oauth/naver"
-              className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl font-semibold text-white transition-transform active:scale-[0.97] shadow-sm relative"
+              className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl font-semibold text-white transition-transform active:scale-[0.97] shadow-clay-sm relative"
               style={{ background: '#03C75A' }}
             >
               <span className="font-extrabold">N</span>
@@ -166,10 +165,9 @@ function AuthPageInner() {
               )}
             </a>
 
-            {/* Google */}
             <a
               href="/api/auth/oauth/google"
-              className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl font-semibold transition-transform active:scale-[0.97] shadow-sm border border-warm-border/40 relative"
+              className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl font-semibold transition-transform active:scale-[0.97] shadow-clay-sm border border-warm-border/60 relative"
               style={{ background: '#ffffff', color: '#3c4043' }}
             >
               <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
@@ -184,25 +182,22 @@ function AuthPageInner() {
               )}
             </a>
 
-            {/* Divider */}
             <div className="flex items-center gap-3 py-1">
               <div className="flex-1 h-px bg-warm-border/40" />
               <span className="text-xs text-warm-light">또는</span>
               <div className="flex-1 h-px bg-warm-border/40" />
             </div>
 
-            {/* Email */}
-            <ClayButton fullWidth size="lg" onClick={() => { setError(''); setMode('register'); }}>
+            <ClayButton variant="joyful" fullWidth size="lg" onClick={() => { setError(''); setMode('register'); }}>
               📧 이메일로 시작
             </ClayButton>
             <button
               onClick={() => { setError(''); setMode('login'); }}
-              className="w-full text-center text-sm text-grape-500 py-1"
+              className="w-full text-center text-sm text-grape-600 py-1"
             >
               이미 계정이 있나요? 이메일로 로그인
             </button>
 
-            {/* Dev mode */}
             <button
               onClick={async () => {
                 setLoading(true);
@@ -219,9 +214,9 @@ function AuthPageInner() {
                 setLoading(false);
               }}
               disabled={loading}
-              className="w-full py-2.5 rounded-2xl text-xs font-medium text-warm-light hover:text-grape-500 transition-all"
+              className="w-full py-2.5 rounded-2xl text-xs font-medium text-warm-light hover:text-grape-600 transition-all"
             >
-              {loading ? '진입중...' : '🛠 개발자 모드'}
+              {loading ? '진입중…' : '🛠 개발자 모드'}
             </button>
           </div>
         </div>
@@ -233,7 +228,7 @@ function AuthPageInner() {
           <button onClick={() => { setError(''); setMode('welcome'); }} className="text-warm-sub mb-6 text-sm">
             ← 돌아가기
           </button>
-          <h2 className="text-2xl font-bold text-grape-700 mb-6">이메일로 로그인</h2>
+          <h2 className="font-display text-3xl font-bold text-grape-700 mb-6">이메일로 로그인</h2>
           <div className="space-y-4">
             <ClayInput
               label="이메일"
@@ -250,13 +245,13 @@ function AuthPageInner() {
               onChange={(e) => setPassword(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
             />
-            {error && <p className="text-red-400 text-sm text-center">{error}</p>}
-            <ClayButton fullWidth size="lg" onClick={handleSubmit} loading={loading}>
+            {error && <p className="text-grape-700 text-sm text-center">{error}</p>}
+            <ClayButton variant="joyful" fullWidth size="lg" onClick={handleSubmit} loading={loading}>
               로그인
             </ClayButton>
             <button
               onClick={() => { setMode('register'); setError(''); }}
-              className="w-full text-center text-sm text-grape-500 mt-2"
+              className="w-full text-center text-sm text-grape-600 mt-2"
             >
               계정이 없으신가요? 새로 시작하기
             </button>
@@ -270,9 +265,8 @@ function AuthPageInner() {
           <button onClick={() => { setError(''); setMode('welcome'); }} className="text-warm-sub mb-6 text-sm">
             ← 돌아가기
           </button>
-          <h2 className="text-2xl font-bold text-grape-700 mb-6">이메일로 시작하기</h2>
+          <h2 className="font-display text-3xl font-bold text-grape-700 mb-6">이메일로 시작하기</h2>
           <div className="space-y-4">
-            {/* Avatar selection */}
             <div>
               <label className="block text-sm font-medium text-warm-sub mb-2 ml-1">
                 나를 표현하는 과일
@@ -282,15 +276,19 @@ function AuthPageInner() {
                   <button
                     key={av}
                     onClick={() => setAvatar(av)}
+                    type="button"
+                    aria-label={av}
                     className={`
-                      w-12 h-12 rounded-xl text-2xl flex items-center justify-center transition-all
+                      w-12 h-12 rounded-2xl flex items-center justify-center transition-all
                       ${avatar === av
-                        ? 'clay-pressed ring-2 ring-grape-400 scale-110'
+                        ? 'clay-pressed scale-110'
                         : 'clay-button'
                       }
                     `}
+                    style={avatar === av ? { boxShadow: 'inset 0 2px 4px rgba(42,36,52,0.18), 0 0 0 2.5px #E55A4D' } : undefined}
                   >
-                    {AVATAR_EMOJIS[av]}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={`/avatars/${av}.svg`} alt="" width={30} height={30} draggable={false} />
                   </button>
                 ))}
               </div>
@@ -316,13 +314,13 @@ function AuthPageInner() {
               onChange={(e) => setPassword(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
             />
-            {error && <p className="text-red-400 text-sm text-center">{error}</p>}
-            <ClayButton fullWidth size="lg" onClick={handleSubmit} loading={loading}>
-              시작하기 🍇
+            {error && <p className="text-grape-700 text-sm text-center">{error}</p>}
+            <ClayButton variant="joyful" fullWidth size="lg" onClick={handleSubmit} loading={loading}>
+              시작하기
             </ClayButton>
             <button
               onClick={() => { setMode('login'); setError(''); }}
-              className="w-full text-center text-sm text-grape-500 mt-2"
+              className="w-full text-center text-sm text-grape-600 mt-2"
             >
               이미 계정이 있으신가요? 로그인
             </button>

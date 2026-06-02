@@ -16,11 +16,11 @@ export default function ClayInput({ label, error, className = '', ...props }: Cl
         </label>
       )}
       <input
-        className={`clay-input ${error ? 'ring-2 ring-red-300' : ''} ${className}`}
+        className={`clay-input ${error ? 'ring-2 ring-grape-200 border-lime-300' : ''} ${className}`}
         {...props}
       />
       {error && (
-        <p className="text-red-400 text-xs mt-1.5 ml-1">{error}</p>
+        <p className="text-grape-700 text-xs mt-1.5 ml-1">{error}</p>
       )}
     </div>
   );

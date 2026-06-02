@@ -110,7 +110,7 @@ export default function CreateRelayPage() {
         {'\u2190'} 릴레이 목록
       </button>
 
-      <h1 className="text-2xl font-bold text-grape-700 mb-6">
+      <h1 className="font-display text-2xl font-bold text-grape-700 mb-6">
         {'\uD83D\uDD17'} 새 릴레이 만들기
       </h1>
 
@@ -301,7 +301,7 @@ export default function CreateRelayPage() {
 
         {/* Error */}
         {error && (
-          <p className="text-red-400 text-sm text-center">{error}</p>
+          <p className="text-grape-700 text-sm text-center">{error}</p>
         )}
 
         {/* Create button */}

@@ -129,7 +129,7 @@ export default function FriendDetailPage() {
           <Avatar avatar={friend.avatar} size="xl" />
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold text-grape-700 truncate">{friend.name}</h1>
+              <h1 className="font-display text-xl font-bold text-grape-700 truncate">{friend.name}</h1>
               {isFavorite && <span className="text-lg">⭐</span>}
             </div>
             <p className="text-sm text-warm-sub truncate">{friend.email}</p>

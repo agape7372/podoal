@@ -45,7 +45,7 @@ export default function GiftBoardModal({ boardTitle, onGift, onClose }: GiftBoar
       <div className="w-full max-w-lg bg-clay-bg rounded-t-[32px] clay-float p-6 pb-8 safe-bottom animate-slide-up">
         <div className="w-12 h-1.5 bg-warm-border rounded-full mx-auto mb-5" />
 
-        <h3 className="text-lg font-bold text-grape-700 text-center mb-1">
+        <h3 className="font-display text-xl font-bold text-grape-700 text-center mb-1">
           🎁 포도판 선물하기
         </h3>
         <p className="text-sm text-warm-sub text-center mb-5">

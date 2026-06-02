@@ -5,19 +5,27 @@ import { ReactNode } from 'react';
 interface ClayCardProps {
   children: ReactNode;
   className?: string;
-  variant?: 'default' | 'float' | 'pressed' | 'small';
+  variant?: 'default' | 'float' | 'pressed' | 'small' | 'puffy';
   onClick?: () => void;
   color?: 'white' | 'pink' | 'mint' | 'lavender' | 'peach' | 'cream' | 'yellow';
 }
 
 const colorBg: Record<string, string> = {
   white: '',
-  pink: 'bg-pink-50/50',
-  mint: 'bg-emerald-50/50',
-  lavender: 'bg-grape-50/60',
-  peach: 'bg-orange-50/50',
-  cream: 'bg-amber-50/40',
-  yellow: 'bg-yellow-50/40',
+  pink: 'bg-clay-pink/55',
+  mint: 'bg-clay-mint/55',
+  lavender: 'bg-clay-lavender/60',
+  peach: 'bg-clay-peach/50',
+  cream: 'bg-clay-cream/60',
+  yellow: 'bg-clay-yellow/55',
+};
+
+const baseClass: Record<NonNullable<ClayCardProps['variant']>, string> = {
+  default: 'clay',
+  float: 'clay-float',
+  pressed: 'clay-pressed',
+  small: 'clay-sm',
+  puffy: 'clay-puffy',
 };
 
 export default function ClayCard({
@@ -27,13 +35,11 @@ export default function ClayCard({
   onClick,
   color = 'white',
 }: ClayCardProps) {
-  const base = variant === 'float' ? 'clay-float' : variant === 'pressed' ? 'clay-pressed' : variant === 'small' ? 'clay-sm' : 'clay';
-
   return (
     <div
       onClick={onClick}
       className={`
-        ${base}
+        ${baseClass[variant]}
         ${colorBg[color]}
         p-5
         ${onClick ? 'cursor-pointer active:scale-[0.98] transition-transform' : ''}

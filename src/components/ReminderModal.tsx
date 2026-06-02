@@ -83,7 +83,7 @@ export default function ReminderModal({ reminder, boards, onSave, onClose }: Rem
       <div className="w-full max-w-lg bg-clay-bg rounded-t-[32px] clay-float p-6 pb-8 safe-bottom animate-slide-up max-h-[85vh] flex flex-col">
         <div className="w-12 h-1.5 bg-warm-border rounded-full mx-auto mb-5" />
 
-        <h3 className="text-lg font-bold text-grape-700 text-center mb-5">
+        <h3 className="font-display text-xl font-bold text-grape-700 text-center mb-5">
           {reminder ? '리마인더 수정' : '리마인더 추가'}
         </h3>
 

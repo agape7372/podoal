@@ -13,43 +13,30 @@ export default function BoardCard({ board }: BoardCardProps) {
   const router = useRouter();
   const progress = Math.round((board.filledCount / board.totalStickers) * 100);
 
-  const colorByProgress = () => {
-    if (board.isCompleted) return 'bg-emerald-50/60';
-    if (progress >= 70) return 'bg-grape-50/60';
-    if (progress >= 30) return 'bg-orange-50/60';
-    return '';
-  };
-
   return (
     <button
       onClick={() => { feedbackTap(); router.push(`/board/${board.id}`); }}
-      className={`
-        clay w-full p-4 text-left
-        ${colorByProgress()}
-        active:scale-[0.98] transition-transform
-      `}
+      className="clay-float w-full p-4 text-left active:scale-[0.98] transition-transform"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            {board.isCompleted && <span>🎉</span>}
-            <h3 className="font-bold text-warm-text truncate">{board.title}</h3>
+          <div className="flex items-center gap-1.5 mb-1">
+            {board.isCompleted && <span aria-hidden="true">🎉</span>}
+            <h3 className="font-display text-[17px] font-bold text-warm-text truncate">{board.title}</h3>
           </div>
           {board.description && (
-            <p className="text-xs text-warm-sub truncate mb-2">{board.description}</p>
+            <p className="text-xs text-warm-sub truncate mb-3">{board.description}</p>
           )}
 
-          {/* Mini grape preview */}
-          <div className="flex flex-wrap gap-[3px] mb-2">
+          {/* Mini grape preview in inset tray */}
+          <div className="clay-pressed inline-flex flex-wrap gap-[3px] mb-3 px-2 py-1.5" style={{ borderRadius: '12px' }}>
             {Array.from({ length: Math.min(board.totalStickers, 10) }, (_, i) => {
               const isFilled = i < board.filledCount;
               return (
                 <div
                   key={i}
-                  className={`w-4 h-4 rounded-full ${
-                    isFilled
-                      ? 'grape-filled-mini'
-                      : 'border-[1.5px] border-grape-200 bg-grape-50/50'
+                  className={`w-3.5 h-3.5 rounded-full ${
+                    isFilled ? 'grape-filled-mini' : 'grape-empty-mini'
                   }`}
                 />
               );
@@ -62,17 +49,19 @@ export default function BoardCard({ board }: BoardCardProps) {
           </div>
 
           {/* Progress bar */}
-          <div className="w-full h-2 rounded-full bg-grape-100 overflow-hidden">
+          <div className="w-full h-2 rounded-full bg-clay-bg overflow-hidden">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-grape-400 to-grape-500 transition-all"
+              className="h-full rounded-full bg-gradient-to-r from-grape-500 via-grape-400 to-lime-300 transition-all"
               style={{ width: `${progress}%` }}
             />
           </div>
-          <div className="flex justify-between mt-1">
+          <div className="flex justify-between mt-1.5">
             <span className="text-[10px] text-warm-sub">
-              {board.filledCount}/{board.totalStickers}알
+              <span className="font-display font-semibold text-warm-text">{board.filledCount}</span>
+              <span className="mx-0.5">/</span>
+              {board.totalStickers}알
             </span>
-            <span className="text-[10px] font-medium text-grape-500">{progress}%</span>
+            <span className="text-[10px] font-display font-bold text-grape-600">{progress}%</span>
           </div>
         </div>
 
@@ -84,7 +73,9 @@ export default function BoardCard({ board }: BoardCardProps) {
             </div>
           )}
           {board.rewardCount > 0 && (
-            <div className="text-xl">{board.isCompleted ? '🎁' : '🔒'}</div>
+            <div className="text-xl" aria-hidden="true">
+              {board.isCompleted ? '🎁' : '🔒'}
+            </div>
           )}
         </div>
       </div>

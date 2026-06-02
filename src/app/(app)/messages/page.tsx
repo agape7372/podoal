@@ -65,7 +65,7 @@ export default function MessagesPage() {
 
   return (
     <div className="pb-4">
-      <h1 className="text-2xl font-bold text-grape-700 mb-6">💌 메시지</h1>
+      <h1 className="font-display text-2xl font-bold text-grape-700 mb-6">💌 메시지</h1>
 
       {loading ? (
         <div className="space-y-3">

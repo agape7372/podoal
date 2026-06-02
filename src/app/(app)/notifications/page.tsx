@@ -165,7 +165,7 @@ export default function NotificationsPage() {
   if (loading) {
     return (
       <div className="pb-4">
-        <h1 className="text-2xl font-bold text-grape-700 mb-6">알림 설정</h1>
+        <h1 className="font-display text-2xl font-bold text-grape-700 mb-6">알림 설정</h1>
         <div className="space-y-4">
           {[1, 2, 3, 4].map((i) => (
             <div key={i} className="skeleton h-24 w-full rounded-2xl" />
@@ -178,7 +178,7 @@ export default function NotificationsPage() {
   if (!settings) {
     return (
       <div className="pb-4">
-        <h1 className="text-2xl font-bold text-grape-700 mb-6">알림 설정</h1>
+        <h1 className="font-display text-2xl font-bold text-grape-700 mb-6">알림 설정</h1>
         <div className="text-center py-12 text-warm-sub">
           <p className="text-sm">알림 설정을 불러오지 못했어요</p>
         </div>
@@ -188,7 +188,7 @@ export default function NotificationsPage() {
 
   return (
     <div className="pb-4">
-      <h1 className="text-2xl font-bold text-grape-700 mb-6">알림 설정</h1>
+      <h1 className="font-display text-2xl font-bold text-grape-700 mb-6">알림 설정</h1>
 
       {/* Global toggle */}
       <section className="clay p-5 mb-4">
@@ -314,7 +314,7 @@ export default function NotificationsPage() {
                 <div className="flex items-start justify-between">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1.5">
-                      <span className="text-lg font-bold text-grape-600">{reminder.time}</span>
+                      <span className="font-display text-lg font-bold text-grape-600">{reminder.time}</span>
                       <span className="text-xs text-warm-light px-2 py-0.5 rounded-full bg-grape-50">
                         {reminder.boardTitle || '전체'}
                       </span>
@@ -355,7 +355,7 @@ export default function NotificationsPage() {
                   </button>
                   <button
                     onClick={() => deleteReminder(reminder.id)}
-                    className="text-xs text-red-400 font-medium px-2 py-1"
+                    className="text-xs text-grape-700 font-medium px-2 py-1"
                   >
                     삭제
                   </button>

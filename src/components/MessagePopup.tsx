@@ -28,7 +28,7 @@ export default function MessagePopup() {
         <div className="flex items-start gap-3">
           <Avatar avatar={popupMessage.sender.avatar} size="md" />
           <div className="flex-1 min-w-0">
-            <p className="font-semibold text-sm text-grape-700">
+            <p className="font-display font-semibold text-sm text-grape-700">
               {popupMessage.sender.name}
             </p>
             <p className="text-warm-text mt-0.5 text-sm">

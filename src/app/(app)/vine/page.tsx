@@ -51,7 +51,7 @@ export default function VinePage() {
     return (
       <div className="pb-4">
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-grape-700 mb-1">
+          <h1 className="font-display text-2xl font-bold text-grape-700 mb-1">
             🌿 포도덩쿨
           </h1>
           <p className="text-sm text-warm-sub">나의 성장 기록</p>
@@ -72,7 +72,7 @@ export default function VinePage() {
     return (
       <div className="pb-4">
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-grape-700 mb-1">
+          <h1 className="font-display text-2xl font-bold text-grape-700 mb-1">
             🌿 포도덩쿨
           </h1>
           <p className="text-sm text-warm-sub">나의 성장 기록</p>
@@ -94,7 +94,7 @@ export default function VinePage() {
     <div className="pb-4">
       {/* Header */}
       <div className="text-center mb-8">
-        <h1 className="text-2xl font-bold text-grape-700 mb-1">
+        <h1 className="font-display text-2xl font-bold text-grape-700 mb-1">
           🌿 포도덩쿨
         </h1>
         <p className="text-sm text-warm-sub">나의 성장 기록</p>

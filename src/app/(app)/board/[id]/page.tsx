@@ -198,7 +198,7 @@ export default function BoardDetailPage() {
             <button
               onClick={handleDelete}
               disabled={deleting}
-              className="clay-button px-3 py-1.5 rounded-xl text-sm text-red-400"
+              className="clay-button px-3 py-1.5 rounded-xl text-sm text-grape-700"
             >
               삭제
             </button>
@@ -207,12 +207,12 @@ export default function BoardDetailPage() {
       </div>
 
       {errorMessage && (
-        <div className="mb-3 p-3 rounded-2xl bg-red-50/80 border border-red-200/60 text-red-700 text-sm flex items-start gap-2">
+        <div className="mb-3 p-3 rounded-2xl bg-grape-100/40 border border-grape-200/60 text-grape-700 text-sm flex items-start gap-2">
           <span className="text-base leading-tight">⚠️</span>
           <span className="flex-1 leading-snug">{errorMessage}</span>
           <button
             onClick={() => setErrorMessage(null)}
-            className="text-red-400 hover:text-red-600 text-lg leading-none px-1"
+            className="text-grape-700 hover:text-grape-800 text-lg leading-none px-1"
             aria-label="알림 닫기"
           >
             ×
@@ -222,7 +222,7 @@ export default function BoardDetailPage() {
 
       {/* Board info */}
       <div className="text-center mb-6">
-        <h1 className="text-2xl font-bold text-grape-700 mb-1">{board.title}</h1>
+        <h1 className="font-display text-2xl font-bold text-grape-700 mb-1">{board.title}</h1>
         {board.description && (
           <p className="text-sm text-warm-sub mb-2">{board.description}</p>
         )}

@@ -34,7 +34,7 @@ export default function RelayListPage() {
 
   return (
     <div className="pb-4">
-      <h1 className="text-2xl font-bold text-grape-700 mb-6">
+      <h1 className="font-display text-2xl font-bold text-grape-700 mb-6">
         {'\uD83D\uDD17'} 포도 릴레이
       </h1>
 

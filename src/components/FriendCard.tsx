@@ -18,8 +18,8 @@ interface FriendCardProps {
 
 const statusBg: Record<string, string> = {
   accepted: '',
-  pending: 'bg-orange-50/40',
-  favorite: 'bg-amber-50/40',
+  pending: 'bg-lime-200/35',
+  favorite: 'bg-clay-cream/60',
 };
 
 export default function FriendCard({
@@ -50,13 +50,13 @@ export default function FriendCard({
         <Avatar avatar={friend.user.avatar} size="lg" />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <p className="font-semibold text-warm-text truncate">{friend.user.name}</p>
-            {friend.isFavorite && <span className="text-sm">⭐</span>}
+            <p className="font-display text-[15px] font-semibold text-warm-text truncate">{friend.user.name}</p>
+            {friend.isFavorite && <span className="text-sm" aria-hidden="true">⭐</span>}
           </div>
           <p className="text-xs text-warm-sub truncate">{friend.user.email}</p>
           {typeof activeBoardCount === 'number' && friend.status === 'accepted' && (
-            <p className="text-[11px] text-grape-400 mt-0.5">
-              🍇 포도판 {activeBoardCount}개 진행 중
+            <p className="text-[11px] text-grape-600 mt-0.5">
+              🍇 포도판 <span className="font-display font-semibold">{activeBoardCount}</span>개 진행 중
             </p>
           )}
         </div>
@@ -74,7 +74,7 @@ export default function FriendCard({
             <>
               <button
                 onClick={() => { feedbackTap(); onViewBoards?.(friend.user.id); }}
-                className="clay-button p-2 rounded-xl text-sm font-medium text-grape-500 transition-all active:scale-95"
+                className="clay-button p-2 rounded-xl text-sm font-medium text-grape-600 transition-all active:scale-95"
                 title="포도판 보기"
               >
                 🍇
@@ -105,11 +105,10 @@ export default function FriendCard({
         </div>
       </div>
 
-      {/* View boards link for accepted friends */}
       {friend.status === 'accepted' && onViewBoards && (
         <button
           onClick={() => onViewBoards(friend.user.id)}
-          className="mt-3 w-full clay-button px-3 py-2 rounded-xl text-xs font-medium text-grape-500 bg-grape-50 transition-all active:scale-[0.98] flex items-center justify-center gap-1.5"
+          className="mt-3 w-full clay-button px-3 py-2 rounded-2xl text-xs font-medium text-grape-700 bg-grape-50 transition-all active:scale-[0.98] flex items-center justify-center gap-1.5"
         >
           <span>🍇</span>
           <span>포도판 보기</span>

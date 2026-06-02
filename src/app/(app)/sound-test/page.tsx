@@ -24,7 +24,7 @@ export default function SoundTestPage() {
 
   return (
     <div className="pb-4">
-      <h1 className="text-2xl font-bold text-grape-700 mb-2">효과음 테스트</h1>
+      <h1 className="font-display text-2xl font-bold text-grape-700 mb-2">효과음 테스트</h1>
       <p className="text-sm text-warm-sub mb-6">포도알 채울 때 쓸 효과음을 골라주세요</p>
 
       <div className="space-y-3">
@@ -43,7 +43,7 @@ export default function SoundTestPage() {
             </button>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <span className="text-lg font-bold text-grape-700">{s.id + 1}. {s.name}</span>
+                <span className="font-display text-lg font-bold text-grape-700">{s.id + 1}. {s.name}</span>
                 {settings.fillSoundId === s.id && (
                   <span className="text-xs text-grape-500 font-medium bg-grape-100 px-2 py-0.5 rounded-full">적용됨</span>
                 )}

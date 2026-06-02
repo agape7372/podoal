@@ -113,7 +113,7 @@ export default function CapsuleModal({ boardId, isOwner, onClose }: CapsuleModal
       <div className="w-full max-w-lg bg-clay-bg rounded-t-[32px] clay-float p-6 pb-8 safe-bottom animate-slide-up max-h-[85vh] flex flex-col">
         <div className="w-12 h-1.5 bg-warm-border rounded-full mx-auto mb-5" />
 
-        <h3 className="text-lg font-bold text-grape-700 text-center mb-1">
+        <h3 className="font-display text-xl font-bold text-grape-700 text-center mb-1">
           💊 동결건조
         </h3>
         <p className="text-sm text-warm-sub text-center mb-5">
@@ -212,7 +212,7 @@ export default function CapsuleModal({ boardId, isOwner, onClose }: CapsuleModal
               </div>
 
               {error && (
-                <p className="text-red-400 text-sm text-center">{error}</p>
+                <p className="text-grape-700 text-sm text-center">{error}</p>
               )}
 
               <div className="flex gap-3 pt-2">

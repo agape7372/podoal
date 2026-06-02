@@ -93,7 +93,7 @@ export default function CreateBoardPage() {
 
   return (
     <div className="pb-4">
-      <h1 className="text-2xl font-bold text-grape-700 mb-6">🍇 새 포도판 만들기</h1>
+      <h1 className="font-display text-2xl font-bold text-grape-700 mb-6">🍇 새 포도판 만들기</h1>
 
       {/* Step indicator */}
       <div className="flex items-center gap-2 mb-6">
@@ -305,7 +305,7 @@ export default function CreateBoardPage() {
             />
           </div>
 
-          {error && <p className="text-red-400 text-sm text-center">{error}</p>}
+          {error && <p className="text-grape-700 text-sm text-center">{error}</p>}
 
           <div className="flex gap-3">
             <ClayButton variant="ghost" onClick={() => setStep(2)} fullWidth>

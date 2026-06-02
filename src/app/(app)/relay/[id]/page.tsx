@@ -138,7 +138,7 @@ export default function RelayDetailPage() {
 
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-grape-700">{relay.title}</h1>
+        <h1 className="font-display text-2xl font-bold text-grape-700">{relay.title}</h1>
         <span className={`px-3 py-1 rounded-lg text-xs font-semibold ${statusBadge.color}`}>
           {statusBadge.text}
         </span>

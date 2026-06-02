@@ -2,6 +2,22 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+> **About this project (newal)** — This is the visual redesign port of `podoal` at https://github.com/agape7372/newal. Data layer (Prisma schema, all `/api/*` routes, `src/lib/auth.ts`, `src/lib/oauth.ts`, `src/lib/store.ts` keys, `src/lib/feedback.ts` function signatures, `prisma/seed.ts`, env var names) is 1:1 from podoal — **do not modify**. Visual layer (`tailwind.config.ts`, `src/app/globals.css`, all `src/components/**`, all page components, manifest brand strings) was redesigned.
+>
+> **newal-specific design tokens**
+> - Brand color synced to `#9B7ED8` across both `tailwind grape-500` and `--grape-primary` in globals.css
+> - New accent palettes: `juice-*` (warm pink, for CTAs/celebrations), `leaf-*` (green, for stem/vine/online), `sunshine-*` (yellow, for sparkle/reward)
+> - All shadows use purple-warm tint `rgba(73, 50, 100, X)` instead of black — the single biggest "AI-doesn't-make-this" tell
+> - Display font: **Maru Buri** (Naver, free commercial) for H1/H2/big numbers; body stays Noto Sans KR. Use `font-display` class on headers only — never on paragraph text
+> - New `clay-puffy` shadow for floating elements (Navigation, InstallPrompt, joyful CTAs)
+> - 5th button variant: `joyful` — gradient `grape-500 → juice-400` + `clay-puffy` shadow; reserve for welcome CTA, "보상 열기", "릴레이 시작"
+>
+> **Mascot & illustrations**
+> - `src/components/mascot/Podo.tsx` — minimal still-life grape SVG, props: `size`, optional `variant: 'sleeping'`. **No facial expressions** — used decoratively only (welcome hero, empty states, InstallPrompt chip). Do not extend with cheering/surprised etc.
+> - `src/components/illustrations/*.tsx` — 6 single-export SVG components (VineLeaf, WaterDrop, Sparkle, Ribbon, Sun, CloudPuff) + `GrapeStem.tsx` (used by GrapeBoard). Use sparingly: at most one illustration per page section.
+>
+> **Content untouched** — `src/lib/templates.ts` (7 categories, 38 templates), `src/lib/winery.ts` (포도알 새싹 → 포도 마스터 tier names), `src/lib/sounds.ts` (30 sounds), `src/types/index.ts` (3 reward types), nav labels (홈/만들기/릴레이/와이너리/더보기) all kept verbatim. The redesign deliberately does not touch copy/naming — design carries the change.
+
 ## Commands
 
 ```bash

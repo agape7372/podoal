@@ -1,11 +1,11 @@
 {
-  "name": "포도알 - Podoal",
-  "short_name": "포도알",
-  "description": "포도 테마 습관 추적 앱",
+  "name": "newal — 한 알씩, 매일의 기록",
+  "short_name": "newal",
+  "description": "포도알을 한 알씩 채우며 목표를 달성하고, 소중한 사람에게 응원과 보상을 주고받아요.",
   "start_url": "/home",
   "display": "standalone",
-  "background_color": "#f8f5ff",
-  "theme_color": "#8b5cf6",
+  "background_color": "#FFFFFF",
+  "theme_color": "#DCC4F2",
   "orientation": "portrait",
   "icons": [
     { "src": "/icons/icon.svg", "sizes": "any", "type": "image/svg+xml" }

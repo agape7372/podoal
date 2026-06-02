@@ -20,7 +20,7 @@ export default function BoardError({
     <div className="flex items-center justify-center min-h-[60vh] px-6">
       <div className="text-center max-w-sm">
         <div className="text-5xl mb-4">🍇</div>
-        <h2 className="text-lg font-bold text-grape-700 mb-2">
+        <h2 className="font-display text-lg font-bold text-grape-700 mb-2">
           포도판을 불러올 수 없어요
         </h2>
         <p className="text-sm text-warm-sub mb-6 leading-relaxed">

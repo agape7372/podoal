@@ -60,7 +60,7 @@ export default function StatsPage() {
   if (loading) {
     return (
       <div className="pb-4">
-        <h1 className="text-2xl font-bold text-grape-700 mb-6">통계</h1>
+        <h1 className="font-display text-2xl font-bold text-grape-700 mb-6">통계</h1>
         <div className="space-y-3">
           {[1, 2, 3].map((i) => <div key={i} className="skeleton h-24 w-full" />)}
         </div>
@@ -72,7 +72,7 @@ export default function StatsPage() {
 
   return (
     <div className="pb-4">
-      <h1 className="text-2xl font-bold text-grape-700 mb-4">통계</h1>
+      <h1 className="font-display text-2xl font-bold text-grape-700 mb-4">통계</h1>
 
       {/* Tab navigation */}
       <div className="flex gap-1 mb-5 p-1.5 clay-sm bg-gray-50 rounded-xl overflow-hidden">
@@ -97,7 +97,7 @@ export default function StatsPage() {
           {/* Profile & Streak */}
           <div className="clay-float p-6 mb-5 bg-grape-50/80 text-center">
             <Avatar avatar={user?.avatar || 'grape'} size="xl" className="mx-auto mb-3" />
-            <h2 className="text-lg font-bold text-grape-700">{user?.name}</h2>
+            <h2 className="font-display text-lg font-bold text-grape-700">{user?.name}</h2>
             <div className="mt-4 flex items-center justify-center gap-2">
               <span className="text-3xl">{'🔥'}</span>
               <div>
@@ -157,12 +157,12 @@ export default function StatsPage() {
           <div className="grid grid-cols-2 gap-3 mb-5">
             <div className="clay-sm p-5 text-center bg-orange-50/60">
               <span className="text-3xl">{'🔥'}</span>
-              <p className="text-2xl font-bold text-grape-600 mt-2">{stats.currentStreak}일</p>
+              <p className="font-display text-2xl font-bold text-grape-600 mt-2">{stats.currentStreak}일</p>
               <p className="text-[10px] text-warm-sub mt-1">현재 연속 달성</p>
             </div>
             <div className="clay-sm p-5 text-center bg-amber-50/60">
               <span className="text-3xl">{'🏆'}</span>
-              <p className="text-2xl font-bold text-grape-600 mt-2">{stats.longestStreak}일</p>
+              <p className="font-display text-2xl font-bold text-grape-600 mt-2">{stats.longestStreak}일</p>
               <p className="text-[10px] text-warm-sub mt-1">최장 연속 달성</p>
             </div>
           </div>
@@ -170,7 +170,7 @@ export default function StatsPage() {
           {/* Average daily */}
           <div className="clay-sm p-5 mb-5 bg-emerald-50/60 text-center">
             <span className="text-3xl">{'📊'}</span>
-            <p className="text-2xl font-bold text-grape-600 mt-2">{stats.averageDaily}</p>
+            <p className="font-display text-2xl font-bold text-grape-600 mt-2">{stats.averageDaily}</p>
             <p className="text-[10px] text-warm-sub mt-1">일평균 포도알 (최근 30일)</p>
           </div>
         </>
@@ -229,7 +229,7 @@ function StatCard({ icon, label, value, color }: { icon: string; label: string; 
   return (
     <div className={`clay-sm p-4 text-center ${bgMap[color] || bgMap.lavender}`}>
       <span className="text-2xl">{icon}</span>
-      <p className="text-2xl font-bold text-grape-600 mt-1">{value}</p>
+      <p className="font-display text-2xl font-bold text-grape-600 mt-1">{value}</p>
       <p className="text-[10px] text-warm-sub mt-0.5">{label}</p>
     </div>
   );
@@ -297,7 +297,7 @@ function CircularProgress({ value }: { value: number }) {
           </defs>
         </svg>
         <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-2xl font-bold text-grape-600">{value}%</span>
+          <span className="font-display text-2xl font-bold text-grape-600">{value}%</span>
         </div>
       </div>
     </div>

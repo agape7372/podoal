@@ -20,7 +20,7 @@ export default function MorePage() {
 
   return (
     <div className="pb-4">
-      <h1 className="text-2xl font-bold text-grape-700 mb-6">더보기</h1>
+      <h1 className="font-display text-2xl font-bold text-grape-700 mb-6">더보기</h1>
 
       <div className="grid grid-cols-3 gap-3">
         {menuItems.map((item) => (
@@ -32,7 +32,7 @@ export default function MorePage() {
             <span className="text-3xl relative inline-block">
               {item.icon}
               {item.badge === 'unread' && unreadCount > 0 && (
-                <span className="absolute -top-1 -right-2 bg-red-400 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                <span className="absolute -top-1 -right-2 bg-grape-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
                   {unreadCount > 9 ? '9+' : unreadCount}
                 </span>
               )}

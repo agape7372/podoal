@@ -34,7 +34,7 @@ export default function WineryPage() {
   if (loading) {
     return (
       <div className="pb-4">
-        <h1 className="text-2xl font-bold text-grape-700 mb-6">
+        <h1 className="font-display text-2xl font-bold text-grape-700 mb-6">
           <span className="mr-1.5">{'\u{1F3F0}'}</span>포도 와이너리
         </h1>
         <div className="space-y-4">
@@ -54,7 +54,7 @@ export default function WineryPage() {
 
   return (
     <div className="pb-4">
-      <h1 className="text-2xl font-bold text-grape-700 mb-6 animate-fade-in">
+      <h1 className="font-display text-2xl font-bold text-grape-700 mb-6 animate-fade-in">
         <span className="mr-1.5">{'\u{1F3F0}'}</span>포도 와이너리
       </h1>
 
@@ -82,7 +82,7 @@ export default function WineryPage() {
           </div>
 
           {/* Tier name + level badge */}
-          <h2 className="text-xl font-bold text-grape-800 mb-1">
+          <h2 className="font-display text-xl font-bold text-grape-800 mb-1">
             {currentTier.name}
           </h2>
           <span
@@ -97,7 +97,7 @@ export default function WineryPage() {
           {/* Total grapes */}
           <div className="mt-4 flex items-center justify-center gap-1.5">
             <span className="text-2xl">{'\u{1F347}'}</span>
-            <span className="text-3xl font-extrabold text-grape-700">
+            <span className="font-display text-4xl font-extrabold text-grape-700 leading-none">
               {totalGrapes.toLocaleString()}
             </span>
             <span className="text-sm text-warm-sub self-end mb-1">포도알</span>
@@ -136,7 +136,7 @@ export default function WineryPage() {
       {/* ─── Wine Cellar Section ───────────────────────────── */}
       <section className="mb-6 animate-fade-in" style={{ animationDelay: '0.1s' }}>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-bold text-grape-700">
+          <h3 className="font-display text-lg font-bold text-grape-700">
             <span className="mr-1">{'\u{1F377}'}</span>와인 셀러
           </h3>
           <span className="text-sm text-warm-sub font-medium">
@@ -240,7 +240,7 @@ export default function WineryPage() {
 
       {/* ─── Tier Roadmap Section ──────────────────────────── */}
       <section className="mb-4 animate-fade-in" style={{ animationDelay: '0.2s' }}>
-        <h3 className="text-lg font-bold text-grape-700 mb-4">
+        <h3 className="font-display text-lg font-bold text-grape-700 mb-4">
           <span className="mr-1">{'\u{1F5FA}\u{FE0F}'}</span>티어 로드맵
         </h3>
 

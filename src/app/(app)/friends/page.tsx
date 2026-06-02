@@ -77,7 +77,7 @@ export default function FriendsPage() {
 
   return (
     <div className="pb-4">
-      <h1 className="text-2xl font-bold text-grape-700 mb-6">👥 친구</h1>
+      <h1 className="font-display text-2xl font-bold text-grape-700 mb-6">👥 친구</h1>
 
       {/* Add friend */}
       <div className="clay p-4 mb-6">
@@ -94,7 +94,7 @@ export default function FriendsPage() {
             추가
           </ClayButton>
         </div>
-        {addError && <p className="text-red-400 text-xs mt-2">{addError}</p>}
+        {addError && <p className="text-grape-700 text-xs mt-2">{addError}</p>}
         {addSuccess && <p className="text-green-500 text-xs mt-2">{addSuccess}</p>}
       </div>
 

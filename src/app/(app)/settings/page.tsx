@@ -36,7 +36,7 @@ export default function SettingsPage() {
 
   return (
     <div className="pb-4">
-      <h1 className="text-2xl font-bold text-grape-700 mb-6">설정</h1>
+      <h1 className="font-display text-2xl font-bold text-grape-700 mb-6">설정</h1>
 
       {/* Sound & Haptic */}
       <section className="clay p-5 mb-4">

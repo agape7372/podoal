@@ -4,20 +4,51 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;800&display=swap');
 
+/* Maru Buri — Naver's free commercial humanist Korean serif-hybrid (warm but not childish) */
+@font-face {
+  font-family: 'MaruBuri';
+  src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2304-04@1.0/MaruBuri-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'MaruBuri';
+  src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2304-04@1.0/MaruBuri-SemiBold.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'MaruBuri';
+  src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2304-04@1.0/MaruBuri-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
-  --grape-primary: #9B7ED8;
-  --grape-light: #C9B8E8;
-  --grape-dark: #7B5FB8;
-  --clay-bg: #F9F8FC;
-  --clay-surface: #FFFFFF;
-  --clay-pink: #FFD4E0;
-  --clay-mint: #C5EBD6;
-  --clay-lavender: #E0D4F5;
-  --clay-peach: #FFE4CC;
-  --clay-cream: #FFF5E6;
-  --clay-yellow: #FFF3C4;
-  --warm-text: #3D3250;
-  --warm-sub: #8B7A9E;
+  --grape-primary: #DCC4F2;
+  --grape-light: #EBE0F6;
+  --grape-mid: #C9A8E8;
+  --grape-deep: #9970C8;
+  --grape-deepest: #5E3F80;
+  --lime-bg: #FBFCEE;
+  --lime-soft: #F7FAD8;
+  --lime-mid: #EFF5BB;
+  --lime-deep: #A8B85A;
+  --clay-bg: #FFFFFF;
+  --clay-surface: #FDFCFE;
+  --clay-pink: #FBE6EC;
+  --clay-mint: #E5F2DC;
+  --clay-lavender: #EBE0F6;
+  --clay-peach: #FFE9D8;
+  --clay-cream: #FBFCEE;
+  --clay-yellow: #FBFCEE;
+  --warm-text: #2F2A3F;
+  --warm-sub: #6E6680;
+  --warm-border: #ECE0F3;
+  --shadow-tint: 47, 42, 63;
 }
 
 * {
@@ -45,6 +76,9 @@ p {
 
 body {
   background: var(--clay-bg);
+  background-image:
+    radial-gradient(at 15% 10%, rgba(220, 196, 242, 0.18) 0%, transparent 45%),
+    radial-gradient(at 85% 88%, rgba(247, 250, 216, 0.30) 0%, transparent 45%);
   color: var(--warm-text);
   min-height: 100dvh;
   overscroll-behavior: none;
@@ -59,64 +93,89 @@ body {
   padding-top: max(16px, env(safe-area-inset-top));
 }
 
-/* Claymorphism utilities — refined soft matte */
+/* Claymorphism — Lavender + Pale-Lime pastel (V3 palette) */
 @layer components {
   .clay {
-    background: #ffffff;
-    border-radius: 20px;
-    border: 1px solid rgba(0, 0, 0, 0.04);
+    background: var(--clay-surface);
+    border-radius: 24px;
+    border: 1.3px solid var(--warm-border);
     box-shadow:
-      0 2px 8px rgba(0, 0, 0, 0.06),
-      0 0 0 1px rgba(255, 255, 255, 0.8) inset;
+      2px 3px 0 rgba(var(--shadow-tint), 0.05),
+      0 1px 3px rgba(var(--shadow-tint), 0.03),
+      0 0 0 1px rgba(255, 255, 255, 0.7) inset;
   }
 
   .clay-sm {
-    background: #ffffff;
-    border-radius: 14px;
-    border: 1px solid rgba(0, 0, 0, 0.04);
+    background: var(--clay-surface);
+    border-radius: 16px;
+    border: 1.2px solid var(--warm-border);
     box-shadow:
-      0 1px 4px rgba(0, 0, 0, 0.05),
-      0 0 0 1px rgba(255, 255, 255, 0.6) inset;
+      1.5px 2px 0 rgba(var(--shadow-tint), 0.04);
   }
 
   .clay-pressed {
-    background: #f7f5fa;
+    background: #F8F4FC;
     border-radius: 20px;
-    border: 1px solid rgba(0, 0, 0, 0.04);
+    border: 1.2px solid var(--warm-border);
     box-shadow:
-      inset 0 2px 4px rgba(0, 0, 0, 0.06);
+      inset 0 2px 4px rgba(var(--shadow-tint), 0.07);
   }
 
   .clay-float {
-    background: #ffffff;
-    border-radius: 24px;
-    border: 1px solid rgba(0, 0, 0, 0.03);
+    background: var(--clay-surface);
+    border-radius: 28px;
+    border: 1.3px solid var(--warm-border);
     box-shadow:
-      0 4px 16px rgba(0, 0, 0, 0.08),
-      0 1px 3px rgba(0, 0, 0, 0.04);
+      2.5px 3.5px 0 rgba(var(--shadow-tint), 0.06),
+      0 6px 14px rgba(var(--shadow-tint), 0.04);
+  }
+
+  .clay-puffy {
+    background: var(--clay-surface);
+    border-radius: 28px;
+    border: 1.5px solid var(--warm-border);
+    box-shadow:
+      3px 4px 0 rgba(var(--shadow-tint), 0.07),
+      0 10px 20px rgba(var(--shadow-tint), 0.05);
   }
 
   .clay-button {
-    background: #ffffff;
-    border-radius: 16px;
-    border: 1px solid rgba(0, 0, 0, 0.06);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-    transition: all 0.15s ease;
+    background: var(--clay-surface);
+    border-radius: 18px;
+    border: 1.3px solid var(--warm-border);
+    box-shadow: 1.5px 2px 0 rgba(var(--shadow-tint), 0.05);
+    transition: all 0.12s ease;
     cursor: pointer;
     user-select: none;
   }
 
   .clay-button:hover {
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    transform: translate(-1px, -1px);
+    box-shadow: 2.5px 3px 0 rgba(var(--shadow-tint), 0.07);
   }
 
   .clay-button:active {
-    background: #f7f5fa;
-    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.06);
-    transform: scale(0.97);
+    transform: translate(1.5px, 2px);
+    box-shadow: 0 0 0 rgba(var(--shadow-tint), 0);
   }
 
-  /* Filled grape - claymorphism pastel lavender 3D clay ball */
+  /* Kitsch utility: rotated sticker label */
+  /* Rotated sticker label (lavender) */
+  .pastel-stamp {
+    display: inline-block;
+    transform: rotate(-4deg);
+    border: 1.3px solid var(--warm-border);
+    background: var(--grape-light);
+    color: var(--warm-text);
+    padding: 2px 10px;
+    border-radius: 6px;
+    font-weight: 700;
+    box-shadow: 1.5px 2px 0 rgba(var(--shadow-tint), 0.06);
+  }
+  .pastel-stamp.lime { background: var(--lime-soft); }
+  .pastel-stamp.deep { background: var(--grape-deep); color: #fff; }
+
+  /* Filled grape — clay-pastel 3D with photographic highlight */
   .grape-filled {
     background: linear-gradient(145deg, #d4b8f0 0%, #b794d6 100%);
     border-radius: 50%;
@@ -128,7 +187,7 @@ body {
     transition: all 0.2s ease;
   }
 
-  /* Empty grape - clay pressed inset style */
+  /* Empty grape — clay pressed inset */
   .grape-empty {
     background: linear-gradient(145deg, #f0e8f8 0%, #e4daf0 100%);
     border-radius: 50%;
@@ -159,30 +218,57 @@ body {
       inset -1px -1px 2px rgba(0, 0, 0, 0.08);
   }
 
+  .grape-empty-mini {
+    background: linear-gradient(145deg, #f0e8f8, #e4daf0);
+    border-radius: 50%;
+    box-shadow:
+      inset 1px 1px 2px rgba(0, 0, 0, 0.06);
+  }
+
   .clay-input {
-    background: #f5f3f9;
+    background: var(--clay-surface);
     border-radius: 14px;
-    border: 1.5px solid transparent;
-    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.04);
+    border: 1.3px solid var(--warm-border);
+    box-shadow: 1.5px 2px 0 rgba(var(--shadow-tint), 0.04);
     outline: none;
     padding: 14px 18px;
     font-size: 15px;
     color: var(--warm-text);
     width: 100%;
-    transition: all 0.2s ease;
+    transition: all 0.15s ease;
   }
 
   .clay-input:focus {
-    border-color: rgba(155, 126, 216, 0.4);
-    box-shadow:
-      inset 0 1px 3px rgba(0, 0, 0, 0.04),
-      0 0 0 3px rgba(155, 126, 216, 0.1);
+    border-color: var(--grape-mid);
+    box-shadow: 2px 3px 0 rgba(var(--shadow-tint), 0.08);
+    background: #FFFFFF;
   }
 
   .clay-input::placeholder {
     color: var(--warm-sub);
-    opacity: 0.6;
+    opacity: 0.5;
   }
+}
+
+/* Display font helper */
+.font-display {
+  font-family: 'MaruBuri', 'Noto Sans KR', serif;
+  letter-spacing: -0.01em;
+}
+
+/* Subtle paper noise texture (sparingly used overlay) */
+.texture-paper {
+  position: relative;
+}
+.texture-paper::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.29 0 0 0 0 0.20 0 0 0 0 0.40 0 0 0 0.4 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.10'/%3E%3C/svg%3E");
+  opacity: 0.5;
+  mix-blend-mode: multiply;
 }
 
 /* Scrollbar styling */
@@ -245,13 +331,13 @@ body {
 @keyframes rewardGlow {
   0%, 100% {
     box-shadow:
-      0 0 12px rgba(155, 126, 216, 0.2),
-      0 0 24px rgba(155, 126, 216, 0.08);
+      0 0 14px rgba(220, 196, 242, 0.45),
+      0 0 28px rgba(247, 250, 216, 0.30);
   }
   50% {
     box-shadow:
-      0 0 18px rgba(155, 126, 216, 0.3),
-      0 0 36px rgba(155, 126, 216, 0.12);
+      0 0 22px rgba(220, 196, 242, 0.60),
+      0 0 44px rgba(247, 250, 216, 0.45);
   }
 }
 
@@ -278,7 +364,7 @@ body {
 }
 
 .skeleton {
-  background: linear-gradient(90deg, #f0ecf5 0%, #e8e0f2 50%, #f0ecf5 100%);
+  background: linear-gradient(90deg, #F2ECF8 0%, #E8E0F2 50%, #F2ECF8 100%);
   background-size: 200px 100%;
   animation: shimmer 1.5s infinite;
   border-radius: 12px;
@@ -291,7 +377,14 @@ body {
   top: 0;
   bottom: 0;
   width: 2px;
-  background: linear-gradient(to bottom, var(--grape-light), var(--grape-primary), var(--grape-light));
+  background: linear-gradient(
+    to bottom,
+    rgba(220, 196, 242, 0) 0%,
+    var(--lime-deep) 8%,
+    var(--grape-deep) 50%,
+    var(--lime-deep) 92%,
+    rgba(220, 196, 242, 0) 100%
+  );
 }
 
 /* Capsule open animation */
@@ -321,7 +414,7 @@ body {
 }
 
 .wine-bottle-shimmer {
-  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.2) 50%, transparent 100%);
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.22) 50%, transparent 100%);
   background-size: 50% 100%;
   animation: bottleShimmer 2.5s ease-in-out infinite;
 }
@@ -333,7 +426,7 @@ body {
 }
 
 .animate-float {
-  animation: float 2s ease-in-out infinite;
+  animation: float 3.5s ease-in-out infinite;
 }
 
 /* Fade in */
@@ -344,6 +437,18 @@ body {
 
 .animate-fade-in {
   animation: fadeIn 0.3s ease-out;
+}
+
+/* Wiggle (used on just-filled grape) */
+@keyframes wiggleOnce {
+  0% { transform: rotate(0deg); }
+  25% { transform: rotate(-2deg); }
+  75% { transform: rotate(2deg); }
+  100% { transform: rotate(0deg); }
+}
+
+.animate-wiggle-once {
+  animation: wiggleOnce 0.25s ease-in-out 1;
 }
 
 /* Scrollbar hide */

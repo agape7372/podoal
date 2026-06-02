@@ -1,52 +1,47 @@
-# 🍇 포도알 (Podoal)
+# newal
 
-습관 형성 PWA — 포도판에 스티커를 채우며 목표 달성. 친구와 응원 메시지, 시간 캡슐, 릴레이 챌린지까지.
+**newal**은 `포도알(podoal)`의 디자인 리뉴얼 버전입니다. 같은 데이터 모델·인증·API 위에 친숙하고 가독성 높은 클레이모피즘 UI를 새로 입혔습니다. 포도판에 한 알씩 채우는 습관 추적, 친구 응원, 시간 캡슐, 릴레이 챌린지 등 핵심 경험은 그대로입니다.
 
 **Stack**: Next.js 14 (App Router) · React 18 · TypeScript · Prisma (PostgreSQL/Neon) · Zustand · Tailwind · PWA
 
 ---
 
-## 📱 라이브 데모
+## ✨ newal에서 달라진 점
 
-본 저장소의 `main` 브랜치는 다음 URL에 자동 배포됩니다:
-
-- Production: **https://podoal-rouge.vercel.app**
-
-가입 방식 4가지가 첫 화면에서 모두 동작:
-- 💬 **카카오** / N **네이버** / G **Google** — OAuth credentials 미설정 시 자동으로 "체험" 게스트 모드로 즉시 로그인 (랜덤 이름 부여)
-- 📧 **이메일** — 정식 가입 (bcrypt + JWT)
-- 🛠 **개발자 모드** — `dev@podoal.com` 자동 생성 + 샘플 보드
-
-폰에서 홈화면 추가:
-- iOS Safari: 공유 → "홈 화면에 추가"
-- Android Chrome: 우측 점 3개 → "홈 화면에 추가"
+- **컬러 팔레트 정리**: tailwind `grape-*`와 globals.css `--grape-primary` 동기화(#9B7ED8 기준). 새 액센트 `juice-*`, `leaf-*`, `sunshine-*` 추가로 단조롭던 라벤더 일색에 따뜻함을 더함.
+- **컬러드 섀도**: 모든 클레이 그림자가 검정이 아닌 보라-웜 틴트 `rgba(73,50,100,…)`. "AI가 그리지 않는" 한 줄.
+- **디스플레이 폰트**: Maru Buri(네이버 무료 한글 휴머니스트)를 헤더·큰 숫자에 추가. 본문은 Noto Sans KR 그대로 — 유아틱하지 않은 손맛.
+- **마스코트 정물 일러스트**: 표정 없는 정적인 포도송이 SVG가 웰컴/빈 상태/InstallPrompt에 등장. 캐릭터로 행동시키지 않고 정체성 마커로만 사용.
+- **6개 일러스트 라이브러리**: VineLeaf · WaterDrop · Sparkle · Ribbon · Sun · CloudPuff. 페이지 섹션당 1개 이내로만 절제해 사용.
+- **GrapeBoard·GrapeSticker 시각 강화**: 추출한 `<GrapeStem />`(덩굴손 추가), 사진 같은 알맹이 하이라이트, isJustFilled 시 미세 위글.
+- **Navigation·InstallPrompt 플로팅 알약**: 풀폭 바 → 떠있는 `clay-puffy` 알약. 활성 탭은 작은 점 1개로 표시.
+- **WineBottle 깊이감**: 호일 캡슐, 라벨 종이 텍스처 오버레이(noise SVG), 빈티지에 따른 자연스러운 색 램프.
+- **데이터·콘텐츠는 손대지 않음**: 7개 카테고리·38개 템플릿·7-tier 와이너리 이름(포도알 새싹~포도 마스터)·30개 사운드·보상 유형(편지/기프티콘/소원권) 모두 그대로 유지.
 
 ---
 
 ## 🚀 자기 인스턴스 띄우기 (Vercel + Neon)
 
-### 1. Neon Postgres DB 만들기 (2분)
+### 1. Neon Postgres DB 만들기
 
 1. https://neon.tech → GitHub 로그인 (무료, 카드 등록 X)
-2. **Create project** → Region: `AWS Asia Pacific 1 (Singapore)` 권장 (한국 응답 빠름)
+2. **Create project** → Region: `AWS Asia Pacific 1 (Singapore)` 권장
 3. **Connection Details** → **Pooled connection** 토글 ON → connection string 복사 (`postgresql://...?sslmode=require`)
 
 ### 2. Vercel에 배포
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fagape7372%2Fpodoal&env=DATABASE_URL,JWT_SECRET&envDescription=DATABASE_URL%E2%86%92Neon+pooled+connection+string.+JWT_SECRET%E2%86%9232%EC%9E%90+%EC%9D%B4%EC%83%81+%EB%9E%9C%EB%8D%A4+%EB%AC%B8%EC%9E%90%EC%97%B4&project-name=podoal&repository-name=podoal)
-
-위 버튼 → Vercel 가입/로그인 → import 화면에서 env 입력:
+env 입력:
 
 | Name | Value |
 |---|---|
 | `DATABASE_URL` | Neon에서 복사한 pooled connection string |
-| `JWT_SECRET` | 32자 이상 랜덤 문자열 (예: `openssl rand -base64 32` 결과) |
+| `JWT_SECRET` | 32자 이상 랜덤 문자열 (`openssl rand -base64 32` 결과) |
 
-빌드 시점에 `prisma db push`가 자동 실행되어 Neon에 11개 테이블 생성. 1~2분 후 배포 완료.
+빌드 시점에 `prisma db push`가 자동 실행되어 Neon에 11개 테이블 생성.
 
 ### 3. (선택) 소셜 로그인 실제 연동
 
-`docs/OAUTH_SETUP.md` 참고. 각 provider 콘솔에서 OAuth 앱 등록 후 다음 환경변수 추가:
+`docs/OAUTH_SETUP.md` 참고. 각 provider 콘솔에서 OAuth 앱 등록 후:
 
 | Key | 사용처 |
 |---|---|
@@ -54,19 +49,19 @@
 | `NAVER_CLIENT_ID`, `NAVER_CLIENT_SECRET` | https://developers.naver.com |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | https://console.cloud.google.com/apis/credentials |
 
-각 provider 콘솔의 Redirect URI에는 `{배포 URL}/api/auth/oauth/{kakao|naver|google}/callback` 형식 등록.
+각 provider 콘솔의 Redirect URI에는 `{배포 URL}/api/auth/oauth/{kakao|naver|google}/callback` 등록.
 
-환경변수 설정 → Vercel 자동 재배포 → 해당 버튼이 "체험" 배지가 사라지고 실제 OAuth로 자동 전환.
+환경변수 미설정 시 자동 게스트 모드로 즉시 로그인 가능.
 
 ---
 
 ## 💻 로컬 개발
 
 ```bash
-git clone https://github.com/agape7372/podoal.git
-cd podoal
+git clone https://github.com/agape7372/newal.git
+cd newal
 cp .env.example .env
-# .env 열어 DATABASE_URL (로컬 Postgres 또는 Neon dev branch) + JWT_SECRET 채우기
+# .env 열어 DATABASE_URL + JWT_SECRET 채우기
 npm install
 npm run db:push     # Prisma 스키마 동기화
 npm run dev         # http://localhost:3000
@@ -84,31 +79,31 @@ npm run db:seed      # 샘플 데이터
 npm run db:studio    # Prisma Studio GUI
 ```
 
+개발자 모드: 인증 화면의 "🛠 개발자 모드" 버튼 또는 `dev@podoal.com` / `dev1234`.
+
 ---
 
 ## 🧰 아키텍처
 
-- **DB**: PostgreSQL on Neon (pooled connection, 모든 lambda가 같은 DB 공유)
-- **Auth**: bcrypt 비밀번호 + JWT (jose) + HttpOnly Secure 쿠키 + Origin/CSRF 가드
-- **OAuth**: Google/Kakao/Naver Authorization Code flow + state 쿠키. credentials 미설정 시 게스트 fallback (랜덤 식별자 발급)
-- **레이트리밋**: 인메모리 슬라이딩 윈도우 (login 10/min, register 5/hr, search 30/min)
-- **실시간**: SSE (`/api/messages/sse` 3초 폴링)
+- **DB**: PostgreSQL on Neon
+- **Auth**: bcrypt + JWT (jose) + HttpOnly Secure 쿠키
+- **OAuth**: Google/Kakao/Naver Authorization Code flow + 게스트 fallback
+- **레이트리밋**: 인메모리 슬라이딩 윈도우
+- **실시간**: SSE (`/api/messages/sse`)
 - **클라이언트 상태**: Zustand persisted to localStorage
-- **PWA**: Service Worker (cache-first static, network-first API) + manifest + install prompt
+- **PWA**: Service Worker + manifest + install prompt
 - **사운드/햅틱**: Web Audio API 30개 효과음 + Vibration API
-
----
-
-## ⚠️ 한계
-
-- **OAuth 실제 사용자 공개**: 카카오/네이버는 "개인" 모드 앱이면 본인 + 팀원만 로그인 가능. 일반 공개 시 비즈니스 앱 전환(검수) 필요. 그 전까지는 게스트 fallback이 채워줌.
-- **리마인더 푸시**: 앱(탭)이 열려 있을 때만 발송. 백그라운드 푸시는 별도 작업.
-- **모바일 친구간 시연**: 단일 폰에서는 친구·메시지·릴레이의 UI만 보임. 두 디바이스에서 다른 계정으로 로그인해야 실제 송수신 확인 가능.
 
 ---
 
 ## 📚 추가 자료
 
 - 프로젝트 가이드: [`CLAUDE.md`](./CLAUDE.md)
-- OAuth 콘솔 설정 단계별 가이드: [`docs/OAUTH_SETUP.md`](./docs/OAUTH_SETUP.md)
+- OAuth 콘솔 설정: [`docs/OAUTH_SETUP.md`](./docs/OAUTH_SETUP.md)
 - 환경변수 템플릿: [`.env.example`](./.env.example)
+
+## 크레딧
+
+- 아바타 일러스트: [Microsoft Fluent UI Emoji](https://github.com/microsoft/fluentui-emoji) (MIT) — `public/avatars/` 8개 fruit SVG.
+- 본문 폰트: [Maru Buri](https://github.com/naver/nanumfont) (네이버 무료 폰트, 상용 가능).
+- 그 외 일러스트·마스코트·디자인 토큰은 newal 자체 제작.
