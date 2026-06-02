@@ -32,7 +32,7 @@ export default function GrapeSticker({
         transition-all duration-200
         flex items-center justify-center
         ${isFilled
-          ? `grape-filled ${isJustFilled ? 'grape-jelly-pop' : ''}`
+          ? `grape-filled ${isJustFilled ? 'grape-hit' : ''}`
           : 'grape-empty'
         }
         ${canFill ? 'cursor-pointer active:scale-90' : ''}
@@ -50,19 +50,10 @@ export default function GrapeSticker({
         </span>
       )}
 
-      {/* 채워진 직후 1회성 보상: 과즙 채움(주역) + 2겹 플래시 링
-          (버튼 기준 절대배치 자식 — active:scale·grape-jelly-pop transform과 충돌 없음) */}
+      {/* 채워진 직후 1회성: 히트스톱 임팩트 프리즈(본체 grape-hit 스쿼시) + 임팩트 플래시 링
+          (플래시는 버튼 기준 절대배치 자식 — active:scale·grape-hit transform과 충돌 없음) */}
       {isJustFilled && (
-        <>
-          <span className="grape-juice" aria-hidden="true">
-            <span className="grape-juice__below" />
-            <span className="grape-juice__wave">
-              <i className="w-a" />
-              <i className="w-b" />
-            </span>
-          </span>
-          <span className="grape-flash" aria-hidden="true" />
-        </>
+        <span className="grape-flash" aria-hidden="true" />
       )}
     </button>
   );
