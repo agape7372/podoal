@@ -53,7 +53,6 @@ export default function GrapeSticker({
           ? `grape-filled ${isJustFilled ? 'grape-jelly-pop' : ''}`
           : 'grape-empty'
         }
-        ${isFilling ? 'animate-pulse scale-90' : ''}
         ${canFill ? 'cursor-pointer active:scale-90' : ''}
         ${isNext ? 'grape-next' : ''}
         ${dimmed ? 'opacity-70' : ''}
@@ -80,8 +79,7 @@ export default function GrapeSticker({
               <i className="w-b" />
             </span>
           </span>
-          <span className="grape-ring" aria-hidden="true" />
-          <span className="grape-ring-rim" aria-hidden="true" />
+          <span className="grape-flash" aria-hidden="true" />
           <span className="burst-layer" aria-hidden="true">
             {dots.map((p, i) => (
               <span
