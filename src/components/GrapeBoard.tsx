@@ -32,8 +32,16 @@ function GrapeBoardInner({ board, onFill, canFill }: GrapeBoardProps) {
   const filledCount = filledPositions.size;
   const progress = Math.round((filledCount / board.totalStickers) * 100);
 
+  // Sequential fill: only the lowest unfilled position is tappable.
+  const nextPosition = useMemo(() => {
+    for (let i = 0; i < board.totalStickers; i++) {
+      if (!filledPositions.has(i)) return i;
+    }
+    return -1; // every grape filled
+  }, [filledPositions, board.totalStickers]);
+
   const handleFill = useCallback(async (position: number) => {
-    if (!canFill || filledPositions.has(position)) return;
+    if (!canFill || filledPositions.has(position) || position !== nextPosition) return;
 
     setJustFilled(position);
     feedbackFill();
@@ -54,7 +62,7 @@ function GrapeBoardInner({ board, onFill, canFill }: GrapeBoardProps) {
     } finally {
       setFillingPos((p) => (p === position ? null : p));
     }
-  }, [canFill, filledPositions, filledCount, board.totalStickers, board.rewards, onFill]);
+  }, [canFill, filledPositions, filledCount, board.totalStickers, board.rewards, onFill, nextPosition]);
 
   // Size grapes from the widest row so the whole bunch fits the card without
   // clipping. Card inner width ≈ 280px on a ~360px phone; target ~270px for a
@@ -132,27 +140,33 @@ function GrapeBoardInner({ board, onFill, canFill }: GrapeBoardProps) {
                     marginLeft: isStaggered ? `${halfGrape * 0.05}px` : `0`,
                   }}
                 >
-                  {row.map((position) => (
-                    <div
-                      key={position}
-                      className="flex-shrink-0"
-                      style={{
-                        width: `${grapeSize}px`,
-                        height: `${grapeSize}px`,
-                        margin: `0 ${hMargin}px`,
-                      }}
-                    >
-                      <GrapeSticker
-                        position={position}
-                        isFilled={filledPositions.has(position)}
-                        isJustFilled={justFilled === position}
-                        isFilling={fillingPos === position}
-                        canFill={canFill && !filledPositions.has(position)}
-                        size={sizeClass}
-                        onClick={() => handleFill(position)}
-                      />
-                    </div>
-                  ))}
+                  {row.map((position) => {
+                    const filled = filledPositions.has(position);
+                    const isNext = canFill && position === nextPosition;
+                    return (
+                      <div
+                        key={position}
+                        className={`flex-shrink-0 ${isNext ? 'relative z-10' : ''}`}
+                        style={{
+                          width: `${grapeSize}px`,
+                          height: `${grapeSize}px`,
+                          margin: `0 ${hMargin}px`,
+                        }}
+                      >
+                        <GrapeSticker
+                          position={position}
+                          isFilled={filled}
+                          isJustFilled={justFilled === position}
+                          isFilling={fillingPos === position}
+                          canFill={isNext}
+                          isNext={isNext}
+                          dimmed={canFill && !filled && !isNext}
+                          size={sizeClass}
+                          onClick={() => handleFill(position)}
+                        />
+                      </div>
+                    );
+                  })}
                 </div>
               );
             })}

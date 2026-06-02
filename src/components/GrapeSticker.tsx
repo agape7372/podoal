@@ -6,6 +6,8 @@ interface GrapeStickerProps {
   isJustFilled: boolean;
   isFilling: boolean;
   canFill: boolean;
+  isNext?: boolean;   // the next-in-sequence grape (sequential fill) — highlighted & tappable
+  dimmed?: boolean;   // an unfilled grape that's locked until earlier ones are filled
   size: 'sm' | 'md' | 'lg';
   onClick: () => void;
 }
@@ -16,6 +18,8 @@ export default function GrapeSticker({
   isJustFilled,
   isFilling,
   canFill,
+  isNext = false,
+  dimmed = false,
   size,
   onClick,
 }: GrapeStickerProps) {
@@ -33,6 +37,8 @@ export default function GrapeSticker({
         }
         ${isFilling ? 'animate-pulse scale-90' : ''}
         ${canFill ? 'cursor-pointer active:scale-90' : ''}
+        ${isNext ? 'ring-2 ring-[#9B7ED8]/70 shadow-[0_3px_12px_rgba(155,126,216,0.45)]' : ''}
+        ${dimmed ? 'opacity-50' : ''}
       `}
       aria-label={isFilled ? '채워진 포도알' : `포도알 ${position + 1}`}
     >
