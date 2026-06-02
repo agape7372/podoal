@@ -37,8 +37,8 @@ export default function GrapeSticker({
         }
         ${isFilling ? 'animate-pulse scale-90' : ''}
         ${canFill ? 'cursor-pointer active:scale-90' : ''}
-        ${isNext ? 'ring-2 ring-[#9B7ED8]/70 shadow-[0_3px_12px_rgba(155,126,216,0.45)]' : ''}
-        ${dimmed ? 'opacity-50' : ''}
+        ${isNext ? 'grape-next' : ''}
+        ${dimmed ? 'opacity-70' : ''}
       `}
       aria-label={isFilled ? '채워진 포도알' : `포도알 ${position + 1}`}
     >

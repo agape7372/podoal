@@ -250,6 +250,43 @@ body {
   }
 }
 
+/* Next-in-sequence grape — soft, inviting "tap me" target (sequential fill).
+   Unlayered + compound selector so it overrides the layered .grape-empty. */
+.grape-empty.grape-next {
+  background: linear-gradient(145deg, #e9d9f8 0%, #cfb1ec 100%);
+  box-shadow:
+    inset 2px 2px 5px rgba(255, 255, 255, 0.75),
+    inset -2px -2px 5px rgba(120, 80, 160, 0.10),
+    0 3px 12px rgba(155, 112, 200, 0.28);
+}
+/* Soft radiating halo — a gentle "sonar ping" that says tap me */
+.grape-empty.grape-next::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  pointer-events: none;
+  animation: grapeNextPing 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+@keyframes grapeNextPing {
+  0%   { box-shadow: 0 0 0 0 rgba(155, 112, 200, 0.45); }
+  70%  { box-shadow: 0 0 0 12px rgba(155, 112, 200, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(155, 112, 200, 0); }
+}
+/* Gentle breathing on the next grape's wrapper (separate element, so the
+   button keeps its own tap/hover transforms — no conflict). */
+.grape-breathe {
+  animation: grapeBreathe 2.2s ease-in-out infinite;
+}
+@keyframes grapeBreathe {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.045); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .grape-empty.grape-next::after,
+  .grape-breathe { animation: none; }
+}
+
 /* Display font helper */
 .font-display {
   font-family: 'MaruBuri', 'Noto Sans KR', serif;
