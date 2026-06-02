@@ -10,7 +10,6 @@ const menuItems = [
   { path: '/stats', icon: '📊', label: '통계', color: 'bg-emerald-50/60' },
   { path: '/vine', icon: '🌿', label: '포도덩쿨', color: 'bg-amber-50/60' },
   { path: '/sound-test', icon: '🔊', label: '효과음', color: 'bg-amber-50/60' },
-  { path: '/animation-test', icon: '🎬', label: '애니메이션', color: 'bg-grape-50/60' },
   { path: '/settings', icon: '⚙️', label: '설정', color: 'bg-orange-50/60' },
   { path: '/notifications', icon: '🔔', label: '알림 설정', color: 'bg-grape-50/60' },
 ];
