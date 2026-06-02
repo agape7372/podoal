@@ -250,41 +250,133 @@ body {
   }
 }
 
-/* Next-in-sequence grape — soft, inviting "tap me" target (sequential fill).
-   Unlayered + compound selector so it overrides the layered .grape-empty. */
+/* =========================================================
+   jelly-boing (강화판) — 다음-차례 알 idle 보잉 + 탭 채우기 젤리 이펙트
+   graft: dew-bubble 버블 표면 하이라이트 + 탭 소프트 펄스
+   (@layer 밖 일반 규칙 — 복합 선택자로 layered .grape-empty 덮음)
+   ========================================================= */
+
+/* (A) idle: 다음 차례 알 래퍼 — 통통 젤리 보잉(스쿼시&스트레치) */
+.grape-jelly {
+  animation: grapeJelly 1.9s cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
+  transform-origin: bottom center;
+  will-change: transform;
+}
+@keyframes grapeJelly {
+  0%   { transform: translateY(0)    scale(1, 1); }
+  14%  { transform: translateY(1px)  scale(1.08, 0.90); }   /* 스쿼시: 바닥 누름 */
+  38%  { transform: translateY(-6px) scale(0.93, 1.10); }   /* 스트레치: 솟구침 */
+  58%  { transform: translateY(0)    scale(1.05, 0.96); }   /* 착지 반동 */
+  74%  { transform: translateY(-2px) scale(0.99, 1.02); }   /* 2차 작은 바운스 */
+  100% { transform: translateY(0)    scale(1, 1); }
+}
+
+/* (A) idle 색/질감: 탱탱 라벤더 + [graft:dew-bubble] 좌상단 유리 하이라이트 점. */
 .grape-empty.grape-next {
-  background: linear-gradient(145deg, #e9d9f8 0%, #cfb1ec 100%);
+  background:
+    radial-gradient(circle at 32% 28%, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0) 40%),
+    linear-gradient(145deg, #e9d9f8 0%, #cfb1ec 100%);
   box-shadow:
-    inset 2px 2px 5px rgba(255, 255, 255, 0.75),
-    inset -2px -2px 5px rgba(120, 80, 160, 0.10),
+    inset 2px 2px 5px rgba(255, 255, 255, 0.80),
+    inset -2px -2px 5px rgba(120, 80, 160, 0.12),
     0 3px 12px rgba(155, 112, 200, 0.28);
 }
-/* Soft radiating halo — a gentle "sonar ping" that says tap me */
+/* 멀리 퍼지는 sonar ping 제거 → 알에 밀착한 부드러운 글로우가 보잉과 함께 호흡 */
 .grape-empty.grape-next::after {
   content: '';
   position: absolute;
-  inset: 0;
+  inset: -3px;
   border-radius: 9999px;
   pointer-events: none;
-  animation: grapeNextPing 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  background: radial-gradient(circle at 50% 50%,
+              rgba(155, 112, 200, 0.22) 0%,
+              rgba(155, 112, 200, 0) 70%);
+  animation: grapeJellyGlow 1.9s cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
 }
-@keyframes grapeNextPing {
-  0%   { box-shadow: 0 0 0 0 rgba(155, 112, 200, 0.45); }
-  70%  { box-shadow: 0 0 0 12px rgba(155, 112, 200, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(155, 112, 200, 0); }
+@keyframes grapeJellyGlow {
+  0%   { opacity: 0.45; transform: scale(1, 1); }
+  14%  { opacity: 0.70; transform: scale(1.10, 0.92); }  /* 스쿼시 동기 */
+  38%  { opacity: 0.30; transform: scale(0.95, 1.10); }  /* 스트레치 동기 */
+  58%  { opacity: 0.50; transform: scale(1.04, 0.97); }
+  100% { opacity: 0.45; transform: scale(1, 1); }
 }
-/* Gentle breathing on the next grape's wrapper (separate element, so the
-   button keeps its own tap/hover transforms — no conflict). */
-.grape-breathe {
-  animation: grapeBreathe 2.2s ease-in-out infinite;
+
+/* (B) 탭 채우기: 알 본체 젤리 스프링 팝 (기존 animate-grape-fill 대체) */
+.grape-jelly-pop {
+  animation: grapeJellyPop 0.52s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transform-origin: center;
 }
-@keyframes grapeBreathe {
-  0%, 100% { transform: scale(1); }
-  50%      { transform: scale(1.045); }
+@keyframes grapeJellyPop {
+  0%   { transform: scale(0.2);        opacity: 0; }
+  30%  { transform: scale(1.28, 0.80); opacity: 1; }  /* 짝! 옆으로 퍼지는 스쿼시 */
+  52%  { transform: scale(0.86, 1.18); }              /* 통! 세로 스트레치 */
+  72%  { transform: scale(1.06, 0.95); }              /* 되눌림 */
+  88%  { transform: scale(0.98, 1.02); }
+  100% { transform: scale(1); }
 }
+
+/* (B) [graft:dew-bubble] 채워진 직후 중앙 소프트 펄스 1겹 — 밀착이라 클립 안전 */
+.jelly-pulse {
+  position: absolute;
+  inset: 12%;
+  border-radius: 9999px;
+  pointer-events: none;
+  z-index: 4;
+  background: radial-gradient(circle,
+              rgba(255,255,255,0.50) 0%,
+              rgba(207,220,120,0.28) 45%,
+              rgba(155,112,200,0) 72%);
+  opacity: 0;
+  transform: scale(0.4);
+  animation: jellyPulse 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  will-change: transform, opacity;
+}
+@keyframes jellyPulse {
+  0%   { opacity: 0.9; transform: scale(0.4); }
+  60%  { opacity: 0.5; }
+  100% { opacity: 0;   transform: scale(1.35); }
+}
+
+/* (B) 말랑 점 분출 — 채워진 직후 3개, 중앙에서 짧게 통통 튀어 사라짐 */
+.jelly-dot {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 6px;
+  height: 6px;
+  margin: -3px 0 0 -3px;
+  border-radius: 9999px;
+  pointer-events: none;
+  z-index: 5;
+  box-shadow: 0 1px 2px rgba(94, 63, 128, 0.20);
+  animation: jellyDot 0.56s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  will-change: transform, opacity;
+}
+.jelly-dot.d1 { --dx: -16px; --dy: -15px; background: #C9A8E8; animation-delay: 0.02s; }
+.jelly-dot.d2 { --dx:  19px; --dy:  -7px; background: #E2EC9A; animation-delay: 0.05s; }  /* 연두 액센트 */
+.jelly-dot.d3 { --dx: -10px; --dy:  17px; background: #DCC4F2; animation-delay: 0.08s; }
+@keyframes jellyDot {
+  0%   { transform: translate(0, 0) scale(0.2); opacity: 0; }
+  18%  { transform: translate(calc(var(--dx) * 0.35), calc(var(--dy) * 0.35)) scale(1.1); opacity: 1; }
+  70%  { transform: translate(var(--dx), var(--dy)) scale(0.9, 1.1); opacity: 1; }  /* 정점 통 */
+  100% { transform: translate(var(--dx), var(--dy)) scale(0.3); opacity: 0; }
+}
+
+/* (C) 접근성: 큰/무한 모션 정지 — 색·결과는 유지 */
 @media (prefers-reduced-motion: reduce) {
-  .grape-empty.grape-next::after,
-  .grape-breathe { animation: none; }
+  .grape-jelly { animation: none; }
+  .grape-empty.grape-next::after { animation: none; opacity: 0.45; transform: none; }
+  .grape-jelly-pop { animation: jellyPopReduced 0.25s ease-out; }
+  .jelly-pulse { animation: jellyPulseReduced 0.25s ease-out forwards; }
+  .jelly-dot { display: none; }
+}
+@keyframes jellyPopReduced {
+  0%   { transform: scale(0.85); opacity: 0; }
+  100% { transform: scale(1);    opacity: 1; }
+}
+@keyframes jellyPulseReduced {
+  0%   { opacity: 0.5; transform: scale(1); }
+  100% { opacity: 0;   transform: scale(1); }
 }
 
 /* Display font helper */

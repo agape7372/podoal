@@ -146,7 +146,7 @@ function GrapeBoardInner({ board, onFill, canFill }: GrapeBoardProps) {
                     return (
                       <div
                         key={position}
-                        className={`flex-shrink-0 ${isNext ? 'relative z-10 grape-breathe' : ''}`}
+                        className={`flex-shrink-0 ${isNext ? 'relative z-10 grape-jelly' : justFilled === position ? 'relative z-20' : ''}`}
                         style={{
                           width: `${grapeSize}px`,
                           height: `${grapeSize}px`,
