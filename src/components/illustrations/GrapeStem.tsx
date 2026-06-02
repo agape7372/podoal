@@ -4,8 +4,9 @@ interface GrapeStemProps {
 }
 
 /**
- * Stem + leaf + tendril cluster — sits on top of the grape board.
- * Designed to be wider than tall (W:H ≈ 3:2) for a graceful canopy.
+ * Two flat leaves on a short sprig — sits on top of the grape board.
+ * Deliberately flat (solid fills, no gradients / no outline strokes) for a
+ * clean modern look. Wider than tall (W:H ≈ 3:2) so it reads as a canopy.
  */
 export default function GrapeStem({ size = 120, className = '' }: GrapeStemProps) {
   return (
@@ -17,78 +18,38 @@ export default function GrapeStem({ size = 120, className = '' }: GrapeStemProps
       className={className}
       aria-hidden="true"
     >
-      <defs>
-        <radialGradient id="stem-leaf-fill" cx="36%" cy="30%" r="80%">
-          <stop offset="0%" stopColor="#BFE3C5" />
-          <stop offset="55%" stopColor="#6BBE7E" />
-          <stop offset="100%" stopColor="#4A8C58" />
-        </radialGradient>
-      </defs>
-
-      {/* Main stem coming down */}
+      {/* short sprig */}
       <path
-        d="M 60 8 Q 58 22 60 36 Q 62 46 58 56 Q 56 64 60 72"
-        stroke="#6B4B2C"
-        strokeWidth="3"
+        d="M 60 74 L 60 48"
+        stroke="#5BA86E"
+        strokeWidth="3.4"
         strokeLinecap="round"
         fill="none"
       />
 
-      {/* Tendril (left, curly) */}
+      {/* back (right) leaf — slightly darker so the two leaves read apart */}
       <path
-        d="M 56 28
-           Q 48 26, 40 32
-           Q 32 38, 36 46
-           Q 40 50, 46 46
-           Q 50 42, 46 38"
-        stroke="#7B5635"
-        strokeWidth="1.8"
+        d="M 61 50 C 75 45, 90 33, 90 15 C 77 24, 67 38, 61 50 Z"
+        fill="#4F9C62"
+      />
+      <path
+        d="M 63 48 Q 76 32 88 18"
+        stroke="#3C7A4C"
+        strokeWidth="1.1"
         strokeLinecap="round"
         fill="none"
+        opacity="0.45"
       />
 
-      {/* Tendril (right, smaller) */}
+      {/* front (left) leaf — lighter, sits on top */}
       <path
-        d="M 66 22
-           Q 76 18, 80 24
-           Q 82 30, 76 32"
-        stroke="#7B5635"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        fill="none"
-      />
-
-      {/* Big leaf */}
-      <path
-        d="M 64 16
-           C 76 4, 102 4, 110 22
-           C 112 38, 96 48, 82 46
-           C 70 46, 62 36, 60 24
-           Z"
-        fill="url(#stem-leaf-fill)"
-      />
-      {/* Leaf central vein */}
-      <path
-        d="M 68 26 Q 86 22 104 18"
-        stroke="#3F7D4D"
-        strokeWidth="1"
-        strokeLinecap="round"
-        fill="none"
-        opacity="0.55"
-      />
-      {/* Side veins */}
-      <path
-        d="M 76 26 Q 80 32 82 38"
-        stroke="#3F7D4D"
-        strokeWidth="0.8"
-        strokeLinecap="round"
-        fill="none"
-        opacity="0.4"
+        d="M 59 50 C 45 45, 30 33, 30 15 C 43 24, 53 38, 59 50 Z"
+        fill="#6FC183"
       />
       <path
-        d="M 88 24 Q 92 30 94 36"
-        stroke="#3F7D4D"
-        strokeWidth="0.8"
+        d="M 57 48 Q 44 32 32 18"
+        stroke="#3C7A4C"
+        strokeWidth="1.1"
         strokeLinecap="round"
         fill="none"
         opacity="0.4"
