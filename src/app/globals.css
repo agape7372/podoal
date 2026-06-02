@@ -251,12 +251,10 @@ body {
 }
 
 /* =========================================================================
-   GRAPE — Wave-Fill(액체 채움) + Robust Burst(순수 transform 입자)
+   GRAPE — Wave-Fill(액체 채움) + 플래시 링
    기법 출처(라이브러리 미사용, 기법만 순수 CSS로 재현):
    - 액체 채움: coiger/fill-water-animation 의 'wave 수면 + below 채움' 구조를
      clip-path 대신 transform:translateY 마스크로 변형(구형 WebView 계단현상 제거).
-   - 입자 버스트: Twitter heart burst (Ana Tudor, CSS-Tricks) 원주 분산 → 방향
-     rotate(var(--a)) translateY(거리 음수)로 순수 컴포지터 transform 처리.
    - 플래시 링 2겹: mo.js Burst 부모 링 + Edgerton milk-crown 2겹 시차(절제).
    - 이징: easings.net easeOutExpo cubic-bezier(0.16,1,0.3,1).
    색: 라벤더/연두 파스텔 + 보라 그림자만. 검정/네온/하드 1px 링 금지.
@@ -402,45 +400,6 @@ body {
   100% { opacity: 0;    transform: scale(1.25); }
 }
 
-/* 5) 입자 버스트 — 순수 transform(rotate+translateY), 12개 다색/다크기/stagger */
-.burst-layer { position: absolute; inset: 0; pointer-events: none; z-index: 3; }
-.burst-dot {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 6px;
-  height: 6px;
-  margin: -3px 0 0 -3px;
-  border-radius: 999px;
-  pointer-events: none;
-  transform: rotate(var(--a, 0deg)) translateY(0) scale(0.2);
-  transform-origin: center;
-  animation: grapeBurst 0.5s cubic-bezier(0, 0.9, 0.57, 1) var(--delay, 0ms) both;
-}
-@keyframes grapeBurst {
-  0%   { transform: rotate(var(--a)) translateY(0) scale(0.2);  opacity: 1; }
-  22%  { opacity: 1; }
-  100% { transform: rotate(var(--a)) translateY(calc(var(--d) * -1)) scale(0.85);
-         opacity: 0; }
-}
-.burst-dot:nth-child(1)  { --a: 0deg;   --d: 12px; --delay: 0ms;  }
-.burst-dot:nth-child(2)  { --a: 30deg;  --d: 14px; --delay: 18ms; }
-.burst-dot:nth-child(3)  { --a: 60deg;  --d: 11px; --delay: 8ms;  }
-.burst-dot:nth-child(4)  { --a: 90deg;  --d: 13px; --delay: 30ms; }
-.burst-dot:nth-child(5)  { --a: 120deg; --d: 12px; --delay: 12ms; }
-.burst-dot:nth-child(6)  { --a: 150deg; --d: 14px; --delay: 24ms; }
-.burst-dot:nth-child(7)  { --a: 180deg; --d: 11px; --delay: 4ms;  }
-.burst-dot:nth-child(8)  { --a: 210deg; --d: 13px; --delay: 28ms; }
-.burst-dot:nth-child(9)  { --a: 240deg; --d: 12px; --delay: 14ms; }
-.burst-dot:nth-child(10) { --a: 270deg; --d: 14px; --delay: 6ms;  }
-.burst-dot:nth-child(11) { --a: 300deg; --d: 11px; --delay: 22ms; }
-.burst-dot:nth-child(12) { --a: 330deg; --d: 13px; --delay: 16ms; }
-.burst-dot:nth-child(3n + 1) { background: #c9a8e8; box-shadow: 0 0 4px rgba(201, 168, 232, 0.5); }
-.burst-dot:nth-child(3n + 2) { background: #e2ec9a; box-shadow: 0 0 4px rgba(207, 220, 120, 0.45); }
-.burst-dot:nth-child(3n)     { background: #9970c8; box-shadow: 0 0 4px rgba(153, 112, 200, 0.5); }
-.burst-dot:nth-child(2n) { width: 5px; height: 5px; margin: -2.5px 0 0 -2.5px; }
-.burst-dot:nth-child(4n) { width: 7px; height: 7px; margin: -3.5px 0 0 -3.5px; }
-
 /* 6) 접근성: 무한·큰 모션 정지 — 채워짐 결과색은 유지 */
 @media (prefers-reduced-motion: reduce) {
   .grape-empty.grape-next { animation: none; opacity: 1; filter: none; }
@@ -451,7 +410,6 @@ body {
   .grape-juice__wave .w-a,
   .grape-juice__wave .w-b { animation: none; }
   .grape-flash { animation: none; opacity: 0; }
-  .burst-dot { animation: none; opacity: 0; }
 }
 
 /* Display font helper */
