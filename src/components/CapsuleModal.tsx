@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import ClayButton from './ClayButton';
+import EmojiIcon from './EmojiIcon';
 import type { TimeCapsuleInfo } from '@/types';
 import { feedbackCapsuleOpen, feedbackSuccess, feedbackTap } from '@/lib/feedback';
 
@@ -114,7 +115,7 @@ export default function CapsuleModal({ boardId, isOwner, onClose }: CapsuleModal
         <div className="w-12 h-1.5 bg-warm-border rounded-full mx-auto mb-5" />
 
         <h3 className="font-display text-xl font-bold text-grape-700 text-center mb-1">
-          💊 동결건조
+          <EmojiIcon emoji="💊" size={22} className="mr-1" />동결건조
         </h3>
         <p className="text-sm text-warm-sub text-center mb-5">
           미래의 나에게 보내는 메시지
@@ -191,7 +192,7 @@ export default function CapsuleModal({ boardId, isOwner, onClose }: CapsuleModal
                         }
                       `}
                     >
-                      {e}
+                      <EmojiIcon emoji={e} size={22} />
                     </button>
                   ))}
                 </div>
@@ -226,7 +227,7 @@ export default function CapsuleModal({ boardId, isOwner, onClose }: CapsuleModal
                   loading={submitting}
                   disabled={!message.trim() || !openAt}
                 >
-                  동결건조 하기 💊
+                  동결건조 하기 <EmojiIcon emoji="💊" size={16} className="ml-1" />
                 </ClayButton>
               </div>
             </div>
@@ -242,7 +243,7 @@ export default function CapsuleModal({ boardId, isOwner, onClose }: CapsuleModal
                 </div>
               ) : capsules.length === 0 ? (
                 <div className="text-center py-12 text-warm-sub">
-                  <span className="text-4xl block mb-3">💊</span>
+                  <EmojiIcon emoji="💊" size={40} className="block mx-auto mb-3" />
                   <p className="text-sm">아직 동결건조 캡슐이 없어요</p>
                   {isOwner && (
                     <p className="text-xs text-warm-light mt-1">
@@ -270,7 +271,7 @@ export default function CapsuleModal({ boardId, isOwner, onClose }: CapsuleModal
                           `}
                         >
                           <div className="flex items-start gap-3">
-                            <span className="text-2xl flex-shrink-0">{capsule.emoji}</span>
+                            <EmojiIcon emoji={capsule.emoji} size={26} className="flex-shrink-0" />
                             <div className="flex-1 min-w-0">
                               <p className="text-sm text-warm-text whitespace-pre-wrap break-words">
                                 {capsule.message}
@@ -292,7 +293,7 @@ export default function CapsuleModal({ boardId, isOwner, onClose }: CapsuleModal
                           className="clay-sm p-4 bg-gradient-to-br from-yellow-50 to-orange-50 ring-2 ring-yellow-200"
                         >
                           <div className="flex items-center gap-3">
-                            <span className="text-2xl animate-float">{capsule.emoji}</span>
+                            <EmojiIcon emoji={capsule.emoji} size={26} className="animate-float" />
                             <div className="flex-1">
                               <p className="text-sm font-medium text-warm-text">
                                 개봉할 수 있어요!
@@ -325,17 +326,17 @@ export default function CapsuleModal({ boardId, isOwner, onClose }: CapsuleModal
                         className="clay-sm p-4 bg-gradient-to-br from-blue-50 to-cyan-50 opacity-80"
                       >
                         <div className="flex items-center gap-3">
-                          <span className="text-2xl grayscale-[30%]">{capsule.emoji}</span>
+                          <EmojiIcon emoji={capsule.emoji} size={26} className="grayscale-[30%]" />
                           <div className="flex-1">
                             <p className="text-sm font-medium text-blue-400">
-                              🔒 {formatDate(capsule.openAt)} 개봉 예정
+                              <EmojiIcon emoji="🔒" size={13} className="mr-0.5" /> {formatDate(capsule.openAt)} 개봉 예정
                             </p>
                             <p className="text-xs text-blue-300">
                               {formatDate(capsule.createdAt)} 동결건조됨
                             </p>
                           </div>
-                          <div className="text-2xl opacity-50">
-                            🧊
+                          <div className="opacity-50">
+                            <EmojiIcon emoji="🧊" size={26} />
                           </div>
                         </div>
                       </div>

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { CHEER_EMOJIS } from '@/types';
 import { feedbackCheer } from '@/lib/feedback';
 import ClayButton from './ClayButton';
+import EmojiIcon from './EmojiIcon';
 
 interface CheerModalProps {
   recipientName: string;
@@ -63,7 +64,7 @@ export default function CheerModal({ recipientName, onSend, onClose }: CheerModa
                 }
               `}
             >
-              {emoji}
+              <EmojiIcon emoji={emoji} size={22} />
             </button>
           ))}
         </div>
@@ -98,7 +99,7 @@ export default function CheerModal({ recipientName, onSend, onClose }: CheerModa
             loading={sending}
             disabled={!selectedMsg}
           >
-            {selectedEmoji} 보내기
+            <EmojiIcon emoji={selectedEmoji} size={16} className="mr-1" />보내기
           </ClayButton>
         </div>
       </div>

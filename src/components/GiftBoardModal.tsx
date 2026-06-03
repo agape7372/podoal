@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Avatar from './Avatar';
 import ClayButton from './ClayButton';
+import EmojiIcon from './EmojiIcon';
 import type { FriendInfo } from '@/types';
 import { feedbackSuccess, feedbackTap } from '@/lib/feedback';
 
@@ -46,7 +47,7 @@ export default function GiftBoardModal({ boardTitle, onGift, onClose }: GiftBoar
         <div className="w-12 h-1.5 bg-warm-border rounded-full mx-auto mb-5" />
 
         <h3 className="font-display text-xl font-bold text-grape-700 text-center mb-1">
-          🎁 포도판 선물하기
+          <EmojiIcon emoji="🎁" size={22} className="mr-1" />포도판 선물하기
         </h3>
         <p className="text-sm text-warm-sub text-center mb-5">
           &ldquo;{boardTitle}&rdquo;을 누구에게 선물할까요?
@@ -60,7 +61,7 @@ export default function GiftBoardModal({ boardTitle, onGift, onClose }: GiftBoar
           </div>
         ) : friends.length === 0 ? (
           <div className="text-center py-8 text-warm-sub">
-            <span className="text-3xl block mb-2">👥</span>
+            <EmojiIcon emoji="👥" size={32} className="block mx-auto mb-2" />
             아직 친구가 없어요
           </div>
         ) : (
@@ -101,7 +102,7 @@ export default function GiftBoardModal({ boardTitle, onGift, onClose }: GiftBoar
             loading={sending}
             disabled={!selectedFriend}
           >
-            🎁 선물하기
+            <EmojiIcon emoji="🎁" size={16} className="mr-1" />선물하기
           </ClayButton>
         </div>
       </div>
