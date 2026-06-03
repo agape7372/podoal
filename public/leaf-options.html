@@ -1,0 +1,97 @@
+<!doctype html><html lang="ko"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#DCC4F2"><title>잎 후보 — 오픈소스 + 자체 시안</title>
+<style>
+ *{box-sizing:border-box} html,body{margin:0}
+ body{background:radial-gradient(120% 80% at 50% -8%,#F0E7FB 0,#F3ECFA 58%,#EEE9F6 100%);color:#2F2A3F;font-family:'Noto Sans KR',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;-webkit-font-smoothing:antialiased;padding:22px 14px 60px;word-break:keep-all}
+ header{max-width:980px;margin:0 auto 6px;text-align:center}
+ h1{font-size:20px;margin:0 0 6px;letter-spacing:-0.02em;font-weight:800}
+ .lead{font-size:12.5px;color:#6E6680;margin:0 auto;max-width:600px;line-height:1.6}
+ h2{max-width:980px;margin:26px auto 12px;font-size:15px;font-weight:800;color:#7D58A8}
+ .grid{max-width:980px;margin:0 auto;display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+ .card{position:relative;background:#FCF9FF;border-radius:20px;padding:16px 12px 14px;overflow:hidden;box-shadow:0 10px 22px rgba(73,50,100,.09),0 2px 5px rgba(73,50,100,.05);display:flex;flex-direction:column;align-items:center;text-align:center}
+ .card.pick{outline:2px solid #9B7ED8;outline-offset:-2px}
+ .stage{height:84px;width:100%;display:flex;align-items:center;justify-content:center;margin-bottom:8px}
+ .stage img{width:64px;height:64px}
+ .name{font-size:13px;font-weight:800;color:#3D2A56;line-height:1.3}
+ .lic{font-size:10.5px;color:#6E6680;margin-top:3px}
+ .badge{position:absolute;top:8px;right:9px;font-size:9px;font-weight:800;color:#9B7ED8;background:#F4ECFB;border-radius:99px;padding:2px 7px}
+ a.src{font-size:10.5px;color:#9970C8;text-decoration:none;margin-top:5px}
+ footer{max-width:980px;margin:28px auto 0;text-align:center;font-size:11px;color:#A89FB8;line-height:1.7}
+ .note{max-width:980px;margin:14px auto 0;font-size:11.5px;color:#6E6680;background:#FBF7FF;border-radius:14px;padding:12px 14px;line-height:1.7}
+</style></head><body>
+ <header>
+  <h1>포도판 잎 후보 — 한눈에 보기</h1>
+  <p class="lead">자체 제작 시안 + 상업 사용 가능한 오픈소스 아이콘. 라인 아이콘은 초록 스트로크로, 채움/이모지는 원본 색으로 표시했어요. 마음에 드는 번호(또는 이름)를 알려주시면 색·크기 맞춰 바로 적용합니다.</p>
+ </header>
+
+ <h2>① 자체 제작 (라이선스 0 리스크)</h2>
+ <div class="grid">
+  <figure class="card pick">
+   <span class="badge">적용중</span>
+   <div class="stage"><svg width="78" height="52" viewBox="0 0 120 80"><path d="M 60 61 C 80 54, 96 40, 90 11 C 88 5, 81 5, 78 12 C 70 27, 63 44, 60 61 Z" fill="#55B26E"/><path d="M 60 61 C 40 54, 24 40, 30 11 C 32 5, 39 5, 42 12 C 50 27, 57 44, 60 61 Z" fill="#55B26E"/></svg></div>
+   <div class="name">A · 윙 잎 2장 (도톰)</div><div class="lic">현재 적용본</div>
+  </figure>
+  <figure class="card">
+   <div class="stage"><svg width="78" height="52" viewBox="0 0 120 80"><path d="M 61 61 C 75 47, 88 34, 86 10 C 78 28, 68 43, 61 61 Z" fill="#55B26E"/><path d="M 59 61 C 45 47, 32 34, 34 10 C 42 28, 52 43, 59 61 Z" fill="#55B26E"/></svg></div>
+   <div class="name">B · 슬림 블레이드</div><div class="lic">얇은 버전</div>
+  </figure>
+  <figure class="card">
+   <div class="stage"><svg width="78" height="52" viewBox="0 0 120 80"><path d="M 60 62 C 84 56, 99 40, 91 10 C 88 4, 80 5, 77 13 C 69 27, 63 45, 60 62 Z" fill="#55B26E"/><path d="M 60 62 C 36 56, 21 40, 29 10 C 32 4, 40 5, 43 13 C 51 27, 57 45, 60 62 Z" fill="#55B26E"/></svg></div>
+   <div class="name">C · 풍성한 잎</div><div class="lic">더 도톰</div>
+  </figure>
+  <figure class="card">
+   <div class="stage"><svg width="64" height="64" viewBox="0 0 120 80"><path d="M 60 74 L 60 48" stroke="#5BA86E" stroke-width="3.4" stroke-linecap="round" fill="none"/><path d="M 61 50 C 75 45, 90 33, 90 15 C 77 24, 67 38, 61 50 Z" fill="#4F9C62"/><path d="M 59 50 C 45 45, 30 33, 30 15 C 43 24, 53 38, 59 50 Z" fill="#6FC183"/></svg></div>
+   <div class="name">D · 새싹(줄기 포함)</div><div class="lic">줄기 버전</div>
+  </figure>
+ </div>
+
+ <h2>② 오픈소스 라인 아이콘</h2>
+ <div class="grid" id="line"></div>
+
+ <h2>③ 오픈소스 이모지 (플랫·컬러)</h2>
+ <div class="grid" id="emoji"></div>
+
+ <div class="note">
+  ※ 대부분의 아이콘셋은 <b>잎 1장 라인 스타일</b>이라, 크라우드픽 레퍼런스처럼 “줄기 없이 잎 2장 채움 실루엣”에 가장 가까운 건 <b>자체 시안 A/B/C</b> 또는 <b>이모지 🌿/🌱</b> 입니다. 라인 아이콘은 채움(fill) 스타일로 변환해서 쓸 수도 있어요.
+ </div>
+
+ <footer>라이선스 — Lucide: ISC · Tabler/Phosphor/Iconoir: MIT · Material Symbols/Remix: Apache-2.0 · Font Awesome Free: CC BY 4.0 · Twemoji: CC BY 4.0 (전부 상업 사용 가능)</footer>
+
+<script>
+ // ② 라인 아이콘 (실제 오픈소스 path, viewBox 0 0 24 24, stroke 초록)
+ const LINE = [
+  { name:'Lucide · leaf', lic:'ISC', url:'https://lucide.dev/icons/leaf',
+    p:'<path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6"/>' },
+  { name:'Lucide · sprout', lic:'ISC', url:'https://lucide.dev/icons/sprout',
+    p:'<path d="M7 20h10"/><path d="M10 20c5.5-2.5.8-6.4 3-10"/><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"/><path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z"/>' },
+  { name:'Tabler · leaf', lic:'MIT', url:'https://tabler.io/icons/icon/leaf',
+    p:'<path d="M5 21c.5 -4.5 2.5 -8 7 -10"/><path d="M9 18c6.218 0 10.5 -3.288 11 -12v-2h-4.014c-9 0 -11.986 4 -12 9c0 1 0 3 2 5h3z"/>' },
+  { name:'Tabler · plant-2', lic:'MIT', url:'https://tabler.io/icons/icon/plant-2',
+    p:'<path d="M2 9a10 10 0 1 0 20 0"/><path d="M12 19a10 10 0 0 1 10 -10"/><path d="M2 9a10 10 0 0 1 10 10"/><path d="M12 4a9.7 9.7 0 0 1 2.99 7.5"/><path d="M9 4a9.7 9.7 0 0 0 -2.99 7.5"/><path d="M12 19v2"/>' },
+  { name:'Iconoir · leaf', lic:'MIT', url:'https://iconoir.com/',
+    p:'<path d="M3 13c4.5 0 8 -3.5 8 -8c-5 0 -8 3 -8 8z"/><path d="M21 7c0 8 -6 13 -12 13"/><path d="M3 21c0 -5 3 -9 8 -10"/>' },
+ ];
+ const lineWrap = document.getElementById('line');
+ LINE.forEach(i=>{
+  lineWrap.insertAdjacentHTML('beforeend',`<figure class="card"><span class="badge">${i.lic}</span>
+   <div class="stage"><svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#4FA365" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${i.p}</svg></div>
+   <div class="name">${i.name}</div><a class="src" href="${i.url}" target="_blank" rel="noopener">원본 보기 ↗</a></figure>`);
+ });
+
+ // ③ 이모지 (Twemoji CDN — 플랫 컬러, 잎 2장 계열)
+ const EMOJI = [
+  { name:'🌿 herb (잎2장)', code:'1f33f' },
+  { name:'🌱 seedling', code:'1f331' },
+  { name:'🍃 leaf', code:'1f343' },
+  { name:'☘️ shamrock', code:'2618' },
+  { name:'🍀 four-leaf', code:'1f340' },
+ ];
+ const emojiWrap = document.getElementById('emoji');
+ EMOJI.forEach(e=>{
+  emojiWrap.insertAdjacentHTML('beforeend',`<figure class="card"><span class="badge">CC BY</span>
+   <div class="stage"><img loading="lazy" alt="${e.name}" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@15.1.0/assets/svg/${e.code}.svg"></div>
+   <div class="name">${e.name}</div><div class="lic">Twemoji</div></figure>`);
+ });
+</script>
+</body></html>
