@@ -7,6 +7,7 @@ import Avatar from '@/components/Avatar';
 import BoardCard from '@/components/BoardCard';
 import ClayButton from '@/components/ClayButton';
 import CheerModal from '@/components/CheerModal';
+import EmojiIcon from '@/components/EmojiIcon';
 import type { BoardSummary, UserProfile } from '@/types';
 
 interface FriendBoardsResponse {
@@ -106,7 +107,7 @@ export default function FriendDetailPage() {
           ← 돌아가기
         </button>
         <div className="text-center py-12">
-          <span className="text-4xl block mb-3">😥</span>
+          <EmojiIcon emoji="😥" size={40} className="block mx-auto mb-3" />
           <p className="text-warm-sub">{error || '친구를 찾을 수 없습니다'}</p>
         </div>
       </div>
@@ -130,7 +131,7 @@ export default function FriendDetailPage() {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <h1 className="font-display text-xl font-bold text-grape-700 truncate">{friend.name}</h1>
-              {isFavorite && <span className="text-lg">⭐</span>}
+              {isFavorite && <EmojiIcon emoji="⭐" size={18} />}
             </div>
             <p className="text-sm text-warm-sub truncate">{friend.email}</p>
             <p className="text-xs text-warm-light mt-1">
@@ -147,7 +148,7 @@ export default function FriendDetailPage() {
             onClick={() => setShowCheer(true)}
             className="flex-1"
           >
-            💜 응원 보내기
+            <EmojiIcon emoji="💜" size={16} className="mr-1" />응원 보내기
           </ClayButton>
           <button
             onClick={handleToggleFavorite}
@@ -158,14 +159,14 @@ export default function FriendDetailPage() {
                 : 'text-warm-sub'
             }`}
           >
-            {isFavorite ? '⭐ 즐겨찾기' : '☆ 즐겨찾기'}
+            {isFavorite ? <span className="inline-flex items-center gap-1"><EmojiIcon emoji="⭐" size={14} /> 즐겨찾기</span> : '☆ 즐겨찾기'}
           </button>
           <ClayButton
             variant="secondary"
             size="sm"
             onClick={handleGiftBoard}
           >
-            🎁 포도판 선물하기
+            <EmojiIcon emoji="🎁" size={16} className="mr-1" />포도판 선물하기
           </ClayButton>
         </div>
       </div>
@@ -174,7 +175,7 @@ export default function FriendDetailPage() {
       {cheerSent && (
         <div className="clay-sm p-3 mb-4 bg-emerald-50/60 text-center animate-bounce-in">
           <span className="text-sm font-medium text-grape-600">
-            💜 응원을 보냈어요!
+<EmojiIcon emoji="💜" size={14} className="mr-0.5" />응원을 보냈어요!
           </span>
         </div>
       )}
@@ -183,7 +184,7 @@ export default function FriendDetailPage() {
       {activeBoards.length > 0 && (
         <div className="mb-6">
           <h2 className="text-sm font-semibold text-warm-sub mb-3">
-            🍇 진행 중인 포도판 ({activeBoards.length})
+<EmojiIcon emoji="🍇" size={15} className="mr-1" />진행 중인 포도판 ({activeBoards.length})
           </h2>
           <div className="space-y-3">
             {activeBoards.map((board) => (
@@ -197,7 +198,7 @@ export default function FriendDetailPage() {
       {completedBoards.length > 0 && (
         <div className="mb-6">
           <h2 className="text-sm font-semibold text-warm-sub mb-3">
-            🎉 완료한 포도판 ({completedBoards.length})
+<EmojiIcon emoji="🎉" size={15} className="mr-1" />완료한 포도판 ({completedBoards.length})
           </h2>
           <div className="space-y-3">
             {completedBoards.map((board) => (
@@ -210,7 +211,7 @@ export default function FriendDetailPage() {
       {/* Empty state */}
       {boards.length === 0 && (
         <div className="text-center py-12">
-          <span className="text-4xl block mb-3">🍇</span>
+          <EmojiIcon emoji="🍇" size={40} className="block mx-auto mb-3" />
           <p className="text-warm-sub">아직 포도판이 없어요</p>
           <p className="text-xs text-warm-light mt-1">포도판을 선물해 보세요!</p>
           <ClayButton
@@ -219,7 +220,7 @@ export default function FriendDetailPage() {
             onClick={handleGiftBoard}
             className="mt-4"
           >
-            🎁 포도판 선물하기
+            <EmojiIcon emoji="🎁" size={16} className="mr-1" />포도판 선물하기
           </ClayButton>
         </div>
       )}

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
+import EmojiIcon from '@/components/EmojiIcon';
 
 interface ActivityItem {
   type: 'sticker' | 'board_complete' | 'capsule_open';
@@ -52,7 +53,7 @@ export default function VinePage() {
       <div className="pb-4">
         <div className="text-center mb-8">
           <h1 className="font-display text-2xl font-bold text-grape-700 mb-1">
-            🌿 포도덩쿨
+            <span className="inline-flex items-center gap-1.5"><EmojiIcon emoji="🌿" size={22} /> 포도덩쿨</span>
           </h1>
           <p className="text-sm text-warm-sub">나의 성장 기록</p>
         </div>
@@ -73,12 +74,12 @@ export default function VinePage() {
       <div className="pb-4">
         <div className="text-center mb-8">
           <h1 className="font-display text-2xl font-bold text-grape-700 mb-1">
-            🌿 포도덩쿨
+            <span className="inline-flex items-center gap-1.5"><EmojiIcon emoji="🌿" size={22} /> 포도덩쿨</span>
           </h1>
           <p className="text-sm text-warm-sub">나의 성장 기록</p>
         </div>
         <div className="text-center py-20">
-          <span className="text-5xl block mb-4">🌱</span>
+          <EmojiIcon emoji="🌱" size={52} className="block mx-auto mb-4" />
           <p className="text-sm text-warm-sub">
             아직 활동 기록이 없어요
           </p>
@@ -95,7 +96,7 @@ export default function VinePage() {
       {/* Header */}
       <div className="text-center mb-8">
         <h1 className="font-display text-2xl font-bold text-grape-700 mb-1">
-          🌿 포도덩쿨
+          <span className="inline-flex items-center gap-1.5"><EmojiIcon emoji="🌿" size={22} /> 포도덩쿨</span>
         </h1>
         <p className="text-sm text-warm-sub">나의 성장 기록</p>
       </div>
@@ -161,7 +162,7 @@ export default function VinePage() {
                     <div className="flex items-center gap-3">
                       {/* Type indicator dot */}
                       <div className="flex-shrink-0 flex items-center gap-2">
-                        <span className="text-xl">{activity.icon}</span>
+                        <EmojiIcon emoji={activity.icon} size={20} />
                         <div className={`w-1.5 h-1.5 rounded-full ${typeColors[activity.type] || 'bg-grape-400'}`} />
                       </div>
 
@@ -188,7 +189,7 @@ export default function VinePage() {
       {/* Footer note */}
       <div className="text-center mt-8 mb-4">
         <p className="text-xs text-warm-light">
-          최근 90일간의 활동을 보여드려요 🌿
+          최근 90일간의 활동을 보여드려요 <EmojiIcon emoji="🌿" size={13} />
         </p>
       </div>
     </div>
