@@ -1,7 +1,7 @@
 // IMPORTANT: bump CACHE_VERSION whenever you change which assets you want to
 // invalidate on the next deploy. The activate handler deletes every cache
 // whose name doesn't match the current value, so users get a fresh shell.
-const CACHE_VERSION = '2026-05-24-1';
+const CACHE_VERSION = '2026-06-03-1';
 const CACHE_NAME = `podoal-${CACHE_VERSION}`;
 const APP_SHELL = ['/', '/home', '/manifest.json'];
 
@@ -59,7 +59,29 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Static assets: Cache First with background refresh.
+  // HTML navigations (page documents): Network First. The document is what
+  // references the current hash-named chunks, so a previously-visited page
+  // (e.g. an old board URL) must NOT be served from a stale cache — otherwise
+  // it keeps loading old chunks and never picks up a deploy's UI changes.
+  // Falls back to cache (then /home) when offline.
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (response.ok) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          }
+          return response;
+        })
+        .catch(() =>
+          caches.match(request).then((cached) => cached || caches.match('/home'))
+        )
+    );
+    return;
+  }
+
+  // Other static assets (icons, manifest, images): Cache First with background fill.
   event.respondWith(
     caches.match(request).then((cached) => {
       if (cached) return cached;

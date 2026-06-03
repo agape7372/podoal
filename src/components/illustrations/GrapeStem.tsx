@@ -21,12 +21,12 @@ export default function GrapeStem({ size = 120, className = '' }: GrapeStemProps
     >
       {/* right leaf */}
       <path
-        d="M 60 60 C 76 52, 92 40, 88 12 C 86 7, 82 7, 80 13 C 73 30, 66 44, 60 60 Z"
+        d="M 60 61 C 80 54, 96 40, 90 11 C 88 5, 81 5, 78 12 C 70 27, 63 44, 60 61 Z"
         fill="#55B26E"
       />
       {/* left leaf */}
       <path
-        d="M 60 60 C 44 52, 28 40, 32 12 C 34 7, 38 7, 40 13 C 47 30, 54 44, 60 60 Z"
+        d="M 60 61 C 40 54, 24 40, 30 11 C 32 5, 39 5, 42 12 C 50 27, 57 44, 60 61 Z"
         fill="#55B26E"
       />
     </svg>
