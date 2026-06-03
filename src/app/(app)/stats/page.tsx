@@ -5,6 +5,7 @@ import { api } from '@/lib/api';
 import { useAppStore } from '@/lib/store';
 import Avatar from '@/components/Avatar';
 import Heatmap from '@/components/Heatmap';
+import EmojiIcon from '@/components/EmojiIcon';
 import type { EnhancedStats } from '@/types';
 import { feedbackTap } from '@/lib/feedback';
 
@@ -51,10 +52,10 @@ export default function StatsPage() {
     return ordered;
   }, [stats]);
 
-  const tabs: { key: Tab; label: string }[] = [
-    { key: 'summary', label: '📊 요약' },
-    { key: 'heatmap', label: '🔥 히트맵' },
-    { key: 'analysis', label: '📈 분석' },
+  const tabs: { key: Tab; icon: string; label: string }[] = [
+    { key: 'summary', icon: '📊', label: '요약' },
+    { key: 'heatmap', icon: '🔥', label: '히트맵' },
+    { key: 'analysis', icon: '📈', label: '분석' },
   ];
 
   if (loading) {
@@ -86,7 +87,7 @@ export default function StatsPage() {
                 : 'text-warm-sub hover:text-warm-text'
             }`}
           >
-            {tab.label}
+            <span className="inline-flex items-center gap-1"><EmojiIcon emoji={tab.icon} size={16} /> {tab.label}</span>
           </button>
         ))}
       </div>
@@ -99,7 +100,7 @@ export default function StatsPage() {
             <Avatar avatar={user?.avatar || 'grape'} size="xl" className="mx-auto mb-3" />
             <h2 className="font-display text-lg font-bold text-grape-700">{user?.name}</h2>
             <div className="mt-4 flex items-center justify-center gap-2">
-              <span className="text-3xl">{'🔥'}</span>
+              <EmojiIcon emoji="🔥" size={30} />
               <div>
                 <p className="text-3xl font-extrabold text-grape-600">{stats.streak}</p>
                 <p className="text-xs text-warm-sub">연속 달성일</p>
@@ -156,12 +157,12 @@ export default function StatsPage() {
           {/* Streak section */}
           <div className="grid grid-cols-2 gap-3 mb-5">
             <div className="clay-sm p-5 text-center bg-orange-50/60">
-              <span className="text-3xl">{'🔥'}</span>
+              <EmojiIcon emoji="🔥" size={30} className="block mx-auto" />
               <p className="font-display text-2xl font-bold text-grape-600 mt-2">{stats.currentStreak}일</p>
               <p className="text-[10px] text-warm-sub mt-1">현재 연속 달성</p>
             </div>
             <div className="clay-sm p-5 text-center bg-amber-50/60">
-              <span className="text-3xl">{'🏆'}</span>
+              <EmojiIcon emoji="🏆" size={30} className="block mx-auto" />
               <p className="font-display text-2xl font-bold text-grape-600 mt-2">{stats.longestStreak}일</p>
               <p className="text-[10px] text-warm-sub mt-1">최장 연속 달성</p>
             </div>
@@ -169,7 +170,7 @@ export default function StatsPage() {
 
           {/* Average daily */}
           <div className="clay-sm p-5 mb-5 bg-emerald-50/60 text-center">
-            <span className="text-3xl">{'📊'}</span>
+            <EmojiIcon emoji="📊" size={30} className="block mx-auto" />
             <p className="font-display text-2xl font-bold text-grape-600 mt-2">{stats.averageDaily}</p>
             <p className="text-[10px] text-warm-sub mt-1">일평균 포도알 (최근 30일)</p>
           </div>
@@ -228,7 +229,7 @@ function StatCard({ icon, label, value, color }: { icon: string; label: string; 
 
   return (
     <div className={`clay-sm p-4 text-center ${bgMap[color] || bgMap.lavender}`}>
-      <span className="text-2xl">{icon}</span>
+      <EmojiIcon emoji={icon} size={26} className="block mx-auto" />
       <p className="font-display text-2xl font-bold text-grape-600 mt-1">{value}</p>
       <p className="text-[10px] text-warm-sub mt-0.5">{label}</p>
     </div>
@@ -358,8 +359,8 @@ function CategoryBreakdown({ data }: { data: { category: string; count: number }
       {data.map((d) => (
         <div key={d.category}>
           <div className="flex items-center justify-between mb-1">
-            <span className="text-xs text-warm-text">
-              {categoryIcons[d.category] || '🍇'} {d.category}
+            <span className="text-xs text-warm-text inline-flex items-center gap-1">
+              <EmojiIcon emoji={categoryIcons[d.category] || '🍇'} size={14} /> {d.category}
             </span>
             <span className="text-xs text-warm-sub">{d.count}개</span>
           </div>
