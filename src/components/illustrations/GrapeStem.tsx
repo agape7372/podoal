@@ -4,9 +4,10 @@ interface GrapeStemProps {
 }
 
 /**
- * Two flat leaves on a short sprig — sits on top of the grape board.
- * Deliberately flat (solid fills, no gradients / no outline strokes) for a
- * clean modern look. Wider than tall (W:H ≈ 3:2) so it reads as a canopy.
+ * Two flat curved leaves (no stem) — sits on top of the grape board.
+ * Wing-like silhouette: pointed tips splaying outward with a small notch
+ * where they meet. Flat solid fill, no gradients / no outline strokes.
+ * Wider than tall (W:H ≈ 3:2) so it reads as a small canopy.
  */
 export default function GrapeStem({ size = 120, className = '' }: GrapeStemProps) {
   return (
@@ -18,41 +19,15 @@ export default function GrapeStem({ size = 120, className = '' }: GrapeStemProps
       className={className}
       aria-hidden="true"
     >
-      {/* short sprig */}
+      {/* right leaf */}
       <path
-        d="M 60 74 L 60 48"
-        stroke="#5BA86E"
-        strokeWidth="3.4"
-        strokeLinecap="round"
-        fill="none"
+        d="M 60 60 C 76 52, 92 40, 88 12 C 86 7, 82 7, 80 13 C 73 30, 66 44, 60 60 Z"
+        fill="#55B26E"
       />
-
-      {/* back (right) leaf — slightly darker so the two leaves read apart */}
+      {/* left leaf */}
       <path
-        d="M 61 50 C 75 45, 90 33, 90 15 C 77 24, 67 38, 61 50 Z"
-        fill="#4F9C62"
-      />
-      <path
-        d="M 63 48 Q 76 32 88 18"
-        stroke="#3C7A4C"
-        strokeWidth="1.1"
-        strokeLinecap="round"
-        fill="none"
-        opacity="0.45"
-      />
-
-      {/* front (left) leaf — lighter, sits on top */}
-      <path
-        d="M 59 50 C 45 45, 30 33, 30 15 C 43 24, 53 38, 59 50 Z"
-        fill="#6FC183"
-      />
-      <path
-        d="M 57 48 Q 44 32 32 18"
-        stroke="#3C7A4C"
-        strokeWidth="1.1"
-        strokeLinecap="round"
-        fill="none"
-        opacity="0.4"
+        d="M 60 60 C 44 52, 28 40, 32 12 C 34 7, 38 7, 40 13 C 47 30, 54 44, 60 60 Z"
+        fill="#55B26E"
       />
     </svg>
   );
