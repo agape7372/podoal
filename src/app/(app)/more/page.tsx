@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useAppStore } from '@/lib/store';
 import { feedbackTap } from '@/lib/feedback';
+import EmojiIcon from '@/components/EmojiIcon';
 
 const menuItems = [
   { path: '/friends', icon: '👥', label: '친구', color: 'bg-pink-50/60' },
@@ -29,8 +30,8 @@ export default function MorePage() {
             onClick={() => { feedbackTap(); router.push(item.path); }}
             className={`clay-sm p-4 text-center ${item.color} transition-all active:scale-[0.97]`}
           >
-            <span className="text-3xl relative inline-block">
-              {item.icon}
+            <span className="relative inline-block">
+              <EmojiIcon emoji={item.icon} size={32} />
               {item.badge === 'unread' && unreadCount > 0 && (
                 <span className="absolute -top-1 -right-2 bg-grape-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
                   {unreadCount > 9 ? '9+' : unreadCount}
