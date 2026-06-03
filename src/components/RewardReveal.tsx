@@ -5,6 +5,7 @@ import type { RewardInfo } from '@/types';
 import { REWARD_TYPE_LABELS } from '@/types';
 import ClayButton from './ClayButton';
 import Sparkle from './illustrations/Sparkle';
+import EmojiIcon from './EmojiIcon';
 import { feedbackReward } from '@/lib/feedback';
 
 interface RewardRevealProps {
@@ -109,8 +110,8 @@ export default function RewardReveal({
               bg-gradient-to-br from-white via-clay-cream/50 to-grape-50/60
             `}
           >
-            <div className="text-6xl mb-4 animate-float">
-              {isCompleted ? '🎁' : '🔒'}
+            <div className="mb-4 animate-float">
+              <EmojiIcon emoji={isCompleted ? '🎁' : '🔒'} size={60} className="mx-auto" />
             </div>
             <h3 className="font-display text-xl font-bold text-grape-700 mb-2">
               {isCompleted ? '보상을 확인하세요' : '보상이 숨겨져 있어요'}
@@ -129,8 +130,8 @@ export default function RewardReveal({
         /* Revealed reward */
         <div className="clay-puffy p-6 animate-reward-reveal bg-gradient-to-br from-white via-clay-cream/40 to-grape-50/60">
           <div className="text-center">
-            <div className="text-5xl mb-3">
-              {reward.type === 'letter' ? '💌' : reward.type === 'giftcard' ? '🎁' : '⭐'}
+            <div className="mb-3">
+              <EmojiIcon emoji={reward.type === 'letter' ? '💌' : reward.type === 'giftcard' ? '🎁' : '⭐'} size={52} className="mx-auto" />
             </div>
             <div className="text-xs font-medium text-grape-600 mb-2">
               {REWARD_TYPE_LABELS[reward.type]}

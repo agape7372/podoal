@@ -10,6 +10,7 @@ import GiftBoardModal from '@/components/GiftBoardModal';
 import ShareCardModal from '@/components/ShareCardModal';
 import CapsuleModal from '@/components/CapsuleModal';
 import Avatar from '@/components/Avatar';
+import EmojiIcon from '@/components/EmojiIcon';
 import type { BoardDetail } from '@/types';
 import { feedbackTap } from '@/lib/feedback';
 
@@ -158,7 +159,7 @@ export default function BoardDetailPage() {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
-          <div className="text-5xl animate-float mb-4">🍇</div>
+          <EmojiIcon emoji="🍇" size={52} className="block mx-auto animate-float mb-4" />
           <p className="text-warm-sub">포도판 불러오는 중...</p>
         </div>
       </div>
@@ -181,19 +182,19 @@ export default function BoardDetailPage() {
               onClick={() => { feedbackTap(); setShowShare(true); }}
               className="clay-button px-3 py-1.5 rounded-xl text-sm"
             >
-              📤 공유
+              <EmojiIcon emoji="📤" size={15} className="mr-0.5" />공유
             </button>
             <button
               onClick={() => { feedbackTap(); setShowCapsule(true); }}
               className="clay-button px-3 py-1.5 rounded-xl text-sm"
             >
-              💊 동결건조
+              <EmojiIcon emoji="💊" size={15} className="mr-0.5" />동결건조
             </button>
             <button
               onClick={() => { feedbackTap(); setShowGift(true); }}
               className="clay-button px-3 py-1.5 rounded-xl text-sm"
             >
-              🎁 선물
+              <EmojiIcon emoji="🎁" size={15} className="mr-0.5" />선물
             </button>
             <button
               onClick={handleDelete}
@@ -208,7 +209,7 @@ export default function BoardDetailPage() {
 
       {errorMessage && (
         <div className="mb-3 p-3 rounded-2xl bg-grape-100/40 border border-grape-200/60 text-grape-700 text-sm flex items-start gap-2">
-          <span className="text-base leading-tight">⚠️</span>
+          <EmojiIcon emoji="⚠️" size={16} className="leading-tight" />
           <span className="flex-1 leading-snug">{errorMessage}</span>
           <button
             onClick={() => setErrorMessage(null)}
@@ -251,7 +252,7 @@ export default function BoardDetailPage() {
       {board.rewards.length > 0 && (
         <div className="mb-6 space-y-3">
           <h3 className="text-sm font-semibold text-warm-sub">
-            🎁 보상 ({board.rewards.filter((r) => filledCount >= r.triggerAt).length}/{board.rewards.length})
+            <EmojiIcon emoji="🎁" size={15} className="mr-0.5" />보상 ({board.rewards.filter((r) => filledCount >= r.triggerAt).length}/{board.rewards.length})
           </h3>
           {board.rewards.map((reward) => {
             const isUnlocked = filledCount >= reward.triggerAt;
@@ -283,7 +284,7 @@ export default function BoardDetailPage() {
                     `}
                   >
                     <div className="flex items-center justify-center gap-2">
-                      <span className="text-2xl">{isUnlocked ? '🎁' : '🔒'}</span>
+                      <EmojiIcon emoji={isUnlocked ? '🎁' : '🔒'} size={26} />
                       <div className="text-left">
                         <p className="text-sm font-medium text-grape-600">
                           {isUnlocked ? reward.title : `${remaining}알 더 채우면 열려요`}
@@ -308,7 +309,7 @@ export default function BoardDetailPage() {
           <div className="space-y-2">
             {board.stickers.slice(-5).reverse().map((sticker) => (
               <div key={sticker.id} className="clay-sm p-3 flex items-center gap-2">
-                <span className="text-lg">🍇</span>
+                <EmojiIcon emoji="🍇" size={18} />
                 <span className="text-sm text-warm-text">
                   {sticker.position + 1}번째 포도알
                 </span>

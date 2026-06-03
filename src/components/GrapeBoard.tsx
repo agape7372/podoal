@@ -4,6 +4,7 @@ import { memo, useCallback, useMemo, useState } from 'react';
 import GrapeSticker from './GrapeSticker';
 import GrapeStem from './illustrations/GrapeStem';
 import Sparkle from './illustrations/Sparkle';
+import EmojiIcon from './EmojiIcon';
 import { feedbackFill, feedbackComplete, feedbackReward } from '@/lib/feedback';
 import type { BoardDetail } from '@/types';
 
@@ -180,7 +181,7 @@ function GrapeBoardInner({ board, onFill, canFill }: GrapeBoardProps) {
       {/* Completion indicator */}
       {board.isCompleted && (
         <div className="text-center animate-bounce-in">
-          <span className="text-4xl">🎉</span>
+          <EmojiIcon emoji="🎉" size={40} className="block mx-auto" />
           <p className="font-display text-xl text-grape-700 font-bold mt-1">달성 완료!</p>
         </div>
       )}
