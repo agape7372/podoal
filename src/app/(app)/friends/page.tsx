@@ -6,6 +6,7 @@ import FriendCard from '@/components/FriendCard';
 import CheerModal from '@/components/CheerModal';
 import ClayButton from '@/components/ClayButton';
 import ClayInput from '@/components/ClayInput';
+import EmojiIcon from '@/components/EmojiIcon';
 import type { FriendInfo } from '@/types';
 import { feedbackSuccess, feedbackTap } from '@/lib/feedback';
 
@@ -77,7 +78,7 @@ export default function FriendsPage() {
 
   return (
     <div className="pb-4">
-      <h1 className="font-display text-2xl font-bold text-grape-700 mb-6">👥 친구</h1>
+      <h1 className="font-display text-2xl font-bold text-grape-700 mb-6 inline-flex items-center gap-1.5"><EmojiIcon emoji="👥" size={24} /> 친구</h1>
 
       {/* Add friend */}
       <div className="clay p-4 mb-6">
@@ -133,7 +134,7 @@ export default function FriendsPage() {
             tab === 'favorite' ? 'clay-pressed text-grape-600' : 'clay-button text-warm-sub'
           }`}
         >
-          ⭐ 즐겨찾기
+          <span className="inline-flex items-center gap-1"><EmojiIcon emoji="⭐" size={14} /> 즐겨찾기</span>
         </button>
       </div>
 
@@ -144,7 +145,7 @@ export default function FriendsPage() {
         </div>
       ) : displayed.length === 0 ? (
         <div className="text-center py-12">
-          <span className="text-4xl block mb-3">{tab === 'favorite' ? '⭐' : '👥'}</span>
+          <EmojiIcon emoji={tab === 'favorite' ? '⭐' : '👥'} size={40} className="block mx-auto mb-3" />
           <p className="text-warm-sub">
             {tab === 'favorite' ? '즐겨찾기한 친구가 없어요' : '아직 친구가 없어요'}
           </p>

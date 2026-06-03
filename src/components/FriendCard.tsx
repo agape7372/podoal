@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Avatar from './Avatar';
 import ClayButton from './ClayButton';
+import EmojiIcon from './EmojiIcon';
 import type { FriendInfo } from '@/types';
 import { feedbackSuccess, feedbackTap } from '@/lib/feedback';
 
@@ -51,12 +52,12 @@ export default function FriendCard({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <p className="font-display text-[15px] font-semibold text-warm-text truncate">{friend.user.name}</p>
-            {friend.isFavorite && <span className="text-sm" aria-hidden="true">⭐</span>}
+            {friend.isFavorite && <EmojiIcon emoji="⭐" size={14} />}
           </div>
           <p className="text-xs text-warm-sub truncate">{friend.user.email}</p>
           {typeof activeBoardCount === 'number' && friend.status === 'accepted' && (
-            <p className="text-[11px] text-grape-600 mt-0.5">
-              🍇 포도판 <span className="font-display font-semibold">{activeBoardCount}</span>개 진행 중
+            <p className="text-[11px] text-grape-600 mt-0.5 inline-flex items-center gap-1">
+              <EmojiIcon emoji="🍇" size={13} /> 포도판 <span className="font-display font-semibold">{activeBoardCount}</span>개 진행 중
             </p>
           )}
         </div>
@@ -77,21 +78,21 @@ export default function FriendCard({
                 className="clay-button p-2 rounded-xl text-sm font-medium text-grape-600 transition-all active:scale-95"
                 title="포도판 보기"
               >
-                🍇
+                <EmojiIcon emoji="🍇" size={18} />
               </button>
               <button
                 onClick={() => { feedbackTap(); onSendCheer?.(friend.user.id); }}
                 className="clay-button p-2 rounded-xl text-lg transition-all active:scale-95"
                 title="응원 보내기"
               >
-                💜
+                <EmojiIcon emoji="💜" size={18} />
               </button>
               <button
                 onClick={() => { feedbackTap(); onToggleFavorite?.(friend.id); }}
                 className="clay-button p-2 rounded-xl text-lg transition-all active:scale-95"
                 title={friend.isFavorite ? '즐겨찾기 해제' : '즐겨찾기'}
               >
-                {friend.isFavorite ? '⭐' : '☆'}
+                {friend.isFavorite ? <EmojiIcon emoji="⭐" size={18} /> : '☆'}
               </button>
               <button
                 onClick={() => onRemove?.(friend.id)}
@@ -110,7 +111,7 @@ export default function FriendCard({
           onClick={() => onViewBoards(friend.user.id)}
           className="mt-3 w-full clay-button px-3 py-2 rounded-2xl text-xs font-medium text-grape-700 bg-grape-50 transition-all active:scale-[0.98] flex items-center justify-center gap-1.5"
         >
-          <span>🍇</span>
+          <EmojiIcon emoji="🍇" size={16} />
           <span>포도판 보기</span>
           <span className="text-warm-light">→</span>
         </button>

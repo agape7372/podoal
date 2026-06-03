@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { api } from '@/lib/api';
 import ReminderModal from '@/components/ReminderModal';
+import EmojiIcon from '@/components/EmojiIcon';
 import type { NotificationSettingInfo, ReminderInfo, BoardSummary } from '@/types';
 
 const DAY_LABELS: Record<string, string> = {
@@ -243,7 +244,7 @@ export default function NotificationsPage() {
           {CATEGORY_ITEMS.map((item) => (
             <div key={item.key} className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <span className="text-xl">{item.icon}</span>
+                <EmojiIcon emoji={item.icon} size={20} />
                 <div>
                   <p className="text-sm font-medium text-warm-text">{item.label}</p>
                   <p className="text-xs text-warm-light">{item.desc}</p>

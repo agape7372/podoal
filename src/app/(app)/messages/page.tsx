@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { api } from '@/lib/api';
 import { useAppStore } from '@/lib/store';
 import Avatar from '@/components/Avatar';
+import EmojiIcon from '@/components/EmojiIcon';
 import type { MessageInfo } from '@/types';
 
 export default function MessagesPage() {
@@ -65,7 +66,7 @@ export default function MessagesPage() {
 
   return (
     <div className="pb-4">
-      <h1 className="font-display text-2xl font-bold text-grape-700 mb-6">💌 메시지</h1>
+      <h1 className="font-display text-2xl font-bold text-grape-700 mb-6 inline-flex items-center gap-1.5"><EmojiIcon emoji="💌" size={24} /> 메시지</h1>
 
       {loading ? (
         <div className="space-y-3">
@@ -73,7 +74,7 @@ export default function MessagesPage() {
         </div>
       ) : messages.length === 0 ? (
         <div className="text-center py-16">
-          <span className="text-5xl block mb-4">💌</span>
+          <EmojiIcon emoji="💌" size={52} className="block mx-auto mb-4" />
           <p className="text-warm-sub">아직 메시지가 없어요</p>
           <p className="text-xs text-warm-light mt-1">친구에게 응원을 보내보세요!</p>
         </div>
@@ -104,7 +105,7 @@ export default function MessagesPage() {
                     )}
                   </div>
                   <p className="text-sm text-warm-text">
-                    <span className="mr-1">{msg.emoji}</span>
+                    <EmojiIcon emoji={msg.emoji} size={16} className="mr-1" />
                     {msg.content}
                   </p>
                   <p className="text-[10px] text-warm-light mt-1">
