@@ -4,12 +4,14 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useAppStore } from '@/lib/store';
 import { feedbackTap } from '@/lib/feedback';
 
+// Color-illustration icons (Microsoft Fluent Emoji, MIT) — unified with the
+// profile grape (/avatars/grape.svg). 만들기 reuses the profile grape itself.
 const navItems = [
-  { path: '/home', icon: '🏠', label: '홈' },
-  { path: '/board/create', icon: '🍇', label: '만들기' },
-  { path: '/relay', icon: '🔗', label: '릴레이' },
-  { path: '/winery', icon: '🍷', label: '와이너리' },
-  { path: '/more', icon: '☰', label: '더보기', badge: 'unread' },
+  { path: '/home', icon: '/icons/nav/home.svg', label: '홈' },
+  { path: '/board/create', icon: '/avatars/grape.svg', label: '만들기' },
+  { path: '/relay', icon: '/icons/nav/relay.svg', label: '릴레이' },
+  { path: '/winery', icon: '/icons/nav/winery.svg', label: '와이너리' },
+  { path: '/more', icon: '/icons/nav/more.svg', label: '더보기', badge: 'unread' },
 ];
 
 export default function Navigation() {
@@ -47,8 +49,16 @@ export default function Navigation() {
                   }`}
                   aria-hidden="true"
                 />
-                <span className="text-xl relative">
-                  {item.icon}
+                <span className="relative block">
+                  <img
+                    src={item.icon}
+                    alt=""
+                    width={24}
+                    height={24}
+                    draggable={false}
+                    aria-hidden="true"
+                    className={`block transition-opacity duration-200 ${isActive ? 'opacity-100' : 'opacity-45'}`}
+                  />
                   {item.badge === 'unread' && unreadCount > 0 && (
                     <span className="absolute -top-1 -right-2 bg-grape-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] px-1 flex items-center justify-center border-[1.5px] border-warm-text">
                       {unreadCount > 9 ? '9+' : unreadCount}
