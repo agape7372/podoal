@@ -19,13 +19,13 @@ interface DateGroup {
 const typeColors: Record<string, string> = {
   sticker: 'bg-grape-400',
   board_complete: 'bg-green-400',
-  capsule_open: 'bg-blue-400',
+  capsule_open: 'bg-grape-300',
 };
 
 const typeBgColors: Record<string, string> = {
   sticker: 'bg-grape-50/60',
   board_complete: 'bg-emerald-50/60',
-  capsule_open: 'bg-blue-50/60',
+  capsule_open: 'bg-grape-50/60',
 };
 
 export default function VinePage() {
@@ -52,7 +52,7 @@ export default function VinePage() {
       <div className="pb-4">
         <div className="text-center mb-8">
           <h1 className="font-display text-2xl font-bold text-grape-700 mb-1">
-            🌿 포도덩쿨
+            <span aria-hidden="true">🌿</span> 포도덩쿨
           </h1>
           <p className="text-sm text-warm-sub">나의 성장 기록</p>
         </div>
@@ -73,7 +73,7 @@ export default function VinePage() {
       <div className="pb-4">
         <div className="text-center mb-8">
           <h1 className="font-display text-2xl font-bold text-grape-700 mb-1">
-            🌿 포도덩쿨
+            <span aria-hidden="true">🌿</span> 포도덩쿨
           </h1>
           <p className="text-sm text-warm-sub">나의 성장 기록</p>
         </div>
@@ -82,7 +82,7 @@ export default function VinePage() {
           <p className="text-sm text-warm-sub">
             아직 활동 기록이 없어요
           </p>
-          <p className="text-xs text-warm-light mt-1">
+          <p className="text-xs text-warm-sub mt-1">
             포도알을 채우면 여기에 기록이 남아요!
           </p>
         </div>
@@ -103,7 +103,7 @@ export default function VinePage() {
       {/* Summary */}
       <div className="clay-sm p-4 mb-6 bg-emerald-50/60 text-center">
         <p className="text-sm text-warm-text">
-          최근 90일간 <span className="font-bold text-grape-600">{timeline.length}</span>일 활동했어요
+          최근 90일간 <span className="font-bold text-grape-600 tabular-nums">{timeline.length}</span>일 활동했어요
         </p>
       </div>
 
@@ -132,10 +132,10 @@ export default function VinePage() {
 
               {/* Date label */}
               <div className="mb-3">
-                <span className="text-sm font-bold text-grape-600">
+                <span className="text-sm font-bold text-grape-600 tabular-nums">
                   {month}.{day}
                 </span>
-                <span className="text-xs text-warm-light ml-1.5">
+                <span className="text-xs text-warm-sub ml-1.5">
                   {weekday}요일
                 </span>
                 {groupIndex === 0 && (
@@ -187,7 +187,7 @@ export default function VinePage() {
 
       {/* Footer note */}
       <div className="text-center mt-8 mb-4">
-        <p className="text-xs text-warm-light">
+        <p className="text-xs text-warm-sub">
           최근 90일간의 활동을 보여드려요 🌿
         </p>
       </div>

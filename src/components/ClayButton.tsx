@@ -49,7 +49,8 @@ export default function ClayButton({
         ${variantStyles[variant]}
         ${sizeStyles[size]}
         ${fullWidth ? 'w-full' : ''}
-        ${disabled || loading ? 'opacity-50 cursor-not-allowed' : ''}
+        ${loading ? 'cursor-wait' : ''}
+        ${disabled && !loading ? 'opacity-50 cursor-not-allowed' : ''}
         ${className}
       `}
       {...props}

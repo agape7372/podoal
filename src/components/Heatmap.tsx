@@ -7,8 +7,8 @@ interface HeatmapProps {
 }
 
 function getColorClass(count: number): string {
-  if (count === 0) return 'bg-gray-100';
-  if (count === 1) return 'bg-grape-100';
+  if (count === 0) return 'bg-warm-border/50';
+  if (count === 1) return 'bg-grape-200';
   if (count <= 3) return 'bg-grape-300';
   if (count <= 6) return 'bg-grape-500';
   return 'bg-grape-700';
@@ -17,6 +17,11 @@ function getColorClass(count: number): string {
 function formatDate(dateStr: string): string {
   const d = new Date(dateStr);
   return `${d.getMonth() + 1}/${d.getDate()}`;
+}
+
+function formatAriaLabel(dateStr: string, count: number): string {
+  const d = new Date(dateStr);
+  return `${d.getMonth() + 1}월 ${d.getDate()}일 ${count}개`;
 }
 
 export default function Heatmap({ data }: HeatmapProps) {
@@ -123,6 +128,8 @@ export default function Heatmap({ data }: HeatmapProps) {
 
           {/* Heatmap cells */}
           <div
+            role="img"
+            aria-label="최근 90일 활동 히트맵"
             className="grid gap-[2px]"
             style={{
               gridTemplateColumns: `repeat(13, 12px)`,
@@ -135,7 +142,7 @@ export default function Heatmap({ data }: HeatmapProps) {
               const cell = grid.find((c) => c.col === col && c.row === row);
 
               if (!cell) {
-                return <div key={idx} className="w-3 h-3" />;
+                return <div key={idx} className="w-3 h-3" aria-hidden="true" />;
               }
 
               return (
@@ -143,6 +150,7 @@ export default function Heatmap({ data }: HeatmapProps) {
                   key={idx}
                   className={`w-3 h-3 rounded-sm ${getColorClass(cell.count)} transition-colors`}
                   title={`${formatDate(cell.date)}: ${cell.count}개`}
+                  aria-label={formatAriaLabel(cell.date, cell.count)}
                 />
               );
             })}
@@ -150,10 +158,10 @@ export default function Heatmap({ data }: HeatmapProps) {
         </div>
 
         {/* Legend */}
-        <div className="flex items-center justify-end gap-1.5 mt-2">
+        <div className="flex items-center justify-end gap-1.5 mt-2" aria-hidden="true">
           <span className="text-[9px] text-warm-sub">적음</span>
-          <div className="w-3 h-3 rounded-sm bg-gray-100" />
-          <div className="w-3 h-3 rounded-sm bg-grape-100" />
+          <div className="w-3 h-3 rounded-sm bg-warm-border/50" />
+          <div className="w-3 h-3 rounded-sm bg-grape-200" />
           <div className="w-3 h-3 rounded-sm bg-grape-300" />
           <div className="w-3 h-3 rounded-sm bg-grape-500" />
           <div className="w-3 h-3 rounded-sm bg-grape-700" />

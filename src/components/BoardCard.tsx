@@ -11,7 +11,9 @@ interface BoardCardProps {
 
 export default function BoardCard({ board }: BoardCardProps) {
   const router = useRouter();
-  const progress = Math.round((board.filledCount / board.totalStickers) * 100);
+  const progress = board.totalStickers > 0
+    ? Math.min(100, Math.round((board.filledCount / board.totalStickers) * 100))
+    : 0;
 
   return (
     <button
@@ -56,12 +58,12 @@ export default function BoardCard({ board }: BoardCardProps) {
             />
           </div>
           <div className="flex justify-between mt-1.5">
-            <span className="text-[10px] text-warm-sub">
+            <span className="text-[10px] text-warm-sub tabular-nums">
               <span className="font-display font-semibold text-warm-text">{board.filledCount}</span>
               <span className="mx-0.5">/</span>
               {board.totalStickers}알
             </span>
-            <span className="text-[10px] font-display font-bold text-grape-600">{progress}%</span>
+            <span className="text-[10px] font-display font-bold text-grape-600 tabular-nums">{progress}%</span>
           </div>
         </div>
 

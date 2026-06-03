@@ -168,7 +168,7 @@ export default function CapsuleModal({ boardId, isOwner, onClose }: CapsuleModal
                   className="clay-input resize-none"
                   style={{ minHeight: '100px' }}
                 />
-                <p className="text-xs text-warm-light text-right mt-1">
+                <p className="text-xs text-warm-sub text-right mt-1 tabular-nums">
                   {message.length}/500
                 </p>
               </div>
@@ -183,6 +183,8 @@ export default function CapsuleModal({ boardId, isOwner, onClose }: CapsuleModal
                     <button
                       key={e}
                       onClick={() => setEmoji(e)}
+                      aria-pressed={emoji === e}
+                      aria-label={`이모지 ${e}`}
                       className={`
                         w-11 h-11 rounded-xl text-xl flex items-center justify-center transition-all
                         ${emoji === e
@@ -245,8 +247,8 @@ export default function CapsuleModal({ boardId, isOwner, onClose }: CapsuleModal
                   <span className="text-4xl block mb-3">💊</span>
                   <p className="text-sm">아직 동결건조 캡슐이 없어요</p>
                   {isOwner && (
-                    <p className="text-xs text-warm-light mt-1">
-                      만들기 탭에서 첫 캡슐을 만들어 보세요!
+                    <p className="text-xs text-warm-sub mt-1">
+                      만들기 탭에서 첫 캡슐을 만들어 보세요.
                     </p>
                   )}
                 </div>
@@ -275,7 +277,7 @@ export default function CapsuleModal({ boardId, isOwner, onClose }: CapsuleModal
                               <p className="text-sm text-warm-text whitespace-pre-wrap break-words">
                                 {capsule.message}
                               </p>
-                              <p className="text-xs text-warm-light mt-2">
+                              <p className="text-xs text-warm-sub mt-2 tabular-nums">
                                 {formatDate(capsule.createdAt)} 작성 &middot; {formatDate(capsule.openAt)} 개봉
                               </p>
                             </div>
@@ -295,9 +297,9 @@ export default function CapsuleModal({ boardId, isOwner, onClose }: CapsuleModal
                             <span className="text-2xl animate-float">{capsule.emoji}</span>
                             <div className="flex-1">
                               <p className="text-sm font-medium text-warm-text">
-                                개봉할 수 있어요!
+                                개봉할 수 있어요.
                               </p>
-                              <p className="text-xs text-warm-light">
+                              <p className="text-xs text-warm-sub tabular-nums">
                                 {formatDate(capsule.openAt)} 개봉 예정이었어요
                               </p>
                             </div>
@@ -311,7 +313,7 @@ export default function CapsuleModal({ boardId, isOwner, onClose }: CapsuleModal
                                 ${isCurrentlyOpening ? 'opacity-50 cursor-not-allowed' : 'animate-pulse'}
                               `}
                             >
-                              {isCurrentlyOpening ? '...' : '개봉하기!'}
+                              {isCurrentlyOpening ? '...' : '개봉하기'}
                             </button>
                           </div>
                         </div>
@@ -322,15 +324,15 @@ export default function CapsuleModal({ boardId, isOwner, onClose }: CapsuleModal
                     return (
                       <div
                         key={capsule.id}
-                        className="clay-sm p-4 bg-gradient-to-br from-blue-50 to-cyan-50 opacity-80"
+                        className="clay-sm p-4 bg-grape-50 opacity-80"
                       >
                         <div className="flex items-center gap-3">
                           <span className="text-2xl grayscale-[30%]">{capsule.emoji}</span>
                           <div className="flex-1">
-                            <p className="text-sm font-medium text-blue-400">
+                            <p className="text-sm font-medium text-warm-text">
                               🔒 {formatDate(capsule.openAt)} 개봉 예정
                             </p>
-                            <p className="text-xs text-blue-300">
+                            <p className="text-xs text-warm-sub">
                               {formatDate(capsule.createdAt)} 동결건조됨
                             </p>
                           </div>

@@ -17,6 +17,7 @@ export default function GiftBoardModal({ boardTitle, onGift, onClose }: GiftBoar
   const [selectedFriend, setSelectedFriend] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     fetch('/api/friends')
@@ -31,10 +32,16 @@ export default function GiftBoardModal({ boardTitle, onGift, onClose }: GiftBoar
   const handleGift = async () => {
     if (!selectedFriend) return;
     setSending(true);
-    await onGift(selectedFriend);
-    feedbackSuccess();
-    setSending(false);
-    onClose();
+    setError('');
+    try {
+      await onGift(selectedFriend);
+      feedbackSuccess();
+      onClose();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '선물을 보내지 못했어요');
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -69,6 +76,8 @@ export default function GiftBoardModal({ boardTitle, onGift, onClose }: GiftBoar
               <button
                 key={friend.id}
                 onClick={() => { feedbackTap(); setSelectedFriend(friend.user.id); }}
+                aria-pressed={selectedFriend === friend.user.id}
+                aria-label={`${friend.user.name}님에게 선물하기`}
                 className={`
                   w-full clay-sm p-3 flex items-center gap-3 transition-all
                   ${selectedFriend === friend.user.id
@@ -88,6 +97,10 @@ export default function GiftBoardModal({ boardTitle, onGift, onClose }: GiftBoar
               </button>
             ))}
           </div>
+        )}
+
+        {error && (
+          <p role="alert" className="text-rose-700 text-xs text-center mb-3">{error}</p>
         )}
 
         <div className="flex gap-3">

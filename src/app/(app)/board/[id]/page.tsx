@@ -10,6 +10,7 @@ import GiftBoardModal from '@/components/GiftBoardModal';
 import ShareCardModal from '@/components/ShareCardModal';
 import CapsuleModal from '@/components/CapsuleModal';
 import Avatar from '@/components/Avatar';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import type { BoardDetail } from '@/types';
 import { feedbackTap } from '@/lib/feedback';
 
@@ -25,6 +26,7 @@ export default function BoardDetailPage() {
   const [revealing, setRevealing] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const initialLoadDoneRef = useRef(false);
 
   const fetchBoard = useCallback(async () => {
@@ -142,7 +144,7 @@ export default function BoardDetailPage() {
   };
 
   const handleDelete = async () => {
-    if (!confirm('정말 삭제할까요?')) return;
+    setShowDeleteConfirm(false);
     setDeleting(true);
     try {
       await api(`/api/boards/${id}`, { method: 'DELETE' });
@@ -156,11 +158,18 @@ export default function BoardDetailPage() {
 
   if (loading || !board) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-center">
-          <div className="text-5xl animate-float mb-4">🍇</div>
-          <p className="text-warm-sub">포도판 불러오는 중...</p>
+      <div className="pb-4" aria-busy="true" aria-label="포도판 불러오는 중">
+        <div className="flex items-center justify-between mb-4">
+          <div className="skeleton h-5 w-20" />
+          <div className="skeleton h-7 w-28" />
         </div>
+        <div className="skeleton h-7 w-40 mx-auto mb-6" />
+        <div className="clay-float p-6 mb-6 flex flex-col items-center">
+          <div className="skeleton h-3 w-full mb-5" />
+          <div className="skeleton h-44 w-44 rounded-full" />
+        </div>
+        <div className="skeleton h-20 w-full mb-3" />
+        <div className="skeleton h-16 w-full" />
       </div>
     );
   }
@@ -196,7 +205,7 @@ export default function BoardDetailPage() {
               🎁 선물
             </button>
             <button
-              onClick={handleDelete}
+              onClick={() => { feedbackTap(); setShowDeleteConfirm(true); }}
               disabled={deleting}
               className="clay-button px-3 py-1.5 rounded-xl text-sm text-grape-700"
             >
@@ -305,14 +314,14 @@ export default function BoardDetailPage() {
       {board.stickers.length > 0 && (
         <div>
           <h3 className="text-sm font-semibold text-warm-sub mb-3">최근 활동</h3>
-          <div className="space-y-2">
+          <div className="clay-sm divide-y divide-warm-border/70">
             {board.stickers.slice(-5).reverse().map((sticker) => (
-              <div key={sticker.id} className="clay-sm p-3 flex items-center gap-2">
-                <span className="text-lg">🍇</span>
-                <span className="text-sm text-warm-text">
+              <div key={sticker.id} className="p-3 flex items-center gap-2">
+                <span className="text-lg" aria-hidden="true">🍇</span>
+                <span className="text-sm text-warm-text tabular-nums">
                   {sticker.position + 1}번째 포도알
                 </span>
-                <span className="text-xs text-warm-light ml-auto">
+                <span className="text-xs text-warm-sub ml-auto tabular-nums">
                   {new Date(sticker.filledAt).toLocaleDateString('ko-KR')}
                 </span>
               </div>
@@ -320,6 +329,16 @@ export default function BoardDetailPage() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={showDeleteConfirm}
+        title="포도판을 삭제할까요?"
+        description="삭제하면 되돌릴 수 없어요."
+        confirmLabel="삭제"
+        destructive
+        onConfirm={handleDelete}
+        onCancel={() => setShowDeleteConfirm(false)}
+      />
 
       {/* Share card modal */}
       {showShare && (

@@ -1,5 +1,27 @@
 import type { Metadata, Viewport } from 'next';
+import { Noto_Sans_KR } from 'next/font/google';
+import localFont from 'next/font/local';
 import './globals.css';
+
+// Body: Noto Sans KR self-hosted + subset by next/font (no render-blocking @import).
+const notoSansKr = Noto_Sans_KR({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700', '800'],
+  display: 'swap',
+  variable: '--font-sans',
+  preload: false, // large CJK family — avoid preloading the whole file
+});
+
+// Display: MaruBuri self-hosted from ./fonts (was a dead third-party CDN @font-face).
+const maruBuri = localFont({
+  src: [
+    { path: './fonts/MaruBuri-Regular.woff2', weight: '400', style: 'normal' },
+    { path: './fonts/MaruBuri-SemiBold.woff2', weight: '600', style: 'normal' },
+    { path: './fonts/MaruBuri-Bold.woff2', weight: '700', style: 'normal' },
+  ],
+  display: 'swap',
+  variable: '--font-display',
+});
 
 export const metadata: Metadata = {
   title: 'newal — 한 알씩, 매일의 기록',
@@ -10,21 +32,19 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
+  // allow pinch-zoom (WCAG 1.4.4). iOS focus-zoom is avoided via 16px inputs.
+  maximumScale: 5,
+  userScalable: true,
   themeColor: '#DCC4F2',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ko">
+    <html lang="ko" className={`${notoSansKr.variable} ${maruBuri.variable}`}>
       <head>
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <link rel="apple-touch-icon" href="/icons/icon.svg" />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link rel="preconnect" href="https://cdn.jsdelivr.net" />
       </head>
       <body className="min-h-dvh bg-clay-bg text-warm-text antialiased">
         {children}

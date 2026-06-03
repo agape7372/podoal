@@ -14,13 +14,20 @@ export default function StatsPage() {
   const user = useAppStore((s) => s.user);
   const [stats, setStats] = useState<EnhancedStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>('summary');
 
-  useEffect(() => {
+  const loadStats = () => {
+    setLoading(true);
+    setLoadError(false);
     api<{ stats: EnhancedStats }>('/api/stats')
       .then((data) => setStats(data.stats))
-      .catch(() => {})
+      .catch(() => setLoadError(true))
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    loadStats();
   }, []);
 
   const maxDaily = stats ? Math.max(...stats.dailyStickers.map((d) => d.count), 1) : 1;
@@ -68,17 +75,30 @@ export default function StatsPage() {
     );
   }
 
-  if (!stats) return null;
+  if (loadError || !stats) {
+    return (
+      <div className="pb-4">
+        <h1 className="font-display text-2xl font-bold text-grape-700 mb-4">통계</h1>
+        <div className="text-center py-12">
+          <p className="font-display text-base text-warm-text mb-1.5">불러오지 못했어요</p>
+          <p className="text-sm text-warm-sub mb-5">잠시 후 다시 시도해주세요</p>
+          <button onClick={loadStats} className="clay-button px-5 py-2.5 rounded-2xl text-sm font-semibold text-grape-700">다시 불러오기</button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="pb-4">
       <h1 className="font-display text-2xl font-bold text-grape-700 mb-4">통계</h1>
 
       {/* Tab navigation */}
-      <div className="flex gap-1 mb-5 p-1.5 clay-sm bg-gray-50 rounded-xl overflow-hidden">
+      <div role="tablist" className="flex gap-1 mb-5 p-1.5 clay-sm bg-warm-border/30 rounded-xl overflow-hidden">
         {tabs.map((tab) => (
           <button
             key={tab.key}
+            role="tab"
+            aria-selected={activeTab === tab.key}
             onClick={() => { feedbackTap(); setActiveTab(tab.key); }}
             className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
               activeTab === tab.key
@@ -99,9 +119,9 @@ export default function StatsPage() {
             <Avatar avatar={user?.avatar || 'grape'} size="xl" className="mx-auto mb-3" />
             <h2 className="font-display text-lg font-bold text-grape-700">{user?.name}</h2>
             <div className="mt-4 flex items-center justify-center gap-2">
-              <span className="text-3xl">{'🔥'}</span>
+              <span className="text-3xl" aria-hidden="true">{'🔥'}</span>
               <div>
-                <p className="text-3xl font-extrabold text-grape-600">{stats.streak}</p>
+                <p className="text-3xl font-extrabold text-grape-600 tabular-nums">{stats.streak}</p>
                 <p className="text-xs text-warm-sub">연속 달성일</p>
               </div>
             </div>
@@ -113,7 +133,7 @@ export default function StatsPage() {
             <div className="flex items-end justify-between gap-2 h-28">
               {stats.dailyStickers.map((day) => (
                 <div key={day.date} className="flex flex-col items-center gap-1 flex-1">
-                  <span className="text-[10px] text-warm-sub">{day.count}</span>
+                  <span className="text-[10px] text-warm-sub tabular-nums">{day.count}</span>
                   <div
                     className="w-full rounded-t-lg bg-gradient-to-t from-grape-400 to-grape-300 transition-all duration-500"
                     style={{
@@ -125,8 +145,8 @@ export default function StatsPage() {
                 </div>
               ))}
             </div>
-            <p className="text-xs text-warm-light text-center mt-3">
-              이번 주 {stats.recentStickers}개의 포도알을 채웠어요!
+            <p className="text-xs text-warm-sub text-center mt-3">
+              이번 주 <span className="tabular-nums">{stats.recentStickers}</span>개의 포도알을 채웠어요!
             </p>
           </div>
 
@@ -156,21 +176,21 @@ export default function StatsPage() {
           {/* Streak section */}
           <div className="grid grid-cols-2 gap-3 mb-5">
             <div className="clay-sm p-5 text-center bg-orange-50/60">
-              <span className="text-3xl">{'🔥'}</span>
-              <p className="font-display text-2xl font-bold text-grape-600 mt-2">{stats.currentStreak}일</p>
+              <span className="text-3xl" aria-hidden="true">{'🔥'}</span>
+              <p className="font-display text-2xl font-bold text-grape-600 mt-2 tabular-nums">{stats.currentStreak}일</p>
               <p className="text-[10px] text-warm-sub mt-1">현재 연속 달성</p>
             </div>
             <div className="clay-sm p-5 text-center bg-amber-50/60">
-              <span className="text-3xl">{'🏆'}</span>
-              <p className="font-display text-2xl font-bold text-grape-600 mt-2">{stats.longestStreak}일</p>
+              <span className="text-3xl" aria-hidden="true">{'🏆'}</span>
+              <p className="font-display text-2xl font-bold text-grape-600 mt-2 tabular-nums">{stats.longestStreak}일</p>
               <p className="text-[10px] text-warm-sub mt-1">최장 연속 달성</p>
             </div>
           </div>
 
           {/* Average daily */}
           <div className="clay-sm p-5 mb-5 bg-emerald-50/60 text-center">
-            <span className="text-3xl">{'📊'}</span>
-            <p className="font-display text-2xl font-bold text-grape-600 mt-2">{stats.averageDaily}</p>
+            <span className="text-3xl" aria-hidden="true">{'📊'}</span>
+            <p className="font-display text-2xl font-bold text-grape-600 mt-2 tabular-nums">{stats.averageDaily}</p>
             <p className="text-[10px] text-warm-sub mt-1">일평균 포도알 (최근 30일)</p>
           </div>
         </>
@@ -183,7 +203,7 @@ export default function StatsPage() {
           <div className="clay p-5 mb-5">
             <h3 className="text-sm font-semibold text-warm-text mb-4">요일별 활동</h3>
             <DayOfWeekChart data={dayOfWeekData} />
-            <p className="text-xs text-warm-light text-center mt-3">
+            <p className="text-xs text-warm-sub text-center mt-3">
               가장 활발한 요일: <span className="font-semibold text-grape-600">{stats.mostActiveDay}요일</span>
             </p>
           </div>
@@ -192,7 +212,7 @@ export default function StatsPage() {
           <div className="clay p-5 mb-5 text-center">
             <h3 className="text-sm font-semibold text-warm-text mb-4">완료율</h3>
             <CircularProgress value={stats.completionRate} />
-            <p className="text-xs text-warm-sub mt-3">
+            <p className="text-xs text-warm-sub mt-3 tabular-nums">
               {stats.completedBoards}/{stats.totalBoards} 포도판 완료
             </p>
           </div>
@@ -228,8 +248,8 @@ function StatCard({ icon, label, value, color }: { icon: string; label: string; 
 
   return (
     <div className={`clay-sm p-4 text-center ${bgMap[color] || bgMap.lavender}`}>
-      <span className="text-2xl">{icon}</span>
-      <p className="font-display text-2xl font-bold text-grape-600 mt-1">{value}</p>
+      <span className="text-2xl" aria-hidden="true">{icon}</span>
+      <p className="font-display text-2xl font-bold text-grape-600 mt-1 tabular-nums">{value}</p>
       <p className="text-[10px] text-warm-sub mt-0.5">{label}</p>
     </div>
   );
@@ -243,13 +263,13 @@ function DayOfWeekChart({ data }: { data: { day: string; count: number }[] }) {
       {data.map((d) => (
         <div key={d.day} className="flex items-center gap-2">
           <span className="text-xs text-warm-sub w-5 text-right flex-shrink-0">{d.day}</span>
-          <div className="flex-1 h-5 bg-gray-100 rounded-full overflow-hidden">
+          <div className="flex-1 h-5 bg-warm-border/40 rounded-full overflow-hidden">
             <div
               className="h-full bg-gradient-to-r from-grape-300 to-grape-500 rounded-full transition-all duration-500"
               style={{ width: `${Math.max((d.count / maxCount) * 100, d.count > 0 ? 8 : 0)}%` }}
             />
           </div>
-          <span className="text-xs text-warm-sub w-7 text-right flex-shrink-0">{d.count}</span>
+          <span className="text-xs text-warm-sub w-7 text-right flex-shrink-0 tabular-nums">{d.count}</span>
         </div>
       ))}
     </div>
@@ -273,7 +293,7 @@ function CircularProgress({ value }: { value: number }) {
             cy={radius}
             r={normalizedRadius}
             fill="transparent"
-            stroke="#f3f4f6"
+            stroke="#ECE0F3"
             strokeWidth={stroke}
           />
           {/* Progress circle */}
@@ -297,7 +317,7 @@ function CircularProgress({ value }: { value: number }) {
           </defs>
         </svg>
         <div className="absolute inset-0 flex items-center justify-center">
-          <span className="font-display text-2xl font-bold text-grape-600">{value}%</span>
+          <span className="font-display text-2xl font-bold text-grape-600 tabular-nums">{value}%</span>
         </div>
       </div>
     </div>
@@ -316,7 +336,7 @@ function MonthlyChart({ data }: { data: { month: string; count: number }[] }) {
     <div className="flex items-end justify-between gap-2 h-32">
       {data.map((d) => (
         <div key={d.month} className="flex flex-col items-center gap-1 flex-1">
-          <span className="text-[10px] text-warm-sub">{d.count}</span>
+          <span className="text-[10px] text-warm-sub tabular-nums">{d.count}</span>
           <div
             className="w-full rounded-t-lg bg-gradient-to-t from-grape-500 to-grape-300 transition-all duration-500"
             style={{
@@ -334,7 +354,7 @@ function MonthlyChart({ data }: { data: { month: string; count: number }[] }) {
 function CategoryBreakdown({ data }: { data: { category: string; count: number }[] }) {
   if (data.length === 0) {
     return (
-      <p className="text-sm text-warm-light text-center py-4">
+      <p className="text-sm text-warm-sub text-center py-4">
         아직 카테고리 데이터가 없어요
       </p>
     );
@@ -359,11 +379,11 @@ function CategoryBreakdown({ data }: { data: { category: string; count: number }
         <div key={d.category}>
           <div className="flex items-center justify-between mb-1">
             <span className="text-xs text-warm-text">
-              {categoryIcons[d.category] || '🍇'} {d.category}
+              <span aria-hidden="true">{categoryIcons[d.category] || '🍇'}</span> {d.category}
             </span>
-            <span className="text-xs text-warm-sub">{d.count}개</span>
+            <span className="text-xs text-warm-sub tabular-nums">{d.count}개</span>
           </div>
-          <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
+          <div className="h-3 bg-warm-border/40 rounded-full overflow-hidden">
             <div
               className="h-full bg-gradient-to-r from-grape-300 to-grape-500 rounded-full transition-all duration-500"
               style={{ width: `${(d.count / maxCount) * 100}%` }}

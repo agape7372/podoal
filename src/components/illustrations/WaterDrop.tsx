@@ -1,9 +1,13 @@
+import { useId } from 'react';
+
 interface WaterDropProps {
   size?: number;
   className?: string;
 }
 
 export default function WaterDrop({ size = 20, className = '' }: WaterDropProps) {
+  const uid = useId();
+  const fillId = `water-drop-fill-${uid}`;
   return (
     <svg
       width={size * 0.7}
@@ -14,7 +18,7 @@ export default function WaterDrop({ size = 20, className = '' }: WaterDropProps)
       aria-hidden="true"
     >
       <defs>
-        <radialGradient id="water-drop-fill" cx="40%" cy="55%" r="65%">
+        <radialGradient id={fillId} cx="40%" cy="55%" r="65%">
           <stop offset="0%" stopColor="#E0F2FF" />
           <stop offset="55%" stopColor="#A8D8FF" />
           <stop offset="100%" stopColor="#6BAEE6" />
@@ -26,7 +30,7 @@ export default function WaterDrop({ size = 20, className = '' }: WaterDropProps)
            C 12.5 16.5, 10 18.5, 7 18.5
            C 4 18.5, 1.5 16.5, 1.5 13.5
            C 1.5 11, 3 6.5, 7 1.5 Z"
-        fill="url(#water-drop-fill)"
+        fill={`url(#${fillId})`}
       />
       <ellipse cx="5" cy="11" rx="1.5" ry="2.6" fill="rgba(255,255,255,0.55)" />
     </svg>

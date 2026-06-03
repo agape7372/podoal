@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { api } from '@/lib/api';
 import ReminderModal from '@/components/ReminderModal';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import type { NotificationSettingInfo, ReminderInfo, BoardSummary } from '@/types';
 
 const DAY_LABELS: Record<string, string> = {
@@ -20,20 +21,25 @@ function Toggle({
   enabled,
   onToggle,
   size = 'default',
+  ariaLabel,
 }: {
   enabled: boolean;
   onToggle: () => void;
   size?: 'default' | 'large';
+  ariaLabel?: string;
 }) {
   const isLarge = size === 'large';
   return (
     <button
+      role="switch"
+      aria-checked={enabled}
+      aria-label={ariaLabel}
       onClick={onToggle}
       className={`
         ${isLarge ? 'w-14 h-8' : 'w-12 h-7'} rounded-full transition-all duration-200 relative
         ${enabled
           ? 'bg-gradient-to-r from-grape-400 to-grape-500'
-          : 'bg-gray-200'
+          : 'bg-warm-border'
         }
       `}
     >
@@ -56,6 +62,7 @@ export default function NotificationsPage() {
   const [loading, setLoading] = useState(true);
   const [showReminderModal, setShowReminderModal] = useState(false);
   const [editingReminder, setEditingReminder] = useState<ReminderInfo | undefined>(undefined);
+  const [deletingReminderId, setDeletingReminderId] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     try {
@@ -195,7 +202,7 @@ export default function NotificationsPage() {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-base font-bold text-warm-text">전체 알림</p>
-            <p className="text-xs text-warm-light mt-0.5">
+            <p className="text-xs text-warm-sub mt-0.5">
               {settings.globalEnabled ? '알림이 활성화되어 있어요' : '모든 알림이 꺼져 있어요'}
             </p>
           </div>
@@ -203,6 +210,7 @@ export default function NotificationsPage() {
             enabled={settings.globalEnabled}
             onToggle={() => updateSetting('globalEnabled', !settings.globalEnabled)}
             size="large"
+            ariaLabel="전체 알림"
           />
         </div>
       </section>
@@ -212,7 +220,7 @@ export default function NotificationsPage() {
         <h2 className="text-sm font-semibold text-warm-sub mb-4">방해금지 시간</h2>
         <div className="flex items-center gap-3">
           <div className="flex-1">
-            <label className="block text-xs text-warm-light mb-1 ml-1">시작</label>
+            <label className="block text-xs text-warm-sub mb-1 ml-1">시작</label>
             <input
               type="time"
               value={settings.dndStart}
@@ -222,7 +230,7 @@ export default function NotificationsPage() {
           </div>
           <span className="text-warm-light mt-5">~</span>
           <div className="flex-1">
-            <label className="block text-xs text-warm-light mb-1 ml-1">종료</label>
+            <label className="block text-xs text-warm-sub mb-1 ml-1">종료</label>
             <input
               type="time"
               value={settings.dndEnd}
@@ -231,7 +239,7 @@ export default function NotificationsPage() {
             />
           </div>
         </div>
-        <p className="text-xs text-warm-light text-center mt-3">
+        <p className="text-xs text-warm-sub text-center mt-3 tabular-nums">
           {settings.dndStart} ~ {settings.dndEnd} 방해금지
         </p>
       </section>
@@ -246,12 +254,13 @@ export default function NotificationsPage() {
                 <span className="text-xl">{item.icon}</span>
                 <div>
                   <p className="text-sm font-medium text-warm-text">{item.label}</p>
-                  <p className="text-xs text-warm-light">{item.desc}</p>
+                  <p className="text-xs text-warm-sub">{item.desc}</p>
                 </div>
               </div>
               <Toggle
                 enabled={settings[item.key]}
                 onToggle={() => updateSetting(item.key, !settings[item.key])}
+                ariaLabel={item.label}
               />
             </div>
           ))}
@@ -300,8 +309,8 @@ export default function NotificationsPage() {
           <div className="text-center py-8 text-warm-sub">
             <span className="text-3xl block mb-2">⏰</span>
             <p className="text-sm">아직 리마인더가 없어요</p>
-            <p className="text-xs text-warm-light mt-1">
-              리마인더를 추가해서 습관을 잊지 마세요!
+            <p className="text-xs text-warm-sub mt-1">
+              리마인더를 추가해서 습관을 잊지 마세요.
             </p>
           </div>
         ) : (
@@ -314,8 +323,8 @@ export default function NotificationsPage() {
                 <div className="flex items-start justify-between">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1.5">
-                      <span className="font-display text-lg font-bold text-grape-600">{reminder.time}</span>
-                      <span className="text-xs text-warm-light px-2 py-0.5 rounded-full bg-grape-50">
+                      <span className="font-display text-lg font-bold text-grape-600 tabular-nums">{reminder.time}</span>
+                      <span className="text-xs text-warm-sub px-2 py-0.5 rounded-full bg-grape-50">
                         {reminder.boardTitle || '전체'}
                       </span>
                     </div>
@@ -327,7 +336,7 @@ export default function NotificationsPage() {
                             text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-medium
                             ${reminder.days.split(',').includes(day)
                               ? 'bg-grape-400 text-white'
-                              : 'bg-gray-100 text-warm-light'
+                              : 'bg-warm-border text-warm-sub'
                             }
                           `}
                         >
@@ -343,6 +352,7 @@ export default function NotificationsPage() {
                     <Toggle
                       enabled={reminder.isActive}
                       onToggle={() => toggleReminderActive(reminder)}
+                      ariaLabel={`${reminder.time} 리마인더 켜기`}
                     />
                   </div>
                 </div>
@@ -354,7 +364,7 @@ export default function NotificationsPage() {
                     수정
                   </button>
                   <button
-                    onClick={() => deleteReminder(reminder.id)}
+                    onClick={() => setDeletingReminderId(reminder.id)}
                     className="text-xs text-grape-700 font-medium px-2 py-1"
                   >
                     삭제
@@ -378,6 +388,20 @@ export default function NotificationsPage() {
           }}
         />
       )}
+
+      {/* Delete reminder confirmation */}
+      <ConfirmDialog
+        open={deletingReminderId !== null}
+        title="리마인더를 삭제할까요?"
+        description="삭제한 리마인더는 다시 되돌릴 수 없어요."
+        confirmLabel="삭제"
+        destructive
+        onConfirm={() => {
+          if (deletingReminderId) deleteReminder(deletingReminderId);
+          setDeletingReminderId(null);
+        }}
+        onCancel={() => setDeletingReminderId(null)}
+      />
     </div>
   );
 }

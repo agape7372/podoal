@@ -1,3 +1,5 @@
+import { useId } from 'react';
+
 interface VineLeafProps {
   size?: number;
   className?: string;
@@ -5,6 +7,8 @@ interface VineLeafProps {
 }
 
 export default function VineLeaf({ size = 32, className = '', flip = false }: VineLeafProps) {
+  const uid = useId();
+  const fillId = `vine-leaf-fill-${uid}`;
   return (
     <svg
       width={size}
@@ -16,7 +20,7 @@ export default function VineLeaf({ size = 32, className = '', flip = false }: Vi
       aria-hidden="true"
     >
       <defs>
-        <radialGradient id="vine-leaf-fill" cx="35%" cy="30%" r="80%">
+        <radialGradient id={fillId} cx="35%" cy="30%" r="80%">
           <stop offset="0%" stopColor="#BFE3C5" />
           <stop offset="60%" stopColor="#6BBE7E" />
           <stop offset="100%" stopColor="#4A8C58" />
@@ -28,7 +32,7 @@ export default function VineLeaf({ size = 32, className = '', flip = false }: Vi
            C 28 22, 22 28, 16 28
            C 10 28, 4 22, 4 16
            C 4 8, 10 4, 16 4 Z"
-        fill="url(#vine-leaf-fill)"
+        fill={`url(#${fillId})`}
         transform="rotate(-20 16 16)"
       />
       <path

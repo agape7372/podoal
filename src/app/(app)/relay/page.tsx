@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppStore } from '@/lib/store';
 import { api } from '@/lib/api';
@@ -14,14 +14,21 @@ export default function RelayListPage() {
   const { relays, setRelays } = useAppStore();
   const user = useAppStore((s) => s.user);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [showCompleted, setShowCompleted] = useState(false);
 
-  useEffect(() => {
+  const loadRelays = useCallback(() => {
+    setLoading(true);
+    setLoadError(false);
     api<{ relays: RelayInfo[] }>('/api/relays')
       .then((data) => setRelays(data.relays))
-      .catch(() => {})
+      .catch(() => setLoadError(true))
       .finally(() => setLoading(false));
   }, [setRelays]);
+
+  useEffect(() => {
+    loadRelays();
+  }, [loadRelays]);
 
   const activeRelays = relays.filter((r) => r.status === 'active');
   const completedRelays = relays.filter((r) => r.status === 'completed');
@@ -55,6 +62,13 @@ export default function RelayListPage() {
             <div key={i} className="skeleton h-32 w-full" />
           ))}
         </div>
+      ) : loadError ? (
+        /* Error state */
+        <div className="text-center py-12">
+          <p className="font-display text-base text-warm-text mb-1.5">불러오지 못했어요</p>
+          <p className="text-sm text-warm-sub mb-5">잠시 후 다시 시도해주세요</p>
+          <button onClick={loadRelays} className="clay-button px-5 py-2.5 rounded-2xl text-sm font-semibold text-grape-700">다시 불러오기</button>
+        </div>
       ) : relays.length === 0 ? (
         /* Empty state */
         <div className="text-center py-16">
@@ -62,7 +76,7 @@ export default function RelayListPage() {
           <p className="text-sm leading-relaxed text-warm-sub mb-1">
             아직 릴레이가 없어요
           </p>
-          <p className="text-sm leading-relaxed text-warm-light mb-5">
+          <p className="text-sm leading-relaxed text-warm-sub mb-5">
             친구들과 함께 습관 릴레이를 시작해 보세요!
           </p>
         </div>
@@ -90,7 +104,7 @@ export default function RelayListPage() {
                       <div className="flex items-start justify-between mb-3">
                         <div>
                           <h3 className="font-bold text-warm-text">{relay.title}</h3>
-                          <p className="text-xs text-warm-sub mt-0.5">
+                          <p className="text-xs text-warm-sub mt-0.5 tabular-nums">
                             {relay.totalStickers}알 | {total}명 참여
                           </p>
                         </div>
@@ -134,7 +148,7 @@ export default function RelayListPage() {
                                 className={`w-4 h-0.5 mx-0.5 ${
                                   p.status === 'completed'
                                     ? 'bg-grape-400'
-                                    : 'bg-gray-200'
+                                    : 'bg-warm-border'
                                 }`}
                               />
                             )}
@@ -146,7 +160,7 @@ export default function RelayListPage() {
                       <div className="mt-3">
                         <div className="flex items-center justify-between text-xs text-warm-sub mb-1">
                           <span>진행률</span>
-                          <span>{completed}/{total} 완료</span>
+                          <span className="tabular-nums">{completed}/{total} 완료</span>
                         </div>
                         <div className="w-full h-2 bg-grape-100 rounded-full overflow-hidden">
                           <div
@@ -188,11 +202,11 @@ export default function RelayListPage() {
                       <div className="flex items-start justify-between mb-3">
                         <div>
                           <h3 className="font-bold text-warm-text">{relay.title}</h3>
-                          <p className="text-xs text-warm-sub mt-0.5">
+                          <p className="text-xs text-warm-sub mt-0.5 tabular-nums">
                             {relay.totalStickers}알 | {relay.participants.length}명 참여
                           </p>
                         </div>
-                        <span className="px-2 py-1 rounded-lg bg-green-100 text-green-600 text-xs font-semibold">
+                        <span className="px-2 py-1 rounded-lg bg-leaf-100 text-leaf-700 text-xs font-semibold">
                           완료
                         </span>
                       </div>

@@ -98,7 +98,7 @@ export default function ShareCardModal({ board, userName, onClose }: ShareCardMo
           📤 공유 카드
         </h3>
         <p className="text-sm text-warm-sub text-center mb-5">
-          나의 포도 달성 현황을 공유해보세요!
+          나의 포도 달성 현황을 공유해보세요.
         </p>
 
         {/* Preview */}

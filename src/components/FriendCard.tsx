@@ -75,28 +75,28 @@ export default function FriendCard({
               <button
                 onClick={() => { feedbackTap(); onViewBoards?.(friend.user.id); }}
                 className="clay-button p-2 rounded-xl text-sm font-medium text-grape-600 transition-all active:scale-95"
-                title="포도판 보기"
+                aria-label="포도판 보기"
               >
                 🍇
               </button>
               <button
                 onClick={() => { feedbackTap(); onSendCheer?.(friend.user.id); }}
                 className="clay-button p-2 rounded-xl text-lg transition-all active:scale-95"
-                title="응원 보내기"
+                aria-label="응원 보내기"
               >
                 💜
               </button>
               <button
                 onClick={() => { feedbackTap(); onToggleFavorite?.(friend.id); }}
                 className="clay-button p-2 rounded-xl text-lg transition-all active:scale-95"
-                title={friend.isFavorite ? '즐겨찾기 해제' : '즐겨찾기'}
+                aria-label={friend.isFavorite ? '즐겨찾기 해제' : '즐겨찾기'}
               >
                 {friend.isFavorite ? '⭐' : '☆'}
               </button>
               <button
                 onClick={() => onRemove?.(friend.id)}
                 className="clay-button p-2 rounded-xl text-sm text-warm-sub transition-all active:scale-95"
-                title="삭제"
+                aria-label="삭제"
               >
                 ✕
               </button>

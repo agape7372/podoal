@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+<title>포도알 Taste 리뷰 · 미리보기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --grape-primary:#9B7ED8; --grape-deep:#7B5FB8; --grape-deepest:#5E3F80;
+    --grape-50:#FBF7FE; --grape-100:#F4ECFB; --grape-200:#EBE0F6; --grape-700:#7D58A8;
+    --lime-soft:#F7FAD8; --lime-deep:#7F8A3F;
+    --surface:#FDFCFE; --bg:#FBF9FE;
+    /* AA-graded text tokens (this dashboard dogfoods the fix R3) */
+    --text:#2F2A3F; --sub:#5B5470; --hint:#6E6680;
+    --border:#ECE0F3;
+    --shadow:73,50,100;            /* single canonical tint (fix R11) */
+    --hi:#C0392B; --hi-bg:#FCEBE9; --md:#B8791F; --md-bg:#FBF1E2; --lo:#5B7F46; --lo-bg:#EEF5E6;
+    --ok:#3E7D52; --ok-bg:#E9F4ED;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html{font-family:'Noto Sans KR',system-ui,-apple-system,sans-serif;letter-spacing:-.01em;word-break:keep-all}
+  body{
+    margin:0;color:var(--text);background:var(--bg);
+    background-image:
+      radial-gradient(at 12% 6%, rgba(155,126,216,.10) 0%, transparent 42%),
+      radial-gradient(at 88% 96%, rgba(247,250,216,.40) 0%, transparent 45%);
+    min-height:100dvh;line-height:1.6;padding-bottom:64px;
+  }
+  .wrap{max-width:1180px;margin:0 auto;padding:28px 20px 0}
+  .num{font-variant-numeric:tabular-nums}            /* fix R12 */
+
+  /* clay surfaces — purple-warm tinted shadows (the signature) */
+  .clay{background:var(--surface);border:1.3px solid var(--border);border-radius:24px;
+    box-shadow:2.5px 3.5px 0 rgba(var(--shadow),.06), 0 6px 16px rgba(var(--shadow),.05),
+      0 0 0 1px rgba(255,255,255,.7) inset;}
+  .clay-sm{background:var(--surface);border:1.2px solid var(--border);border-radius:16px;
+    box-shadow:1.5px 2px 0 rgba(var(--shadow),.05);}
+
+  /* visible focus ring everywhere — demonstrates fix R1 */
+  a:focus-visible, button:focus-visible, input:focus-visible, [tabindex]:focus-visible{
+    outline:none; box-shadow:0 0 0 3px rgba(155,126,216,.5), 0 0 0 5px rgba(155,126,216,.18);
+    border-radius:12px;
+  }
+
+  header.hero{padding:8px 4px 22px}
+  .kicker{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;color:var(--grape-deep);
+    background:var(--grape-100);border:1.2px solid var(--border);border-radius:999px;padding:5px 13px}
+  h1{font-size:clamp(26px,4.5vw,40px);margin:14px 0 6px;letter-spacing:-.03em;line-height:1.12;font-weight:800}
+  h1 .pin{color:var(--grape-deep)}
+  .lede{font-size:15.5px;color:var(--sub);max-width:64ch;margin:0 0 18px}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px}
+  .chip{font-size:12px;font-weight:600;color:var(--sub);background:#fff;border:1.2px solid var(--border);
+    border-radius:999px;padding:5px 12px}
+
+  /* stat band */
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:6px 0 8px}
+  .stat{padding:16px 18px}
+  .stat b{display:block;font-size:30px;font-weight:800;letter-spacing:-.03em;line-height:1}
+  .stat span{font-size:12.5px;color:var(--sub);font-weight:600}
+  .stat .hi{color:var(--hi)} .stat .md{color:var(--md)} .stat .lo{color:var(--lo)} .stat .gp{color:var(--grape-deep)}
+
+  .dial{display:flex;gap:18px;flex-wrap:wrap;align-items:center;padding:14px 20px;margin-top:4px}
+  .dial .d{font-size:13px;color:var(--sub);font-weight:600}
+  .dial .d b{font-size:18px;color:var(--grape-deep);font-weight:800;margin-left:4px}
+  .dial .sep{width:1px;height:26px;background:var(--border)}
+
+  section{margin-top:30px}
+  h2{font-size:20px;font-weight:800;letter-spacing:-.02em;margin:0 0 4px;display:flex;align-items:center;gap:9px}
+  h2 .dot{width:10px;height:10px;border-radius:50%;background:var(--grape-primary)}
+  .sub2{font-size:13.5px;color:var(--sub);margin:0 0 16px}
+
+  /* strengths */
+  .grid-str{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+  .str{padding:14px 16px;border-radius:16px;background:var(--ok-bg);border:1.2px solid #CFE6D6}
+  .str b{display:block;font-size:13.5px;color:#2C5C3C;margin-bottom:3px;font-weight:700}
+  .str span{font-size:12.5px;color:#4A6B55;line-height:1.5}
+
+  /* root cause cards */
+  .roots{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:13px}
+  .root{padding:16px 18px;cursor:pointer;border:1.3px solid var(--border);transition:transform .12s ease, box-shadow .12s ease}
+  .root:hover{transform:translate(-1px,-1px)}
+  .root.active{border-color:var(--grape-primary);box-shadow:0 0 0 3px rgba(155,126,216,.18),2.5px 3.5px 0 rgba(var(--shadow),.07)}
+  .root .rid{font-size:11.5px;font-weight:800;color:#fff;background:var(--grape-deep);border-radius:7px;padding:2px 8px;letter-spacing:.02em}
+  .root .rtitle{font-size:14.5px;font-weight:700;margin:9px 0 5px;letter-spacing:-.01em}
+  .root .rdesc{font-size:12.5px;color:var(--sub);line-height:1.5}
+  .root .rmeta{display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap}
+  .pill{font-size:11px;font-weight:700;border-radius:999px;padding:3px 9px;white-space:nowrap}
+  .pill.s-high{color:var(--hi);background:var(--hi-bg)} .pill.s-medium{color:var(--md);background:var(--md-bg)}
+  .pill.s-low{color:var(--lo);background:var(--lo-bg)} .pill.cnt{color:var(--grape-deep);background:var(--grape-100)}
+  .pill.p0{color:#fff;background:var(--hi)} .pill.p1{color:#fff;background:var(--md)} .pill.p2{color:#fff;background:var(--lo)}
+
+  /* filter bar */
+  .filters{position:sticky;top:0;z-index:10;background:rgba(251,249,254,.86);backdrop-filter:blur(10px);
+    padding:14px 4px;margin:8px -4px 14px;border-bottom:1.2px solid var(--border)}
+  .frow{display:flex;flex-wrap:wrap;gap:7px;align-items:center;margin-bottom:8px}
+  .flabel{font-size:11.5px;font-weight:700;color:var(--hint);min-width:52px}
+  .fbtn{font-size:12.5px;font-weight:600;color:var(--sub);background:#fff;border:1.3px solid var(--border);
+    border-radius:999px;padding:6px 13px;cursor:pointer;transition:all .12s ease}
+  .fbtn:hover{transform:translate(-1px,-1px);box-shadow:1.5px 2px 0 rgba(var(--shadow),.06)}
+  .fbtn.on{background:var(--grape-primary);color:#fff;border-color:var(--grape-primary)}
+  .fsearch{flex:1;min-width:180px;font-size:13px;color:var(--text);background:#fff;border:1.3px solid var(--border);
+    border-radius:12px;padding:8px 14px}
+  .fsearch::placeholder{color:var(--hint)}   /* full-opacity hint — fix R3 */
+  .resultcount{font-size:12.5px;color:var(--sub);font-weight:600;padding:2px 4px}
+
+  /* findings */
+  .flist{display:flex;flex-direction:column;gap:11px}
+  .find{padding:15px 17px;display:grid;grid-template-columns:14px 1fr;gap:13px;align-items:start}
+  .sevdot{width:13px;height:13px;border-radius:50%;margin-top:4px}
+  .sevdot.high{background:var(--hi)} .sevdot.medium{background:var(--md)} .sevdot.low{background:var(--lo)}
+  .ftop{display:flex;flex-wrap:wrap;gap:7px;align-items:center;margin-bottom:6px}
+  .ftag{font-size:11px;font-weight:700;border-radius:7px;padding:2px 8px}
+  .ftag.surf{color:var(--grape-deep);background:var(--grape-100)}
+  .ftag.dim{color:var(--sub);background:#F1EEF6}
+  .ftag.root{color:#fff;background:var(--grape-deep);cursor:pointer}
+  .ftag.intent{color:var(--md);background:var(--md-bg)}
+  .ftitle{font-size:14.5px;font-weight:700;letter-spacing:-.01em;line-height:1.35;margin:0 0 4px}
+  .floc{font-family:'SFMono-Regular',ui-monospace,Menlo,Consolas,monospace;font-size:11.5px;color:var(--grape-deep);
+    background:var(--grape-50);border:1px solid var(--border);border-radius:6px;padding:2px 7px;display:inline-block;
+    margin-bottom:7px;word-break:break-all}
+  .fprob{font-size:13px;color:var(--sub);line-height:1.55;margin:0 0 7px}
+  .ffix{font-size:12.5px;color:var(--text);line-height:1.5;background:var(--lime-soft);border:1px solid #E6ECC0;
+    border-radius:10px;padding:8px 12px}
+  .ffix b{color:var(--lime-deep);font-weight:700}
+
+  footer{margin-top:36px;padding:20px;font-size:12.5px;color:var(--hint);line-height:1.6;border-top:1.2px solid var(--border)}
+  footer b{color:var(--sub)}
+  .empty{padding:40px;text-align:center;color:var(--hint);font-size:14px}
+
+  @media (prefers-reduced-motion: reduce){     /* dogfoods fix R2 */
+    *,*::before,*::after{transition:none!important;animation:none!important}
+  }
+  @media(max-width:560px){ .find{grid-template-columns:1fr} .sevdot{display:none} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <span class="kicker">🍇 taste-skill 리뷰 · 보고 전용 (코드 미수정)</span>
+    <h1><span class="pin">포도알(newal)</span> 앱 전체 Taste 리뷰</h1>
+    <p class="lede">9개 표면 · ~90개 파일을 taste-skill(v2) + redesign + soft 스킬로 audit했습니다. 미적 방향은 견고합니다 — raw 90개 지적은 <b>~12개 고유 이슈</b>로 수렴하고, 그중 <b>7개가 기반 한 곳 수정으로 전 화면이 해결되는 시스템 이슈</b>입니다. 이 대시보드 자체가 권고(포커스 링·reduced-motion·AA 대비·tinted shadow·tabular-nums)를 시연합니다.</p>
+    <div class="chips">
+      <span class="chip">DESIGN_VARIANCE ≈ 5</span>
+      <span class="chip">MOTION_INTENSITY ≈ 6</span>
+      <span class="chip">VISUAL_DENSITY ≈ 5</span>
+      <span class="chip">차분·중밀도 소비자 제품 앱</span>
+    </div>
+
+    <div class="stats">
+      <div class="clay-sm stat"><b class="num gp">90</b><span>총 findings (raw)</span></div>
+      <div class="clay-sm stat"><b class="num hi">32</b><span>🔴 High</span></div>
+      <div class="clay-sm stat"><b class="num md">33</b><span>🟡 Medium</span></div>
+      <div class="clay-sm stat"><b class="num lo">25</b><span>🟢 Low</span></div>
+      <div class="clay-sm stat"><b class="num gp">12</b><span>고유 이슈로 수렴</span></div>
+      <div class="clay-sm stat"><b class="num gp">7</b><span>기반=전화면 시스템</span></div>
+    </div>
+  </header>
+
+  <section>
+    <h2><span class="dot"></span>잘 하고 있는 것 (Strengths)</h2>
+    <p class="sub2">taste-skill이 "보상하라"고 명시한 디테일을 이미 실천 중입니다. 리뷰의 목적은 이걸 지키며 구멍만 메우는 것.</p>
+    <div class="grid-str" id="strengths"></div>
+  </section>
+
+  <section>
+    <h2><span class="dot"></span>근본 원인 12개 <span style="font-size:13px;font-weight:600;color:var(--sub)">— 클릭하면 해당 findings만 필터</span></h2>
+    <p class="sub2">P0(기반 한 곳) → P1(상태·시맨틱·성능) → P2(토큰 정합·코드 위생). 색 방향을 바꾸는 항목은 없습니다.</p>
+    <div class="roots" id="roots"></div>
+  </section>
+
+  <section>
+    <h2><span class="dot"></span>전체 Findings <span style="font-size:13px;font-weight:600;color:var(--sub)" id="total-lbl"></span></h2>
+    <div class="filters">
+      <div class="frow"><span class="flabel">심각도</span><div id="f-sev"></div></div>
+      <div class="frow"><span class="flabel">표면</span><div id="f-surf"></div></div>
+      <div class="frow"><span class="flabel">차원</span><div id="f-dim"></div></div>
+      <div class="frow">
+        <span class="flabel">근본</span><div id="f-root" style="flex:1;display:flex;flex-wrap:wrap;gap:7px"></div>
+      </div>
+      <div class="frow">
+        <input class="fsearch" id="search" type="search" placeholder="검색: 파일·키워드 (예: focus, 대비, reward-glow, GrapeSticker)" aria-label="findings 검색" />
+        <button class="fbtn" id="reset" type="button">필터 초기화</button>
+        <span class="resultcount num" id="rc"></span>
+      </div>
+    </div>
+    <div class="flist" id="findings"></div>
+  </section>
+
+  <footer>
+    <b>방법론·한계</b> · taste-skill은 본래 랜딩용이라, 본 리뷰는 redesign 체크리스트 + soft 원칙 + 보편 하드룰(대비/모션/상태/그림자/일관성)을 주축으로 적용하고 랜딩 전용 룰은 환영/로그인 화면에만 적용했습니다.
+    <code>CLAUDE.md</code>의 의도된 결정(보라-웜 그림자·이모지 내비·Maru Buri·한글 카피 불변·claymorphism·수제 일러스트)은 문제로 잡지 않았고, 의도에 닿는 11건은 🟠"의도 인접"으로 표시했습니다.
+    대비 수치는 <b>추정치</b>이며 적용 전 실제 렌더 색으로 재측정 권장. 동적 상태(실데이터 로딩·키보드 탭 순서·실제 스크린리더 출력)는 미검증. 데이터 레이어(/api·prisma·auth)는 시각 리뷰에서 제외. · <b>이 리뷰는 코드를 수정하지 않았습니다.</b>
+  </footer>
+</div>
+
+<script>
+const SURF = {foundation:"기반",welcome:"환영",core:"컴포넌트",grape:"포도알",social:"소셜",game:"게임화",modals:"모달",illus:"일러스트",system:"전역"};
+const DIM  = {a11y:"접근성",motion:"모션",color:"색·표면",state:"상태",comp:"컴포넌트",code:"코드",typo:"타이포",perf:"성능",layout:"레이아웃",copy:"카피",omit:"누락"};
+const SEVK = {high:"High",medium:"Medium",low:"Low"};
+
+const STRENGTHS = [
+  ["보라-웜 그림자 틴트","clay-* / boxShadow 전반 rgba(73,50,100) — 검정 그림자 회피 = 최대 AI-안티텔"],
+  ["포도알 인터랙션 시스템","transform/opacity만 + 전용 reduced-motion + 옵티미스틱 채움(롤백) + 차분한 인라인 에러"],
+  ["진짜 타이포 위계","Maru Buri를 H1/H2/숫자에 한정, weight 500/600/700, 음수 트래킹"],
+  ["shape-matched 스켈레톤","소셜/모달 리스트는 최종 카드 형태에 맞춘 스켈레톤(맨 스피너 아님)"],
+  ["연출된 빈 상태","Podo 마스코트 + '어떻게 채우는지' CTA가 있는 empty state"],
+  ["concentric radii + 깊이","컨테이너보다 안쪽 타이트(24→14), inset 흰 하이라이트 코어(double-bezel)"],
+  ["spring 이징","cubic-bezier(0.16,1,0.3,1)/(0.34,1.56,0.64,1), CSS에 출처 주석까지"],
+  ["일러스트 a11y 위생","장식 SVG aria-hidden, 의미있는 Podo role=img+한글 aria-label로 분리"],
+  ["z-index 사다리 준수","Nav50>FAB40>Install30, modal90 — 코드에서 실제 지켜짐"],
+  ["board error.tsx 경계","마스코트+차분한 카피+복구 버튼 2개 — AI가 흔히 빠뜨리는 것"],
+];
+
+const ROOTS = [
+  ["R1","P0","키보드 포커스 링(:focus-visible) 부재","globals.css .clay-button에 focus 스타일 없음. 전역 규칙 추가 한 번이면 ClayButton·Nav·FAB·칩·모달·토글·카드 전부 해결.","high",8],
+  ["R2","P0","reduced-motion이 grape-*에만 적용","L404 블록이 float/shimmer/pulse/reward-glow/confetti/spinner를 안 잡음. 블록 확장 또는 motion-safe 전환.","high",9],
+  ["R3","P0","기반 텍스트 토큰 대비 미달","placeholder(opacity .5≈2:1), warm-light 캡션(≈2.6:1), grape-400/500 텍스트·FAB. 토큰 한 곳 교정.","high",8],
+  ["R4","P0","핀치 줌 차단(userScalable:false)","layout.tsx viewport — WCAG 1.4.4 위반. 1줄 수정 + 입력 16px.","high",1],
+  ["R5","P1","파괴적 액션에 window.confirm()","board 삭제·친구 삭제. in-app 시트(z-90) 이미 있음 → 재사용.","high",2],
+  ["R6","P1","에러 상태 누락(에러=빈상태로 위장)","fetch catch 삼킴 7화면 + Cheer/Gift 전송실패 시 모달 멈춤. friends/[id] 패턴 이식.","high",4],
+  ["R7","P1","로딩=이모지/맨막대(shape 미스매치)","board 상세 🍇, 홈/와이너리 균일막대. .skeleton 유틸 있는데 미사용.","medium",3],
+  ["R8","P1","비시맨틱 인터랙티브(div-soup)","ClayCard div-onClick(전파), toggle role=switch 없음, tab/heatmap/landmark, 아이콘 aria-label.","high",5],
+  ["R9","P1","비-compositor 속성 애니(성능)","reward-glow box-shadow 무한, 진행바 width, skeleton bg-position → transform/opacity로.","medium",4],
+  ["R10","P1","폰트를 @import+CDN 로드(next/font 미사용)","Noto Sans KR @import(렌더블로킹)+MaruBuri jsdelivr. LCP/CLS 리스크.","medium",1],
+  ["R11","P2","컬러 토큰 드리프트","그림자 틴트 2종, 브랜드 퍼플 3종, juice/leaf/sunshine 부재, ad-hoc gray/green/blue, joyful 3종.","medium",6],
+  ["R12","P2","코드 위생 & 마감","중복 .grape-filled, SVG ID 충돌(실버그), dead code, NaN, tabular-nums, 카드남용, <44px, 느낌표.","medium",9],
+];
+
+// id, surface, dimension, severity, rootTag, intentAdjacent, file, location, problem, fix
+const F = [
+ // foundation
+ [1,"foundation","a11y","high","R1",0,"globals.css","54-56,142-160,228-245",":focus-visible 규칙이 어디에도 없음. .clay-button은 hover/active만, .clay-input은 outline:none 후 border-color만 살짝 변경.","전역 :focus-visible 링 1개 추가(기존 grape-glow 토큰 재사용)."],
+ [2,"foundation","a11y","high","R3",0,"globals.css","247-250; tailwind:46","placeholder = warm-sub #6E6680 × opacity .5 ≈ 2.1:1; warm-light #A89FB8 ≈ 2.6:1을 본문에 사용.","placeholder opacity 제거+전용 토큰(≥4.5:1), warm-light는 장식 전용 강등."],
+ [3,"foundation","motion","high","R2",0,"globals.css","404-413","reduced-motion 블록이 grape-*만 정지. float/shimmer/reward-glow/confetti/spinner 무방비.","블록에 해당 클래스 추가 또는 전역 백스톱."],
+ [4,"foundation","motion","medium","R9",0,"globals.css","284-287,493-508","rewardGlow가 box-shadow 무한 애니, grapeNextBreath가 filter:brightness 애니(둘 다 repaint).","블러 의사요소 opacity로 재구현."],
+ [5,"foundation","a11y","high","R4",0,"src/app/layout.tsx","10-16","viewport maximumScale:1, userScalable:false → 저시력 줌 불가(WCAG 1.4.4).","userScalable 제거·maximumScale≥5, 입력 16px."],
+ [6,"foundation","color","medium","R11",1,"tailwind.config.ts","11-49","문서상 grape-500 #9B7ED8 + juice/leaf/sunshine 팔레트가 실제 토큰에 없음(grape-500=#B28CDC, legacy lime만 잔존).","토큰을 문서와 정렬하거나 문서 갱신, lime-* 정리."],
+ [7,"foundation","perf","medium","R10",0,"globals.css","5,8-28","Noto Sans KR를 @import(렌더블로킹)·MaruBuri를 jsdelivr CDN으로 로드. next/font 미사용.","next/font로 자가호스팅+서브셋, @import 제거."],
+ [8,"foundation","comp","low","R7",0,"globals.css","523-533",".skeleton이 단일 막대 shimmer뿐 — 형태 매칭 변형 없음.",".skeleton-text/avatar/card 변형 문서화."],
+ [9,"foundation","code","low","R12",0,"globals.css","179-188,264-270",".grape-filled 중복 정의 — 두번째가 border-radius 누락, 소스 순서 의존.","한 블록으로 병합(보라 틴트 버전 유지)."],
+ [10,"foundation","color","low","R11",0,"globals.css","183-197,216-225",".grape-empty·mini가 rgba(0,0,0,X) 검정 그림자 — 틴트 시스템에서 이탈.","rgba(94,63,128,X) 보라 틴트로 교체."],
+ // welcome
+ [11,"welcome","motion","high","R2",0,"src/app/page.tsx","37,115,126","Podo 마스코트 animate-float(무한)가 reduced-motion에서 멈추지 않음(첫 화면 hero).","reduced-motion 블록에 .animate-float 추가."],
+ [12,"welcome","a11y","high","R3",0,"src/app/page.tsx","236,243,305,312","폼 placeholder가 warm-sub×opacity .5 ≈ 2.1:1. '8자리 이상' 규칙이 placeholder에만 존재.","placeholder 대비 상향 + 규칙은 영구 helper로."],
+ [13,"welcome","color","medium","R3",0,"src/app/page.tsx","132,187,217","warm-light #A89FB8(≈2.4:1)를 hero 설명문·'또는'·dev 라벨에 사용.","hero 본문/dev 라벨은 warm-sub(~5:1)로."],
+ [14,"welcome","state","high","R1",0,"src/app/page.tsx","146-183,194-326","OAuth 링크·모드전환·아바타·dev·입력 어디에도 키보드 포커스 표시 없음.","공통 focus-visible:ring 적용."],
+ [15,"welcome","state","medium","R6",0,"src/app/page.tsx","248,317","로그인/회원가입 에러가 brand grape-700 평문, role=alert/aria-live 없음.","welcome 에러 패널 패턴 재사용 + role=alert."],
+ [16,"welcome","state","medium","R3",0,"src/components/ClayButton.tsx","52","disabled/loading이 opacity-50뿐 → joyful CTA 라벨 대비 붕괴, '잠시만요…' 안 보임.","전용 disabled 토큰(라벨 ≥4.5:1 유지)."],
+ [17,"welcome","comp","medium","R12",0,"src/app/page.tsx","194-265","모드전환·뒤로 버튼이 py-1 → ~36px, 44px 미만(유일한 로그인↔가입 이동수단).","py-3 / min-h-44px."],
+ [18,"welcome","a11y","low","R8",0,"src/app/page.tsx","152,164,181","'체험'(게스트) 배지가 aria 연결 없음, 10px 칩 대비 낮음.","배지에 접근성 라벨 연결 + 대비 확인."],
+ [19,"welcome","typo","low","R12",0,"src/app/page.tsx","132-135","hero 부제가 하드코딩 <br/> — 좁은 화면서 고아 단어/불균형 줄바꿈.","text-wrap:balance로 교체(카피는 유지)."],
+ // core-components
+ [20,"core","motion","high","R2",0,"src/components/InstallPrompt.tsx","57","animate-slide-up이 reduced-motion 미적용(fixed 오버레이 진입).","reduced-motion에 slide-up 추가."],
+ [21,"core","motion","medium","R2",0,"src/components/ClayButton.tsx","59","로딩 animate-spin(무한)이 reduced-motion 가드 없음.","reduce 시 정적/opacity-pulse 또는 라벨만."],
+ [22,"core","a11y","high","R3",0,"src/components/ClayInput.tsx","globals:247-250","placeholder warm-sub×0.5 ≈ 2.3:1.","opacity 제거 + ≥4.5:1 토큰."],
+ [23,"core","state","high","R1",0,"src/components/ClayButton.tsx","45-56; Nav/BoardCard/ClayCard","ClayButton·Nav·카드 어디에도 focus-visible 없음.","공유 focus-visible 링."],
+ [24,"core","a11y","high","R8",0,"src/components/ClayCard.tsx","39-47","onClick 시 div+onClick(role/tabIndex/keydown 없음) — 공유 프리미티브라 전파. BoardCard는 button으로 올바름.","onClick 있으면 <button> 렌더."],
+ [25,"core","state","medium","R8",0,"src/components/ClayInput.tsx","19,22-24","에러가 색만(ring-grape+border-lime, 초록=valid 혼동), aria-invalid/describedby 없음.","aria-invalid + 에러색 코딩 + 메시지 연결."],
+ [26,"core","code","medium","R12",0,"src/components/BoardCard.tsx","14,55","totalStickers=0 시 progress=NaN → 'NaN%' 표시, width:NaN%.","total>0 가드 + 0~100 클램프."],
+ [27,"core","comp","low","R12",0,"src/components/Avatar.tsx","23-42","img onError 폴백 없음(깨진 이미지), rounded-full+inline 50% 중복.","onError 폴백 + 라디우스 중복 제거."],
+ [28,"core","perf","low","R9",0,"src/components/InstallPrompt.tsx","60","Nav+InstallPrompt 둘 다 backdrop-blur(허용되나 bg-white/95라 거의 장식, 저사양 비용).","InstallPrompt blur 제거 고려."],
+ [29,"core","color","low","R11",1,"src/components/ClayButton.tsx","22-25","joyful 변형이 문서(grape-500→juice-400)와 다름(grape-300→lime-300), InstallPrompt는 또 다른 그라데.","단일 joyful 토큰으로 통일."],
+ // grape
+ [30,"grape","motion","high","R9",0,"src/app/(app)/board/[id]/page.tsx","279; globals:493-508","리워드 카드 reward-glow가 box-shadow 무한 애니 + reduced-motion 없음.","opacity 오버레이로 재구현 + reduce 가드."],
+ [31,"grape","comp","high","R7",0,"src/app/(app)/board/[id]/page.tsx","157-166","보드 로딩이 떠다니는 🍇(맨 스피너급). .skeleton 미사용 → 레이아웃 점프.","보드 형태 스켈레톤 스캐폴드로 교체."],
+ [32,"grape","state","high","R5",0,"src/app/(app)/board/[id]/page.tsx","145","board 삭제가 window.confirm() 블로킹 다이얼로그.","in-app 확인 시트(z-90)로."],
+ [33,"grape","a11y","high","R1",0,"src/components/WineBottle.tsx","46","와이너리 핵심 타깃 button에 focus:outline-none만(대체 없음).","focus-visible:ring 추가."],
+ [34,"grape","color","medium","R3",0,"src/components/GrapeSticker.tsx","44-51","빈 포도알 인덱스 번호 text-warm-light/40 ≈ 1.2:1(사실상 안 보임).","legible 톤으로 올리거나 제거."],
+ [35,"grape","color","medium","R3",0,"src/app/(app)/board/create/page.tsx","160","템플릿 'N알' grape-400 ≈ 2:1(카드 유일 메타).","grape-600 또는 grape-50 pill로."],
+ [36,"grape","comp","medium","R6",0,"src/app/(app)/board/create/page.tsx","53-55,219,308","setError는 step1에서 발생하나 에러 <p>는 step3에서만 렌더 → 0~2단계 검증이 무음.","에러를 발생한 step 내에 렌더."],
+ [37,"grape","motion","medium","R2",0,"src/app/(app)/board/[id]/page.tsx","161; create:102-115","로딩 animate-float reduced-motion 없음 + 생성 스텝 인디케이터가 색만.","reduce에 float 추가 + 스텝 비색 단서(체크/링)."],
+ [38,"grape","a11y","low","R8",0,"src/app/(app)/board/create/page.tsx","292-306","'보상 내용' label에 htmlFor 없고 textarea에 id 없음 — 미연결.","htmlFor/id 연결 또는 ClayInput 래퍼."],
+ [39,"grape","comp","low","R12",0,"src/app/(app)/board/[id]/page.tsx","305-322","'최근 활동' 로그 행마다 clay-sm 카드 — elevation이 위계를 전달 안 함.","divide-y/여백 단일 컨테이너로."],
+ // social
+ [40,"social","a11y","high","R3",0,"src/app/(app)/messages/page.tsx","78,110; friends/vine/relay","warm-light #A89FB8 캡션/타임스탬프 ≈ 2.9:1, 일부 10px.","캡션 토큰 어둡게 + 10px→12px."],
+ [41,"social","state","high","R6",0,"src/app/(app)/messages/page.tsx","20; home/friends/relay/vine","fetch 실패를 catch{}로 삼키고 빈 배열 → 에러=빈상태 구별 불가, 재시도 없음.","friends/[id] 에러 패턴 이식(재시도 포함)."],
+ [42,"social","state","high","R5",0,"src/app/(app)/friends/page.tsx","61","친구 삭제/거절이 window.confirm().","in-app 확인 시트로."],
+ [43,"social","a11y","high","R1",0,"src/app/(app)/messages/page.tsx","83-91; globals:142-160","메시지/릴레이/칩/화살표 버튼 어디에도 focus-visible 없음.","clay-button + 버튼에 공유 링."],
+ [44,"social","motion","high","R2",0,"src/app/globals.css","404-413; relay/friends","skeleton shimmer·animate-pulse('내 차례!')·bounce-in·slide-up이 reduced-motion 미적용.","reduce 블록 확장."],
+ [45,"social","perf","medium","R9",0,"src/app/(app)/relay/page.tsx","152-155; relay/[id]:241","진행바가 width(transition-all) 애니, skeleton이 background-position 애니.","scaleX 진행바 + skeleton 정적 폴백."],
+ [46,"social","a11y","medium","R8",0,"src/app/(app)/vine/page.tsx","97; home/friends/messages/relay","페이지 루트 div-soup(main/header 없음), 제목 이모지 aria-hidden 없음, FriendCard title=만.","main/header 랜드마크 + 이모지 aria-hidden + aria-label."],
+ [47,"social","copy","low","R12",1,"src/app/(app)/friends/page.tsx","42; relay/[id]:66","성공 토스트가 느낌표('친구 요청을 보냈어요!').","마침표로 톤 다운(브랜드 카피·empty는 유지)."],
+ [48,"social","color","medium","R11",1,"src/app/(app)/relay/create/page.tsx","214,277; relay:138; vine:22","stock gray/green/blue/amber로 연결선·비활성·상태 배지 — role 팔레트 밖, green-500≈2:1.","warm-*/leaf-*/grape-* 토큰으로 매핑."],
+ [49,"social","typo","low","R12",0,"src/app/(app)/home/page.tsx","167; relay/friends","카운터·진행분수가 비례숫자 → 값 변동 시 흔들림.","tabular-nums 적용."],
+ [50,"social","a11y","medium","R3",1,"src/app/(app)/home/page.tsx","146-153","홈 FAB 흰 '+' on grape-500(#B28CDC) ≈ 2.1:1(<3:1).","grape-600 이상 또는 joyful 그라데."],
+ // gamification
+ [51,"game","motion","high","R2",0,"src/app/(app)/winery/page.tsx","72,119,150,57-242","tier 아이콘 float·진행바 shimmer·slide/fade 진입이 reduced-motion 없음.","reduce 블록 확장 또는 motion-safe."],
+ [52,"game","a11y","high","R1",0,"src/app/(app)/settings/page.tsx","52-217; stats/more/sound-test","토글·탭·사운드타일·메뉴타일 전부 focus-visible 없음.","공유 focus-visible 링."],
+ [53,"game","a11y","high","R8",0,"src/app/(app)/settings/page.tsx","52-217; notifications:19-50","토글이 role=switch/aria-checked/aria-label 없음, on/off가 색·위치만.","role=switch+aria-checked+라벨, 비색 단서."],
+ [54,"game","a11y","high","R3",0,"src/app/(app)/settings/page.tsx","50-251; notifications; winery","warm-light #A89FB8 본문 캡션 ≈ 2.6:1(버전·힌트 등), 틴트 위에선 더 나쁨.","warm-sub(~4.9:1)로 승격."],
+ [55,"game","color","medium","R12",0,"src/components/Heatmap.tsx","9-15,153-160","level-0(gray-100) vs level-1(grape-100 #F4ECFB) 거의 구별 불가, 색에만 의존.","저단계 색 강화 또는 inner ring."],
+ [56,"game","a11y","medium","R8",0,"src/components/Heatmap.tsx","137-147","셀이 div+title만 → 90일 데이터가 키보드/SR에 안 보임, grid 라벨 없음.","셀 aria-label + grid role/label 또는 SR 표."],
+ [57,"game","state","medium","R6",0,"src/app/(app)/winery/page.tsx","27-50; stats:19-71","fetch 에러 삼키고 return null → 백지(메시지·재시도·뒤로 없음). notifications는 잘함.","차분한 인라인 에러+재시도 추가."],
+ [58,"game","typo","low","R12",0,"src/app/(app)/stats/page.tsx","232,104,300; winery:100","stat·streak·퍼센트·차트 숫자 비례숫자 → 정렬 흔들림.","tabular-nums 적용."],
+ [59,"game","comp","low","R8",0,"src/app/(app)/stats/page.tsx","78-92","탭(요약/히트맵/분석)이 div>button, role=tablist/tab/aria-selected 없음.","tablist/tab/tabpanel 롤 적용."],
+ [60,"game","layout","low","R12",0,"src/app/(app)/stats/page.tsx","134-143,226-227","8개 동일가중 stat이 각자 clay-sm 카드(위계 없음), cream/yellow 둘 다 amber-50 중복.","divide/tint 평탄화 + 중복 토큰 정리."],
+ [61,"game","state","low","R5",0,"src/app/(app)/notifications/page.tsx","356-361","리마인더 삭제가 1탭 파괴적(확인·undo 없음), 수정/삭제 동일 가중.","인라인 확인 또는 undo 토스트 + 시각 구분."],
+ // modals
+ [62,"modals","a11y","high","R1",0,"src/components/ClayButton.tsx","globals:142-160","7개 모달의 이모지/칩/탭/요일 버튼 전부 focus-visible 없음.","clay-button에 focus-visible + input 링."],
+ [63,"modals","motion","high","R2",0,"src/app/globals.css","404-413; Capsule/RewardReveal","reward-glow·50개 confetti·float·popup·pulse·bounce-in이 reduced-motion 미적용.","reduce 시 confetti 생성 차단 + 블록 확장."],
+ [64,"modals","perf","medium","R9",0,"src/components/RewardReveal.tsx","108; globals:493-508","reward-glow box-shadow 무한 애니(banned, repaint).","opacity 오버레이로 재구현."],
+ [65,"modals","a11y","high","R3",0,"src/app/globals.css","247-250; Capsule/Reminder","placeholder warm-sub×0.5 ≈ 2:1('미래의 나에게…' 등).","불투명 ≥4.5:1 토큰."],
+ [66,"modals","color","medium","R3",0,"src/components/CapsuleModal.tsx","325-335","잠긴 캡슐 blue-300/400 on blue-50(대비 미달) + role 팔레트 밖 쿨 액센트.","grape 틴트 중립면+warm 라벨로 리매핑(🧊로 'frozen' 표현)."],
+ [67,"modals","state","high","R6",0,"src/components/CheerModal.tsx","30-37; GiftBoardModal:31-38","handleSend에 try/catch/finally 없음 → 전송 실패 시 '잠시만요…'에 멈춤, 에러 없음.","try/finally로 감싸고 인라인 에러."],
+ [68,"modals","a11y","medium","R8",0,"src/components/MessagePopup.tsx","26,39-44; Cheer/Capsule/Reminder","닫기 × aria-label 없음·p-1(<44px), 팝업 role=alert/aria-live 없음, 이모지/요일 선택 색만.","aria-label+히트영역, role=alert, aria-pressed."],
+ [69,"modals","copy","low","R12",1,"src/components/CapsuleModal.tsx","249,299,314; ShareCard:101","앱 보이스 상태/성공 문구 느낌표 다발('개봉하기!' 등).","앱 보이스만 차분한 평서문으로(유저 응원은 유지)."],
+ [70,"modals","color","low","R11",0,"src/components/ReminderModal.tsx","117","선택 요일 칩이 shadow-md(검정) — 틴트 락 위반.","grape 틴트 그림자(clay-sm)로."],
+ [71,"modals","comp","low","R11",1,"src/components/CapsuleModal.tsx","304-315","'개봉하기!'가 일회성 인라인 그라데+animate-pulse(joyful 변형 미사용), RewardReveal도 별도.","리워드 CTA를 joyful 변형으로 통일, pulse 제거."],
+ [72,"modals","state","medium","R3",0,"src/components/ClayButton.tsx","52","disabled opacity-50 → 모달 기본 비활성 CTA 라벨 대비 붕괴(첫 화면부터).","불투명 라벨 유지하는 disabled 토큰."],
+ // illustration
+ [73,"illus","motion","high","R2",0,"src/app/page.tsx","37,115,126","140px Podo가 animate-float 무한 + reduced-motion 미적용(hero/로딩).","reduce에 .animate-float 추가."],
+ [74,"illus","code","high","R12",0,"src/components/mascot/Podo.tsx","24,37-55","gradient uid가 variant에만 의존 → default Podo 2개 동시 마운트 시 ID 중복 → fill 깨짐(실버그).","useId()로 인스턴스 고유화."],
+ [75,"illus","code","medium","R12",0,"src/components/illustrations/CloudPuff.tsx","17; Sun/VineLeaf/WaterDrop/GrapeStem","고정 gradient id(예 cloud-fill) — flip/paired/mapped로 2개 마운트 시 충돌.","useId 기반 suffix 헬퍼 공유."],
+ [76,"illus","omit","medium","R12",0,"src/components/illustrations/Star.tsx","Star/Heart/Sun","Star/Heart/Sun이 어디서도 import 안 됨(문서 인벤토리에도 Star/Heart 없음) — dead code.","채택(사용처 문서화) 또는 제거 표시."],
+ [77,"illus","a11y","medium","R8",0,"src/components/mascot/Podo.tsx","21; InstallPrompt:64","Podo가 항상 role=img+aria-label → 장식용 설치 칩에서도 중복 announce.","decorative prop으로 aria-hidden 전환."],
+ [78,"illus","comp","low","R12",0,"src/components/illustrations/VineLeaf.tsx","15","flip이 inline transform → className transform(animate-float)과 충돌해 미러링 소실.","SVG 내부 <g> transform으로 flip 구현."],
+ [79,"illus","color","low","R3",1,"src/components/illustrations/Sparkle.tsx","10; Sun; GrapeBoard:119","Sparkle lime #CFDC78이 완료 상태 단서인데 흰 배경 위 <3:1, outline 없음.","상태용엔 어두운 outline 또는 진한 sunshine 토큰."],
+ // systemic
+ [80,"system","motion","high","R2",0,"src/app/globals.css","404-413","reduced-motion이 grape-*만 — float/reward-glow/wine-shimmer/skeleton/confetti/capsule 전부 무방비(모션 커버리지 표면 최대 갭).","단일 audit 리스트로 reduce 확장."],
+ [81,"system","a11y","high","R1",0,"src/app/globals.css","142-160; Nav/FAB/ClayButton/ClayCard","focus-visible가 .clay-input 외 전무 — 시스템 전역 횡단 실패.","시스템 레벨 :focus-visible 토큰 1개."],
+ [82,"system","perf","medium","R9",0,"src/app/globals.css","493-508","reward-glow가 box-shadow 무한 보간(GPU 합성 불가, 지속 paint).","::after opacity 애니로 + reduce 가드."],
+ [83,"system","color","medium","R11",1,"src/app/globals.css","51; tailwind:56-65; home:149","그림자 틴트 2종 공존: globals (47,42,63) vs Tailwind (73,50,100). 섞이면 보라 불일치.","단일 틴트로 통합."],
+ [84,"system","color","medium","R11",1,"src/app/globals.css","31; tailwind:18; winery:91","'브랜드 퍼플' 3종: 문서 #9B7ED8 ≠ grape-500 #B28CDC ≠ --grape-primary #DCC4F2(winery 인라인 #9B7ED8).","정본 1개 정해 CSS var로 일원화."],
+ [85,"system","code","medium","R12",0,"src/app/globals.css","179-188,264-270",".grape-filled 중복 정의로 상충 box-shadow(첫 블록 검정 그림자=dead).","단일 선언으로 병합."],
+ [86,"system","a11y","medium","R8",0,"src/components/ClayCard.tsx","39-48","공유 ClayCard가 onClick 시 div(키보드 불가) → 카드-as-버튼 전체 전파.","button 렌더 또는 role/tabIndex/keydown."],
+ [87,"system","color","low","R11",0,"src/app/(app)/winery/page.tsx","278","미래 tier 노드 bg-gray-100(쿨 그레이) — warm-* 패밀리 이탈.","warm 계열 중립으로 교체."],
+ [88,"system","comp","low","R12",0,"src/app/globals.css","489","confetti z-index:100이 문서 사다리(modal 90) 밖 — 미문서화 rung.","z 사다리에 confetti(100) 문서화."],
+ [89,"system","state","low","R7",0,"src/app/(app)/home/page.tsx","113-118; winery:34-48","로딩 스켈레톤이 균일 막대 — 최종 형태(BoardCard/tier+cellar) 미반영.","BoardCard/tier 형태로 스켈레톤 성형."],
+ [90,"system","copy","low","R12",1,"src/app/(app)/winery/page.tsx","129,154","성공/빈 카피 느낌표('최고 등급 달성!' 등).","평서문으로 톤 다운(브랜드/이모지 유지)."],
+];
+
+// ---- render ----
+const $=s=>document.querySelector(s);
+const state={sev:"all",surf:"all",dim:"all",root:"all",q:""};
+
+// strengths
+$("#strengths").innerHTML=STRENGTHS.map(([t,d])=>`<div class="str"><b>${t}</b><span>${d}</span></div>`).join("");
+
+// roots
+$("#roots").innerHTML=ROOTS.map(([id,p,t,d,sev,cnt])=>`
+  <div class="clay root" data-root="${id}" role="button" tabindex="0" aria-pressed="false">
+    <div class="rmeta"><span class="rid">${id}</span><span class="pill ${p.toLowerCase()}">${p}</span>
+      <span class="pill s-${sev}">${SEVK[sev]}</span><span class="pill cnt num">${cnt}개 표면</span></div>
+    <div class="rtitle">${t}</div><div class="rdesc">${d}</div>
+  </div>`).join("");
+
+// filter buttons
+function fbtns(el,key,opts){
+  $(el).innerHTML=[["all","전체"]].concat(opts).map(([v,l])=>
+    `<button class="fbtn${state[key]===v?" on":""}" data-k="${key}" data-v="${v}" type="button">${l}</button>`).join("");
+}
+fbtns("#f-sev","sev",[["high","🔴 High"],["medium","🟡 Medium"],["low","🟢 Low"]]);
+fbtns("#f-surf","surf",Object.entries(SURF));
+fbtns("#f-dim","dim",Object.entries(DIM));
+$("#f-root").innerHTML=`<button class="fbtn on" data-k="root" data-v="all" type="button">전체</button>`+
+  ROOTS.map(([id])=>`<button class="fbtn" data-k="root" data-v="${id}" type="button">${id}</button>`).join("");
+
+function render(){
+  const list=F.filter(r=>{
+    const[id,s,d,sev,root,intent,file,loc,p,fix]=r;
+    if(state.sev!=="all"&&sev!==state.sev)return false;
+    if(state.surf!=="all"&&s!==state.surf)return false;
+    if(state.dim!=="all"&&d!==state.dim)return false;
+    if(state.root!=="all"&&root!==state.root)return false;
+    if(state.q){const hay=(file+" "+loc+" "+p+" "+fix+" "+SURF[s]+" "+root).toLowerCase();
+      if(!hay.includes(state.q.toLowerCase()))return false;}
+    return true;
+  });
+  $("#rc").textContent=`${list.length} / 90`;
+  $("#total-lbl").textContent=`(${list.length}건 표시)`;
+  $("#findings").innerHTML=list.length?list.map(r=>{
+    const[id,s,d,sev,root,intent,file,loc,p,fix]=r;
+    return `<div class="clay find">
+      <div class="sevdot ${sev}" title="${SEVK[sev]}"></div>
+      <div>
+        <div class="ftop">
+          <span class="ftag surf">${SURF[s]}</span>
+          <span class="ftag dim">${DIM[d]}</span>
+          <span class="ftag root" data-jump="${root}" role="button" tabindex="0">${root}</span>
+          ${intent?'<span class="ftag intent">🟠 의도 인접</span>':''}
+          <span class="num" style="font-size:11px;color:var(--hint);font-weight:700">#${id}</span>
+        </div>
+        <div class="ftitle">${p.split(".")[0]}.</div>
+        <span class="floc">${file} · ${loc}</span>
+        <p class="fprob">${p}</p>
+        <div class="ffix"><b>제안 ▸</b> ${fix}</div>
+      </div></div>`;
+  }).join(""):`<div class="empty clay">조건에 맞는 finding이 없습니다. 필터를 초기화해 보세요.</div>`;
+}
+
+function setFilter(k,v){
+  state[k]=v;
+  document.querySelectorAll(`.fbtn[data-k="${k}"]`).forEach(b=>b.classList.toggle("on",b.dataset.v===v));
+  if(k==="root")document.querySelectorAll(".root").forEach(r=>{
+    const on=r.dataset.root===v; r.classList.toggle("active",on); r.setAttribute("aria-pressed",on);});
+  render();
+}
+document.addEventListener("click",e=>{
+  const fb=e.target.closest(".fbtn"); if(fb){setFilter(fb.dataset.k,fb.dataset.v);return;}
+  const rc=e.target.closest(".root"); if(rc){const v=rc.classList.contains("active")?"all":rc.dataset.root;setFilter("root",v);
+    document.querySelector("section h2").scrollIntoView({behavior:"smooth",block:"start"});return;}
+  const jp=e.target.closest("[data-jump]"); if(jp){setFilter("root",jp.dataset.jump);
+    $(".filters").scrollIntoView({behavior:"smooth",block:"start"});return;}
+});
+document.addEventListener("keydown",e=>{
+  if((e.key==="Enter"||e.key===" ")&&(e.target.matches(".root")||e.target.matches("[data-jump]"))){
+    e.preventDefault();e.target.click();}
+});
+$("#search").addEventListener("input",e=>{state.q=e.target.value;render();});
+$("#reset").addEventListener("click",()=>{state.sev="all";state.surf="all";state.dim="all";state.root="all";state.q="";
+  $("#search").value="";document.querySelectorAll(".fbtn").forEach(b=>b.classList.toggle("on",b.dataset.v==="all"));
+  document.querySelectorAll(".root").forEach(r=>{r.classList.remove("active");r.setAttribute("aria-pressed","false");});
+  render();});
+
+render();
+</script>
+</body>
+</html>

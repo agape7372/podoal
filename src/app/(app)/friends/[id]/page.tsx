@@ -133,7 +133,7 @@ export default function FriendDetailPage() {
               {isFavorite && <span className="text-lg">⭐</span>}
             </div>
             <p className="text-sm text-warm-sub truncate">{friend.email}</p>
-            <p className="text-xs text-warm-light mt-1">
+            <p className="text-xs text-warm-sub mt-1 tabular-nums">
               포도판 {boards.length}개 · 진행중 {activeBoards.length}개 · 완료 {completedBoards.length}개
             </p>
           </div>
@@ -174,7 +174,7 @@ export default function FriendDetailPage() {
       {cheerSent && (
         <div className="clay-sm p-3 mb-4 bg-emerald-50/60 text-center animate-bounce-in">
           <span className="text-sm font-medium text-grape-600">
-            💜 응원을 보냈어요!
+            💜 응원을 보냈어요.
           </span>
         </div>
       )}
@@ -182,7 +182,7 @@ export default function FriendDetailPage() {
       {/* Active boards */}
       {activeBoards.length > 0 && (
         <div className="mb-6">
-          <h2 className="text-sm font-semibold text-warm-sub mb-3">
+          <h2 className="text-sm font-semibold text-warm-sub mb-3 tabular-nums">
             🍇 진행 중인 포도판 ({activeBoards.length})
           </h2>
           <div className="space-y-3">
@@ -196,7 +196,7 @@ export default function FriendDetailPage() {
       {/* Completed boards */}
       {completedBoards.length > 0 && (
         <div className="mb-6">
-          <h2 className="text-sm font-semibold text-warm-sub mb-3">
+          <h2 className="text-sm font-semibold text-warm-sub mb-3 tabular-nums">
             🎉 완료한 포도판 ({completedBoards.length})
           </h2>
           <div className="space-y-3">
@@ -212,7 +212,7 @@ export default function FriendDetailPage() {
         <div className="text-center py-12">
           <span className="text-4xl block mb-3">🍇</span>
           <p className="text-warm-sub">아직 포도판이 없어요</p>
-          <p className="text-xs text-warm-light mt-1">포도판을 선물해 보세요!</p>
+          <p className="text-xs text-warm-sub mt-1">포도판을 선물해 보세요!</p>
           <ClayButton
             variant="primary"
             size="sm"

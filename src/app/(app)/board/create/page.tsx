@@ -100,7 +100,7 @@ export default function CreateBoardPage() {
         {[0, 1, 2, 3].map((s) => (
           <div key={s} className="flex items-center gap-2">
             <div
-              className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all ${
+              className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold tabular-nums transition-all ${
                 step >= s
                   ? 'bg-gradient-to-br from-grape-400 to-grape-500 text-white'
                   : 'bg-grape-100 text-warm-light'
@@ -157,7 +157,7 @@ export default function CreateBoardPage() {
                 <p className="font-semibold text-sm text-grape-700 mb-1">{template.name}</p>
                 <p className="text-xs text-warm-sub line-clamp-2">{template.description}</p>
                 <div className="mt-2 flex items-center gap-1">
-                  <span className="text-xs text-grape-400">{template.suggestedSize}알</span>
+                  <span className="text-xs text-grape-600 tabular-nums">{template.suggestedSize}알</span>
                 </div>
               </button>
             ))}
@@ -209,6 +209,8 @@ export default function CreateBoardPage() {
             onChange={(e) => setDescription(e.target.value)}
           />
 
+          {error && <p role="alert" className="text-grape-700 text-sm text-center">{error}</p>}
+
           <div className="flex gap-3">
             <ClayButton variant="ghost" onClick={() => setStep(0)} fullWidth>
               ← 이전
@@ -216,7 +218,7 @@ export default function CreateBoardPage() {
             <ClayButton
               fullWidth
               size="lg"
-              onClick={() => { if (title.trim()) setStep(2); else setError('제목을 입력해주세요'); }}
+              onClick={() => { if (title.trim()) { setError(''); setStep(2); } else setError('제목을 입력해주세요'); }}
             >
               다음 →
             </ClayButton>
@@ -290,10 +292,11 @@ export default function CreateBoardPage() {
           />
 
           <div>
-            <label className="block text-sm font-medium text-warm-sub mb-2 ml-1">
+            <label htmlFor="reward-content" className="block text-sm font-medium text-warm-sub mb-2 ml-1">
               보상 내용
             </label>
             <textarea
+              id="reward-content"
               className="clay-input min-h-[120px] resize-none"
               placeholder={
                 rewardType === 'letter' ? '편지 내용을 적어주세요...' :
@@ -305,7 +308,7 @@ export default function CreateBoardPage() {
             />
           </div>
 
-          {error && <p className="text-grape-700 text-sm text-center">{error}</p>}
+          {error && <p role="alert" className="text-grape-700 text-sm text-center">{error}</p>}
 
           <div className="flex gap-3">
             <ClayButton variant="ghost" onClick={() => setStep(2)} fullWidth>

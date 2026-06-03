@@ -111,10 +111,12 @@ export default function ReminderModal({ reminder, boards, onSave, onClose }: Rem
                 <button
                   key={day}
                   onClick={() => toggleDay(day)}
+                  aria-pressed={selectedDays.includes(day)}
+                  aria-label={`${DAY_LABELS[idx]}요일`}
                   className={`
                     flex-1 py-2.5 rounded-xl text-sm font-medium transition-all
                     ${selectedDays.includes(day)
-                      ? 'bg-gradient-to-br from-grape-400 to-grape-500 text-white shadow-md'
+                      ? 'bg-gradient-to-br from-grape-400 to-grape-500 text-white shadow-clay-sm'
                       : 'clay-button text-warm-sub'
                     }
                   `}

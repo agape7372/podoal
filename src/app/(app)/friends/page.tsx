@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { api } from '@/lib/api';
 import FriendCard from '@/components/FriendCard';
 import CheerModal from '@/components/CheerModal';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import ClayButton from '@/components/ClayButton';
 import ClayInput from '@/components/ClayInput';
 import type { FriendInfo } from '@/types';
@@ -13,19 +14,25 @@ export default function FriendsPage() {
   const [friends, setFriends] = useState<FriendInfo[]>([]);
   const [pending, setPending] = useState<FriendInfo[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [addEmail, setAddEmail] = useState('');
   const [addError, setAddError] = useState('');
   const [addSuccess, setAddSuccess] = useState('');
   const [adding, setAdding] = useState(false);
   const [cheerTarget, setCheerTarget] = useState<{ id: string; name: string } | null>(null);
   const [tab, setTab] = useState<'friends' | 'favorite'>('friends');
+  const [removeTarget, setRemoveTarget] = useState<string | null>(null);
+  const [rejectTarget, setRejectTarget] = useState<string | null>(null);
 
   const fetchFriends = useCallback(async () => {
+    setLoadError(false);
     try {
       const data = await api<{ friends: FriendInfo[]; pendingRequests: FriendInfo[] }>('/api/friends');
       setFriends(data.friends || []);
       setPending(data.pendingRequests || []);
-    } catch {}
+    } catch {
+      setLoadError(true);
+    }
     setLoading(false);
   }, []);
 
@@ -39,7 +46,7 @@ export default function FriendsPage() {
     try {
       await api('/api/friends', { method: 'POST', json: { email: addEmail.trim() } });
       feedbackSuccess();
-      setAddSuccess('친구 요청을 보냈어요!');
+      setAddSuccess('친구 요청을 보냈어요.');
       setAddEmail('');
     } catch (e) {
       setAddError(e instanceof Error ? e.message : '요청 실패');
@@ -57,8 +64,26 @@ export default function FriendsPage() {
     fetchFriends();
   };
 
-  const handleRemove = async (id: string) => {
-    if (!confirm('정말 삭제할까요?')) return;
+  const handleRemove = (id: string) => {
+    if (pending.some((p) => p.id === id)) {
+      setRejectTarget(id);
+    } else {
+      setRemoveTarget(id);
+    }
+  };
+
+  const confirmRemove = async () => {
+    if (!removeTarget) return;
+    const id = removeTarget;
+    setRemoveTarget(null);
+    await api(`/api/friends/${id}`, { method: 'DELETE' });
+    fetchFriends();
+  };
+
+  const confirmReject = async () => {
+    if (!rejectTarget) return;
+    const id = rejectTarget;
+    setRejectTarget(null);
     await api(`/api/friends/${id}`, { method: 'DELETE' });
     fetchFriends();
   };
@@ -95,7 +120,7 @@ export default function FriendsPage() {
           </ClayButton>
         </div>
         {addError && <p className="text-grape-700 text-xs mt-2">{addError}</p>}
-        {addSuccess && <p className="text-green-500 text-xs mt-2">{addSuccess}</p>}
+        {addSuccess && <p className="text-leaf-700 text-xs mt-2">{addSuccess}</p>}
       </div>
 
       {/* Pending requests */}
@@ -142,13 +167,19 @@ export default function FriendsPage() {
         <div className="space-y-3">
           {[1, 2, 3].map((i) => <div key={i} className="skeleton h-16 w-full" />)}
         </div>
+      ) : loadError ? (
+        <div className="text-center py-12">
+          <p className="font-display text-base text-warm-text mb-1.5">불러오지 못했어요</p>
+          <p className="text-sm text-warm-sub mb-5">잠시 후 다시 시도해주세요</p>
+          <button onClick={fetchFriends} className="clay-button px-5 py-2.5 rounded-2xl text-sm font-semibold text-grape-700">다시 불러오기</button>
+        </div>
       ) : displayed.length === 0 ? (
         <div className="text-center py-12">
           <span className="text-4xl block mb-3">{tab === 'favorite' ? '⭐' : '👥'}</span>
           <p className="text-warm-sub">
             {tab === 'favorite' ? '즐겨찾기한 친구가 없어요' : '아직 친구가 없어요'}
           </p>
-          <p className="text-xs text-warm-light mt-1">이메일로 친구를 추가해 보세요!</p>
+          <p className="text-xs text-warm-sub mt-1">이메일로 친구를 추가해 보세요!</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -174,6 +205,27 @@ export default function FriendsPage() {
           onClose={() => setCheerTarget(null)}
         />
       )}
+
+      {/* Remove friend confirm */}
+      <ConfirmDialog
+        open={removeTarget !== null}
+        title="친구를 삭제할까요?"
+        description="삭제하면 서로의 포도판을 볼 수 없어요."
+        confirmLabel="삭제"
+        destructive
+        onConfirm={confirmRemove}
+        onCancel={() => setRemoveTarget(null)}
+      />
+
+      {/* Reject request confirm */}
+      <ConfirmDialog
+        open={rejectTarget !== null}
+        title="친구 요청을 거절할까요?"
+        confirmLabel="거절"
+        destructive
+        onConfirm={confirmReject}
+        onCancel={() => setRejectTarget(null)}
+      />
     </div>
   );
 }

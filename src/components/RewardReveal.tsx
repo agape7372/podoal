@@ -109,7 +109,7 @@ export default function RewardReveal({
               bg-gradient-to-br from-white via-clay-cream/50 to-grape-50/60
             `}
           >
-            <div className="text-6xl mb-4 animate-float">
+            <div className="text-6xl mb-4 animate-float" aria-hidden="true">
               {isCompleted ? '🎁' : '🔒'}
             </div>
             <h3 className="font-display text-xl font-bold text-grape-700 mb-2">
@@ -129,7 +129,7 @@ export default function RewardReveal({
         /* Revealed reward */
         <div className="clay-puffy p-6 animate-reward-reveal bg-gradient-to-br from-white via-clay-cream/40 to-grape-50/60">
           <div className="text-center">
-            <div className="text-5xl mb-3">
+            <div className="text-5xl mb-3" aria-hidden="true">
               {reward.type === 'letter' ? '💌' : reward.type === 'giftcard' ? '🎁' : '⭐'}
             </div>
             <div className="text-xs font-medium text-grape-600 mb-2">

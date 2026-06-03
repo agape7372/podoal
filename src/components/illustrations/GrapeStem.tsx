@@ -1,3 +1,5 @@
+import { useId } from 'react';
+
 interface GrapeStemProps {
   size?: number;
   className?: string;
@@ -8,6 +10,8 @@ interface GrapeStemProps {
  * Designed to be wider than tall (W:H ≈ 3:2) for a graceful canopy.
  */
 export default function GrapeStem({ size = 120, className = '' }: GrapeStemProps) {
+  const uid = useId();
+  const fillId = `stem-leaf-fill-${uid}`;
   return (
     <svg
       width={size}
@@ -18,7 +22,7 @@ export default function GrapeStem({ size = 120, className = '' }: GrapeStemProps
       aria-hidden="true"
     >
       <defs>
-        <radialGradient id="stem-leaf-fill" cx="36%" cy="30%" r="80%">
+        <radialGradient id={fillId} cx="36%" cy="30%" r="80%">
           <stop offset="0%" stopColor="#BFE3C5" />
           <stop offset="55%" stopColor="#6BBE7E" />
           <stop offset="100%" stopColor="#4A8C58" />
@@ -65,7 +69,7 @@ export default function GrapeStem({ size = 120, className = '' }: GrapeStemProps
            C 112 38, 96 48, 82 46
            C 70 46, 62 36, 60 24
            Z"
-        fill="url(#stem-leaf-fill)"
+        fill={`url(#${fillId})`}
       />
       {/* Leaf central vein */}
       <path

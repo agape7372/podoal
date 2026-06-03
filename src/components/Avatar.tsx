@@ -29,7 +29,6 @@ export default function Avatar({ avatar, size = 'md', className = '' }: AvatarPr
         bg-clay-cream
         rounded-full ${dims.box} ${className}
       `}
-      style={{ borderRadius: '50%' }}
     >
       <img
         src={`/avatars/${kind}.svg`}
@@ -38,6 +37,11 @@ export default function Avatar({ avatar, size = 'md', className = '' }: AvatarPr
         height={dims.sprite}
         draggable={false}
         aria-hidden="true"
+        onError={(e) => {
+          const img = e.currentTarget;
+          if (img.src.endsWith('/avatars/grape.svg')) return;
+          img.src = '/avatars/grape.svg';
+        }}
       />
     </div>
   );

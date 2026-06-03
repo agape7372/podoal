@@ -23,7 +23,7 @@ export default function MessagePopup() {
   if (!popupMessage) return null;
 
   return (
-    <div className={`fixed top-4 left-4 right-4 z-[100] ${visible ? 'popup-enter' : 'opacity-0 transition-opacity duration-300'}`}>
+    <div role="alert" aria-live="polite" className={`fixed top-4 left-4 right-4 z-[100] ${visible ? 'popup-enter' : 'opacity-0 transition-opacity duration-300'}`}>
       <div className="max-w-lg mx-auto clay-float p-4">
         <div className="flex items-start gap-3">
           <Avatar avatar={popupMessage.sender.avatar} size="md" />
@@ -38,7 +38,8 @@ export default function MessagePopup() {
           </div>
           <button
             onClick={() => { setVisible(false); setTimeout(hidePopup, 300); }}
-            className="text-warm-light text-lg leading-none p-1"
+            aria-label="닫기"
+            className="text-warm-sub text-lg leading-none p-2 min-w-[44px] min-h-[44px] flex items-center justify-center"
           >
             ×
           </button>

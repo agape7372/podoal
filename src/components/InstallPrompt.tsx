@@ -61,7 +61,7 @@ export default function InstallPrompt() {
           style={{ borderRadius: '28px' }}
         >
           <div className="flex-shrink-0 bg-grape-50 rounded-full p-1.5" style={{ borderRadius: '999px' }}>
-            <Podo size={36} />
+            <Podo size={36} decorative />
           </div>
           <div className="flex-1 min-w-0">
             <p className="font-display text-[14px] font-semibold text-warm-text leading-snug">

@@ -177,7 +177,7 @@ export default function CreateRelayPage() {
               <p className="text-sm text-warm-sub mb-1">
                 아직 친구가 없어요
               </p>
-              <p className="text-xs text-warm-light">
+              <p className="text-xs text-warm-sub">
                 친구를 먼저 추가해 주세요!
               </p>
               <ClayButton
@@ -211,7 +211,7 @@ export default function CreateRelayPage() {
                       className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-all ${
                         isSelected
                           ? 'bg-grape-500 border-grape-500 text-white'
-                          : 'border-gray-300 bg-white'
+                          : 'border-warm-border bg-white'
                       }`}
                     >
                       {isSelected && (
@@ -247,7 +247,7 @@ export default function CreateRelayPage() {
             <label className="block text-sm font-medium text-warm-sub mb-2 ml-1">
               릴레이 순서
             </label>
-            <p className="text-xs text-warm-light mb-3 ml-1">
+            <p className="text-xs text-warm-sub mb-3 ml-1">
               버튼으로 친구 순서를 변경할 수 있어요
             </p>
             <div className="clay p-4 space-y-2">
@@ -260,7 +260,7 @@ export default function CreateRelayPage() {
                       : 'bg-white/60'
                   }`}
                 >
-                  <span className="text-xs font-bold text-grape-500 w-5 text-center flex-shrink-0">
+                  <span className="text-xs font-bold text-grape-500 w-5 text-center flex-shrink-0 tabular-nums">
                     {idx + 1}
                   </span>
                   <Avatar avatar={p.avatar} size="sm" />
@@ -274,7 +274,7 @@ export default function CreateRelayPage() {
                         disabled={idx <= 1}
                         className={`w-7 h-7 rounded-lg flex items-center justify-center text-sm transition-all ${
                           idx <= 1
-                            ? 'text-gray-300 bg-gray-50'
+                            ? 'text-warm-light bg-warm-border/40'
                             : 'text-grape-500 clay-button'
                         }`}
                       >
@@ -285,7 +285,7 @@ export default function CreateRelayPage() {
                         disabled={idx >= orderedParticipants.length - 1}
                         className={`w-7 h-7 rounded-lg flex items-center justify-center text-sm transition-all ${
                           idx >= orderedParticipants.length - 1
-                            ? 'text-gray-300 bg-gray-50'
+                            ? 'text-warm-light bg-warm-border/40'
                             : 'text-grape-500 clay-button'
                         }`}
                       >

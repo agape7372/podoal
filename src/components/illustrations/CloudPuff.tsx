@@ -1,9 +1,13 @@
+import { useId } from 'react';
+
 interface CloudPuffProps {
   size?: number;
   className?: string;
 }
 
 export default function CloudPuff({ size = 56, className = '' }: CloudPuffProps) {
+  const uid = useId();
+  const fillId = `cloud-fill-${uid}`;
   return (
     <svg
       width={size}
@@ -14,7 +18,7 @@ export default function CloudPuff({ size = 56, className = '' }: CloudPuffProps)
       aria-hidden="true"
     >
       <defs>
-        <radialGradient id="cloud-fill" cx="40%" cy="35%" r="65%">
+        <radialGradient id={fillId} cx="40%" cy="35%" r="65%">
           <stop offset="0%" stopColor="#FFFFFF" />
           <stop offset="100%" stopColor="#F2ECF8" />
         </radialGradient>
@@ -27,7 +31,7 @@ export default function CloudPuff({ size = 56, className = '' }: CloudPuffProps)
            C 36 8, 42 12, 41 17
            C 48 17, 50 23, 44 25
            Z"
-        fill="url(#cloud-fill)"
+        fill={`url(#${fillId})`}
         stroke="rgba(155,126,216,0.18)"
         strokeWidth="1.2"
       />

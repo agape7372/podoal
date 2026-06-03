@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppStore } from '@/lib/store';
 import { api } from '@/lib/api';
@@ -28,15 +28,20 @@ export default function HomePage() {
   const user = useAppStore((s) => s.user);
   const [boards, setBoards] = useState<BoardSummary[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all');
   const greeting = useMemo(timeOfDayGreeting, []);
 
-  useEffect(() => {
+  const loadBoards = useCallback(() => {
+    setLoading(true);
+    setLoadError(false);
     api<{ boards: BoardSummary[] }>('/api/boards')
       .then((data) => setBoards(data.boards))
-      .catch(() => {})
+      .catch(() => setLoadError(true))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => { loadBoards(); }, [loadBoards]);
 
   const handleLogout = async () => {
     await fetch('/api/auth/me', { method: 'POST' });
@@ -94,6 +99,7 @@ export default function HomePage() {
             <button
               key={f}
               onClick={() => { feedbackTap(); setFilter(f); }}
+              aria-pressed={isActive}
               className={`
                 px-4 py-2 rounded-2xl text-sm font-medium transition-all inline-flex items-center gap-1.5
                 ${isActive
@@ -115,6 +121,12 @@ export default function HomePage() {
           {[1, 2, 3].map((i) => (
             <div key={i} className="skeleton h-32 w-full" />
           ))}
+        </div>
+      ) : loadError ? (
+        <div className="text-center py-12">
+          <p className="font-display text-base text-warm-text mb-1.5">포도판을 불러오지 못했어요</p>
+          <p className="text-sm text-warm-sub mb-5">잠시 후 다시 시도해주세요</p>
+          <ClayButton variant="secondary" onClick={loadBoards}>다시 불러오기</ClayButton>
         </div>
       ) : filteredBoards.length === 0 ? (
         <div className="text-center py-12">
@@ -145,8 +157,8 @@ export default function HomePage() {
       {boards.length > 0 && (
         <button
           onClick={() => { feedbackTap(); router.push('/board/create'); }}
-          className="fixed bottom-28 right-6 w-14 h-14 rounded-full flex items-center justify-center text-3xl text-white bg-grape-500 border-[1.3px] border-warm-border active:translate-x-[1.5px] active:translate-y-[2px] transition-all z-40 safe-bottom"
-          style={{ boxShadow: '2px 3px 0 rgba(47, 42, 63, 0.10)' }}
+          className="fixed bottom-28 right-6 w-14 h-14 rounded-full flex items-center justify-center text-3xl text-white bg-grape-600 border-[1.3px] border-warm-border active:translate-x-[1.5px] active:translate-y-[2px] transition-all z-40 safe-bottom"
+          style={{ boxShadow: '2px 3px 0 rgba(73, 50, 100, 0.12)' }}
           aria-label="새 포도판 만들기"
         >
           +
@@ -159,12 +171,12 @@ export default function HomePage() {
 function StatChip({ label, value, accent }: { label: string; value: number; accent: 'grape' | 'juice' | 'leaf' }) {
   const accentColor = {
     grape: 'text-grape-700',
-    juice: 'text-grape-500',
+    juice: 'text-grape-600',
     leaf: 'text-lime-700',
   }[accent];
   return (
     <div className="clay-sm flex-shrink-0 inline-flex items-baseline gap-2 px-4 py-2.5" style={{ borderRadius: '999px' }}>
-      <span className={`font-display text-xl font-bold leading-none ${accentColor}`}>{value}</span>
+      <span className={`font-display text-xl font-bold leading-none tabular-nums ${accentColor}`}>{value}</span>
       <span className="text-xs text-warm-sub">{label}</span>
     </div>
   );

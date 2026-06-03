@@ -46,6 +46,20 @@ const config: Config = {
           light: '#A89FB8',
           border: '#ECE0F3',
         },
+        // Role-scoped accents (documented in CLAUDE.md): juice=warm-pink (CTA/celebration),
+        // leaf=green (stem/vine/online), sunshine=yellow (sparkle/reward).
+        juice: {
+          100: '#FFE9F0', 200: '#FFD0E0', 300: '#FBB2CC', 400: '#F58BAE',
+          500: '#E86A92', 600: '#C84B73', 700: '#9E3656',
+        },
+        leaf: {
+          100: '#EAF6E4', 200: '#D3ECC6', 300: '#B2DC9C', 400: '#8FC972',
+          500: '#6FB050', 600: '#558A3C', 700: '#3F6A2C',
+        },
+        sunshine: {
+          100: '#FFF7DB', 200: '#FDEFB4', 300: '#F9E082', 400: '#F2C94C',
+          500: '#E0AE2C', 600: '#B98A1C', 700: '#8A6612',
+        },
       },
       borderRadius: {
         clay: '24px',
@@ -65,8 +79,8 @@ const config: Config = {
           '0 0 0 4px rgba(155, 126, 216, 0.15), 0 6px 18px rgba(123, 95, 184, 0.20)',
       },
       fontFamily: {
-        sans: ['"Noto Sans KR"', 'system-ui', '-apple-system', 'sans-serif'],
-        display: ['"MaruBuri"', '"Noto Sans KR"', 'serif'],
+        sans: ['var(--font-sans)', '"Noto Sans KR"', 'system-ui', '-apple-system', 'sans-serif'],
+        display: ['var(--font-display)', '"Noto Sans KR"', 'serif'],
       },
       lineHeight: {
         snug: '1.4',

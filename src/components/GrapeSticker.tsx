@@ -43,7 +43,7 @@ export default function GrapeSticker({
     >
       {!isFilled && (
         <span className={`
-          font-medium select-none text-warm-light/40
+          font-medium select-none tabular-nums ${isNext ? 'text-grape-700/80' : 'text-warm-sub/70'}
           ${size === 'lg' ? 'text-xs' : size === 'md' ? 'text-[10px]' : 'text-[8px]'}
         `}>
           {position + 1}

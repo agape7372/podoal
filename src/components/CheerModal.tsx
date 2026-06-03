@@ -26,14 +26,21 @@ export default function CheerModal({ recipientName, onSend, onClose }: CheerModa
   const [selectedEmoji, setSelectedEmoji] = useState('💜');
   const [selectedMsg, setSelectedMsg] = useState('');
   const [sending, setSending] = useState(false);
+  const [error, setError] = useState('');
 
   const handleSend = async () => {
     if (!selectedMsg) return;
     setSending(true);
-    await onSend(selectedMsg, selectedEmoji);
-    feedbackCheer();
-    setSending(false);
-    onClose();
+    setError('');
+    try {
+      await onSend(selectedMsg, selectedEmoji);
+      feedbackCheer();
+      onClose();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '응원을 보내지 못했어요');
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -55,6 +62,8 @@ export default function CheerModal({ recipientName, onSend, onClose }: CheerModa
             <button
               key={emoji}
               onClick={() => setSelectedEmoji(emoji)}
+              aria-pressed={selectedEmoji === emoji}
+              aria-label={`이모지 ${emoji}`}
               className={`
                 w-11 h-11 rounded-xl text-xl flex items-center justify-center transition-all
                 ${selectedEmoji === emoji
@@ -86,6 +95,10 @@ export default function CheerModal({ recipientName, onSend, onClose }: CheerModa
             </button>
           ))}
         </div>
+
+        {error && (
+          <p role="alert" className="text-rose-700 text-xs text-center mb-3">{error}</p>
+        )}
 
         <div className="flex gap-3">
           <ClayButton variant="ghost" onClick={onClose} fullWidth>

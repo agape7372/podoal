@@ -43,7 +43,7 @@ export default function WineBottle({ bottle, onClick }: WineBottleProps) {
   return (
     <button
       onClick={onClick}
-      className="group flex flex-col items-center gap-2 transition-all duration-300 hover:scale-105 hover:-rotate-1 active:scale-95 focus:outline-none"
+      className="group flex flex-col items-center gap-2 transition-all duration-300 hover:scale-105 hover:-rotate-1 active:scale-95"
       aria-label={`${bottle.title} - ${bottle.vintage}년 빈티지`}
     >
       <div className="relative flex flex-col items-center" style={{ height: dim.height + 24 }}>

@@ -35,18 +35,23 @@ export default function ClayCard({
   onClick,
   color = 'white',
 }: ClayCardProps) {
-  return (
-    <div
-      onClick={onClick}
-      className={`
-        ${baseClass[variant]}
-        ${colorBg[color]}
-        p-5
-        ${onClick ? 'cursor-pointer active:scale-[0.98] transition-transform' : ''}
-        ${className}
-      `}
-    >
-      {children}
-    </div>
-  );
+  const classes = `
+    ${baseClass[variant]}
+    ${colorBg[color]}
+    p-5
+    ${onClick ? 'cursor-pointer active:scale-[0.98] transition-transform text-left w-full' : ''}
+    ${className}
+  `;
+
+  // When interactive, render a real <button> so it is keyboard-operable and
+  // announced as a control (was a div with onClick — div-soup interactivity).
+  if (onClick) {
+    return (
+      <button type="button" onClick={onClick} className={classes}>
+        {children}
+      </button>
+    );
+  }
+
+  return <div className={classes}>{children}</div>;
 }

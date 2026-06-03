@@ -47,15 +47,18 @@ export default function SettingsPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-warm-text">효과음</p>
-              <p className="text-xs text-warm-light">포도알 채우기, 응원 등 효과음</p>
+              <p className="text-xs text-warm-sub">포도알 채우기, 응원 등 효과음</p>
             </div>
             <button
+              role="switch"
+              aria-checked={settings.soundEnabled}
+              aria-label="효과음"
               onClick={() => handleToggle('soundEnabled')}
               className={`
                 w-12 h-7 rounded-full transition-all duration-200 relative
                 ${settings.soundEnabled
                   ? 'bg-gradient-to-r from-grape-400 to-grape-500'
-                  : 'bg-gray-200'
+                  : 'bg-warm-border'
                 }
               `}
             >
@@ -72,8 +75,8 @@ export default function SettingsPage() {
               {/* Volume slider */}
               <div className="pl-1">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs text-warm-light">볼륨</span>
-                  <span className="text-xs text-grape-500 font-medium">
+                  <span className="text-xs text-warm-sub">볼륨</span>
+                  <span className="text-xs text-grape-500 font-medium tabular-nums">
                     {Math.round(settings.soundVolume * 100)}%
                   </span>
                 </div>
@@ -96,7 +99,7 @@ export default function SettingsPage() {
                   <span className="text-xl">{currentSound.emoji}</span>
                   <div className="text-left">
                     <p className="text-sm font-medium text-warm-text">포도알 소리 설정</p>
-                    <p className="text-xs text-warm-light">{currentSound.name} - {currentSound.desc}</p>
+                    <p className="text-xs text-warm-sub">{currentSound.name} - {currentSound.desc}</p>
                   </div>
                 </div>
                 <span className="text-warm-light text-sm">{showSoundPicker ? '▲' : '▼'}</span>
@@ -132,7 +135,7 @@ export default function SettingsPage() {
                       {s.name}
                     </span>
                   </div>
-                  <p className={`text-[10px] leading-tight ${isSelected ? 'text-white/80' : 'text-warm-light'}`}>
+                  <p className={`text-[10px] leading-tight ${isSelected ? 'text-white/80' : 'text-warm-sub'}`}>
                     {s.desc}
                   </p>
                 </button>
@@ -147,15 +150,18 @@ export default function SettingsPage() {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-warm-text">진동 피드백</p>
-            <p className="text-xs text-warm-light">터치 시 진동 반응</p>
+            <p className="text-xs text-warm-sub">터치 시 진동 반응</p>
           </div>
           <button
+            role="switch"
+            aria-checked={settings.hapticEnabled}
+            aria-label="햅틱"
             onClick={() => handleToggle('hapticEnabled')}
             className={`
               w-12 h-7 rounded-full transition-all duration-200 relative
               ${settings.hapticEnabled
                 ? 'bg-gradient-to-r from-grape-400 to-grape-500'
-                : 'bg-gray-200'
+                : 'bg-warm-border'
               }
             `}
           >
@@ -175,15 +181,18 @@ export default function SettingsPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-warm-text">메시지 팝업</p>
-              <p className="text-xs text-warm-light">새 응원 메시지 팝업 표시</p>
+              <p className="text-xs text-warm-sub">새 응원 메시지 팝업 표시</p>
             </div>
             <button
+              role="switch"
+              aria-checked={settings.showMessagePopup}
+              aria-label="팝업"
               onClick={() => handleToggle('showMessagePopup')}
               className={`
                 w-12 h-7 rounded-full transition-all duration-200 relative
                 ${settings.showMessagePopup
                   ? 'bg-gradient-to-r from-grape-400 to-grape-500'
-                  : 'bg-gray-200'
+                  : 'bg-warm-border'
                 }
               `}
             >
@@ -197,15 +206,18 @@ export default function SettingsPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-warm-text">실시간 알림</p>
-              <p className="text-xs text-warm-light">실시간으로 메시지 수신</p>
+              <p className="text-xs text-warm-sub">실시간으로 메시지 수신</p>
             </div>
             <button
+              role="switch"
+              aria-checked={settings.realtimeNotifications}
+              aria-label="실시간"
               onClick={() => handleToggle('realtimeNotifications')}
               className={`
                 w-12 h-7 rounded-full transition-all duration-200 relative
                 ${settings.realtimeNotifications
                   ? 'bg-gradient-to-r from-grape-400 to-grape-500'
-                  : 'bg-gray-200'
+                  : 'bg-warm-border'
                 }
               `}
             >
@@ -244,11 +256,11 @@ export default function SettingsPage() {
         <div className="space-y-2">
           <div className="flex justify-between">
             <span className="text-sm text-warm-text">버전</span>
-            <span className="text-sm text-warm-light">1.0.0</span>
+            <span className="text-sm text-warm-sub tabular-nums">1.0.0</span>
           </div>
           <div className="flex justify-between">
             <span className="text-sm text-warm-text">포도알</span>
-            <span className="text-sm text-warm-light">🍇 Podoal</span>
+            <span className="text-sm text-warm-sub">🍇 Podoal</span>
           </div>
         </div>
       </section>

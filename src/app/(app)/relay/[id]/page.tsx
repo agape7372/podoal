@@ -63,7 +63,7 @@ export default function RelayDetailPage() {
     try {
       await api(`/api/relays/${relayId}/join`, { method: 'POST' });
       feedbackSuccess();
-      setMessage('릴레이에 참여했어요!');
+      setMessage('릴레이에 참여했어요.');
       await fetchRelay();
     } catch (e) {
       setMessage(e instanceof Error ? e.message : '참여에 실패했어요');
@@ -112,17 +112,17 @@ export default function RelayDetailPage() {
   const isRelayCompleted = relay.status === 'completed';
 
   const statusBadge = isRelayCompleted
-    ? { text: '완료', color: 'bg-green-100 text-green-600' }
+    ? { text: '완료', color: 'bg-leaf-100 text-leaf-700' }
     : { text: '진행중', color: 'bg-grape-100 text-grape-600' };
 
   const participantStatusLabel = (status: string) => {
     switch (status) {
       case 'completed':
-        return { text: '완료', color: 'bg-green-100 text-green-600' };
+        return { text: '완료', color: 'bg-leaf-100 text-leaf-700' };
       case 'active':
         return { text: '진행중', color: 'bg-grape-100 text-grape-600' };
       default:
-        return { text: '대기중', color: 'bg-gray-100 text-gray-500' };
+        return { text: '대기중', color: 'bg-warm-border text-warm-sub' };
     }
   };
 
@@ -147,9 +147,9 @@ export default function RelayDetailPage() {
       {/* Info */}
       <div className="clay-sm p-4 mb-6">
         <div className="flex items-center gap-4 text-sm text-warm-sub">
-          <span>{relay.totalStickers}알</span>
+          <span className="tabular-nums">{relay.totalStickers}알</span>
           <span>|</span>
-          <span>{relay.participants.length}명 참여</span>
+          <span className="tabular-nums">{relay.participants.length}명 참여</span>
           <span>|</span>
           <span>만든이: {relay.creator.name}</span>
         </div>
@@ -186,13 +186,13 @@ export default function RelayDetailPage() {
                         ? 'bg-grape-500'
                         : isActive
                         ? 'bg-grape-400 ring-4 ring-grape-200 animate-pulse'
-                        : 'bg-gray-300'
+                        : 'bg-warm-border'
                     }`}
                   />
                   {!isLast && (
                     <div
                       className={`w-0.5 h-16 ${
-                        isCompleted ? 'bg-grape-400' : 'bg-gray-200'
+                        isCompleted ? 'bg-grape-400' : 'bg-warm-border'
                       }`}
                     />
                   )}
@@ -216,7 +216,7 @@ export default function RelayDetailPage() {
                             <span className="text-xs text-grape-400 ml-1">(나)</span>
                           )}
                         </p>
-                        <p className="text-xs text-warm-light">
+                        <p className="text-xs text-warm-sub">
                           {p.order === 0 ? '첫 번째' : `${p.order + 1}번째`} 주자
                         </p>
                       </div>
@@ -233,7 +233,7 @@ export default function RelayDetailPage() {
                     <div className="mt-3">
                       <div className="flex items-center justify-between text-xs text-warm-sub mb-1">
                         <span>{p.board.title}</span>
-                        <span>
+                        <span className="tabular-nums">
                           {p.board.filledCount}/{p.board.totalStickers}
                         </span>
                       </div>

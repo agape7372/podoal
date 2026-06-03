@@ -30,9 +30,9 @@ export default function MorePage() {
             className={`clay-sm p-4 text-center ${item.color} transition-all active:scale-[0.97]`}
           >
             <span className="text-3xl relative inline-block">
-              {item.icon}
+              <span aria-hidden="true">{item.icon}</span>
               {item.badge === 'unread' && unreadCount > 0 && (
-                <span className="absolute -top-1 -right-2 bg-grape-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                <span className="absolute -top-1 -right-2 bg-grape-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center tabular-nums">
                   {unreadCount > 9 ? '9+' : unreadCount}
                 </span>
               )}

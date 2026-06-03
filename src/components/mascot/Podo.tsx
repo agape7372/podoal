@@ -1,8 +1,11 @@
+import { useId } from 'react';
+
 interface PodoProps {
   size?: number;
   variant?: 'default' | 'sleeping';
   className?: string;
   ariaLabel?: string;
+  decorative?: boolean;
 }
 
 const GRAPES = [
@@ -19,9 +22,10 @@ export default function Podo({
   variant = 'default',
   className = '',
   ariaLabel = '포도 한 송이',
+  decorative = false,
 }: PodoProps) {
   const height = Math.round(size * 1.2);
-  const uid = variant;
+  const uid = useId();
 
   return (
     <svg
@@ -30,8 +34,9 @@ export default function Podo({
       viewBox="0 0 100 120"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
-      role="img"
-      aria-label={ariaLabel}
+      {...(decorative
+        ? { 'aria-hidden': true }
+        : { role: 'img', 'aria-label': ariaLabel })}
     >
       <defs>
         <radialGradient id={`podo-grape-${uid}`} cx="30%" cy="28%" r="78%">

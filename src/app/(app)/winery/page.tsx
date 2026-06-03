@@ -21,13 +21,20 @@ interface WineryData {
 export default function WineryPage() {
   const [data, setData] = useState<WineryData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [selectedBottle, setSelectedBottle] = useState<WineBottleType | null>(null);
 
-  useEffect(() => {
+  const loadWinery = () => {
+    setLoading(true);
+    setLoadError(false);
     api<WineryData>('/api/winery')
       .then((res) => setData(res))
-      .catch(() => {})
+      .catch(() => setLoadError(true))
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    loadWinery();
   }, []);
 
   // ─── Loading Skeleton ───────────────────────────────────
@@ -35,7 +42,7 @@ export default function WineryPage() {
     return (
       <div className="pb-4">
         <h1 className="font-display text-2xl font-bold text-grape-700 mb-6">
-          <span className="mr-1.5">{'\u{1F3F0}'}</span>포도 와이너리
+          <span className="mr-1.5" aria-hidden="true">{'\u{1F3F0}'}</span>포도 와이너리
         </h1>
         <div className="space-y-4">
           <div className="skeleton h-48 w-full" />
@@ -47,7 +54,20 @@ export default function WineryPage() {
     );
   }
 
-  if (!data) return null;
+  if (loadError || !data) {
+    return (
+      <div className="pb-4">
+        <h1 className="font-display text-2xl font-bold text-grape-700 mb-6">
+          <span className="mr-1.5" aria-hidden="true">{'\u{1F3F0}'}</span>포도 와이너리
+        </h1>
+        <div className="text-center py-12">
+          <p className="font-display text-base text-warm-text mb-1.5">불러오지 못했어요</p>
+          <p className="text-sm text-warm-sub mb-5">잠시 후 다시 시도해주세요</p>
+          <button onClick={loadWinery} className="clay-button px-5 py-2.5 rounded-2xl text-sm font-semibold text-grape-700">다시 불러오기</button>
+        </div>
+      </div>
+    );
+  }
 
   const { totalGrapes, currentTier, nextTier, tierProgress, bottles } = data;
   const grapesToNext = nextTier ? nextTier.minGrapes - totalGrapes : 0;
@@ -55,7 +75,7 @@ export default function WineryPage() {
   return (
     <div className="pb-4">
       <h1 className="font-display text-2xl font-bold text-grape-700 mb-6 animate-fade-in">
-        <span className="mr-1.5">{'\u{1F3F0}'}</span>포도 와이너리
+        <span className="mr-1.5" aria-hidden="true">{'\u{1F3F0}'}</span>포도 와이너리
       </h1>
 
       {/* ─── Tier Display Section ──────────────────────────── */}
@@ -97,7 +117,7 @@ export default function WineryPage() {
           {/* Total grapes */}
           <div className="mt-4 flex items-center justify-center gap-1.5">
             <span className="text-2xl">{'\u{1F347}'}</span>
-            <span className="font-display text-4xl font-extrabold text-grape-700 leading-none">
+            <span className="font-display text-4xl font-extrabold text-grape-700 leading-none tabular-nums">
               {totalGrapes.toLocaleString()}
             </span>
             <span className="text-sm text-warm-sub self-end mb-1">포도알</span>
@@ -120,13 +140,13 @@ export default function WineryPage() {
                 </div>
               </div>
               <p className="text-xs text-warm-sub mt-2">
-                다음 티어까지 <span className="font-bold text-grape-600">{grapesToNext.toLocaleString()}</span>포도알
+                다음 티어까지 <span className="font-bold text-grape-600 tabular-nums">{grapesToNext.toLocaleString()}</span>포도알
               </p>
             </div>
           ) : (
             <div className="mt-4">
               <p className="text-sm text-grape-600 font-semibold">
-                {'\u{1F451}'} 최고 등급 달성!
+                <span aria-hidden="true">{'\u{1F451}'}</span> 최고 등급 달성.
               </p>
             </div>
           )}
@@ -137,9 +157,9 @@ export default function WineryPage() {
       <section className="mb-6 animate-fade-in" style={{ animationDelay: '0.1s' }}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-display text-lg font-bold text-grape-700">
-            <span className="mr-1">{'\u{1F377}'}</span>와인 셀러
+            <span className="mr-1" aria-hidden="true">{'\u{1F377}'}</span>와인 셀러
           </h3>
-          <span className="text-sm text-warm-sub font-medium">
+          <span className="text-sm text-warm-sub font-medium tabular-nums">
             {bottles.length}병
           </span>
         </div>
@@ -151,8 +171,8 @@ export default function WineryPage() {
             <p className="text-warm-sub text-sm leading-relaxed">
               아직 완성된 와인이 없어요.
               <br />
-              포도판을 완성하면 와인이 만들어져요!
-              <span className="ml-1">{'\u{1F347}'}</span>
+              포도판을 완성하면 와인이 만들어져요.
+              <span className="ml-1" aria-hidden="true">{'\u{1F347}'}</span>
             </p>
           </div>
         ) : (
@@ -227,7 +247,7 @@ export default function WineryPage() {
                     </div>
 
                     {/* Completion date */}
-                    <p className="text-[11px] text-warm-light mt-2">
+                    <p className="text-xs text-warm-sub mt-2">
                       {formatDate(selectedBottle.completedAt)} 완성
                     </p>
                   </div>
@@ -241,7 +261,7 @@ export default function WineryPage() {
       {/* ─── Tier Roadmap Section ──────────────────────────── */}
       <section className="mb-4 animate-fade-in" style={{ animationDelay: '0.2s' }}>
         <h3 className="font-display text-lg font-bold text-grape-700 mb-4">
-          <span className="mr-1">{'\u{1F5FA}\u{FE0F}'}</span>티어 로드맵
+          <span className="mr-1" aria-hidden="true">{'\u{1F5FA}\u{FE0F}'}</span>티어 로드맵
         </h3>
 
         <div className="clay p-5">
@@ -275,7 +295,7 @@ export default function WineryPage() {
                           ? 'bg-gradient-to-br from-grape-400 to-grape-600 shadow-lg ring-2 ring-grape-300 ring-offset-2'
                           : isPast
                             ? 'bg-gradient-to-br from-grape-200 to-grape-300 shadow-sm'
-                            : 'bg-gray-100 shadow-sm'
+                            : 'bg-warm-border/40 shadow-sm'
                         }
                       `}
                     >
@@ -306,7 +326,7 @@ export default function WineryPage() {
                           </span>
                         )}
                       </div>
-                      <span className={`text-xs ${isFuture ? 'text-warm-light' : 'text-warm-sub'}`}>
+                      <span className="text-xs tabular-nums text-warm-sub">
                         {tier.minGrapes === 0
                           ? '시작'
                           : `${tier.minGrapes.toLocaleString()}포도알 필요`}
@@ -315,12 +335,12 @@ export default function WineryPage() {
 
                     {/* Level badge */}
                     <span
-                      className={`text-xs font-bold flex-shrink-0 ${
+                      className={`text-xs font-bold flex-shrink-0 tabular-nums ${
                         isCurrent
                           ? 'text-grape-600'
                           : isPast
                             ? 'text-grape-400'
-                            : 'text-warm-light'
+                            : 'text-warm-sub'
                       }`}
                     >
                       Lv.{tier.level}
@@ -341,8 +361,8 @@ export default function WineryPage() {
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <span className="text-warm-light text-xs">{label}</span>
-      <p className="text-grape-700 font-semibold text-sm">{value}</p>
+      <span className="text-warm-sub text-xs">{label}</span>
+      <p className="text-grape-700 font-semibold text-sm tabular-nums">{value}</p>
     </div>
   );
 }

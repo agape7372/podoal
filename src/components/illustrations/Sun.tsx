@@ -1,9 +1,13 @@
+import { useId } from 'react';
+
 interface SunProps {
   size?: number;
   className?: string;
 }
 
 export default function Sun({ size = 48, className = '' }: SunProps) {
+  const uid = useId();
+  const fillId = `sun-fill-${uid}`;
   const rays = Array.from({ length: 8 }, (_, i) => i * 45);
   return (
     <svg
@@ -15,7 +19,7 @@ export default function Sun({ size = 48, className = '' }: SunProps) {
       aria-hidden="true"
     >
       <defs>
-        <radialGradient id="sun-fill" cx="50%" cy="50%" r="50%">
+        <radialGradient id={fillId} cx="50%" cy="50%" r="50%">
           <stop offset="0%" stopColor="#FFF5C9" />
           <stop offset="60%" stopColor="#EFF5BB" />
           <stop offset="100%" stopColor="#CFDC78" />
@@ -34,7 +38,7 @@ export default function Sun({ size = 48, className = '' }: SunProps) {
           transform={`rotate(${deg} 24 24)`}
         />
       ))}
-      <circle cx="24" cy="24" r="10" fill="url(#sun-fill)" />
+      <circle cx="24" cy="24" r="10" fill={`url(#${fillId})`} />
     </svg>
   );
 }

@@ -5,16 +5,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 > **About this project (newal)** — This is the visual redesign port of `podoal` at https://github.com/agape7372/newal. Data layer (Prisma schema, all `/api/*` routes, `src/lib/auth.ts`, `src/lib/oauth.ts`, `src/lib/store.ts` keys, `src/lib/feedback.ts` function signatures, `prisma/seed.ts`, env var names) is 1:1 from podoal — **do not modify**. Visual layer (`tailwind.config.ts`, `src/app/globals.css`, all `src/components/**`, all page components, manifest brand strings) was redesigned.
 >
 > **newal-specific design tokens**
-> - Brand color synced to `#9B7ED8` across both `tailwind grape-500` and `--grape-primary` in globals.css
-> - New accent palettes: `juice-*` (warm pink, for CTAs/celebrations), `leaf-*` (green, for stem/vine/online), `sunshine-*` (yellow, for sparkle/reward)
-> - All shadows use purple-warm tint `rgba(73, 50, 100, X)` instead of black — the single biggest "AI-doesn't-make-this" tell
-> - Display font: **Maru Buri** (Naver, free commercial) for H1/H2/big numbers; body stays Noto Sans KR. Use `font-display` class on headers only — never on paragraph text
+> - Brand purple (ACTUAL values): `tailwind grape-500` = `#B28CDC`, `--grape-primary` = `#DCC4F2`. The `#9B7ED8` accent lives only in the `grape-glow` shadow token + winery Lv gradient — NOT unified to one var (known token drift; pick one canonical if reconciling)
+> - Accent palettes (now defined in `tailwind.config.ts`): `juice-*` (warm pink, CTAs/celebrations), `leaf-*` (green, stem/vine/online/success), `sunshine-*` (yellow, sparkle/reward)
+> - All shadows use a single purple-warm tint `rgba(73, 50, 100, X)` instead of black — `--shadow-tint` (globals.css) and the tailwind `boxShadow` tokens are unified to this value. Filled/empty grapes use the same tint (not black)
+> - Display font: **Maru Buri** (Naver, free commercial, **self-hosted in `src/app/fonts/`**) for H1/H2/big numbers; body stays Noto Sans KR. Both load via **`next/font`** (see `layout.tsx`: `--font-display` / `--font-sans` vars) — the old jsdelivr `@font-face` CDN was dead (404). Use `font-display` class on headers only — never on paragraph text
 > - New `clay-puffy` shadow for floating elements (Navigation, InstallPrompt, joyful CTAs)
-> - 5th button variant: `joyful` — gradient `grape-500 → juice-400` + `clay-puffy` shadow; reserve for welcome CTA, "보상 열기", "릴레이 시작"
+> - 5th button variant: `joyful` — gradient `grape-300 → grape-400 → lime-300` + `clay-puffy` shadow; reserve for welcome CTA, "보상 열기", "릴레이 시작"
+> - **Taste-review a11y conventions (2026-06-03) — rely on these, do NOT re-add**: a global `:focus-visible` ring + a global `prefers-reduced-motion` backstop live in `globals.css` (never add per-element focus styles or per-animation motion guards; only remove stray `focus:outline-none`). `.clay-input::placeholder` is AA (opacity 1). Use `<ConfirmDialog>` (`src/components/ConfirmDialog.tsx`) instead of `window.confirm()`. For body/caption TEXT use `text-warm-sub`, not `text-warm-light` (the latter fails AA on white — decoration only). Add `tabular-nums` to numeric readouts. Viewport allows pinch-zoom; inputs are 16px. List pages surface a distinct error state (not a swallowed empty)
 >
 > **Mascot & illustrations**
-> - `src/components/mascot/Podo.tsx` — minimal still-life grape SVG, props: `size`, optional `variant: 'sleeping'`. **No facial expressions** — used decoratively only (welcome hero, empty states, InstallPrompt chip). Do not extend with cheering/surprised etc.
-> - `src/components/illustrations/*.tsx` — 6 single-export SVG components (VineLeaf, WaterDrop, Sparkle, Ribbon, Sun, CloudPuff) + `GrapeStem.tsx` (used by GrapeBoard). Use sparingly: at most one illustration per page section.
+> - `src/components/mascot/Podo.tsx` — minimal still-life grape SVG, props: `size`, optional `variant: 'sleeping'`, optional `decorative` (renders `aria-hidden` for purely decorative placements e.g. the InstallPrompt chip; default keeps `role="img"`+aria-label). **No facial expressions** — used decoratively only (welcome hero, empty states, InstallPrompt chip). Do not extend with cheering/surprised etc.
+> - `src/components/illustrations/*.tsx` — 6 single-export SVG components (VineLeaf, WaterDrop, Sparkle, Ribbon, Sun, CloudPuff) + `GrapeStem.tsx` (used by GrapeBoard). Gradient/defs ids use `useId()` for instance-uniqueness (no cross-instance fill bleed). Unused `Star`/`Heart` were removed. Use sparingly: at most one illustration per page section.
 >
 > **Content untouched** — `src/lib/templates.ts` (7 categories, 38 templates), `src/lib/winery.ts` (포도알 새싹 → 포도 마스터 tier names), `src/lib/sounds.ts` (30 sounds), `src/types/index.ts` (3 reward types), nav labels (홈/만들기/릴레이/와이너리/더보기) all kept verbatim. The redesign deliberately does not touch copy/naming — design carries the change.
 

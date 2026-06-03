@@ -129,9 +129,8 @@ function AuthPageInner() {
             newal
           </h1>
           <p className="font-display text-warm-sub mb-1 text-[15px]">한 알씩, 매일의 기록</p>
-          <p className="text-sm text-warm-light mb-8 leading-relaxed">
-            포도알을 한 알씩 채우며 목표를 달성하고,<br />
-            소중한 사람에게 응원과 보상을 주고받아요
+          <p className="text-sm text-warm-sub mb-8 leading-relaxed [text-wrap:balance]">
+            포도알을 한 알씩 채우며 목표를 달성하고, 소중한 사람에게 응원과 보상을 주고받아요
           </p>
 
           {error && (
@@ -184,7 +183,7 @@ function AuthPageInner() {
 
             <div className="flex items-center gap-3 py-1">
               <div className="flex-1 h-px bg-warm-border/40" />
-              <span className="text-xs text-warm-light">또는</span>
+              <span className="text-xs text-warm-sub">또는</span>
               <div className="flex-1 h-px bg-warm-border/40" />
             </div>
 
@@ -193,7 +192,7 @@ function AuthPageInner() {
             </ClayButton>
             <button
               onClick={() => { setError(''); setMode('login'); }}
-              className="w-full text-center text-sm text-grape-600 py-1"
+              className="w-full text-center text-sm text-grape-700 py-3 min-h-[44px]"
             >
               이미 계정이 있나요? 이메일로 로그인
             </button>
@@ -214,7 +213,7 @@ function AuthPageInner() {
                 setLoading(false);
               }}
               disabled={loading}
-              className="w-full py-2.5 rounded-2xl text-xs font-medium text-warm-light hover:text-grape-600 transition-all"
+              className="w-full py-2.5 min-h-[44px] rounded-2xl text-xs font-medium text-warm-sub hover:text-grape-700 transition-all"
             >
               {loading ? '진입중…' : '🛠 개발자 모드'}
             </button>
@@ -225,7 +224,7 @@ function AuthPageInner() {
       {/* Login Form */}
       {mode === 'login' && (
         <div className="w-full max-w-sm animate-slide-up">
-          <button onClick={() => { setError(''); setMode('welcome'); }} className="text-warm-sub mb-6 text-sm">
+          <button onClick={() => { setError(''); setMode('welcome'); }} className="text-warm-sub mb-4 text-sm py-2 min-h-[44px]">
             ← 돌아가기
           </button>
           <h2 className="font-display text-3xl font-bold text-grape-700 mb-6">이메일로 로그인</h2>
@@ -245,13 +244,13 @@ function AuthPageInner() {
               onChange={(e) => setPassword(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
             />
-            {error && <p className="text-grape-700 text-sm text-center">{error}</p>}
+            {error && <p role="alert" className="rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-sm text-center px-3 py-2">{error}</p>}
             <ClayButton variant="joyful" fullWidth size="lg" onClick={handleSubmit} loading={loading}>
               로그인
             </ClayButton>
             <button
               onClick={() => { setMode('register'); setError(''); }}
-              className="w-full text-center text-sm text-grape-600 mt-2"
+              className="w-full text-center text-sm text-grape-700 mt-2 py-2 min-h-[44px]"
             >
               계정이 없으신가요? 새로 시작하기
             </button>
@@ -262,7 +261,7 @@ function AuthPageInner() {
       {/* Register Form */}
       {mode === 'register' && (
         <div className="w-full max-w-sm animate-slide-up">
-          <button onClick={() => { setError(''); setMode('welcome'); }} className="text-warm-sub mb-6 text-sm">
+          <button onClick={() => { setError(''); setMode('welcome'); }} className="text-warm-sub mb-4 text-sm py-2 min-h-[44px]">
             ← 돌아가기
           </button>
           <h2 className="font-display text-3xl font-bold text-grape-700 mb-6">이메일로 시작하기</h2>
@@ -314,13 +313,13 @@ function AuthPageInner() {
               onChange={(e) => setPassword(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
             />
-            {error && <p className="text-grape-700 text-sm text-center">{error}</p>}
+            {error && <p role="alert" className="rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-sm text-center px-3 py-2">{error}</p>}
             <ClayButton variant="joyful" fullWidth size="lg" onClick={handleSubmit} loading={loading}>
               시작하기
             </ClayButton>
             <button
               onClick={() => { setMode('login'); setError(''); }}
-              className="w-full text-center text-sm text-grape-600 mt-2"
+              className="w-full text-center text-sm text-grape-700 mt-2 py-2 min-h-[44px]"
             >
               이미 계정이 있으신가요? 로그인
             </button>

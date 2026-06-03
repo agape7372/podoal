@@ -9,15 +9,19 @@ import type { MessageInfo } from '@/types';
 export default function MessagesPage() {
   const [messages, setMessages] = useState<MessageInfo[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const setUnreadCount = useAppStore((s) => s.setUnreadCount);
 
   const fetchMessages = useCallback(async () => {
+    setLoadError(false);
     try {
       const data = await api<MessageInfo[]>('/api/messages');
       setMessages(data);
       const unread = data.filter((m: MessageInfo) => !m.isRead).length;
       setUnreadCount(unread);
-    } catch {}
+    } catch {
+      setLoadError(true);
+    }
     setLoading(false);
   }, [setUnreadCount]);
 
@@ -65,17 +69,23 @@ export default function MessagesPage() {
 
   return (
     <div className="pb-4">
-      <h1 className="font-display text-2xl font-bold text-grape-700 mb-6">💌 메시지</h1>
+      <h1 className="font-display text-2xl font-bold text-grape-700 mb-6"><span aria-hidden="true">💌</span> 메시지</h1>
 
       {loading ? (
         <div className="space-y-3">
           {[1, 2, 3, 4].map((i) => <div key={i} className="skeleton h-20 w-full" />)}
         </div>
+      ) : loadError ? (
+        <div className="text-center py-12">
+          <p className="font-display text-base text-warm-text mb-1.5">불러오지 못했어요</p>
+          <p className="text-sm text-warm-sub mb-5">잠시 후 다시 시도해주세요</p>
+          <button onClick={fetchMessages} className="clay-button px-5 py-2.5 rounded-2xl text-sm font-semibold text-grape-700">다시 불러오기</button>
+        </div>
       ) : messages.length === 0 ? (
         <div className="text-center py-16">
-          <span className="text-5xl block mb-4">💌</span>
+          <span className="text-5xl block mb-4" aria-hidden="true">💌</span>
           <p className="text-warm-sub">아직 메시지가 없어요</p>
-          <p className="text-xs text-warm-light mt-1">친구에게 응원을 보내보세요!</p>
+          <p className="text-xs text-warm-sub mt-1">친구에게 응원을 보내보세요!</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -107,7 +117,7 @@ export default function MessagesPage() {
                     <span className="mr-1">{msg.emoji}</span>
                     {msg.content}
                   </p>
-                  <p className="text-[10px] text-warm-light mt-1">
+                  <p className="text-xs text-warm-sub mt-1">
                     {formatTime(msg.createdAt)}
                   </p>
                 </div>

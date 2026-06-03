@@ -2,12 +2,15 @@ interface SparkleProps {
   size?: number;
   className?: string;
   color?: string;
+  /** Optional darker outline for meaning-bearing use (lime is <3:1 on light). */
+  outline?: string;
 }
 
 export default function Sparkle({
   size = 20,
   className = '',
   color = '#CFDC78',
+  outline,
 }: SparkleProps) {
   return (
     <svg
@@ -25,6 +28,9 @@ export default function Sparkle({
            Q 9 12, 1 10
            Q 9 8, 10 1 Z"
         fill={color}
+        stroke={outline}
+        strokeWidth={outline ? 1 : undefined}
+        strokeLinejoin="round"
       />
       <circle cx="10" cy="10" r="1.4" fill="rgba(255,255,255,0.85)" />
     </svg>

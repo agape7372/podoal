@@ -50,7 +50,7 @@ export default function Navigation() {
                 <span className="text-xl relative">
                   {item.icon}
                   {item.badge === 'unread' && unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-2 bg-grape-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] px-1 flex items-center justify-center border-[1.5px] border-warm-text">
+                    <span className="absolute -top-1 -right-2 bg-grape-600 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] px-1 flex items-center justify-center border-[1.5px] border-warm-text">
                       {unreadCount > 9 ? '9+' : unreadCount}
                     </span>
                   )}
