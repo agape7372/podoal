@@ -120,9 +120,9 @@ function GrapeBoardInner({ board, onFill, canFill }: GrapeBoardProps) {
             </div>
           )}
 
-          {/* Stem + leaf illustration */}
-          <div className="relative z-10" style={{ marginBottom: '-14px' }}>
-            <GrapeStem size={120} />
+          {/* Two-leaf canopy illustration */}
+          <div className="relative z-10" style={{ marginBottom: '-10px' }}>
+            <GrapeStem size={96} />
           </div>
 
           {/* Grape cluster */}
