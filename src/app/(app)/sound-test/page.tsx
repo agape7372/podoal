@@ -61,7 +61,7 @@ export default function SoundTestPage() {
                 }
               `}
             >
-              {settings.fillSoundId === s.id ? '💜' : '선택'}
+              {settings.fillSoundId === s.id ? <EmojiIcon emoji="💜" size={16} /> : '선택'}
             </button>
           </div>
         ))}
