@@ -4,6 +4,7 @@ import { useCallback, useState } from 'react';
 import { FILL_SOUNDS } from '@/lib/sounds';
 import { useAppStore } from '@/lib/store';
 import { updateSettings as updateFeedbackSettings } from '@/lib/feedback';
+import EmojiIcon from '@/components/EmojiIcon';
 
 export default function SoundTestPage() {
   const settings = useAppStore((s) => s.settings);
@@ -39,7 +40,7 @@ export default function SoundTestPage() {
                 ${settings.fillSoundId === s.id ? 'ring-2 ring-grape-400 bg-gradient-to-br from-grape-100 to-grape-50' : ''}
               `}
             >
-              {s.emoji}
+              <EmojiIcon emoji={s.emoji} size={26} />
             </button>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
@@ -76,7 +77,7 @@ export default function SoundTestPage() {
               onClick={() => s.play()}
               className="clay-button w-12 h-12 rounded-xl text-lg flex items-center justify-center active:scale-90 transition-transform"
             >
-              {s.emoji}
+              <EmojiIcon emoji={s.emoji} size={20} />
             </button>
           ))}
         </div>
