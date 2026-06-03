@@ -70,8 +70,8 @@ function GrapeBoardInner({ board, onFill, canFill }: GrapeBoardProps) {
   const maxRowCount = Math.max(...(CLUSTER_LAYOUTS[board.totalStickers] || CLUSTER_LAYOUTS[10]));
   const grapeSize = Math.min(54, Math.floor(270 / (maxRowCount * 1.12)));
   const sizeClass: 'sm' | 'md' | 'lg' = 'lg';
-  const rowOverlap = grapeSize * 0.15; // gentler vertical nestle (was 0.22 — too crammed)
-  const hMargin = grapeSize * 0.06;    // horizontal breathing room (was ~0.02 — grapes touched)
+  const rowGap = Math.round(grapeSize * 0.06); // POSITIVE gap between rows — grapes never overlap each other
+  const hMargin = grapeSize * 0.06;            // horizontal breathing room so grapes in a row don't touch
   // Leaf canopy: sized to ~1.5× a grape (hard cap 2×) and never overlapping the bunch.
   const leafWidth = Math.round(grapeSize * 1.5);
 
@@ -139,7 +139,7 @@ function GrapeBoardInner({ board, onFill, canFill }: GrapeBoardProps) {
                   key={rowIdx}
                   className="flex justify-center"
                   style={{
-                    marginTop: rowIdx === 0 ? 0 : `-${rowOverlap}px`,
+                    marginTop: rowIdx === 0 ? 0 : `${rowGap}px`,
                     marginLeft: isStaggered ? `${halfGrape * 0.05}px` : `0`,
                   }}
                 >
