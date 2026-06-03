@@ -72,6 +72,8 @@ function GrapeBoardInner({ board, onFill, canFill }: GrapeBoardProps) {
   const sizeClass: 'sm' | 'md' | 'lg' = 'lg';
   const rowOverlap = grapeSize * 0.15; // gentler vertical nestle (was 0.22 — too crammed)
   const hMargin = grapeSize * 0.06;    // horizontal breathing room (was ~0.02 — grapes touched)
+  // Leaf canopy: sized to ~1.5× a grape (hard cap 2×) and never overlapping the bunch.
+  const leafWidth = Math.round(grapeSize * 1.5);
 
   const rows = useMemo<number[][]>(() => {
     const layoutRows = CLUSTER_LAYOUTS[board.totalStickers] || CLUSTER_LAYOUTS[10];
@@ -120,9 +122,10 @@ function GrapeBoardInner({ board, onFill, canFill }: GrapeBoardProps) {
             </div>
           )}
 
-          {/* Two-leaf canopy illustration */}
-          <div className="relative z-10" style={{ marginBottom: '-10px' }}>
-            <GrapeStem size={96} />
+          {/* Two-leaf canopy — sits ABOVE the bunch with a gap, never overlapping.
+              Width tied to grapeSize (≤ 2× a grape; ~1.5× looks right). */}
+          <div className="relative" style={{ marginBottom: 4 }}>
+            <GrapeStem size={leafWidth} />
           </div>
 
           {/* Grape cluster */}
