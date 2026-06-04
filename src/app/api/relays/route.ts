@@ -72,6 +72,10 @@ export async function POST(request: Request) {
     return authResponse('친구를 한 명 이상 선택해주세요', 400);
   }
 
+  if (friendIds.length > 20) {
+    return authResponse('릴레이는 최대 20명까지 초대할 수 있어요', 400);
+  }
+
   // Verify all friendIds are valid users
   const friends = await prisma.user.findMany({
     where: { id: { in: friendIds } },
@@ -80,6 +84,25 @@ export async function POST(request: Request) {
 
   if (friends.length !== friendIds.length) {
     return authResponse('존재하지 않는 사용자가 포함되어 있어요', 400);
+  }
+
+  // SECURITY: 초대 대상이 실제 요청자의 '수락된(accepted)' 친구인지 검증.
+  // (기존엔 유저 존재 여부만 확인 → 아무 userId나 릴레이에 강제 참가시킬 수 있었음)
+  const friendships = await prisma.friendship.findMany({
+    where: {
+      status: 'accepted',
+      OR: [
+        { requesterId: userId, receiverId: { in: friendIds } },
+        { receiverId: userId, requesterId: { in: friendIds } },
+      ],
+    },
+    select: { requesterId: true, receiverId: true },
+  });
+  const acceptedFriendIds = new Set(
+    friendships.map((f) => (f.requesterId === userId ? f.receiverId : f.requesterId)),
+  );
+  if (friendIds.some((id: string) => !acceptedFriendIds.has(id))) {
+    return authResponse('친구로 수락된 사용자만 릴레이에 초대할 수 있어요', 403);
   }
 
   const relay = await prisma.$transaction(async (tx) => {

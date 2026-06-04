@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUserId, authResponse } from '@/lib/auth';
+import { clientKey, rateLimit } from '@/lib/rateLimit';
 
 export async function GET() {
   const userId = await getCurrentUserId();
@@ -32,9 +33,19 @@ export async function GET() {
 
 const VALID_MESSAGE_TYPES = new Set(['cheer', 'celebration', 'gift']);
 
+// 메시지 스팸 방지 (라우트에 레이트리밋이 없어 무제한 전송 가능했음).
+const sendMessageLimit = rateLimit({
+  windowMs: 60_000,
+  max: 20,
+  message: '메시지를 너무 빨리 보내고 있어요. 잠시 후 다시 시도해주세요.',
+});
+
 export async function POST(request: Request) {
   const userId = await getCurrentUserId();
   if (!userId) return authResponse('Unauthorized');
+
+  const blocked = sendMessageLimit(clientKey(request));
+  if (blocked) return blocked;
 
   try {
     const { receiverId, content, type, emoji, boardId } = await request.json();

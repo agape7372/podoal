@@ -11,6 +11,14 @@ import {
 } from '@/lib/oauth';
 import { prisma } from '@/lib/prisma';
 import { buildAuthCookie, createToken } from '@/lib/auth';
+import { clientKey, rateLimit } from '@/lib/rateLimit';
+
+// 게스트 계정 대량 생성(봇 스팸) 방지 — IP당 제한.
+const guestLimit = rateLimit({
+  windowMs: 10 * 60_000,
+  max: 5,
+  message: '게스트 로그인을 너무 자주 시도했어요. 잠시 후 다시 시도해주세요.',
+});
 
 function clearStateHeader(): string {
   const parts = [
@@ -52,9 +60,12 @@ export async function GET(
     return redirectWithError(origin, `oauth_${provider}_bad_state`);
   }
 
-  // Path A: guest fallback (no real OAuth credentials for this provider).
-  const isGuest = url.searchParams.get('guest') === '1';
-  if (isGuest || !isRealOAuth(provider)) {
+  // Path A: guest fallback — 서버 설정(자격증명 부재)으로만 결정한다. 클라이언트가
+  // 보낸 ?guest=1 은 신뢰하지 않는다: 실제 OAuth가 구성된 경우 위조된 guest=1 로
+  // provider 로그인을 우회할 수 없어야 한다. 봇 대량가입 방지를 위해 IP 레이트리밋 적용.
+  if (!isRealOAuth(provider)) {
+    const blocked = guestLimit(clientKey(request));
+    if (blocked) return blocked;
     const guest = generateGuestIdentity(provider);
     return await finalizeLogin(origin, provider, guest, { guest: true });
   }
