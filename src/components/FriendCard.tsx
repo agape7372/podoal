@@ -92,14 +92,14 @@ export default function FriendCard({
                 className="clay-button p-2 rounded-xl text-lg transition-all active:scale-95"
                 title={friend.isFavorite ? '즐겨찾기 해제' : '즐겨찾기'}
               >
-                {friend.isFavorite ? <EmojiIcon emoji="⭐" size={18} /> : '☆'}
+                {friend.isFavorite ? <EmojiIcon emoji="⭐" size={18} /> : <EmojiIcon emoji="⭐" size={18} className="opacity-30 grayscale" />}
               </button>
               <button
                 onClick={() => onRemove?.(friend.id)}
                 className="clay-button p-2 rounded-xl text-sm text-warm-sub transition-all active:scale-95"
                 title="삭제"
               >
-                ✕
+                <EmojiIcon emoji="❌" size={16} />
               </button>
             </>
           )}

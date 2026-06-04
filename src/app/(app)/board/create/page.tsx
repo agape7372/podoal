@@ -82,12 +82,12 @@ export default function CreateBoardPage() {
   };
 
   const quickTitles = [
-    '매일 운동하기 💪',
-    '책 읽기 📚',
-    '일찍 일어나기 ⏰',
-    '물 마시기 💧',
-    '공부하기 ✏️',
-    '칭찬 받기 ⭐',
+    { text: '매일 운동하기', emoji: '💪' },
+    { text: '책 읽기', emoji: '📚' },
+    { text: '일찍 일어나기', emoji: '⏰' },
+    { text: '물 마시기', emoji: '💧' },
+    { text: '공부하기', emoji: '✏️' },
+    { text: '칭찬 받기', emoji: '⭐' },
   ];
 
   const categoryTemplates = getTemplatesByCategory(selectedCategory);
@@ -190,17 +190,21 @@ export default function CreateBoardPage() {
 
           {/* Quick title buttons */}
           <div className="flex flex-wrap gap-2">
-            {quickTitles.map((t) => (
-              <button
-                key={t}
-                onClick={() => setTitle(t)}
-                className={`clay-button px-3 py-1.5 rounded-xl text-sm ${
-                  title === t ? 'ring-2 ring-grape-300' : ''
-                }`}
-              >
-                {t}
-              </button>
-            ))}
+            {quickTitles.map((q) => {
+              const value = `${q.text} ${q.emoji}`;
+              return (
+                <button
+                  key={value}
+                  onClick={() => setTitle(value)}
+                  className={`clay-button px-3 py-1.5 rounded-xl text-sm inline-flex items-center gap-1 ${
+                    title === value ? 'ring-2 ring-grape-300' : ''
+                  }`}
+                >
+                  {q.text}
+                  <EmojiIcon emoji={q.emoji} size={15} />
+                </button>
+              );
+            })}
           </div>
 
           <ClayInput

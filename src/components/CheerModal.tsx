@@ -12,15 +12,15 @@ interface CheerModalProps {
   onClose: () => void;
 }
 
-const quickMessages = [
-  '화이팅! 💪',
-  '잘하고 있어!',
-  '응원해! 할 수 있어!',
-  '오늘도 최고야!',
-  '대단해! 계속 가자!',
-  '너무 잘하는데?',
-  '거의 다 됐어!',
-  '포기하지 마!',
+const quickMessages: { text: string; emoji?: string }[] = [
+  { text: '화이팅!', emoji: '💪' },
+  { text: '잘하고 있어!' },
+  { text: '응원해! 할 수 있어!' },
+  { text: '오늘도 최고야!' },
+  { text: '대단해! 계속 가자!' },
+  { text: '너무 잘하는데?' },
+  { text: '거의 다 됐어!' },
+  { text: '포기하지 마!' },
 ];
 
 export default function CheerModal({ recipientName, onSend, onClose }: CheerModalProps) {
@@ -71,21 +71,25 @@ export default function CheerModal({ recipientName, onSend, onClose }: CheerModa
 
         {/* Quick messages */}
         <div className="flex flex-wrap gap-2 mb-6">
-          {quickMessages.map((msg) => (
-            <button
-              key={msg}
-              onClick={() => setSelectedMsg(msg)}
-              className={`
-                px-3 py-2 rounded-xl text-sm font-medium transition-all
-                ${selectedMsg === msg
-                  ? 'clay-pressed text-grape-600 ring-2 ring-grape-300'
-                  : 'clay-button text-warm-text'
-                }
-              `}
-            >
-              {msg}
-            </button>
-          ))}
+          {quickMessages.map((m) => {
+            const value = m.emoji ? `${m.text} ${m.emoji}` : m.text;
+            return (
+              <button
+                key={value}
+                onClick={() => setSelectedMsg(value)}
+                className={`
+                  px-3 py-2 rounded-xl text-sm font-medium transition-all inline-flex items-center gap-1
+                  ${selectedMsg === value
+                    ? 'clay-pressed text-grape-600 ring-2 ring-grape-300'
+                    : 'clay-button text-warm-text'
+                  }
+                `}
+              >
+                {m.text}
+                {m.emoji && <EmojiIcon emoji={m.emoji} size={15} />}
+              </button>
+            );
+          })}
         </div>
 
         <div className="flex gap-3">

@@ -159,7 +159,7 @@ export default function FriendDetailPage() {
                 : 'text-warm-sub'
             }`}
           >
-            {isFavorite ? <span className="inline-flex items-center gap-1"><EmojiIcon emoji="⭐" size={14} /> 즐겨찾기</span> : '☆ 즐겨찾기'}
+            {isFavorite ? <span className="inline-flex items-center gap-1"><EmojiIcon emoji="⭐" size={14} /> 즐겨찾기</span> : <span className="inline-flex items-center gap-1"><EmojiIcon emoji="⭐" size={14} className="opacity-30 grayscale" /> 즐겨찾기</span>}
           </button>
           <ClayButton
             variant="secondary"
