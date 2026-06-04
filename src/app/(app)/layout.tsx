@@ -38,7 +38,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     return (
       <div className="min-h-dvh flex items-center justify-center">
         <div className="text-center">
-          <div className="text-5xl animate-float mb-4">🍇</div>
+          <img
+            src="/avatars/grape.svg"
+            alt=""
+            width={56}
+            height={56}
+            aria-hidden="true"
+            className="animate-float mb-4 mx-auto"
+          />
           <p className="text-warm-sub">로딩중...</p>
         </div>
       </div>

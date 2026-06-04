@@ -81,27 +81,20 @@ export default function HomePage() {
         </button>
       </div>
 
-      {/* Stats — horizontal scrollable pill chips */}
-      <div className="overflow-x-auto scrollbar-hide py-2 -mx-1 mb-5">
-        <div className="flex gap-2.5 px-1">
-          <StatChip label="전체" value={boards.length} accent="grape" />
-          <StatChip label="진행중" value={activeCount} accent="juice" />
-          <StatChip label="완료" value={completedCount} accent="leaf" />
-        </div>
-      </div>
-
-      {/* Filter tabs */}
+      {/* Filter tabs — 카운트 통합(전체/진행중/완료 + 숫자) */}
       <div className="flex gap-2 mb-4">
         {(['all', 'active', 'completed'] as const).map((f) => {
           const isActive = filter === f;
           const icon = f === 'all' ? null : f === 'active' ? <VineLeaf size={14} /> : <Sparkle size={14} color="#FFC845" />;
+          const label = f === 'all' ? '전체' : f === 'active' ? '진행중' : '완료';
+          const count = f === 'all' ? boards.length : f === 'active' ? activeCount : completedCount;
           return (
             <button
               key={f}
               onClick={() => { feedbackTap(); setFilter(f); }}
               aria-pressed={isActive}
               className={`
-                px-4 py-2 rounded-2xl text-sm font-medium transition-all inline-flex items-center gap-1.5
+                px-3.5 py-2 rounded-2xl text-sm font-medium transition-all inline-flex items-center gap-1.5
                 ${isActive
                   ? 'clay-pressed text-grape-700'
                   : 'clay-button text-warm-sub'
@@ -109,7 +102,10 @@ export default function HomePage() {
               `}
             >
               {icon}
-              {f === 'all' ? '전체' : f === 'active' ? '진행중' : '완료'}
+              {label}
+              <span className={`font-display font-bold leading-none ${isActive ? 'text-grape-700' : 'text-warm-text'}`}>
+                {count}
+              </span>
             </button>
           );
         })}
@@ -164,20 +160,6 @@ export default function HomePage() {
           +
         </button>
       )}
-    </div>
-  );
-}
-
-function StatChip({ label, value, accent }: { label: string; value: number; accent: 'grape' | 'juice' | 'leaf' }) {
-  const accentColor = {
-    grape: 'text-grape-700',
-    juice: 'text-grape-600',
-    leaf: 'text-lime-700',
-  }[accent];
-  return (
-    <div className="clay-sm flex-shrink-0 inline-flex items-baseline gap-2 px-4 py-2.5" style={{ borderRadius: '999px' }}>
-      <span className={`font-display text-xl font-bold leading-none tabular-nums ${accentColor}`}>{value}</span>
-      <span className="text-xs text-warm-sub">{label}</span>
     </div>
   );
 }

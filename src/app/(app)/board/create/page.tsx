@@ -10,6 +10,7 @@ import { BOARD_SIZES, REWARD_TYPE_LABELS } from '@/types';
 import type { RewardType } from '@/types';
 import { TEMPLATE_CATEGORIES, getTemplatesByCategory } from '@/lib/templates';
 import type { HabitTemplate } from '@/lib/templates';
+import EmojiIcon from '@/components/EmojiIcon';
 import { feedbackSuccess, feedbackTap } from '@/lib/feedback';
 
 export default function CreateBoardPage() {
@@ -81,19 +82,19 @@ export default function CreateBoardPage() {
   };
 
   const quickTitles = [
-    '매일 운동하기 💪',
-    '책 읽기 📚',
-    '일찍 일어나기 ⏰',
-    '물 마시기 💧',
-    '공부하기 ✏️',
-    '칭찬 받기 ⭐',
+    { text: '매일 운동하기', emoji: '💪' },
+    { text: '책 읽기', emoji: '📚' },
+    { text: '일찍 일어나기', emoji: '⏰' },
+    { text: '물 마시기', emoji: '💧' },
+    { text: '공부하기', emoji: '✏️' },
+    { text: '칭찬 받기', emoji: '⭐' },
   ];
 
   const categoryTemplates = getTemplatesByCategory(selectedCategory);
 
   return (
     <div className="pb-4">
-      <h1 className="font-display text-2xl font-bold text-grape-700 mb-6">🍇 새 포도판 만들기</h1>
+      <h1 className="font-display text-2xl font-bold text-grape-700 mb-6 inline-flex items-center gap-1.5"><EmojiIcon emoji="🍇" size={24} /> 새 포도판 만들기</h1>
 
       {/* Step indicator */}
       <div className="flex items-center gap-2 mb-6">
@@ -137,7 +138,7 @@ export default function CreateBoardPage() {
                   }
                 `}
               >
-                {cat.icon} {cat.name}
+                <span className="inline-flex items-center gap-1"><EmojiIcon emoji={cat.icon} size={15} /> {cat.name}</span>
               </button>
             ))}
           </div>
@@ -153,7 +154,7 @@ export default function CreateBoardPage() {
                   hover:bg-grape-50/40
                 `}
               >
-                <div className="text-2xl mb-2">{template.icon}</div>
+                <div className="mb-2"><EmojiIcon emoji={template.icon} size={26} /></div>
                 <p className="font-semibold text-sm text-grape-700 mb-1">{template.name}</p>
                 <p className="text-xs text-warm-sub line-clamp-2">{template.description}</p>
                 <div className="mt-2 flex items-center gap-1">
@@ -171,7 +172,7 @@ export default function CreateBoardPage() {
               size="lg"
               onClick={handleSkipTemplate}
             >
-              ✨ 직접 만들기
+              <EmojiIcon emoji="✨" size={16} className="mr-1" />직접 만들기
             </ClayButton>
           </div>
         </div>
@@ -189,17 +190,21 @@ export default function CreateBoardPage() {
 
           {/* Quick title buttons */}
           <div className="flex flex-wrap gap-2">
-            {quickTitles.map((t) => (
-              <button
-                key={t}
-                onClick={() => setTitle(t)}
-                className={`clay-button px-3 py-1.5 rounded-xl text-sm ${
-                  title === t ? 'ring-2 ring-grape-300' : ''
-                }`}
-              >
-                {t}
-              </button>
-            ))}
+            {quickTitles.map((q) => {
+              const value = `${q.text} ${q.emoji}`;
+              return (
+                <button
+                  key={value}
+                  onClick={() => setTitle(value)}
+                  className={`clay-button px-3 py-1.5 rounded-xl text-sm inline-flex items-center gap-1 ${
+                    title === value ? 'ring-2 ring-grape-300' : ''
+                  }`}
+                >
+                  {q.text}
+                  <EmojiIcon emoji={q.emoji} size={15} />
+                </button>
+              );
+            })}
           </div>
 
           <ClayInput
@@ -238,8 +243,10 @@ export default function CreateBoardPage() {
                 color={totalStickers === size.value ? 'lavender' : 'white'}
                 className={`text-center ${totalStickers === size.value ? 'ring-2 ring-grape-400' : ''}`}
               >
-                <div className="text-3xl mb-2">
-                  {size.value <= 10 ? '🍇' : size.value <= 15 ? '🍇🍇' : size.value <= 20 ? '🍇🍇🍇' : '🍇🍇🍇🍇'}
+                <div className="mb-2 flex justify-center gap-0.5">
+                  {Array.from({ length: size.value <= 10 ? 1 : size.value <= 15 ? 2 : size.value <= 20 ? 3 : 4 }).map((_, i) => (
+                    <EmojiIcon key={i} emoji="🍇" size={24} />
+                  ))}
                 </div>
                 <p className="font-bold text-grape-700">{size.label}</p>
                 <p className="text-xs text-warm-sub">{size.description}</p>
@@ -262,7 +269,7 @@ export default function CreateBoardPage() {
       {step === 3 && (
         <div className="space-y-5 animate-fade-in">
           <p className="text-sm text-warm-sub">달성하면 받을 보상을 설정해요</p>
-          <p className="text-xs text-warm-light">달성 전까지 내용은 비밀이에요! 🤫</p>
+          <p className="text-xs text-warm-light">달성 전까지 내용은 비밀이에요! <EmojiIcon emoji="🤫" size={13} /></p>
 
           {/* Reward type */}
           <div className="flex gap-2">
@@ -315,7 +322,7 @@ export default function CreateBoardPage() {
               ← 이전
             </ClayButton>
             <ClayButton fullWidth onClick={handleCreate} loading={loading}>
-              🍇 만들기
+              <EmojiIcon emoji="🍇" size={16} className="mr-1" />만들기
             </ClayButton>
           </div>
         </div>

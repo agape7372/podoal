@@ -4,6 +4,7 @@ import { memo, useCallback, useMemo, useState } from 'react';
 import GrapeSticker from './GrapeSticker';
 import GrapeStem from './illustrations/GrapeStem';
 import Sparkle from './illustrations/Sparkle';
+import EmojiIcon from './EmojiIcon';
 import { feedbackFill, feedbackComplete, feedbackReward } from '@/lib/feedback';
 import type { BoardDetail } from '@/types';
 
@@ -70,8 +71,10 @@ function GrapeBoardInner({ board, onFill, canFill }: GrapeBoardProps) {
   const maxRowCount = Math.max(...(CLUSTER_LAYOUTS[board.totalStickers] || CLUSTER_LAYOUTS[10]));
   const grapeSize = Math.min(54, Math.floor(270 / (maxRowCount * 1.12)));
   const sizeClass: 'sm' | 'md' | 'lg' = 'lg';
-  const rowOverlap = grapeSize * 0.15; // gentler vertical nestle (was 0.22 — too crammed)
-  const hMargin = grapeSize * 0.06;    // horizontal breathing room (was ~0.02 — grapes touched)
+  const rowGap = Math.round(grapeSize * 0.06); // POSITIVE gap between rows — grapes never overlap each other
+  const hMargin = grapeSize * 0.06;            // horizontal breathing room so grapes in a row don't touch
+  // Leaf canopy: sized to ~1.5× a grape (hard cap 2×) and never overlapping the bunch.
+  const leafWidth = Math.round(grapeSize * 1.5);
 
   const rows = useMemo<number[][]>(() => {
     const layoutRows = CLUSTER_LAYOUTS[board.totalStickers] || CLUSTER_LAYOUTS[10];
@@ -120,9 +123,10 @@ function GrapeBoardInner({ board, onFill, canFill }: GrapeBoardProps) {
             </div>
           )}
 
-          {/* Stem + leaf illustration */}
-          <div className="relative z-10" style={{ marginBottom: '-14px' }}>
-            <GrapeStem size={120} />
+          {/* Two-leaf canopy — sits ABOVE the bunch with a gap, never overlapping.
+              Width tied to grapeSize (≤ 2× a grape; ~1.5× looks right). */}
+          <div className="relative" style={{ marginBottom: 4 }}>
+            <GrapeStem size={leafWidth} />
           </div>
 
           {/* Grape cluster */}
@@ -136,7 +140,7 @@ function GrapeBoardInner({ board, onFill, canFill }: GrapeBoardProps) {
                   key={rowIdx}
                   className="flex justify-center"
                   style={{
-                    marginTop: rowIdx === 0 ? 0 : `-${rowOverlap}px`,
+                    marginTop: rowIdx === 0 ? 0 : `${rowGap}px`,
                     marginLeft: isStaggered ? `${halfGrape * 0.05}px` : `0`,
                   }}
                 >
@@ -177,7 +181,7 @@ function GrapeBoardInner({ board, onFill, canFill }: GrapeBoardProps) {
       {/* Completion indicator */}
       {board.isCompleted && (
         <div className="text-center animate-bounce-in">
-          <span className="text-4xl">🎉</span>
+          <EmojiIcon emoji="🎉" size={40} className="block mx-auto" />
           <p className="font-display text-xl text-grape-700 font-bold mt-1">달성 완료!</p>
         </div>
       )}

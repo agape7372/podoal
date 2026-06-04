@@ -9,6 +9,7 @@ import {
   type WineBottle as WineBottleType,
 } from '@/lib/winery';
 import WineBottle from '@/components/WineBottle';
+import EmojiIcon from '@/components/EmojiIcon';
 
 interface WineryData {
   totalGrapes: number;
@@ -42,7 +43,7 @@ export default function WineryPage() {
     return (
       <div className="pb-4">
         <h1 className="font-display text-2xl font-bold text-grape-700 mb-6">
-          <span className="mr-1.5" aria-hidden="true">{'\u{1F3F0}'}</span>포도 와이너리
+          <EmojiIcon emoji="🏰" size={24} className="mr-1.5" />포도 와이너리
         </h1>
         <div className="space-y-4">
           <div className="skeleton h-48 w-full" />
@@ -88,13 +89,12 @@ export default function WineryPage() {
         <div className="relative z-10 text-center">
           {/* Tier icon with glow */}
           <div className="relative inline-block mb-3">
-            <span
-              className="text-6xl block animate-float"
-              role="img"
-              aria-label={currentTier.name}
-            >
-              {currentTier.icon}
-            </span>
+            <EmojiIcon
+              emoji={currentTier.icon}
+              size={72}
+              label={currentTier.name}
+              className="block animate-float mx-auto"
+            />
             {/* Glow ring */}
             <div
               className={`absolute inset-0 -m-3 rounded-full bg-gradient-to-br ${currentTier.color} opacity-40 blur-xl pointer-events-none`}
@@ -116,7 +116,7 @@ export default function WineryPage() {
 
           {/* Total grapes */}
           <div className="mt-4 flex items-center justify-center gap-1.5">
-            <span className="text-2xl">{'\u{1F347}'}</span>
+            <EmojiIcon emoji="🍇" size={26} />
             <span className="font-display text-4xl font-extrabold text-grape-700 leading-none tabular-nums">
               {totalGrapes.toLocaleString()}
             </span>
@@ -127,8 +127,8 @@ export default function WineryPage() {
           {nextTier ? (
             <div className="mt-5">
               <div className="flex items-center justify-between text-xs text-warm-sub mb-1.5">
-                <span>{currentTier.icon} Lv.{currentTier.level}</span>
-                <span>{nextTier.icon} Lv.{nextTier.level}</span>
+                <span className="inline-flex items-center gap-1"><EmojiIcon emoji={currentTier.icon} size={14} /> Lv.{currentTier.level}</span>
+                <span className="inline-flex items-center gap-1"><EmojiIcon emoji={nextTier.icon} size={14} /> Lv.{nextTier.level}</span>
               </div>
               <div className="w-full h-4 rounded-full bg-white/60 overflow-hidden shadow-inner relative">
                 <div
@@ -146,7 +146,7 @@ export default function WineryPage() {
           ) : (
             <div className="mt-4">
               <p className="text-sm text-grape-600 font-semibold">
-                <span aria-hidden="true">{'\u{1F451}'}</span> 최고 등급 달성.
+                <EmojiIcon emoji="👑" size={18} className="mr-0.5" /> 최고 등급 달성!
               </p>
             </div>
           )}
@@ -157,7 +157,7 @@ export default function WineryPage() {
       <section className="mb-6 animate-fade-in" style={{ animationDelay: '0.1s' }}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-display text-lg font-bold text-grape-700">
-            <span className="mr-1" aria-hidden="true">{'\u{1F377}'}</span>와인 셀러
+            <EmojiIcon emoji="🍷" size={20} className="mr-1" />와인 셀러
           </h3>
           <span className="text-sm text-warm-sub font-medium tabular-nums">
             {bottles.length}병
@@ -167,12 +167,12 @@ export default function WineryPage() {
         {bottles.length === 0 ? (
           /* Empty state */
           <div className="clay p-8 text-center">
-            <div className="text-5xl mb-4 animate-float">{'\u{1F37E}'}</div>
+            <EmojiIcon emoji="🍾" size={52} className="block mx-auto mb-4 animate-float" />
             <p className="text-warm-sub text-sm leading-relaxed">
               아직 완성된 와인이 없어요.
               <br />
-              포도판을 완성하면 와인이 만들어져요.
-              <span className="ml-1" aria-hidden="true">{'\u{1F347}'}</span>
+              포도판을 완성하면 와인이 만들어져요!
+              <EmojiIcon emoji="🍇" size={16} className="ml-1" />
             </p>
           </div>
         ) : (
@@ -215,8 +215,8 @@ export default function WineryPage() {
                 <div className="flex items-start gap-4">
                   {/* Mini bottle icon area */}
                   <div className="flex-shrink-0">
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-grape-500 to-grape-700 flex items-center justify-center text-2xl shadow-md">
-                      {'\u{1F377}'}
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-grape-500 to-grape-700 flex items-center justify-center shadow-md">
+                      <EmojiIcon emoji="🍷" size={26} />
                     </div>
                   </div>
 
@@ -261,7 +261,7 @@ export default function WineryPage() {
       {/* ─── Tier Roadmap Section ──────────────────────────── */}
       <section className="mb-4 animate-fade-in" style={{ animationDelay: '0.2s' }}>
         <h3 className="font-display text-lg font-bold text-grape-700 mb-4">
-          <span className="mr-1" aria-hidden="true">{'\u{1F5FA}\u{FE0F}'}</span>티어 로드맵
+          <EmojiIcon emoji="🗺️" size={20} className="mr-1" />티어 로드맵
         </h3>
 
         <div className="clay p-5">
@@ -302,7 +302,7 @@ export default function WineryPage() {
                       {isPast ? (
                         <span className="text-grape-700 text-sm font-bold">{'\u{2713}'}</span>
                       ) : (
-                        <span>{tier.icon}</span>
+                        <EmojiIcon emoji={tier.icon} size={24} />
                       )}
                     </div>
 

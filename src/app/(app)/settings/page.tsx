@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppStore } from '@/lib/store';
 import { FILL_SOUNDS } from '@/lib/sounds';
+import EmojiIcon from '@/components/EmojiIcon';
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -96,7 +97,7 @@ export default function SettingsPage() {
                 className="w-full clay-button p-3 rounded-2xl flex items-center justify-between"
               >
                 <div className="flex items-center gap-3">
-                  <span className="text-xl">{currentSound.emoji}</span>
+                  <EmojiIcon emoji={currentSound.emoji} size={20} />
                   <div className="text-left">
                     <p className="text-sm font-medium text-warm-text">포도알 소리 설정</p>
                     <p className="text-xs text-warm-sub">{currentSound.name} - {currentSound.desc}</p>
@@ -112,7 +113,7 @@ export default function SettingsPage() {
       {/* Sound picker panel */}
       {showSoundPicker && settings.soundEnabled && (
         <section className="clay p-4 mb-4">
-          <h2 className="text-sm font-semibold text-grape-600 mb-3">🍇 포도알 소리 선택</h2>
+          <h2 className="text-sm font-semibold text-grape-600 mb-3 inline-flex items-center gap-1"><EmojiIcon emoji="🍇" size={16} /> 포도알 소리 선택</h2>
           <div className="grid grid-cols-2 gap-2 max-h-[400px] overflow-y-auto pr-2">
             {FILL_SOUNDS.map((s) => {
               const isSelected = settings.fillSoundId === s.id;
@@ -130,7 +131,7 @@ export default function SettingsPage() {
                   `}
                 >
                   <div className="flex items-center gap-2 mb-0.5">
-                    <span className="text-lg">{s.emoji}</span>
+                    <EmojiIcon emoji={s.emoji} size={18} />
                     <span className={`text-sm font-bold ${isSelected ? 'text-white' : 'text-grape-700'}`}>
                       {s.name}
                     </span>
@@ -239,7 +240,7 @@ export default function SettingsPage() {
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <span className="text-xl">🔔</span>
+              <EmojiIcon emoji="🔔" size={20} />
               <div>
                 <p className="text-sm font-medium text-warm-text">알림 설정</p>
                 <p className="text-xs text-warm-sub">방해금지, 리마인더, 카테고리별 설정</p>
@@ -260,7 +261,7 @@ export default function SettingsPage() {
           </div>
           <div className="flex justify-between">
             <span className="text-sm text-warm-text">포도알</span>
-            <span className="text-sm text-warm-sub">🍇 Podoal</span>
+            <span className="text-sm text-warm-sub inline-flex items-center gap-1"><EmojiIcon emoji="🍇" size={14} /> Podoal</span>
           </div>
         </div>
       </section>

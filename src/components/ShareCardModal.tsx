@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import ClayButton from './ClayButton';
+import EmojiIcon from './EmojiIcon';
 import { generateShareCard } from '@/lib/shareCard';
 import type { BoardDetail, ShareCardData } from '@/types';
 import { feedbackSuccess } from '@/lib/feedback';
@@ -95,7 +96,7 @@ export default function ShareCardModal({ board, userName, onClose }: ShareCardMo
         <div className="w-12 h-1.5 bg-warm-border rounded-full mx-auto mb-5" />
 
         <h3 className="font-display text-xl font-bold text-grape-700 text-center mb-1">
-          📤 공유 카드
+          <EmojiIcon emoji="📤" size={22} className="mr-1" />공유 카드
         </h3>
         <p className="text-sm text-warm-sub text-center mb-5">
           나의 포도 달성 현황을 공유해보세요.
@@ -105,7 +106,7 @@ export default function ShareCardModal({ board, userName, onClose }: ShareCardMo
         <div className="clay p-4 mb-5 flex items-center justify-center">
           {loading ? (
             <div className="text-center py-12">
-              <div className="text-4xl animate-float mb-3">🍇</div>
+              <EmojiIcon emoji="🍇" size={40} className="block mx-auto animate-float mb-3" />
               <p className="text-sm text-warm-sub">카드 생성 중...</p>
             </div>
           ) : error ? (
@@ -132,7 +133,7 @@ export default function ShareCardModal({ board, userName, onClose }: ShareCardMo
             fullWidth
             disabled={!imageBlob}
           >
-            💾 이미지 저장
+            <EmojiIcon emoji="💾" size={16} className="mr-1" />이미지 저장
           </ClayButton>
           <ClayButton
             variant="primary"
@@ -140,7 +141,7 @@ export default function ShareCardModal({ board, userName, onClose }: ShareCardMo
             fullWidth
             disabled={!imageBlob}
           >
-            📤 공유하기
+            <EmojiIcon emoji="📤" size={16} className="mr-1" />공유하기
           </ClayButton>
         </div>
       </div>

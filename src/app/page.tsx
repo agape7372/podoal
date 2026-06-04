@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import ClayButton from '@/components/ClayButton';
 import ClayInput from '@/components/ClayInput';
 import Podo from '@/components/mascot/Podo';
+import EmojiIcon from '@/components/EmojiIcon';
 import { AVATAR_OPTIONS } from '@/types';
 import { api, fetchUser } from '@/lib/api';
 import { useAppStore } from '@/lib/store';
@@ -145,7 +146,7 @@ function AuthPageInner() {
               className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl font-semibold transition-transform active:scale-[0.97] shadow-clay-sm relative"
               style={{ background: '#FEE500', color: '#191919' }}
             >
-              <span className="text-lg">💬</span>
+              <EmojiIcon emoji="💬" size={18} />
               <span>카카오로 시작</span>
               {!providerStatus.kakao?.real && (
                 <span className="absolute right-3 text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-black/10">체험</span>
@@ -188,7 +189,7 @@ function AuthPageInner() {
             </div>
 
             <ClayButton variant="joyful" fullWidth size="lg" onClick={() => { setError(''); setMode('register'); }}>
-              📧 이메일로 시작
+              <EmojiIcon emoji="📧" size={16} className="mr-1" />이메일로 시작
             </ClayButton>
             <button
               onClick={() => { setError(''); setMode('login'); }}
@@ -216,7 +217,7 @@ function AuthPageInner() {
               disabled={loading}
               className="w-full py-2.5 min-h-[44px] rounded-2xl text-xs font-medium text-warm-sub hover:text-grape-700 transition-all"
             >
-              {loading ? '진입중…' : '🛠 개발자 모드'}
+              {loading ? '진입중…' : <span className="inline-flex items-center gap-1"><EmojiIcon emoji="🛠️" size={14} /> 개발자 모드</span>}
             </button>
             )}
           </div>

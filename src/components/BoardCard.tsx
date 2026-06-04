@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import type { BoardSummary } from '@/types';
 import Avatar from './Avatar';
+import EmojiIcon from './EmojiIcon';
 import { feedbackTap } from '@/lib/feedback';
 
 interface BoardCardProps {
@@ -23,7 +24,7 @@ export default function BoardCard({ board }: BoardCardProps) {
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 mb-1">
-            {board.isCompleted && <span aria-hidden="true">🎉</span>}
+            {board.isCompleted && <EmojiIcon emoji="🎉" size={16} />}
             <h3 className="font-display text-[17px] font-bold text-warm-text truncate">{board.title}</h3>
           </div>
           {board.description && (
@@ -75,8 +76,8 @@ export default function BoardCard({ board }: BoardCardProps) {
             </div>
           )}
           {board.rewardCount > 0 && (
-            <div className="text-xl" aria-hidden="true">
-              {board.isCompleted ? '🎁' : '🔒'}
+            <div aria-hidden="true">
+              <EmojiIcon emoji={board.isCompleted ? '🎁' : '🔒'} size={20} />
             </div>
           )}
         </div>

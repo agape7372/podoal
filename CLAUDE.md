@@ -16,6 +16,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 > **Mascot & illustrations**
 > - `src/components/mascot/Podo.tsx` — minimal still-life grape SVG, props: `size`, optional `variant: 'sleeping'`, optional `decorative` (renders `aria-hidden` for purely decorative placements e.g. the InstallPrompt chip; default keeps `role="img"`+aria-label). **No facial expressions** — used decoratively only (welcome hero, empty states, InstallPrompt chip). Do not extend with cheering/surprised etc.
 > - `src/components/illustrations/*.tsx` — 6 single-export SVG components (VineLeaf, WaterDrop, Sparkle, Ribbon, Sun, CloudPuff) + `GrapeStem.tsx` (used by GrapeBoard). Gradient/defs ids use `useId()` for instance-uniqueness (no cross-instance fill bleed). Unused `Star`/`Heart` were removed. Use sparingly: at most one illustration per page section.
+> - `GrapeStem.tsx` is now **two flat curved leaves, no stem/tendril** — a borderless solid-green silhouette vectorized (pixel-traced + smoothed) from a reference, `viewBox="0 0 200 117"`. Props: `size` (= rendered width; height = `size*0.585`). `GrapeBoard` sizes it from `grapeSize` and keeps a gap above the bunch (see layout invariants 6–7). Do **not** ship the original watermarked stock image — keep the redrawn vector (license-safe).
 >
 > **Content untouched** — `src/lib/templates.ts` (7 categories, 38 templates), `src/lib/winery.ts` (포도알 새싹 → 포도 마스터 tier names), `src/lib/sounds.ts` (30 sounds), `src/types/index.ts` (3 reward types), nav labels (홈/만들기/릴레이/와이너리/더보기) all kept verbatim. The redesign deliberately does not touch copy/naming — design carries the change.
 
@@ -43,7 +44,8 @@ All UI pages live inside the `(app)` route group which handles auth checks, rend
 
 ```
 src/app/(app)/
-  home/              # Dashboard with board list
+  home/              # Dashboard. Filter tabs (전체/진행중/완료) carry the counts inline —
+                     #   the separate stat-pill row was merged in (no duplicate counts)
   board/create/      # Board creation form (4-step: template → info → size → reward)
   board/[id]/        # Board detail with grape cluster, share card, capsule, gift
   friends/           # Friends list
@@ -117,9 +119,15 @@ API routes mirror the resource pattern under `src/app/api/` (auth, boards, capsu
 
 Settings are dual-stored: Zustand store (`podoal-app-settings` key) for UI state, and `feedback.ts` (`podoal-feedback-settings` key) for the audio/haptic layer. **Both must be updated together** when changing sound settings.
 
+The visual side of a fill is the hit-stop impact freeze (see Styling → grape classes), not a liquid fill.
+
 ### PWA
 
-The app is a Progressive Web App with `public/manifest.json`, `public/sw.js` (cache-first for static, network-first for API), and `src/components/InstallPrompt.tsx` for the install banner. Service Worker is registered in the `(app)` layout. Icons are in `public/icons/`.
+The app is a Progressive Web App with `public/manifest.json`, `public/sw.js`, and `src/components/InstallPrompt.tsx` for the install banner. Service Worker is registered in the `(app)` layout. Icons are in `public/icons/`.
+
+**`sw.js` fetch strategy** (bump `CACHE_VERSION` on any caching change): hash-named `/_next/static/*` → always network; `/api/*` → network-first; **HTML navigations (`request.mode === 'navigate'`) → network-first** (so a previously-visited page like an old board URL never gets stuck on a stale cached document referencing old chunks — this was why UI updates appeared only on newly-created boards); other static (icons/manifest/images) → cache-first. A new SW must activate (reopen the app / refresh) before the fix takes effect.
+
+**Standalone static pages in `public/`** (not Next routes): `anim-pick.html` (final grape-fill animation candidates 40·49·17, particle-free) and `leaf-options.html` (leaf candidate gallery: custom + open-source). The earlier `anim-lab.html` (68 candidates) and the `(app)/animation-test` route were removed.
 
 ### Habit Templates
 
@@ -140,7 +148,9 @@ Custom Tailwind theme in `tailwind.config.ts` with `grape-*` (purple brand), `cl
 - `.clay` / `.clay-sm` / `.clay-float` — card surfaces with soft 3D shadows
 - `.clay-pressed` — inset pressed state
 - `.clay-button` — button with `:active { transform: scale(0.97) }` (tap feedback)
-- `.grape-filled` / `.grape-empty` — individual grape sticker states. `.grape-empty:hover` has `scale(1.08)`.
+- `.grape-filled` / `.grape-empty` — individual grape sticker states. `.grape-empty:hover` has `scale(1.08)`, `:active` `scale(0.93)`.
+- Grape fill motion is **"히트스톱 임팩트 프리즈"** (final pick from `public/anim-pick.html`, candidate 40): `.grape-hit` (`grapeHit` keyframe — fast squash that HOLDs on the contact frame, then snaps back) + `.grape-flash` (`grapeImpactFlash` ring synced to the freeze). The old juice-fill / jelly-pop / particle-burst are **removed**. Durations are `0.6s` to match the 600ms `isJustFilled` window in `GrapeBoard`.
+- `.grape-empty.grape-next` (next tappable grape) idles with `grapeNextTension` (micro 1.018↔1.015 pulse); it's paused on `:hover`/`:active` so the hover/active scale still shows.
 - `.clay-input` — form input styling
 - `.vine-line` — vertical timeline line for grape vine
 - `.capsule-open` — capsule opening animation
@@ -158,6 +168,8 @@ These are the rules that the codebase encodes — breaking them caused the visib
 3. **`(app)/layout.tsx` body bottom padding** (`pb-[160px]`) must cover both the fixed Navigation (~70px) and the InstallPrompt (~80px); changing nav/banner height needs a matching update.
 4. **z-index ladder**: Navigation `z-50` > FAB `z-40` > InstallPrompt `z-30`. Modals use `z-[90]`. Don't reuse `z-40` for new bottom-edge overlays — they'd race with FAB.
 5. **Scrollable modal regions** (`flex-1 overflow-y-auto` inside a modal sheet) need `pb-4` so the last item doesn't get hidden by the iOS home indicator (parent's `safe-bottom` alone isn't enough).
+6. **The leaf canopy must never overlap the grape bunch.** In `GrapeBoard` the `GrapeStem` wrapper uses a **positive** `marginBottom` (a gap) — never negative. Leaves sit *above* the bunch with breathing room.
+7. **The leaf canopy must not exceed 2× a grape; ~1.5× is the target.** Size it from `grapeSize` (`leafWidth = grapeSize * 1.5`), never a hardcoded px value — otherwise it dominates the bunch.
 
 ## Patterns
 

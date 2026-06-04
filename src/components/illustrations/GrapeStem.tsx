@@ -1,101 +1,32 @@
-import { useId } from 'react';
-
 interface GrapeStemProps {
   size?: number;
   className?: string;
 }
 
 /**
- * Stem + leaf + tendril cluster — sits on top of the grape board.
- * Designed to be wider than tall (W:H ≈ 3:2) for a graceful canopy.
+ * Two curved leaves on top of the grape board. Vectorized (pixel-traced &
+ * smoothed) from the reference silhouette — flat solid fill, no stem.
+ * viewBox is 200×117 (W:H ≈ 1.71). Pass `size` as the rendered width.
  */
-export default function GrapeStem({ size = 120, className = '' }: GrapeStemProps) {
-  const uid = useId();
-  const fillId = `stem-leaf-fill-${uid}`;
+export default function GrapeStem({ size = 96, className = '' }: GrapeStemProps) {
   return (
     <svg
       width={size}
-      height={Math.round(size * 0.66)}
-      viewBox="0 0 120 80"
+      height={Math.round(size * 0.585)}
+      viewBox="0 0 200 117"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
       aria-hidden="true"
     >
-      <defs>
-        <radialGradient id={fillId} cx="36%" cy="30%" r="80%">
-          <stop offset="0%" stopColor="#BFE3C5" />
-          <stop offset="55%" stopColor="#6BBE7E" />
-          <stop offset="100%" stopColor="#4A8C58" />
-        </radialGradient>
-      </defs>
-
-      {/* Main stem coming down */}
+      {/* right leaf */}
       <path
-        d="M 60 8 Q 58 22 60 36 Q 62 46 58 56 Q 56 64 60 72"
-        stroke="#6B4B2C"
-        strokeWidth="3"
-        strokeLinecap="round"
-        fill="none"
+        fill="#55B26E"
+        d="M 199.76 9.17 C 199.96 6.07, 200.82 6.70, 195.53 8.46 C 190.25 10.22, 178.61 16.92, 168.04 19.74 C 157.46 22.56, 143.32 21.86, 132.08 25.38 C 120.84 28.91, 108.93 34.94, 100.59 40.89 C 92.24 46.85, 86.33 54.84, 82.02 61.10 C 77.71 67.37, 76.18 72.66, 74.74 78.50 C 73.29 84.33, 72.35 89.86, 73.33 96.12 C 74.30 102.39, 78.77 112.85, 80.61 116.10 C 82.45 119.35, 83.74 117.90, 84.37 115.63 C 85.00 113.36, 83.67 106.78, 84.37 102.47 C 85.08 98.16, 86.68 93.85, 88.60 89.78 C 90.52 85.70, 92.48 82.41, 95.89 78.03 C 99.29 73.64, 104.39 67.57, 109.05 63.45 C 113.71 59.34, 119.94 55.27, 123.85 53.35 C 127.77 51.43, 130.67 52.64, 132.55 51.94 C 134.43 51.23, 134.20 49.35, 135.14 49.12 C 136.08 48.88, 138.54 49.12, 138.19 50.53 C 137.84 51.94, 137.72 53.23, 133.02 57.58 C 128.32 61.93, 114.96 71.80, 109.99 76.62 C 105.01 81.43, 105.29 81.94, 103.17 86.49 C 101.06 91.03, 98.16 99.10, 97.30 103.88 C 96.44 108.66, 91.77 116.57, 98.00 115.16 C 104.23 113.75, 124.83 101.29, 134.67 95.42 C 144.50 89.54, 148.49 88.64, 156.99 79.91 C 165.49 71.17, 179.44 51.82, 185.66 43.01 C 191.89 34.20, 192.01 32.67, 194.36 27.03 C 196.71 21.39, 199.57 12.26, 199.76 9.17 Z"
       />
-
-      {/* Tendril (left, curly) */}
+      {/* left leaf */}
       <path
-        d="M 56 28
-           Q 48 26, 40 32
-           Q 32 38, 36 46
-           Q 40 50, 46 46
-           Q 50 42, 46 38"
-        stroke="#7B5635"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        fill="none"
-      />
-
-      {/* Tendril (right, smaller) */}
-      <path
-        d="M 66 22
-           Q 76 18, 80 24
-           Q 82 30, 76 32"
-        stroke="#7B5635"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        fill="none"
-      />
-
-      {/* Big leaf */}
-      <path
-        d="M 64 16
-           C 76 4, 102 4, 110 22
-           C 112 38, 96 48, 82 46
-           C 70 46, 62 36, 60 24
-           Z"
-        fill={`url(#${fillId})`}
-      />
-      {/* Leaf central vein */}
-      <path
-        d="M 68 26 Q 86 22 104 18"
-        stroke="#3F7D4D"
-        strokeWidth="1"
-        strokeLinecap="round"
-        fill="none"
-        opacity="0.55"
-      />
-      {/* Side veins */}
-      <path
-        d="M 76 26 Q 80 32 82 38"
-        stroke="#3F7D4D"
-        strokeWidth="0.8"
-        strokeLinecap="round"
-        fill="none"
-        opacity="0.4"
-      />
-      <path
-        d="M 88 24 Q 92 30 94 36"
-        stroke="#3F7D4D"
-        strokeWidth="0.8"
-        strokeLinecap="round"
-        fill="none"
-        opacity="0.4"
+        fill="#55B26E"
+        d="M 0.71 0.24 C -6.46 -0.94, -0.86 5.80, 1.41 12.93 C 3.68 20.05, 9.09 34.63, 14.34 43.01 C 19.58 51.39, 26.83 57.50, 32.90 63.22 C 38.97 68.94, 47.83 78.07, 50.76 77.32 C 53.70 76.58, 52.45 64.79, 50.53 58.75 C 48.61 52.72, 40.97 44.58, 39.25 41.13 C 37.52 37.68, 39.56 38.58, 40.19 38.07 C 40.81 37.56, 40.07 34.86, 43.01 38.07 C 45.95 41.28, 54.88 52.25, 57.81 57.34 C 60.75 62.44, 60.40 65.26, 60.63 68.63 C 60.87 71.99, 58.87 75.91, 59.22 77.56 C 59.58 79.20, 61.38 79.63, 62.75 78.50 C 64.12 77.36, 66.43 74.27, 67.45 70.74 C 68.47 67.22, 68.86 61.22, 68.86 57.34 C 68.86 53.47, 68.66 51.08, 67.45 47.47 C 66.24 43.87, 65.41 40.31, 61.57 35.72 C 57.74 31.14, 54.56 25.89, 44.42 19.98 C 34.27 14.06, 7.87 1.41, 0.71 0.24 Z"
       />
     </svg>
   );
