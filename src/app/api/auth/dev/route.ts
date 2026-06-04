@@ -3,6 +3,12 @@ import { applyAuthCookie, createToken } from '@/lib/auth';
 import bcrypt from 'bcryptjs';
 
 export async function POST() {
+  // SECURITY: dev 로그인은 무인증 백도어다. 운영에서는 기본 차단하고,
+  // 명시적으로 ENABLE_DEV_LOGIN=true 일 때만 허용한다(로컬 next dev는 development라 통과).
+  if (process.env.NODE_ENV === 'production' && process.env.ENABLE_DEV_LOGIN !== 'true') {
+    return new Response('Not found', { status: 404 });
+  }
+
   const email = 'dev@podoal.com';
 
   let user = await prisma.user.findUnique({ where: { email } });

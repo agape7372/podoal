@@ -197,6 +197,7 @@ function AuthPageInner() {
               이미 계정이 있나요? 이메일로 로그인
             </button>
 
+            {process.env.NODE_ENV !== 'production' && (
             <button
               onClick={async () => {
                 setLoading(true);
@@ -217,6 +218,7 @@ function AuthPageInner() {
             >
               {loading ? '진입중…' : '🛠 개발자 모드'}
             </button>
+            )}
           </div>
         </div>
       )}
