@@ -14,11 +14,12 @@ export default defineConfig([
       "@next/next/no-img-element": "off",
       // React-Compiler-readiness rules newly enabled by eslint-config-next@16.
       // This app is deliberately client-rendered (all pages are 'use client'
-      // with fetch-on-mount), so set-state-in-effect fires app-wide on a valid
-      // pattern. Surface these as warnings (future React Compiler adoption)
-      // rather than failing the build on a brand-new opinionated rule set.
+      // with fetch-on-mount), so set-state-in-effect / use-memo fire app-wide on
+      // valid patterns — surfaced as warnings (future React Compiler adoption)
+      // rather than failing the build. react-hooks/purity is left at its default
+      // (error): its only violator (RewardReveal confetti) was fixed to randomize
+      // in a callback instead of during render.
       "react-hooks/set-state-in-effect": "warn",
-      "react-hooks/purity": "warn",
       "react-hooks/use-memo": "warn",
     },
   },
