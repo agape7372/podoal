@@ -6,12 +6,22 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
+    env:
+      # Dummy values so module-load-time guards (auth.ts JWT_SECRET) and Prisma
+      # client construction don't throw during `next build`. No real database is
+      # contacted — all pages are client-rendered and route handlers run on demand.
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/ci?schema=public
+      JWT_SECRET: ci-dummy-secret-1234567890
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
       - run: npm ci
       - run: npx tsc --noEmit
       - run: npm run lint
+      # next build (Turbopack, default in Next 16) catches App-Router server/client
+      # boundary errors that tsc/lint miss. Runs next build directly, not the
+      # `build` npm script, to skip the `prisma db push` that needs a live DB.
+      - run: npx next build

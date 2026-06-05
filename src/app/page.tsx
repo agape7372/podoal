@@ -144,6 +144,10 @@ function AuthPageInner() {
           )}
 
           <div className="space-y-3">
+            {/* OAuth start endpoints 302-redirect to the external provider, so they need a
+                full browser navigation — a plain <a> (not next/link) is intentional here.
+                no-html-link-for-pages misreads these /api routes as internal pages. */}
+            {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
             <a
               href="/api/auth/oauth/kakao"
               className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl font-semibold transition-transform active:scale-[0.97] shadow-clay-sm relative"
@@ -156,6 +160,7 @@ function AuthPageInner() {
               )}
             </a>
 
+            {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
             <a
               href="/api/auth/oauth/naver"
               className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl font-semibold text-white transition-transform active:scale-[0.97] shadow-clay-sm relative"
@@ -168,6 +173,7 @@ function AuthPageInner() {
               )}
             </a>
 
+            {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
             <a
               href="/api/auth/oauth/google"
               className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl font-semibold transition-transform active:scale-[0.97] shadow-clay-sm border border-warm-border/60 relative"
