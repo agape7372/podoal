@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { api } from '@/lib/api';
 import ClayButton from './ClayButton';
 import EmojiIcon from './EmojiIcon';
@@ -31,7 +31,7 @@ export default function CapsuleModal({ boardId, isOwner, onClose }: CapsuleModal
   const [openingId, setOpeningId] = useState<string | null>(null);
   const [justOpenedId, setJustOpenedId] = useState<string | null>(null);
 
-  const fetchCapsules = async () => {
+  const fetchCapsules = useCallback(async () => {
     try {
       const data = await api<{ capsules: TimeCapsuleInfo[] }>(`/api/boards/${boardId}/capsules`);
       setCapsules(data.capsules);
@@ -40,11 +40,11 @@ export default function CapsuleModal({ boardId, isOwner, onClose }: CapsuleModal
     } finally {
       setLoading(false);
     }
-  };
+  }, [boardId]);
 
   useEffect(() => {
     fetchCapsules();
-  }, [boardId]);
+  }, [fetchCapsules]);
 
   const getTomorrow = () => {
     const d = new Date();
