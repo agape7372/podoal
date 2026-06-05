@@ -24,7 +24,7 @@ const maruBuri = localFont({
 });
 
 export const metadata: Metadata = {
-  title: 'newal — 한 알씩, 매일의 기록',
+  title: 'podoal — 한 알씩, 매일의 기록',
   description: '포도알을 한 알씩 채우며 목표를 달성하고, 소중한 사람에게 응원과 보상을 주고받아요.',
   manifest: '/manifest.json',
 };

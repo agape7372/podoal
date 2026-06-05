@@ -127,7 +127,7 @@ function AuthPageInner() {
             <Podo size={140} className="animate-float" />
           </div>
           <h1 className="font-display text-[44px] leading-none font-bold text-grape-700 mb-2 tracking-tight">
-            newal
+            podoal
           </h1>
           <p className="font-display text-warm-sub mb-1 text-[15px]">한 알씩, 매일의 기록</p>
           <p className="text-sm text-warm-sub mb-8 leading-relaxed [text-wrap:balance]">

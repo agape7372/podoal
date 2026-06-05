@@ -1,19 +1,19 @@
-# newal
+# podoal
 
-**newal**은 `포도알(podoal)`의 디자인 리뉴얼 버전입니다. 같은 데이터 모델·인증·API 위에 친숙하고 가독성 높은 클레이모피즘 UI를 새로 입혔습니다. 포도판에 한 알씩 채우는 습관 추적, 친구 응원, 시간 캡슐, 릴레이 챌린지 등 핵심 경험은 그대로입니다.
+**podoal**은 포도판에 한 알씩 채우며 목표를 달성하는 습관 추적 PWA입니다. 친숙하고 가독성 높은 클레이모피즘 UI 위에 한 알씩 채우는 습관 추적, 친구 응원, 시간 캡슐, 릴레이 챌린지 등 핵심 경험을 담았습니다.
 
 **Stack**: Next.js 14 (App Router) · React 18 · TypeScript · Prisma (PostgreSQL/Neon) · Zustand · Tailwind · PWA
 
 ---
 
-## ✨ newal에서 달라진 점
+## ✨ 디자인 리뉴얼 하이라이트
 
-- **컬러 팔레트 정리**: tailwind `grape-*`와 globals.css `--grape-primary` 동기화(#9B7ED8 기준). 새 액센트 `juice-*`, `leaf-*`, `sunshine-*` 추가로 단조롭던 라벤더 일색에 따뜻함을 더함.
+- **컬러 팔레트 정리**: tailwind `grape-*`와 globals.css `--grape-primary` 동기화. 새 액센트 `juice-*`, `leaf-*`, `sunshine-*` 추가로 단조롭던 라벤더 일색에 따뜻함을 더함.
 - **컬러드 섀도**: 모든 클레이 그림자가 검정이 아닌 보라-웜 틴트 `rgba(73,50,100,…)`. "AI가 그리지 않는" 한 줄.
 - **디스플레이 폰트**: Maru Buri(네이버 무료 한글 휴머니스트)를 헤더·큰 숫자에 추가. 본문은 Noto Sans KR 그대로 — 유아틱하지 않은 손맛.
 - **마스코트 정물 일러스트**: 표정 없는 정적인 포도송이 SVG가 웰컴/빈 상태/InstallPrompt에 등장. 캐릭터로 행동시키지 않고 정체성 마커로만 사용.
-- **6개 일러스트 라이브러리**: VineLeaf · WaterDrop · Sparkle · Ribbon · Sun · CloudPuff. 페이지 섹션당 1개 이내로만 절제해 사용.
-- **GrapeBoard·GrapeSticker 시각 강화**: 추출한 `<GrapeStem />`(덩굴손 추가), 사진 같은 알맹이 하이라이트, isJustFilled 시 미세 위글.
+- **일러스트 라이브러리**: VineLeaf · Sparkle (+ GrapeStem). 페이지 섹션당 1개 이내로만 절제해 사용.
+- **GrapeBoard·GrapeSticker 시각 강화**: 추출한 `<GrapeStem />`(세이지 잎 캐노피), 사진 같은 알맹이 하이라이트, isJustFilled 시 미세 위글.
 - **Navigation·InstallPrompt 플로팅 알약**: 풀폭 바 → 떠있는 `clay-puffy` 알약. 활성 탭은 작은 점 1개로 표시.
 - **WineBottle 깊이감**: 호일 캡슐, 라벨 종이 텍스처 오버레이(noise SVG), 빈티지에 따른 자연스러운 색 램프.
 - **데이터·콘텐츠는 손대지 않음**: 7개 카테고리·38개 템플릿·7-tier 와이너리 이름(포도알 새싹~포도 마스터)·30개 사운드·보상 유형(편지/기프티콘/소원권) 모두 그대로 유지.
@@ -58,8 +58,8 @@ env 입력:
 ## 💻 로컬 개발
 
 ```bash
-git clone https://github.com/agape7372/newal.git
-cd newal
+git clone https://github.com/agape7372/podoal.git
+cd podoal
 cp .env.example .env
 # .env 열어 DATABASE_URL + JWT_SECRET 채우기
 npm install
@@ -104,6 +104,6 @@ npm run db:studio    # Prisma Studio GUI
 
 ## 크레딧
 
-- 아바타 일러스트: [Microsoft Fluent UI Emoji](https://github.com/microsoft/fluentui-emoji) (MIT) — `public/avatars/` 8개 fruit SVG.
+- 아바타·이모지 일러스트: [Microsoft Fluent UI Emoji](https://github.com/microsoft/fluentui-emoji) (MIT) — `public/avatars/` 8개 fruit SVG + `public/icons/fluent/`.
 - 본문 폰트: [Maru Buri](https://github.com/naver/nanumfont) (네이버 무료 폰트, 상용 가능).
-- 그 외 일러스트·마스코트·디자인 토큰은 newal 자체 제작.
+- 그 외 일러스트·마스코트·디자인 토큰은 podoal 자체 제작.

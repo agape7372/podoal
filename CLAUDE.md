@@ -2,9 +2,9 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-> **About this project (newal)** — This is the visual redesign port of `podoal` at https://github.com/agape7372/newal. Data layer (Prisma schema, all `/api/*` routes, `src/lib/auth.ts`, `src/lib/oauth.ts`, `src/lib/store.ts` keys, `src/lib/feedback.ts` function signatures, `prisma/seed.ts`, env var names) is 1:1 from podoal — **do not modify**. Visual layer (`tailwind.config.ts`, `src/app/globals.css`, all `src/components/**`, all page components, manifest brand strings) was redesigned.
+> **About this project (podoal)** — This is **podoal**, a habit-tracking PWA with a claymorphism visual redesign. Data layer (Prisma schema, all `/api/*` routes, `src/lib/auth.ts`, `src/lib/oauth.ts`, `src/lib/store.ts` keys, `src/lib/feedback.ts` function signatures, `prisma/seed.ts`, env var names) — **do not modify**. Visual layer (`tailwind.config.ts`, `src/app/globals.css`, all `src/components/**`, all page components, manifest brand strings) was redesigned.
 >
-> **newal-specific design tokens**
+> **podoal design tokens**
 > - Brand purple (ACTUAL values): `tailwind grape-500` = `#B28CDC`, `--grape-primary` = `#DCC4F2`. The `#9B7ED8` accent lives only in the `grape-glow` shadow token + winery Lv gradient — NOT unified to one var (known token drift; pick one canonical if reconciling)
 > - Accent palettes (now defined in `tailwind.config.ts`): `juice-*` (warm pink, CTAs/celebrations), `leaf-*` (green, stem/vine/online/success), `sunshine-*` (yellow, sparkle/reward)
 > - All shadows use a single purple-warm tint `rgba(73, 50, 100, X)` instead of black — `--shadow-tint` (globals.css) and the tailwind `boxShadow` tokens are unified to this value. Filled/empty grapes use the same tint (not black)
@@ -15,7 +15,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 >
 > **Mascot & illustrations**
 > - `src/components/mascot/Podo.tsx` — minimal still-life grape SVG, props: `size`, optional `variant: 'sleeping'`, optional `decorative` (renders `aria-hidden` for purely decorative placements e.g. the InstallPrompt chip; default keeps `role="img"`+aria-label). **No facial expressions** — used decoratively only (welcome hero, empty states, InstallPrompt chip). Do not extend with cheering/surprised etc.
-> - `src/components/illustrations/*.tsx` — 6 single-export SVG components (VineLeaf, WaterDrop, Sparkle, Ribbon, Sun, CloudPuff) + `GrapeStem.tsx` (used by GrapeBoard). Gradient/defs ids use `useId()` for instance-uniqueness (no cross-instance fill bleed). Unused `Star`/`Heart` were removed. Use sparingly: at most one illustration per page section.
+> - `src/components/illustrations/*.tsx` — 2 single-export SVG components (VineLeaf, Sparkle) + `GrapeStem.tsx` (used by GrapeBoard). Gradient/defs ids use `useId()` for instance-uniqueness (no cross-instance fill bleed). Unused `Star`/`Heart`/`CloudPuff`/`Ribbon`/`Sun`/`WaterDrop` were removed. Use sparingly: at most one illustration per page section.
 > - `GrapeStem.tsx` is now **two flat curved leaves, no stem/tendril** — a borderless sage-green (`#74A77E`) silhouette vectorized (pixel-traced + smoothed) from a reference, `viewBox="0 0 200 117"`. Props: `size` (= rendered width; height = `size*0.585`). `GrapeBoard` sizes it from `grapeSize` and keeps a gap above the bunch (see layout invariants 6–7). Do **not** ship the original watermarked stock image — keep the redrawn vector (license-safe).
 >
 > **Content untouched** — `src/lib/templates.ts` (7 categories, 38 templates), `src/lib/winery.ts` (포도알 새싹 → 포도 마스터 tier names), `src/lib/sounds.ts` (30 sounds), `src/types/index.ts` (3 reward types), nav labels (홈/만들기/릴레이/와이너리/더보기) all kept verbatim. The redesign deliberately does not touch copy/naming — design carries the change.
