@@ -16,7 +16,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 > **Mascot & illustrations**
 > - `src/components/mascot/Podo.tsx` — minimal still-life grape SVG, props: `size`, optional `variant: 'sleeping'`, optional `decorative` (renders `aria-hidden` for purely decorative placements e.g. the InstallPrompt chip; default keeps `role="img"`+aria-label). **No facial expressions** — used decoratively only (welcome hero, empty states, InstallPrompt chip). Do not extend with cheering/surprised etc.
 > - `src/components/illustrations/*.tsx` — 6 single-export SVG components (VineLeaf, WaterDrop, Sparkle, Ribbon, Sun, CloudPuff) + `GrapeStem.tsx` (used by GrapeBoard). Gradient/defs ids use `useId()` for instance-uniqueness (no cross-instance fill bleed). Unused `Star`/`Heart` were removed. Use sparingly: at most one illustration per page section.
-> - `GrapeStem.tsx` is now **two flat curved leaves, no stem/tendril** — a borderless solid-green silhouette vectorized (pixel-traced + smoothed) from a reference, `viewBox="0 0 200 117"`. Props: `size` (= rendered width; height = `size*0.585`). `GrapeBoard` sizes it from `grapeSize` and keeps a gap above the bunch (see layout invariants 6–7). Do **not** ship the original watermarked stock image — keep the redrawn vector (license-safe).
+> - `GrapeStem.tsx` is now **two flat curved leaves, no stem/tendril** — a borderless sage-green (`#74A77E`) silhouette vectorized (pixel-traced + smoothed) from a reference, `viewBox="0 0 200 117"`. Props: `size` (= rendered width; height = `size*0.585`). `GrapeBoard` sizes it from `grapeSize` and keeps a gap above the bunch (see layout invariants 6–7). Do **not** ship the original watermarked stock image — keep the redrawn vector (license-safe).
 >
 > **Content untouched** — `src/lib/templates.ts` (7 categories, 38 templates), `src/lib/winery.ts` (포도알 새싹 → 포도 마스터 tier names), `src/lib/sounds.ts` (30 sounds), `src/types/index.ts` (3 reward types), nav labels (홈/만들기/릴레이/와이너리/더보기) all kept verbatim. The redesign deliberately does not touch copy/naming — design carries the change.
 
@@ -127,7 +127,7 @@ The app is a Progressive Web App with `public/manifest.json`, `public/sw.js`, an
 
 **`sw.js` fetch strategy** (bump `CACHE_VERSION` on any caching change): hash-named `/_next/static/*` → always network; `/api/*` → network-first; **HTML navigations (`request.mode === 'navigate'`) → network-first** (so a previously-visited page like an old board URL never gets stuck on a stale cached document referencing old chunks — this was why UI updates appeared only on newly-created boards); other static (icons/manifest/images) → cache-first. A new SW must activate (reopen the app / refresh) before the fix takes effect.
 
-**Standalone static pages in `public/`** (not Next routes): `anim-pick.html` (final grape-fill animation candidates 40·49·17, particle-free) and `leaf-options.html` (leaf candidate gallery: custom + open-source). The earlier `anim-lab.html` (68 candidates) and the `(app)/animation-test` route were removed.
+**Standalone static pages in `public/`** (not Next routes): `anim-pick.html` (final grape-fill animation candidates 40·49·17, particle-free). The leaf candidate galleries (`leaf-options.html`, `leaf-options-v2.html`) were removed once the grape leaf was finalized (current trace shape, sage `#74A77E`). The earlier `anim-lab.html` (68 candidates) and the `(app)/animation-test` route were also removed.
 
 ### Habit Templates
 

@@ -123,9 +123,9 @@ function GrapeBoardInner({ board, onFill, canFill }: GrapeBoardProps) {
             </div>
           )}
 
-          {/* Two-leaf canopy — sits ABOVE the bunch with a gap, never overlapping.
+          {/* Leaf canopy — sits ABOVE the bunch with a gap, never overlapping.
               Width tied to grapeSize (≤ 2× a grape; ~1.5× looks right). */}
-          <div className="relative" style={{ marginBottom: 4 }}>
+          <div className="relative" style={{ marginBottom: 12 }}>
             <GrapeStem size={leafWidth} />
           </div>
 
