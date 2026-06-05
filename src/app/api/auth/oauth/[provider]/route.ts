@@ -18,10 +18,8 @@ function stateCookie(value: string, maxAge: number): string {
 // its consent page. Otherwise, route directly to our callback with a
 // `?guest=1` flag — the callback will create a randomized guest account so
 // the button still "works" without external OAuth setup.
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { provider: string } },
-) {
+export async function GET(request: NextRequest, props: { params: Promise<{ provider: string }> }) {
+  const params = await props.params;
   const provider = params.provider as OAuthProvider;
   if (!OAUTH_PROVIDERS.includes(provider)) {
     return new Response('Unknown provider', { status: 404 });

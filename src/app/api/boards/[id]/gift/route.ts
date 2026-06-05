@@ -8,10 +8,8 @@ const userProfileSelect = {
   avatar: true,
 };
 
-export async function POST(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+export async function POST(request: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const userId = await getCurrentUserId();
   if (!userId) {
     return authResponse('Unauthorized');

@@ -42,10 +42,8 @@ function redirectWithError(origin: string, error: string) {
   });
 }
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { provider: string } },
-) {
+export async function GET(request: NextRequest, props: { params: Promise<{ provider: string }> }) {
+  const params = await props.params;
   const provider = params.provider as OAuthProvider;
   const url = new URL(request.url);
   const origin = url.origin;
@@ -55,7 +53,7 @@ export async function GET(
   }
 
   const state = url.searchParams.get('state');
-  const savedState = cookies().get('oauth_state')?.value;
+  const savedState = (await cookies()).get('oauth_state')?.value;
   if (!savedState || !state || savedState !== state) {
     return redirectWithError(origin, `oauth_${provider}_bad_state`);
   }
