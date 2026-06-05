@@ -24,6 +24,14 @@ export default function ShareCardModal({ board, userName, onClose }: ShareCardMo
   const progress = progressPercent(filledCount, board.totalStickers);
 
   useEffect(() => {
+    // Reset render state up-front so a re-run (e.g. the parent re-fetches the
+    // board) shows the loading spinner instead of the just-revoked old URL, and
+    // disables download/share while the new card regenerates (stale blob guard).
+    setLoading(true);
+    setError('');
+    setImageUrl(null);
+    setImageBlob(null);
+
     let objectUrl: string | null = null;
     let cancelled = false;
 
