@@ -7,9 +7,10 @@ prisma/*.db
 prisma/*.db-journal
 prisma/**/*.db
 prisma/**/*.db-journal
-.env
-.env.local
-.env.*.local
+# Env files — ignore ALL variants (.env, .env.production, .env.local, …)
+# but keep the placeholder template tracked.
+.env*
+!.env.example
 .DS_Store
 Thumbs.db
 *.log
