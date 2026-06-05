@@ -13,10 +13,14 @@ jobs:
       DATABASE_URL: postgresql://ci:ci@localhost:5432/ci?schema=public
       JWT_SECRET: ci-dummy-secret-1234567890
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
-          node-version: 22
+          # Node 24 ships npm 11, matching local dev. Keeps package-lock.json
+          # consistent across local/CI: npm 10 vs 11 disagree on optional platform
+          # deps (e.g. @emnapi), which previously made `npm ci` fail on CI only.
+          # Also clears the Node 20 action-runtime deprecation.
+          node-version: 24
           cache: npm
       - run: npm ci
       - run: npx tsc --noEmit
