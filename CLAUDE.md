@@ -36,7 +36,14 @@ Dev login: use the "🛠 개발자 모드" button on the auth page, or credentia
 
 ## Architecture
 
-**Stack**: Next.js 14 (App Router) + React 18 + TypeScript + Prisma (**PostgreSQL on Neon**) + Zustand + Tailwind CSS + PWA
+**Stack**: Next.js 16 (App Router, **Turbopack** by default) + React 19 + TypeScript + Prisma (**PostgreSQL on Neon**) + Zustand + Tailwind CSS + PWA
+
+> **Next 16 / React 19 migration conventions (2026-06-06)** — do NOT regress these:
+> - **Async Request APIs**: `cookies()` is async (`await cookies()`), and route-handler `params` is a `Promise` — every dynamic `route.ts` takes `props: { params: Promise<{…}> }` and does `const params = await props.params` as its first line. Pages are all `'use client'` and use the `useParams()`/`useSearchParams()` hooks (unaffected).
+> - **Request interception is `src/proxy.ts`** (renamed from `middleware.ts`; exports `proxy`, runs on the Node.js runtime). It is the same-origin CSRF guard for mutating `/api/*` — keep `config.matcher: ['/api/:path*']`.
+> - **Linting is ESLint flat config** (`eslint.config.mjs`, ESLint 9 — NOT 10, which `@next/eslint-plugin-next` can't load yet). `next lint` was removed in 16; `npm run lint` = `eslint .`. `react-hooks/purity` is enforced (error); `set-state-in-effect`/`use-memo` are `warn` (the app is deliberately client-rendered with fetch-on-mount).
+> - **`next.config.js`** uses top-level `serverExternalPackages` (not `experimental.serverComponentsExternalPackages`).
+> - **CI** (`.github/workflows/ci.yml`) runs `npm ci → tsc --noEmit → eslint . → next build` on Node 22, with dummy `DATABASE_URL`/`JWT_SECRET` so the DB-less build can run.
 
 ### Route Structure
 
