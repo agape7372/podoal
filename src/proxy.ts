@@ -6,7 +6,7 @@ const MUTATING_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 // Origin (or Referer) header that matches the request host. Browsers always
 // send Origin on cross-site POST/fetch, so a mismatch indicates a CSRF attempt
 // (or a misconfigured client).
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   if (!pathname.startsWith('/api/')) return NextResponse.next();
   if (!MUTATING_METHODS.has(request.method)) return NextResponse.next();

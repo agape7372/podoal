@@ -26,6 +26,40 @@ const SPARKLE_RING = [
   { x: 8, y: 18, color: '#EFF5BB', size: 12 },
 ] as const;
 
+// Lavender + pale-lime pastel confetti palette.
+const CONFETTI_COLORS = [
+  '#DCC4F2', '#C9A8E8',
+  '#EBE0F6', '#B28CDC',
+  '#F7FAD8', '#EFF5BB',
+  '#CFDC78', '#FBFCEE',
+];
+const CONFETTI_COUNT = 50;
+
+interface ConfettiPiece {
+  left: string;
+  backgroundColor: string;
+  animationDelay: string;
+  animationDuration: string;
+  width: string;
+  height: string;
+  borderRadius: string;
+}
+
+// Randomized once per celebration in an event/effect callback (NOT during
+// render), so the pieces keep their positions across re-renders instead of
+// teleporting mid-animation. Keeps render pure (react-hooks/purity).
+function makeConfetti(): ConfettiPiece[] {
+  return Array.from({ length: CONFETTI_COUNT }, (_, i) => ({
+    left: `${Math.random() * 100}%`,
+    backgroundColor: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
+    animationDelay: `${Math.random() * 0.6}s`,
+    animationDuration: `${1.6 + Math.random() * 1.1}s`,
+    width: `${6 + Math.random() * 9}px`,
+    height: `${6 + Math.random() * 9}px`,
+    borderRadius: Math.random() > 0.5 ? '50%' : '2px',
+  }));
+}
+
 export default function RewardReveal({
   reward,
   isCompleted,
@@ -34,8 +68,10 @@ export default function RewardReveal({
 }: RewardRevealProps) {
   const [isRevealed, setIsRevealed] = useState(initialRevealed);
   const [showConfetti, setShowConfetti] = useState(false);
+  const [confetti, setConfetti] = useState<ConfettiPiece[]>([]);
 
   const triggerConfetti = useCallback(() => {
+    setConfetti(makeConfetti());
     setShowConfetti(true);
     setTimeout(() => setShowConfetti(false), 3000);
   }, []);
@@ -51,33 +87,13 @@ export default function RewardReveal({
     if (isRevealed) triggerConfetti();
   }, [isRevealed, triggerConfetti]);
 
-  // Lavender + pale-lime pastel confetti palette
-  const confettiColors = [
-    '#DCC4F2', '#C9A8E8',
-    '#EBE0F6', '#B28CDC',
-    '#F7FAD8', '#EFF5BB',
-    '#CFDC78', '#FBFCEE',
-  ];
-
   return (
     <div className="relative">
       {/* Confetti */}
       {showConfetti && (
         <div className="fixed inset-0 pointer-events-none z-[200]">
-          {Array.from({ length: 50 }, (_, i) => (
-            <div
-              key={i}
-              className="confetti-particle"
-              style={{
-                left: `${Math.random() * 100}%`,
-                backgroundColor: confettiColors[i % confettiColors.length],
-                animationDelay: `${Math.random() * 0.6}s`,
-                animationDuration: `${1.6 + Math.random() * 1.1}s`,
-                width: `${6 + Math.random() * 9}px`,
-                height: `${6 + Math.random() * 9}px`,
-                borderRadius: Math.random() > 0.5 ? '50%' : '2px',
-              }}
-            />
+          {confetti.map((piece, i) => (
+            <div key={i} className="confetti-particle" style={piece} />
           ))}
         </div>
       )}

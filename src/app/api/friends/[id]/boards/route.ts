@@ -9,10 +9,8 @@ const userProfileSelect = {
   avatar: true,
 };
 
-export async function GET(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+export async function GET(request: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const userId = await getCurrentUserId();
   if (!userId) return authResponse('Unauthorized');
 

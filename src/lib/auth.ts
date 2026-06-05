@@ -31,7 +31,7 @@ export async function verifyToken(token: string): Promise<{ userId: string } | n
 }
 
 export async function getCurrentUserId(): Promise<string | null> {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const token = cookieStore.get(COOKIE_NAME)?.value;
   if (!token) return null;
   const result = await verifyToken(token);

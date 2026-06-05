@@ -10,9 +10,8 @@ const securityHeaders = [
 ];
 
 const nextConfig = {
-  experimental: {
-    serverComponentsExternalPackages: ['bcryptjs', '@prisma/client', 'prisma'],
-  },
+  // Renamed from experimental.serverComponentsExternalPackages (stable since Next 15).
+  serverExternalPackages: ['bcryptjs', '@prisma/client', 'prisma'],
   async headers() {
     return [{ source: '/:path*', headers: securityHeaders }];
   },

@@ -5,8 +5,9 @@ import { authResponse, getCurrentUserId } from '@/lib/auth';
 // Persisting this means the "open" state survives reloads and devices.
 export async function POST(
   _request: Request,
-  { params }: { params: { id: string; rewardId: string } },
+  props: { params: Promise<{ id: string; rewardId: string }> }
 ) {
+  const params = await props.params;
   const userId = await getCurrentUserId();
   if (!userId) return authResponse('Unauthorized');
 
