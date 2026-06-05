@@ -6,6 +6,7 @@ import GrapeStem from './illustrations/GrapeStem';
 import Sparkle from './illustrations/Sparkle';
 import EmojiIcon from './EmojiIcon';
 import { feedbackFill, feedbackComplete, feedbackReward } from '@/lib/feedback';
+import { progressPercent } from '@/lib/format';
 import type { BoardDetail } from '@/types';
 
 interface GrapeBoardProps {
@@ -31,7 +32,7 @@ function GrapeBoardInner({ board, onFill, canFill }: GrapeBoardProps) {
     [board.stickers],
   );
   const filledCount = filledPositions.size;
-  const progress = Math.round((filledCount / board.totalStickers) * 100);
+  const progress = progressPercent(filledCount, board.totalStickers);
 
   // Sequential fill: only the lowest unfilled position is tappable.
   const nextPosition = useMemo(() => {

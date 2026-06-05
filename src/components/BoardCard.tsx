@@ -5,6 +5,7 @@ import type { BoardSummary } from '@/types';
 import Avatar from './Avatar';
 import EmojiIcon from './EmojiIcon';
 import { feedbackTap } from '@/lib/feedback';
+import { progressPercent } from '@/lib/format';
 
 interface BoardCardProps {
   board: BoardSummary;
@@ -12,9 +13,7 @@ interface BoardCardProps {
 
 export default function BoardCard({ board }: BoardCardProps) {
   const router = useRouter();
-  const progress = board.totalStickers > 0
-    ? Math.min(100, Math.round((board.filledCount / board.totalStickers) * 100))
-    : 0;
+  const progress = progressPercent(board.filledCount, board.totalStickers);
 
   return (
     <button

@@ -12,15 +12,18 @@ import { useAppStore } from '@/lib/store';
 
 type Mode = 'welcome' | 'login' | 'register';
 
+// UI display labels only — the data-layer identifiers stay 'google'/'kakao'/'naver'.
+const PROVIDER_KO: Record<string, string> = { google: '구글', kakao: '카카오', naver: '네이버' };
+
 function describeOAuthError(code: string): string {
   if (code.startsWith('oauth_not_configured')) {
     const provider = code.split(':')[1] || '소셜';
-    const ko = provider === 'google' ? '구글' : provider === 'kakao' ? '카카오' : provider === 'naver' ? '네이버' : provider;
+    const ko = PROVIDER_KO[provider] ?? provider;
     return `${ko} 로그인이 아직 준비 중이에요. 잠시 후 다시 시도해주세요.`;
   }
   if (code.startsWith('oauth_email_taken_by_')) {
     const provider = code.replace('oauth_email_taken_by_', '');
-    const ko = provider === 'google' ? '구글' : provider === 'kakao' ? '카카오' : provider === 'naver' ? '네이버' : provider;
+    const ko = PROVIDER_KO[provider] ?? provider;
     return `같은 이메일이 이미 ${ko}로 가입돼 있어요. ${ko}로 로그인해주세요.`;
   }
   if (code.includes('bad_state')) return '세션이 만료됐어요. 다시 시도해주세요.';
@@ -289,7 +292,6 @@ function AuthPageInner() {
                     `}
                     style={avatar === av ? { boxShadow: 'inset 0 2px 4px rgba(42,36,52,0.18), 0 0 0 2.5px #E55A4D' } : undefined}
                   >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={`/avatars/${av}.svg`} alt="" width={30} height={30} draggable={false} />
                   </button>
                 ))}
