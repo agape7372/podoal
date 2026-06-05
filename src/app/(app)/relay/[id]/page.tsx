@@ -8,6 +8,7 @@ import ClayButton from '@/components/ClayButton';
 import Avatar from '@/components/Avatar';
 import type { RelayInfo } from '@/types';
 import { feedbackRelay, feedbackSuccess, feedbackTap } from '@/lib/feedback';
+import { progressPercent } from '@/lib/format';
 
 interface RelayDetailParticipant {
   id: string;
@@ -241,7 +242,7 @@ export default function RelayDetailPage() {
                         <div
                           className="h-full bg-gradient-to-r from-grape-300 to-grape-500 rounded-full transition-all duration-500"
                           style={{
-                            width: `${(p.board.filledCount / p.board.totalStickers) * 100}%`,
+                            width: `${progressPercent(p.board.filledCount, p.board.totalStickers)}%`,
                           }}
                         />
                       </div>

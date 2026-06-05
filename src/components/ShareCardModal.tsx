@@ -6,6 +6,7 @@ import EmojiIcon from './EmojiIcon';
 import { generateShareCard } from '@/lib/shareCard';
 import type { BoardDetail, ShareCardData } from '@/types';
 import { feedbackSuccess } from '@/lib/feedback';
+import { progressPercent } from '@/lib/format';
 
 interface ShareCardModalProps {
   board: BoardDetail;
@@ -20,9 +21,20 @@ export default function ShareCardModal({ board, userName, onClose }: ShareCardMo
   const [error, setError] = useState('');
 
   const filledCount = board.stickers.length;
-  const progress = Math.round((filledCount / board.totalStickers) * 100);
+  const progress = progressPercent(filledCount, board.totalStickers);
 
   useEffect(() => {
+    // Reset render state up-front so a re-run (e.g. the parent re-fetches the
+    // board) shows the loading spinner instead of the just-revoked old URL, and
+    // disables download/share while the new card regenerates (stale blob guard).
+    setLoading(true);
+    setError('');
+    setImageUrl(null);
+    setImageBlob(null);
+
+    let objectUrl: string | null = null;
+    let cancelled = false;
+
     const cardData: ShareCardData = {
       title: board.title,
       progress,
@@ -34,22 +46,24 @@ export default function ShareCardModal({ board, userName, onClose }: ShareCardMo
 
     generateShareCard(cardData)
       .then((blob) => {
+        if (cancelled) return;
+        objectUrl = URL.createObjectURL(blob);
         setImageBlob(blob);
-        const url = URL.createObjectURL(blob);
-        setImageUrl(url);
+        setImageUrl(objectUrl);
         setLoading(false);
       })
       .catch(() => {
+        if (cancelled) return;
         setError('이미지 생성에 실패했어요');
         setLoading(false);
       });
 
     return () => {
-      if (imageUrl) {
-        URL.revokeObjectURL(imageUrl);
-      }
+      cancelled = true;
+      // Revoke the URL created by *this* effect run (captured in the closure),
+      // not a stale `imageUrl` state value — that was always one render behind.
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [board, userName, filledCount, progress]);
 
   const handleDownload = () => {
