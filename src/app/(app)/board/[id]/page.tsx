@@ -197,15 +197,9 @@ export default function BoardDetailPage() {
         )}
       </div>
 
-      {/* Owner actions — segmented bar (공유 · 동결건조 · 선물) */}
+      {/* Owner actions — segmented bar (동결건조 · 선물 · 공유) */}
       {isOwner && (
         <div className="clay grid grid-cols-3 divide-x divide-warm-border mb-5 overflow-hidden">
-          <button
-            onClick={() => { feedbackTap(); setShowShare(true); }}
-            className="py-2.5 text-sm text-grape-700 active:bg-grape-50 transition-colors"
-          >
-            공유
-          </button>
           <button
             onClick={() => { feedbackTap(); setShowCapsule(true); }}
             className="py-2.5 text-sm text-grape-700 active:bg-grape-50 transition-colors"
@@ -217,6 +211,12 @@ export default function BoardDetailPage() {
             className="py-2.5 text-sm text-grape-700 active:bg-grape-50 transition-colors"
           >
             선물
+          </button>
+          <button
+            onClick={() => { feedbackTap(); setShowShare(true); }}
+            className="py-2.5 text-sm text-grape-700 active:bg-grape-50 transition-colors"
+          >
+            공유
           </button>
         </div>
       )}
