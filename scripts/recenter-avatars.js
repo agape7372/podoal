@@ -27,8 +27,22 @@ function stripWrapper(svg) {
     .replace(/<\/g>(\s*<\/svg>)/, '$1');
 }
 
-// No per-fruit nudges: the mass centroid centres every fruit's visible blob on its own.
-const NUDGE = {};
+// Per-fruit centering METHOD. There is no single rule: a fruit's perceived centre depends
+// on its shape. Solid/symmetric shapes read centred at their bounding-box centre (equal
+// margins all round); a tapered solid like the watermelon wedge MUST use bbox or the
+// centroid lifts it (uneven top/bottom). Sparse CLUSTERS (blueberry/grape/cherry) read
+// centred at their mass centroid, because their bbox has big empty corners that make
+// bbox-centring look pushed to one side. Chosen from clipped-coin renders (tune-trim.js).
+const METHOD = {
+  grape: 'centroid',
+  strawberry: 'bbox',
+  orange: 'bbox',
+  blueberry: 'centroid',
+  cherry: 'centroid',
+  peach: 'bbox',
+  apple: 'bbox',
+  watermelon: 'bbox',
+};
 
 async function measure(svgString) {
   const { data, info } = await sharp(Buffer.from(svgString), { density: DENSITY })
@@ -63,12 +77,11 @@ const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
     const orig = fs.readFileSync(file, 'utf8');
     const art = stripWrapper(orig);
 
-    const { centroid, bbox } = await measure(art);
-    const cx = centroid.x;                    // mass centre = visible-blob centre
-    const cy = centroid.y;
-    const nd = NUDGE[f] || { dx: 0, dy: 0 };
-    let dx = VB / 2 - cx + nd.dx;
-    let dy = VB / 2 - cy + nd.dy;
+    const { bboxC, centroid, bbox } = await measure(art);
+    const method = METHOD[f] || 'centroid';
+    const C = method === 'bbox' ? bboxC : centroid;
+    let dx = VB / 2 - C.x;
+    let dy = VB / 2 - C.y;
     // clamp so the silhouette never leaves the 0..32 viewBox (the app clips it as an <img>)
     dx = clamp(dx, -bbox.x0, VB - bbox.x1);
     dy = clamp(dy, -bbox.y0, VB - bbox.y1);
@@ -81,7 +94,7 @@ const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
     console.log(
       f.padEnd(11),
-      `centroid=(${r(cx)},${r(cy)})`,
+      `${method.padEnd(8)} C=(${r(C.x)},${r(C.y)})`,
       `=> translate(${dx} ${dy})`
     );
   }

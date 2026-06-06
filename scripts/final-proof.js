@@ -31,7 +31,7 @@ function coin(cx, cy, Rc, art, withCross){
   const CELL = 200, PADTOP = 56, COLS = 4, ROWS = 2;
   const W = COLS * CELL, H = PADTOP + ROWS * CELL;
   let g = `<rect width="${W}" height="${H}" fill="#FBF7F0"/>`;
-  g += `<text x="${W/2}" y="34" font-family="sans-serif" font-size="22" font-weight="700" fill="#4A3A5C" text-anchor="middle">최종 아바타 — blend 중앙정렬 (십자=코인 중심)</text>`;
+  g += `<text x="${W/2}" y="34" font-family="sans-serif" font-size="22" font-weight="700" fill="#4A3A5C" text-anchor="middle">최종 아바타 — 과일별 시각중심 정렬 (십자=코인 중심)</text>`;
   FRUITS.forEach((f, i) => {
     const col = i % COLS, row = (i / COLS) | 0;
     const cx = col*CELL + CELL/2, cy = PADTOP + row*CELL + CELL/2;
