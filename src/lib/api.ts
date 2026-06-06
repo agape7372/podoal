@@ -26,7 +26,7 @@ export async function api<T = unknown>(
 
 export async function fetchUser() {
   try {
-    const data = await api<{ user: { id: string; name: string; email: string; avatar: string } }>('/api/auth/me');
+    const data = await api<{ user: { id: string; name: string; email: string; avatar: string; provider?: string | null } }>('/api/auth/me');
     return data.user;
   } catch {
     return null;
