@@ -6,7 +6,6 @@ import { useAppStore } from '@/lib/store';
 import { api } from '@/lib/api';
 import { AVATAR_OPTIONS, type UserProfile } from '@/types';
 import { feedbackSuccess, feedbackTap } from '@/lib/feedback';
-import Avatar from '@/components/Avatar';
 import ClayButton from '@/components/ClayButton';
 import ClayInput from '@/components/ClayInput';
 import ConfirmDialog from '@/components/ConfirmDialog';
@@ -16,6 +15,44 @@ const AVATAR_LABEL: Record<string, string> = {
   grape: '포도', strawberry: '딸기', orange: '오렌지', blueberry: '블루베리',
   cherry: '체리', peach: '복숭아', apple: '사과', watermelon: '수박',
 };
+
+// Each Fluent fruit illustration sits asymmetrically inside its 32×32 viewBox
+// (e.g. the grape cluster is bottom-right, the orange leans left), so a plain
+// flex-center leaves them looking lopsided. These per-fruit nudges (% of the
+// sprite, derived from each SVG's area-weighted centroid) optically re-center
+// the visual mass. translate(%) is element-relative, so one set works at any size.
+const AVATAR_NUDGE: Record<string, [number, number]> = {
+  grape: [-5.7, -1.5],
+  strawberry: [0, -1.8],
+  orange: [5.0, -1.6],
+  blueberry: [-3.4, 4.2],
+  cherry: [-4.2, -3.3],
+  peach: [2.4, 2.0],
+  apple: [3.4, -1.7],
+  watermelon: [1.0, -2.0],
+};
+
+/** A fruit avatar in the clay coin, optically centered (matches <Avatar> styling). */
+function FruitCoin({ avatar, px }: { avatar: string; px: number }) {
+  const [ox, oy] = AVATAR_NUDGE[avatar] ?? [0, 0];
+  const sprite = Math.round(px * 0.7);
+  return (
+    <span
+      className="clay-sm flex items-center justify-center bg-clay-cream rounded-full"
+      style={{ width: px, height: px }}
+    >
+      <img
+        src={`/avatars/${avatar}.svg`}
+        alt=""
+        width={sprite}
+        height={sprite}
+        draggable={false}
+        aria-hidden="true"
+        style={{ transform: `translate(${ox}%, ${oy}%)` }}
+      />
+    </span>
+  );
+}
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -82,7 +119,7 @@ export default function ProfilePage() {
 
       {/* Identity */}
       <div className="flex items-center gap-3.5 mb-7">
-        <Avatar avatar={editAvatar} size="xl" />
+        <FruitCoin avatar={editAvatar} px={80} />
         <div className="min-w-0 flex-1">
           <h1 className="font-display text-2xl font-bold text-warm-text truncate leading-tight">
             {user.name}
@@ -117,7 +154,7 @@ export default function ProfilePage() {
                     : 'opacity-70 hover:opacity-100 active:scale-95'
                 }`}
               >
-                <Avatar avatar={av} size="md" />
+                <FruitCoin avatar={av} px={40} />
               </button>
             );
           })}
