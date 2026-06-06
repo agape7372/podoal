@@ -7,7 +7,6 @@ import { api } from '@/lib/api';
 import BoardCard from '@/components/BoardCard';
 import ClayButton from '@/components/ClayButton';
 import Avatar from '@/components/Avatar';
-import ProfileSheet from '@/components/ProfileSheet';
 import Podo from '@/components/mascot/Podo';
 import Sparkle from '@/components/illustrations/Sparkle';
 import VineLeaf from '@/components/illustrations/VineLeaf';
@@ -32,7 +31,6 @@ export default function HomePage() {
   const [loadError, setLoadError] = useState(false);
   const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all');
   const greeting = useMemo(timeOfDayGreeting, []);
-  const [sheetOpen, setSheetOpen] = useState(false);
 
   const loadBoards = useCallback(() => {
     setLoading(true);
@@ -59,8 +57,8 @@ export default function HomePage() {
       {/* Header — tap the avatar to open the profile sheet */}
       <div className="flex items-center gap-3 mb-5">
         <button
-          onClick={() => { feedbackTap(); setSheetOpen(true); }}
-          aria-label="프로필 열기"
+          onClick={() => { feedbackTap(); router.push('/profile'); }}
+          aria-label="내 프로필"
           className="rounded-full shrink-0 active:scale-95 transition-transform"
         >
           <Avatar avatar={user?.avatar || 'grape'} size="lg" />
@@ -154,8 +152,6 @@ export default function HomePage() {
           +
         </button>
       )}
-
-      {sheetOpen && <ProfileSheet onClose={() => setSheetOpen(false)} />}
     </div>
   );
 }
