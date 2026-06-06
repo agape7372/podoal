@@ -101,8 +101,7 @@ export default function ProfilePage() {
       <section className="mb-6">
         <h2 className="text-sm font-bold text-warm-text mb-3 ml-0.5">프로필 수정</h2>
 
-        <label className="block text-sm font-medium text-warm-sub mb-2 ml-1">나를 표현하는 과일</label>
-        <div className="flex flex-wrap gap-2 mb-5">
+        <div className="flex flex-wrap gap-3 mb-5">
           {AVATAR_OPTIONS.map((av) => {
             const selected = editAvatar === av;
             return (
@@ -112,11 +111,13 @@ export default function ProfilePage() {
                 onClick={() => pickAvatar(av)}
                 aria-label={AVATAR_LABEL[av] ?? av}
                 aria-pressed={selected}
-                className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${
-                  selected ? 'clay-pressed ring-2 ring-grape-400' : 'clay-button'
+                className={`rounded-full transition-transform ${
+                  selected
+                    ? 'ring-2 ring-grape-500 ring-offset-2 scale-105'
+                    : 'opacity-70 hover:opacity-100 active:scale-95'
                 }`}
               >
-                <img src={`/avatars/${av}.svg`} alt="" width={30} height={30} draggable={false} />
+                <Avatar avatar={av} size="md" />
               </button>
             );
           })}
