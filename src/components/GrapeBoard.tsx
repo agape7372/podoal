@@ -13,6 +13,9 @@ interface GrapeBoardProps {
   board: BoardDetail;
   onFill: (position: number) => Promise<void>;
   canFill: boolean;
+  /** Fired the instant a fill unlocks a reward or completes the board — the
+   *  board page uses it to burst confetti without waiting for the server. */
+  onCelebrate?: () => void;
 }
 
 // Grape bunch layouts: wider at top, narrows at bottom (like a real grape bunch)
@@ -23,7 +26,7 @@ const CLUSTER_LAYOUTS: Record<number, number[]> = {
   30: [3, 4, 5, 5, 4, 4, 3, 2], // max 5/row (was 6 → overflowed the card on the right)
 };
 
-function GrapeBoardInner({ board, onFill, canFill }: GrapeBoardProps) {
+function GrapeBoardInner({ board, onFill, canFill, onCelebrate }: GrapeBoardProps) {
   const [fillingPos, setFillingPos] = useState<number | null>(null);
   const [justFilled, setJustFilled] = useState<number | null>(null);
 
@@ -48,10 +51,12 @@ function GrapeBoardInner({ board, onFill, canFill }: GrapeBoardProps) {
     setJustFilled(position);
     feedbackFill();
     const newFilledCount = filledCount + 1;
+    // Sync the confetti burst to the same beat as the celebration sound so the
+    // visual + audio land together, just after the grape's impact-freeze.
     if (newFilledCount >= board.totalStickers) {
-      setTimeout(() => feedbackComplete(), 400);
+      setTimeout(() => { feedbackComplete(); onCelebrate?.(); }, 400);
     } else if (board.rewards?.some((r) => r.triggerAt === newFilledCount)) {
-      setTimeout(() => feedbackReward(), 300);
+      setTimeout(() => { feedbackReward(); onCelebrate?.(); }, 300);
     }
     setTimeout(() => setJustFilled((p) => (p === position ? null : p)), 600);
 
@@ -64,7 +69,7 @@ function GrapeBoardInner({ board, onFill, canFill }: GrapeBoardProps) {
     } finally {
       setFillingPos((p) => (p === position ? null : p));
     }
-  }, [canFill, filledPositions, filledCount, board.totalStickers, board.rewards, onFill, nextPosition]);
+  }, [canFill, filledPositions, filledCount, board.totalStickers, board.rewards, onFill, nextPosition, onCelebrate]);
 
   // Size grapes from the widest row so the whole bunch fits the card without
   // clipping. Card inner width ≈ 280px on a ~360px phone; target ~270px for a

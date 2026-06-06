@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import type { RewardInfo } from '@/types';
 import { REWARD_TYPE_LABELS } from '@/types';
 import ClayButton from './ClayButton';
 import Sparkle from './illustrations/Sparkle';
 import EmojiIcon from './EmojiIcon';
 import { feedbackReward } from '@/lib/feedback';
+import { stripTitleEmoji } from '@/lib/title';
 
 interface RewardRevealProps {
   reward: RewardInfo;
@@ -26,40 +27,6 @@ const SPARKLE_RING = [
   { x: 8, y: 18, color: '#EFF5BB', size: 12 },
 ] as const;
 
-// Lavender + pale-lime pastel confetti palette.
-const CONFETTI_COLORS = [
-  '#DCC4F2', '#C9A8E8',
-  '#EBE0F6', '#B28CDC',
-  '#F7FAD8', '#EFF5BB',
-  '#CFDC78', '#FBFCEE',
-];
-const CONFETTI_COUNT = 50;
-
-interface ConfettiPiece {
-  left: string;
-  backgroundColor: string;
-  animationDelay: string;
-  animationDuration: string;
-  width: string;
-  height: string;
-  borderRadius: string;
-}
-
-// Randomized once per celebration in an event/effect callback (NOT during
-// render), so the pieces keep their positions across re-renders instead of
-// teleporting mid-animation. Keeps render pure (react-hooks/purity).
-function makeConfetti(): ConfettiPiece[] {
-  return Array.from({ length: CONFETTI_COUNT }, (_, i) => ({
-    left: `${Math.random() * 100}%`,
-    backgroundColor: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
-    animationDelay: `${Math.random() * 0.6}s`,
-    animationDuration: `${1.6 + Math.random() * 1.1}s`,
-    width: `${6 + Math.random() * 9}px`,
-    height: `${6 + Math.random() * 9}px`,
-    borderRadius: Math.random() > 0.5 ? '50%' : '2px',
-  }));
-}
-
 export default function RewardReveal({
   reward,
   isCompleted,
@@ -67,37 +34,18 @@ export default function RewardReveal({
   initialRevealed = false,
 }: RewardRevealProps) {
   const [isRevealed, setIsRevealed] = useState(initialRevealed);
-  const [showConfetti, setShowConfetti] = useState(false);
-  const [confetti, setConfetti] = useState<ConfettiPiece[]>([]);
 
-  const triggerConfetti = useCallback(() => {
-    setConfetti(makeConfetti());
-    setShowConfetti(true);
-    setTimeout(() => setShowConfetti(false), 3000);
-  }, []);
-
+  // Confetti now lives on the board page (one shared <Confetti>) so it can fire
+  // the moment a grape is filled AND when a reward opens. This component only
+  // plays the sound/haptic when opened directly (its locked-box affordance).
   const handleReveal = () => {
     if (!isCompleted) return;
     setIsRevealed(true);
-    triggerConfetti();
     feedbackReward();
   };
 
-  useEffect(() => {
-    if (isRevealed) triggerConfetti();
-  }, [isRevealed, triggerConfetti]);
-
   return (
     <div className="relative">
-      {/* Confetti */}
-      {showConfetti && (
-        <div className="fixed inset-0 pointer-events-none z-[200]">
-          {confetti.map((piece, i) => (
-            <div key={i} className="confetti-particle" style={piece} />
-          ))}
-        </div>
-      )}
-
       {!isRevealed ? (
         /* Locked reward box with sparkle ring */
         <div className="relative">
@@ -149,8 +97,10 @@ export default function RewardReveal({
             <div className="mb-3">
               <EmojiIcon emoji={reward.type === 'letter' ? '💌' : reward.type === 'giftcard' ? '🎁' : '⭐'} size={52} className="mx-auto" />
             </div>
+            {/* The big icon above already conveys the reward type, so the label
+                drops its (duplicate) leading emoji — "💌 편지" → "편지". */}
             <div className="text-xs font-medium text-grape-600 mb-2">
-              {REWARD_TYPE_LABELS[reward.type]}
+              {stripTitleEmoji(REWARD_TYPE_LABELS[reward.type])}
             </div>
             <h3 className="font-display text-2xl font-bold text-grape-700 mb-4">
               {reward.title}

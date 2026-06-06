@@ -6,6 +6,7 @@ import { api } from '@/lib/api';
 import { useAppStore } from '@/lib/store';
 import GrapeBoard from '@/components/GrapeBoard';
 import RewardReveal from '@/components/RewardReveal';
+import Confetti from '@/components/Confetti';
 import GiftBoardModal from '@/components/GiftBoardModal';
 import ShareCardModal from '@/components/ShareCardModal';
 import CapsuleModal from '@/components/CapsuleModal';
@@ -29,6 +30,9 @@ export default function BoardDetailPage() {
   const [deleting, setDeleting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  // Burst counter for the shared <Confetti>. Bumped both when a fill unlocks a
+  // reward (via GrapeBoard's onCelebrate) and when a reward is opened.
+  const [confettiTrigger, setConfettiTrigger] = useState(0);
   const initialLoadDoneRef = useRef(false);
 
   const fetchBoard = useCallback(async () => {
@@ -137,6 +141,8 @@ export default function BoardDetailPage() {
       await api(`/api/boards/${id}/rewards/${rewardId}/reveal`, { method: 'POST' });
       setErrorMessage(null);
       await fetchBoard();
+      // Second celebration beat: the moment the user opens the box.
+      setConfettiTrigger((t) => t + 1);
     } catch (err) {
       const msg = err instanceof Error ? err.message : '보상을 열지 못했어요';
       setErrorMessage(`${msg} — 잠시 후 다시 시도해주세요.`);
@@ -181,6 +187,9 @@ export default function BoardDetailPage() {
 
   return (
     <div className="pb-4">
+      {/* Shared celebration — fires on grape-fill (reward unlock/완료) and on reward open */}
+      <Confetti trigger={confettiTrigger} />
+
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
         <button onClick={() => { feedbackTap(); router.push('/home'); }} className="text-warm-sub text-sm">
@@ -259,6 +268,7 @@ export default function BoardDetailPage() {
           board={board}
           onFill={handleFillSticker}
           canFill={isOwner && !board.isCompleted}
+          onCelebrate={() => setConfettiTrigger((t) => t + 1)}
         />
       </div>
 
