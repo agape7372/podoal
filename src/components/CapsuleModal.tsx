@@ -162,8 +162,10 @@ export default function CapsuleModal({ boardId, isOwner, onClose }: CapsuleModal
           </button>
         </div>
 
-        {/* Content area */}
-        <div className="flex-1 overflow-y-auto min-h-0 pb-4">
+        {/* Content area — px-1 so children's ring/scale aren't clipped by the
+            overflow-y-auto box (overflow-y:auto silently promotes overflow-x to
+            auto, clipping horizontal bleed). */}
+        <div className="flex-1 overflow-y-auto min-h-0 px-1 pb-4">
           {tab === 'create' && isOwner && (
             <div className="space-y-4">
               {/* Message textarea */}
@@ -190,7 +192,7 @@ export default function CapsuleModal({ boardId, isOwner, onClose }: CapsuleModal
                 <label className="block text-sm font-medium text-warm-sub mb-2 ml-1">
                   이모지
                 </label>
-                <div className="flex flex-wrap gap-2">
+                <div className="grid grid-cols-5 gap-2">
                   {CAPSULE_EMOJIS.map((e) => (
                     <button
                       key={e}
@@ -198,14 +200,14 @@ export default function CapsuleModal({ boardId, isOwner, onClose }: CapsuleModal
                       aria-pressed={emoji === e}
                       aria-label={`이모지 ${e}`}
                       className={`
-                        w-11 h-11 rounded-xl text-xl flex items-center justify-center transition-all
+                        w-full aspect-square rounded-xl flex items-center justify-center transition-all
                         ${emoji === e
-                          ? 'clay-pressed scale-110 ring-2 ring-grape-300'
+                          ? 'clay-pressed ring-2 ring-grape-400'
                           : 'clay-button'
                         }
                       `}
                     >
-                      <EmojiIcon emoji={e} size={22} />
+                      <EmojiIcon emoji={e} size={26} />
                     </button>
                   ))}
                 </div>
