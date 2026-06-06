@@ -9,6 +9,7 @@ import Avatar from '@/components/Avatar';
 import type { RelayInfo } from '@/types';
 import { feedbackRelay, feedbackSuccess, feedbackTap } from '@/lib/feedback';
 import { progressPercent } from '@/lib/format';
+import { stripTitleEmoji } from '@/lib/title';
 
 interface RelayDetailParticipant {
   id: string;
@@ -233,7 +234,7 @@ export default function RelayDetailPage() {
                   {p.board && (
                     <div className="mt-3">
                       <div className="flex items-center justify-between text-xs text-warm-sub mb-1">
-                        <span>{p.board.title}</span>
+                        <span>{stripTitleEmoji(p.board.title)}</span>
                         <span className="tabular-nums">
                           {p.board.filledCount}/{p.board.totalStickers}
                         </span>

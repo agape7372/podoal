@@ -10,6 +10,7 @@ import {
 } from '@/lib/winery';
 import WineBottle from '@/components/WineBottle';
 import EmojiIcon from '@/components/EmojiIcon';
+import { stripTitleEmoji } from '@/lib/title';
 
 interface WineryData {
   totalGrapes: number;
@@ -223,7 +224,7 @@ export default function WineryPage() {
                   <div className="flex-1 min-w-0">
                     {/* Title */}
                     <h4 className="text-base font-bold text-grape-800 mb-2 break-words">
-                      {selectedBottle.title}
+                      {stripTitleEmoji(selectedBottle.title)}
                     </h4>
 
                     {/* Detail grid */}
