@@ -6,6 +6,7 @@ import ClayButton from './ClayButton';
 import EmojiIcon from './EmojiIcon';
 import type { TimeCapsuleInfo } from '@/types';
 import { feedbackCapsuleOpen, feedbackSuccess, feedbackTap } from '@/lib/feedback';
+import { DEV_TOOLS } from '@/lib/devtools';
 
 interface CapsuleModalProps {
   boardId: string;
@@ -94,11 +95,21 @@ export default function CapsuleModal({ boardId, isOwner, onClose }: CapsuleModal
 
   const isOpenable = (capsule: TimeCapsuleInfo) => {
     if (capsule.isOpened) return false;
-    const now = new Date();
-    const openAtDate = new Date(capsule.openAt);
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const openAtStart = new Date(openAtDate.getFullYear(), openAtDate.getMonth(), openAtDate.getDate());
-    return todayStart.getTime() >= openAtStart.getTime();
+    // Match the server's precise timestamp check in /api/capsules/[id]/open.
+    // (Previously this used date-only local comparison, so on the open date
+    // between 00:00 and 09:00 KST the button showed but the server rejected
+    // it, because a date-only `openAt` is stored as UTC midnight = 09:00 KST.)
+    return new Date().getTime() >= new Date(capsule.openAt).getTime();
+  };
+
+  // DEV-ONLY: backdate this capsule so it becomes openable right now.
+  const handleDevUnlock = async (capsuleId: string) => {
+    try {
+      await api(`/api/capsules/${capsuleId}/dev-unlock`, { method: 'POST' });
+      await fetchCapsules();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '개봉 가능하게 만들지 못했어요');
+    }
   };
 
   const formatDate = (dateStr: string) => {
@@ -337,9 +348,19 @@ export default function CapsuleModal({ boardId, isOwner, onClose }: CapsuleModal
                               {formatDate(capsule.createdAt)} 동결건조됨
                             </p>
                           </div>
-                          <div className="opacity-50">
-                            <EmojiIcon emoji="🧊" size={26} />
-                          </div>
+                          {DEV_TOOLS ? (
+                            <button
+                              onClick={() => handleDevUnlock(capsule.id)}
+                              className="clay-button px-2.5 py-1.5 rounded-lg text-xs font-semibold text-grape-600 flex-shrink-0"
+                              title="개발용: openAt을 과거로 바꿔 즉시 개봉 가능하게 만듭니다"
+                            >
+                              🔧 즉시개봉
+                            </button>
+                          ) : (
+                            <div className="opacity-50">
+                              <EmojiIcon emoji="🧊" size={26} />
+                            </div>
+                          )}
                         </div>
                       </div>
                     );
