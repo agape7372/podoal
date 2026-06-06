@@ -1,6 +1,7 @@
 'use client';
 
 import type { WineBottle as WineBottleType } from '@/lib/winery';
+import { stripTitleEmoji } from '@/lib/title';
 
 interface WineBottleProps {
   bottle: WineBottleType;
@@ -152,7 +153,7 @@ export default function WineBottle({ bottle, onClick }: WineBottleProps) {
       </div>
 
       <span className="text-[11px] font-display text-warm-sub leading-tight text-center max-w-[80px] truncate">
-        {bottle.title}
+        {stripTitleEmoji(bottle.title)}
       </span>
     </button>
   );

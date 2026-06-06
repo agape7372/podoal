@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { api } from '@/lib/api';
 import type { ReminderInfo } from '@/types';
+import { stripTitleEmoji } from '@/lib/title';
 
 interface ReminderModalProps {
   reminder?: ReminderInfo;
@@ -140,7 +141,7 @@ export default function ReminderModal({ reminder, boards, onSave, onClose }: Rem
               <option value="">전체 (보드 지정 없음)</option>
               {boards.map((board) => (
                 <option key={board.id} value={board.id}>
-                  {board.title}
+                  {stripTitleEmoji(board.title)}
                 </option>
               ))}
             </select>

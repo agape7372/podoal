@@ -6,6 +6,7 @@ import Avatar from './Avatar';
 import EmojiIcon from './EmojiIcon';
 import { feedbackTap } from '@/lib/feedback';
 import { progressPercent } from '@/lib/format';
+import { stripTitleEmoji } from '@/lib/title';
 
 interface BoardCardProps {
   board: BoardSummary;
@@ -24,7 +25,7 @@ export default function BoardCard({ board }: BoardCardProps) {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 mb-1">
             {board.isCompleted && <EmojiIcon emoji="🎉" size={16} />}
-            <h3 className="font-display text-[17px] font-bold text-warm-text truncate">{board.title}</h3>
+            <h3 className="font-display text-[17px] font-bold text-warm-text truncate">{stripTitleEmoji(board.title)}</h3>
           </div>
           {board.description && (
             <p className="text-xs text-warm-sub truncate mb-3">{board.description}</p>

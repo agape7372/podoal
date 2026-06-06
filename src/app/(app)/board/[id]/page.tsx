@@ -14,6 +14,7 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import EmojiIcon from '@/components/EmojiIcon';
 import type { BoardDetail } from '@/types';
 import { feedbackTap } from '@/lib/feedback';
+import { stripTitleEmoji } from '@/lib/title';
 
 export default function BoardDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -181,40 +182,44 @@ export default function BoardDetailPage() {
   return (
     <div className="pb-4">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-3">
         <button onClick={() => { feedbackTap(); router.push('/home'); }} className="text-warm-sub text-sm">
           ← 돌아가기
         </button>
         {isOwner && (
-          <div className="flex gap-2">
-            <button
-              onClick={() => { feedbackTap(); setShowShare(true); }}
-              className="clay-button px-3 py-1.5 rounded-xl text-sm"
-            >
-              <EmojiIcon emoji="📤" size={15} className="mr-0.5" />공유
-            </button>
-            <button
-              onClick={() => { feedbackTap(); setShowCapsule(true); }}
-              className="clay-button px-3 py-1.5 rounded-xl text-sm"
-            >
-              <EmojiIcon emoji="💊" size={15} className="mr-0.5" />동결건조
-            </button>
-            <button
-              onClick={() => { feedbackTap(); setShowGift(true); }}
-              className="clay-button px-3 py-1.5 rounded-xl text-sm"
-            >
-              <EmojiIcon emoji="🎁" size={15} className="mr-0.5" />선물
-            </button>
-            <button
-              onClick={() => { feedbackTap(); setShowDeleteConfirm(true); }}
-              disabled={deleting}
-              className="clay-button px-3 py-1.5 rounded-xl text-sm text-grape-700"
-            >
-              삭제
-            </button>
-          </div>
+          <button
+            onClick={() => { feedbackTap(); setShowDeleteConfirm(true); }}
+            disabled={deleting}
+            className="text-warm-sub hover:text-grape-700 text-sm disabled:opacity-50 transition-colors"
+          >
+            삭제
+          </button>
         )}
       </div>
+
+      {/* Owner actions — segmented bar (동결건조 · 선물 · 공유) */}
+      {isOwner && (
+        <div className="clay grid grid-cols-3 divide-x divide-warm-border mb-5 overflow-hidden">
+          <button
+            onClick={() => { feedbackTap(); setShowCapsule(true); }}
+            className="py-2.5 text-sm text-grape-700 active:bg-grape-50 transition-colors"
+          >
+            동결건조
+          </button>
+          <button
+            onClick={() => { feedbackTap(); setShowGift(true); }}
+            className="py-2.5 text-sm text-grape-700 active:bg-grape-50 transition-colors"
+          >
+            선물
+          </button>
+          <button
+            onClick={() => { feedbackTap(); setShowShare(true); }}
+            className="py-2.5 text-sm text-grape-700 active:bg-grape-50 transition-colors"
+          >
+            공유
+          </button>
+        </div>
+      )}
 
       {errorMessage && (
         <div className="mb-3 p-3 rounded-2xl bg-grape-100/40 border border-grape-200/60 text-grape-700 text-sm flex items-start gap-2">
@@ -232,7 +237,7 @@ export default function BoardDetailPage() {
 
       {/* Board info */}
       <div className="text-center mb-6">
-        <h1 className="font-display text-2xl font-bold text-grape-700 mb-1">{board.title}</h1>
+        <h1 className="font-display text-2xl font-bold text-grape-700 mb-1">{stripTitleEmoji(board.title)}</h1>
         {board.description && (
           <p className="text-sm text-warm-sub mb-2">{board.description}</p>
         )}
@@ -362,7 +367,7 @@ export default function BoardDetailPage() {
       {/* Gift modal */}
       {showGift && (
         <GiftBoardModal
-          boardTitle={board.title}
+          boardTitle={stripTitleEmoji(board.title)}
           onGift={handleGift}
           onClose={() => setShowGift(false)}
         />

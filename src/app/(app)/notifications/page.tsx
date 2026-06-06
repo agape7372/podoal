@@ -6,6 +6,7 @@ import ReminderModal from '@/components/ReminderModal';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import EmojiIcon from '@/components/EmojiIcon';
 import type { NotificationSettingInfo, ReminderInfo, BoardSummary } from '@/types';
+import { stripTitleEmoji } from '@/lib/title';
 
 const DAY_LABELS: Record<string, string> = {
   '1': '월', '2': '화', '3': '수', '4': '목', '5': '금', '6': '토', '7': '일',
@@ -326,7 +327,7 @@ export default function NotificationsPage() {
                     <div className="flex items-center gap-2 mb-1.5">
                       <span className="font-display text-lg font-bold text-grape-600 tabular-nums">{reminder.time}</span>
                       <span className="text-xs text-warm-sub px-2 py-0.5 rounded-full bg-grape-50">
-                        {reminder.boardTitle || '전체'}
+                        {reminder.boardTitle ? stripTitleEmoji(reminder.boardTitle) : '전체'}
                       </span>
                     </div>
                     <div className="flex gap-1 mb-1">
