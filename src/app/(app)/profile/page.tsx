@@ -17,8 +17,9 @@ const AVATAR_LABEL: Record<string, string> = {
   cherry: '체리', peach: '복숭아', apple: '사과', watermelon: '수박',
 };
 // Avatar SVGs are pre-centered at the asset level (public/avatars/*.svg wrap their
-// art in a <g transform> so each fruit's visual mass sits at the viewBox center),
-// so <Avatar> renders them centered everywhere — no per-call CSS nudging needed.
+// art in a <g transform> so each fruit's BOUNDING BOX sits dead-center in the viewBox —
+// equal top/bottom/left/right margins, see scripts/recenter-avatars.js), so <Avatar>
+// renders them centered everywhere with no per-call CSS nudging needed.
 
 export default function ProfilePage() {
   const router = useRouter();
