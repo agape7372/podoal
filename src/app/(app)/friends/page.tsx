@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import FriendCard from '@/components/FriendCard';
 import CheerModal from '@/components/CheerModal';
@@ -12,6 +13,7 @@ import type { FriendInfo } from '@/types';
 import { feedbackSuccess, feedbackTap } from '@/lib/feedback';
 
 export default function FriendsPage() {
+  const router = useRouter();
   const [friends, setFriends] = useState<FriendInfo[]>([]);
   const [pending, setPending] = useState<FriendInfo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -190,6 +192,7 @@ export default function FriendsPage() {
               friend={f}
               onToggleFavorite={handleToggleFavorite}
               onRemove={handleRemove}
+              onViewBoards={(userId) => router.push(`/friends/${userId}`)}
               onSendCheer={(userId) => {
                 setCheerTarget({ id: userId, name: f.user.name });
               }}

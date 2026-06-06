@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import ClayButton from '@/components/ClayButton';
 import ClayInput from '@/components/ClayInput';
 import ClayCard from '@/components/ClayCard';
@@ -13,8 +13,10 @@ import type { HabitTemplate } from '@/lib/templates';
 import EmojiIcon from '@/components/EmojiIcon';
 import { feedbackSuccess, feedbackTap } from '@/lib/feedback';
 
-export default function CreateBoardPage() {
+function CreateBoardInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const giftTo = searchParams.get('giftTo');
   const [step, setStep] = useState(0);
   const [templateId, setTemplateId] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState('health');
@@ -73,6 +75,30 @@ export default function CreateBoardPage() {
           }],
         },
       });
+      if (giftTo) {
+        // "선물하기": gift the freshly-made board to the friend (creates their
+        // copy), then remove our own copy so only the friend receives it —
+        // matching what the "선물하기" action implies.
+        try {
+          await api(`/api/boards/${data.board.id}/gift`, {
+            method: 'POST',
+            json: { friendId: giftTo },
+          });
+        } catch (e) {
+          setError(e instanceof Error ? e.message : '선물 전송에 실패했어요');
+          setLoading(false);
+          return;
+        }
+        try {
+          await api(`/api/boards/${data.board.id}`, { method: 'DELETE' });
+        } catch {
+          // Best-effort cleanup; the friend already received their copy.
+        }
+        feedbackSuccess();
+        router.replace(`/friends/${giftTo}`);
+        return;
+      }
+
       feedbackSuccess();
       router.replace(`/board/${data.board.id}`);
     } catch (e) {
@@ -85,7 +111,14 @@ export default function CreateBoardPage() {
 
   return (
     <div className="pb-4">
-      <h1 className="font-display text-2xl font-bold text-grape-700 mb-6 inline-flex items-center gap-1.5"><EmojiIcon emoji="🍇" size={24} /> 새 포도판 만들기</h1>
+      <h1 className="font-display text-2xl font-bold text-grape-700 mb-6 inline-flex items-center gap-1.5"><EmojiIcon emoji={giftTo ? '🎁' : '🍇'} size={24} /> {giftTo ? '선물할 포도판 만들기' : '새 포도판 만들기'}</h1>
+
+      {giftTo && (
+        <div className="clay-sm p-3 mb-5 bg-grape-50/70 flex items-center gap-2">
+          <EmojiIcon emoji="🎁" size={18} />
+          <p className="text-sm text-grape-700">완성하면 친구에게 포도판이 전달돼요</p>
+        </div>
+      )}
 
       {/* Step indicator */}
       <div className="flex items-center gap-2 mb-6">
@@ -294,11 +327,19 @@ export default function CreateBoardPage() {
               ← 이전
             </ClayButton>
             <ClayButton fullWidth onClick={handleCreate} loading={loading}>
-              <EmojiIcon emoji="🍇" size={16} className="mr-1" />만들기
+              <EmojiIcon emoji={giftTo ? '🎁' : '🍇'} size={16} className="mr-1" />{giftTo ? '선물하기' : '만들기'}
             </ClayButton>
           </div>
         </div>
       )}
     </div>
+  );
+}
+
+export default function CreateBoardPage() {
+  return (
+    <Suspense fallback={<div className="pb-4"><div className="skeleton h-8 w-48 mb-6" /><div className="skeleton h-64 w-full" /></div>}>
+      <CreateBoardInner />
+    </Suspense>
   );
 }
