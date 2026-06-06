@@ -4,5 +4,8 @@
   "regions": ["icn1"],
   "buildCommand": "npm run build",
   "installCommand": "npm install",
-  "outputDirectory": ".next"
+  "outputDirectory": ".next",
+  "crons": [
+    { "path": "/api/cron/reminders", "schedule": "* * * * *" }
+  ]
 }

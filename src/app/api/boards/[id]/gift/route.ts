@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { getCurrentUserId, authResponse } from '@/lib/auth';
+import { sendPushToUser } from '@/lib/push';
 
 const userProfileSelect = {
   id: true,
@@ -17,7 +18,8 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
 
   const { id: boardId } = params;
   const body = await request.json();
-  const { friendId } = body;
+  const { friendId, message } = body;
+  const giftNote = typeof message === 'string' ? message.trim().slice(0, 500) : '';
 
   if (!friendId) {
     return authResponse('Missing required field: friendId', 400);
@@ -68,6 +70,7 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
         ownerId: friendId,
         giftedToId: friendId,
         giftedFromId: userId,
+        giftMessage: giftNote,
       },
     });
 
@@ -99,6 +102,33 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
   if (!giftedBoard) {
     return authResponse('Failed to gift board', 500);
   }
+
+  // Notify the recipient — the gift used to arrive silently. Inbox message
+  // (always, so it's discoverable) + web push (background, when enabled).
+  const senderName = giftedBoard.giftedFrom?.name ?? '친구';
+  try {
+    await prisma.message.create({
+      data: {
+        senderId: userId,
+        receiverId: friendId,
+        boardId: giftedBoard.id,
+        type: 'gift',
+        emoji: '🎁',
+        content: giftNote || `${senderName}님이 포도판을 선물했어요`,
+      },
+    });
+  } catch (e) {
+    console.error('gift message create failed:', e);
+  }
+  await sendPushToUser(
+    friendId,
+    {
+      title: '🎁 포도판 선물 도착!',
+      body: giftNote ? `${senderName}: ${giftNote}` : `${senderName}님이 "${giftedBoard.title}" 포도판을 선물했어요`,
+      url: `/board/${giftedBoard.id}`,
+    },
+    'gift'
+  );
 
   const result = {
     id: giftedBoard.id,

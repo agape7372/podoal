@@ -9,13 +9,14 @@ import { feedbackSuccess, feedbackTap } from '@/lib/feedback';
 
 interface GiftBoardModalProps {
   boardTitle: string;
-  onGift: (friendId: string) => Promise<void>;
+  onGift: (friendId: string, message: string) => Promise<void>;
   onClose: () => void;
 }
 
 export default function GiftBoardModal({ boardTitle, onGift, onClose }: GiftBoardModalProps) {
   const [friends, setFriends] = useState<FriendInfo[]>([]);
   const [selectedFriend, setSelectedFriend] = useState<string | null>(null);
+  const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -35,7 +36,7 @@ export default function GiftBoardModal({ boardTitle, onGift, onClose }: GiftBoar
     setSending(true);
     setError('');
     try {
-      await onGift(selectedFriend);
+      await onGift(selectedFriend, message.trim());
       feedbackSuccess();
       onClose();
     } catch (e) {
@@ -99,6 +100,18 @@ export default function GiftBoardModal({ boardTitle, onGift, onClose }: GiftBoar
             ))}
           </div>
         )}
+
+        <div className="mb-4">
+          <label className="block text-xs text-warm-sub mb-1.5 ml-1">선물 메시지 (선택)</label>
+          <textarea
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder="짧은 축하·응원 메시지를 적어보세요"
+            maxLength={200}
+            rows={2}
+            className="clay-input resize-none text-sm"
+          />
+        </div>
 
         {error && (
           <p role="alert" className="text-rose-700 text-xs text-center mb-3">{error}</p>
