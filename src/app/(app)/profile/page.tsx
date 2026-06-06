@@ -16,10 +16,10 @@ const AVATAR_LABEL: Record<string, string> = {
   grape: '포도', strawberry: '딸기', orange: '오렌지', blueberry: '블루베리',
   cherry: '체리', peach: '복숭아', apple: '사과', watermelon: '수박',
 };
-// Avatar SVGs carry a baked <g data-centered transform> that nudges each fruit toward
-// the viewBox centre. KNOWN ISSUE (unresolved): the per-fruit centering is still not
-// visually correct for every fruit — do not treat this as done. The transforms can be
-// reset by removing the <g data-centered> wrapper from public/avatars/*.svg.
+// Avatar SVGs carry a baked <g data-centered transform> per fruit. These translate/scale
+// values were dialed in BY THE USER via the interactive tuner (public/avatar-tuner.html,
+// 2026-06-06) — each fruit centred to the user's own eye, not an algorithm. To re-tune,
+// restore the tuner, adjust, and re-bake; to reset, strip the <g data-centered> wrapper.
 
 export default function ProfilePage() {
   const router = useRouter();
