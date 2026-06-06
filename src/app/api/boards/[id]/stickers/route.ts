@@ -141,11 +141,46 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
       }
     }
 
+    // Friend-planted surprise gift hidden on THIS grape? Claim it single-shot
+    // (like rewards) and notify the planter via inbox that it was discovered.
+    let plantedGift: {
+      id: string;
+      message: string;
+      emoji: string;
+      plantedBy: { id: string; name: string; avatar: string };
+    } | null = null;
+    const giftClaim = await tx.plantedGift.updateMany({
+      where: { boardId, position, revealedAt: null },
+      data: { revealedAt: new Date() },
+    });
+    if (giftClaim.count > 0) {
+      const pg = await tx.plantedGift.findFirst({
+        where: { boardId, position },
+        include: { plantedBy: { select: { id: true, name: true, avatar: true } } },
+      });
+      if (pg) {
+        plantedGift = { id: pg.id, message: pg.message, emoji: pg.emoji, plantedBy: pg.plantedBy };
+        if (pg.plantedById !== userId) {
+          await tx.message.create({
+            data: {
+              senderId: userId,
+              receiverId: pg.plantedById,
+              boardId,
+              type: 'celebration',
+              emoji: '🎁',
+              content: `${sticker.filler.name}님이 숨겨둔 선물을 발견했어요!`,
+            },
+          });
+        }
+      }
+    }
+
     return {
       sticker,
       filledCount,
       isCompleted: filledCount >= board.totalStickers,
       unlockedReward,
+      plantedGift,
     };
   });
 
