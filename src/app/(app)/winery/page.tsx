@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { api } from '@/lib/api';
 import {
   WINERY_TIERS,
@@ -8,7 +8,7 @@ import {
   type WineryTier,
   type WineBottle as WineBottleType,
 } from '@/lib/winery';
-import WineBottle from '@/components/WineBottle';
+import WineBottle, { BOTTLE_BASELINE_H, BOTTLE_ROW_H } from '@/components/WineBottle';
 import EmojiIcon from '@/components/EmojiIcon';
 import { stripTitleEmoji } from '@/lib/title';
 
@@ -25,6 +25,7 @@ export default function WineryPage() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [selectedBottle, setSelectedBottle] = useState<WineBottleType | null>(null);
+  const detailRef = useRef<HTMLDivElement>(null);
 
   const loadWinery = () => {
     setLoading(true);
@@ -38,6 +39,14 @@ export default function WineryPage() {
   useEffect(() => {
     loadWinery();
   }, []);
+
+  // Bring the detail panel into view when a bottle is selected (it opens below
+  // the cellar, which can sit off-screen in a tall cellar).
+  useEffect(() => {
+    if (selectedBottle) {
+      detailRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, [selectedBottle]);
 
   // ─── Loading Skeleton ───────────────────────────────────
   if (loading) {
@@ -74,6 +83,10 @@ export default function WineryPage() {
   const { totalGrapes, currentTier, nextTier, tierProgress, bottles } = data;
   const grapesToNext = nextTier ? nextTier.minGrapes - totalGrapes : 0;
 
+  // Wooden shelf plank drawn at the shared bottle baseline, repeated once per row.
+  const shelfPitch = BOTTLE_ROW_H + 24; // cell height + gap-y-6
+  const cellarShelf = `repeating-linear-gradient(to bottom, transparent 0 ${BOTTLE_BASELINE_H}px, rgba(146,100,56,0.30) ${BOTTLE_BASELINE_H}px ${BOTTLE_BASELINE_H + 4}px, rgba(83,55,28,0.16) ${BOTTLE_BASELINE_H + 4}px ${BOTTLE_BASELINE_H + 7}px, transparent ${BOTTLE_BASELINE_H + 7}px ${shelfPitch}px)`;
+
   return (
     <div className="pb-4">
       <h1 className="font-display text-2xl font-bold text-grape-700 mb-6 animate-fade-in">
@@ -84,7 +97,7 @@ export default function WineryPage() {
       <section className="clay-float p-6 mb-6 animate-fade-in relative overflow-hidden">
         {/* Background glow matching tier color */}
         <div
-          className={`absolute inset-0 bg-gradient-to-br ${currentTier.color} opacity-30 pointer-events-none`}
+          className={`absolute inset-0 bg-gradient-to-br ${currentTier.color} opacity-20 pointer-events-none`}
         />
 
         <div className="relative z-10 text-center">
@@ -107,10 +120,8 @@ export default function WineryPage() {
             {currentTier.name}
           </h2>
           <span
-            className={`inline-block px-3 py-0.5 rounded-full text-xs font-bold text-white bg-gradient-to-r ${currentTier.color.replace(/to-[a-z]+-\d+/, 'to-grape-500').replace(/from-[a-z]+-\d+/, 'from-grape-400')}`}
-            style={{
-              background: 'linear-gradient(135deg, #9B7ED8, #7B5FB8)',
-            }}
+            className="inline-block px-3 py-0.5 rounded-full text-xs font-bold text-white"
+            style={{ background: 'linear-gradient(135deg, #9B7ED8, #7B5FB8)' }}
           >
             Lv.{currentTier.level}
           </span>
@@ -131,7 +142,14 @@ export default function WineryPage() {
                 <span className="inline-flex items-center gap-1"><EmojiIcon emoji={currentTier.icon} size={14} /> Lv.{currentTier.level}</span>
                 <span className="inline-flex items-center gap-1"><EmojiIcon emoji={nextTier.icon} size={14} /> Lv.{nextTier.level}</span>
               </div>
-              <div className="w-full h-4 rounded-full bg-white/60 overflow-hidden shadow-inner relative">
+              <div
+                className="w-full h-4 rounded-full bg-white/60 overflow-hidden shadow-inner relative"
+                role="progressbar"
+                aria-valuenow={Math.round(tierProgress)}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-label={`${currentTier.name}에서 ${nextTier.name}까지 진행률`}
+              >
                 <div
                   className="h-full rounded-full bg-gradient-to-r from-grape-400 via-grape-500 to-grape-600 transition-all duration-1000 ease-out relative"
                   style={{ width: `${tierProgress}%` }}
@@ -178,16 +196,18 @@ export default function WineryPage() {
           </div>
         ) : (
           <>
-            {/* Bottle grid */}
+            {/* Bottle grid — each row stands on a wooden shelf (repeating
+                background plank at the shared bottle baseline). */}
             <div className="clay p-5">
-              {/* Cellar shelf decorative bar */}
-              <div className="w-full h-0.5 bg-gradient-to-r from-transparent via-amber-800/20 to-transparent mb-4 rounded-full" />
-
-              <div className="grid grid-cols-3 sm:grid-cols-4 gap-y-6 gap-x-2 justify-items-center">
+              <div
+                className="grid grid-cols-3 sm:grid-cols-4 gap-y-6 gap-x-2 justify-items-center"
+                style={{ backgroundImage: cellarShelf }}
+              >
                 {bottles.map((bottle) => (
                   <WineBottle
                     key={bottle.boardId}
                     bottle={bottle}
+                    selected={selectedBottle?.boardId === bottle.boardId}
                     onClick={() =>
                       setSelectedBottle(
                         selectedBottle?.boardId === bottle.boardId ? null : bottle
@@ -196,14 +216,11 @@ export default function WineryPage() {
                   />
                 ))}
               </div>
-
-              {/* Shelf line at bottom */}
-              <div className="w-full h-1 bg-gradient-to-r from-amber-700/10 via-amber-800/30 to-amber-700/10 mt-5 rounded-full" />
             </div>
 
             {/* Selected bottle detail panel */}
             {selectedBottle && (
-              <div className="clay-sm mt-3 p-5 bg-grape-50/60 animate-slide-up relative">
+              <div ref={detailRef} className="clay-sm mt-3 p-5 bg-grape-50/60 animate-slide-up relative">
                 {/* Close button */}
                 <button
                   onClick={() => setSelectedBottle(null)}

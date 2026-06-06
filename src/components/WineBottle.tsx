@@ -6,6 +6,7 @@ import { stripTitleEmoji } from '@/lib/title';
 interface WineBottleProps {
   bottle: WineBottleType;
   onClick?: () => void;
+  selected?: boolean;
 }
 
 const SIZE_MAP = {
@@ -14,6 +15,15 @@ const SIZE_MAP = {
   magnum: { height: 120, width: 44, neck: 18, label: 28 },
   jeroboam: { height: 140, width: 52, neck: 20, label: 32 },
 } as const;
+
+// Every bottle is drawn inside a fixed-height "stage" and bottom-anchored, so
+// bottles of different sizes share one baseline (they stand on the shelf
+// instead of hanging from the top of the grid cell). The winery page draws the
+// shelf plank at BOTTLE_BASELINE_H and repeats rows every BOTTLE_ROW_H + gap.
+const STAGE_H = SIZE_MAP.jeroboam.height + 12; // 152 — tallest bottle + headroom
+const TITLE_H = 16; // fixed title row so the cell height is deterministic
+export const BOTTLE_BASELINE_H = STAGE_H; // bottle bases sit here from the cell top
+export const BOTTLE_ROW_H = STAGE_H + 8 + TITLE_H; // stage + gap-2 + title row
 
 /**
  * Returns a darker grape gradient for bottles that took longer to complete,
@@ -35,19 +45,27 @@ function getBottleGradient(daysToComplete: number): { body: string; highlight: s
   return { body: 'from-grape-500 via-grape-400 to-grape-300', highlight: 'bg-grape-200/40' };
 }
 
-export default function WineBottle({ bottle, onClick }: WineBottleProps) {
+export default function WineBottle({ bottle, onClick, selected = false }: WineBottleProps) {
   const dim = SIZE_MAP[bottle.bottleSize];
   const gradient = getBottleGradient(bottle.daysToComplete);
-
-  const labelTitle = bottle.title.length > 6 ? bottle.title.slice(0, 5) + '…' : bottle.title;
 
   return (
     <button
       onClick={onClick}
+      aria-pressed={selected}
       className="group flex flex-col items-center gap-2 transition-all duration-300 hover:scale-105 hover:-rotate-1 active:scale-95"
       aria-label={`${bottle.title} - ${bottle.vintage}년 빈티지`}
     >
-      <div className="relative flex flex-col items-center" style={{ height: dim.height + 24 }}>
+      {/* Fixed-height stage, bottle bottom-anchored to share a common baseline */}
+      <div className="relative flex flex-col items-center justify-end" style={{ height: STAGE_H }}>
+        {/* Selection glow halo behind the bottle */}
+        {selected && (
+          <div
+            className="absolute bottom-0 left-1/2 -translate-x-1/2 rounded-full bg-grape-400/30 blur-xl pointer-events-none"
+            style={{ width: dim.width * 2, height: dim.height * 0.6 }}
+          />
+        )}
+
         {/* Cork */}
         <div
           className="bg-gradient-to-b from-[#A87C4B] via-[#8B5E2F] to-[#6F4824] relative z-10"
@@ -106,9 +124,12 @@ export default function WineBottle({ bottle, onClick }: WineBottleProps) {
             className={`absolute top-0 left-[15%] w-[20%] h-full ${gradient.highlight} rounded-full blur-[2px]`}
           />
 
-          {/* Label with paper texture */}
+          {/* Hover-only glass shimmer sweep (clipped by body overflow-hidden) */}
+          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 wine-bottle-shimmer pointer-events-none" />
+
+          {/* Vintage label (paper texture, year-forward like a real wine label) */}
           <div
-            className="texture-paper absolute left-1/2 -translate-x-1/2 bg-clay-cream rounded-sm flex flex-col items-center justify-center px-1"
+            className="texture-paper absolute left-1/2 -translate-x-1/2 bg-clay-cream rounded-sm flex items-center justify-center px-1"
             style={{
               width: dim.width - 8,
               height: dim.label,
@@ -118,14 +139,8 @@ export default function WineBottle({ bottle, onClick }: WineBottleProps) {
             }}
           >
             <span
-              className="font-display text-grape-800 font-bold leading-none block truncate w-full text-center"
-              style={{ fontSize: Math.max(7, dim.label * 0.4) }}
-            >
-              {labelTitle}
-            </span>
-            <span
-              className="font-display text-grape-600 leading-none mt-px"
-              style={{ fontSize: Math.max(6, dim.label * 0.32) }}
+              className="font-display text-grape-800 font-bold leading-none tabular-nums"
+              style={{ fontSize: Math.max(8, dim.label * 0.42) }}
             >
               {bottle.vintage}
             </span>
@@ -152,7 +167,11 @@ export default function WineBottle({ bottle, onClick }: WineBottleProps) {
         />
       </div>
 
-      <span className="text-[11px] font-display text-warm-sub leading-tight text-center max-w-[80px] truncate">
+      <span
+        className={`block h-4 leading-4 text-[11px] font-display text-center max-w-[80px] truncate ${
+          selected ? 'text-grape-700 font-bold' : 'text-warm-sub'
+        }`}
+      >
         {stripTitleEmoji(bottle.title)}
       </span>
     </button>
