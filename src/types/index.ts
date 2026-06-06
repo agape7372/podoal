@@ -162,12 +162,8 @@ export interface HabitTemplate {
   suggestedReward: string;
 }
 
-export interface WineryTier {
-  level: number;
-  minGrapes: number;
-  name: string;
-  icon: string;
-}
+// WineryTier lives in `@/lib/winery` (it also carries the `color` gradient
+// field). Import it from there; this duplicate was stale and unused.
 
 export interface HeatmapData {
   date: string;
