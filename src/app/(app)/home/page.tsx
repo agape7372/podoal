@@ -7,6 +7,7 @@ import { api } from '@/lib/api';
 import BoardCard from '@/components/BoardCard';
 import ClayButton from '@/components/ClayButton';
 import Avatar from '@/components/Avatar';
+import ProfileSheet from '@/components/ProfileSheet';
 import Podo from '@/components/mascot/Podo';
 import Sparkle from '@/components/illustrations/Sparkle';
 import VineLeaf from '@/components/illustrations/VineLeaf';
@@ -31,6 +32,7 @@ export default function HomePage() {
   const [loadError, setLoadError] = useState(false);
   const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all');
   const greeting = useMemo(timeOfDayGreeting, []);
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   const loadBoards = useCallback(() => {
     setLoading(true);
@@ -43,12 +45,6 @@ export default function HomePage() {
 
   useEffect(() => { loadBoards(); }, [loadBoards]);
 
-  const handleLogout = async () => {
-    await fetch('/api/auth/me', { method: 'POST' });
-    useAppStore.getState().setUser(null);
-    router.replace('/');
-  };
-
   const filteredBoards = boards.filter((b) => {
     if (filter === 'active') return !b.isCompleted;
     if (filter === 'completed') return b.isCompleted;
@@ -60,25 +56,23 @@ export default function HomePage() {
 
   return (
     <div className="pb-4">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-5">
-        <div className="flex items-center gap-3">
-          <Avatar avatar={user?.avatar || 'grape'} size="lg" />
-          <div>
-            <h1 className="font-display text-[26px] leading-tight font-bold tracking-tight text-warm-text">
-              {user?.name}<span className="text-warm-sub font-normal text-[20px]">님</span>
-            </h1>
-            <p className="text-xs leading-normal tracking-wide text-warm-sub mt-0.5">
-              {greeting}
-            </p>
-          </div>
-        </div>
+      {/* Header — tap the avatar to open the profile sheet */}
+      <div className="flex items-center gap-3 mb-5">
         <button
-          onClick={handleLogout}
-          className="clay-button px-3 py-2 rounded-2xl text-xs text-warm-sub"
+          onClick={() => { feedbackTap(); setSheetOpen(true); }}
+          aria-label="프로필 열기"
+          className="rounded-full shrink-0 active:scale-95 transition-transform"
         >
-          로그아웃
+          <Avatar avatar={user?.avatar || 'grape'} size="lg" />
         </button>
+        <div className="min-w-0">
+          <h1 className="font-display text-[26px] leading-tight font-bold tracking-tight text-warm-text truncate">
+            {user?.name}<span className="text-warm-sub font-normal text-[20px]">님</span>
+          </h1>
+          <p className="text-xs leading-normal tracking-wide text-warm-sub mt-0.5">
+            {greeting}
+          </p>
+        </div>
       </div>
 
       {/* Filter tabs — 카운트 통합(전체/진행중/완료 + 숫자) */}
@@ -160,6 +154,8 @@ export default function HomePage() {
           +
         </button>
       )}
+
+      {sheetOpen && <ProfileSheet onClose={() => setSheetOpen(false)} />}
     </div>
   );
 }

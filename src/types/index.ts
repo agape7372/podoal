@@ -7,6 +7,8 @@ export interface UserProfile {
   name: string;
   email: string;
   avatar: string;
+  /** null = email account; "google"/"kakao"/"naver" (+ "_guest" fallback) = OAuth. Optional: only surfaced by /api/auth/me. */
+  provider?: string | null;
 }
 
 export interface BoardSummary {
