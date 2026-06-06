@@ -10,6 +10,7 @@ import { useAppStore } from '@/lib/store';
 import { BOARD_SIZES } from '@/types';
 import type { FriendInfo } from '@/types';
 import { feedbackSuccess, feedbackTap } from '@/lib/feedback';
+import EmojiIcon from '@/components/EmojiIcon';
 
 export default function CreateRelayPage() {
   const router = useRouter();
@@ -111,7 +112,7 @@ export default function CreateRelayPage() {
       </button>
 
       <h1 className="font-display text-2xl font-bold text-grape-700 mb-6">
-        {'\uD83D\uDD17'} 새 릴레이 만들기
+        <EmojiIcon emoji={'\uD83D\uDD17'} size={24} className="mr-1.5" />새 릴레이 만들기
       </h1>
 
       <div className="space-y-6">
@@ -145,14 +146,10 @@ export default function CreateRelayPage() {
                   }
                 `}
               >
-                <div className="text-2xl mb-1">
-                  {size.value <= 10
-                    ? '\uD83C\uDF47'
-                    : size.value <= 15
-                    ? '\uD83C\uDF47\uD83C\uDF47'
-                    : size.value <= 20
-                    ? '\uD83C\uDF47\uD83C\uDF47\uD83C\uDF47'
-                    : '\uD83C\uDF47\uD83C\uDF47\uD83C\uDF47\uD83C\uDF47'}
+                <div className="flex items-center justify-center gap-0.5 mb-1">
+                  {Array.from({ length: size.value <= 10 ? 1 : size.value <= 15 ? 2 : size.value <= 20 ? 3 : 4 }).map((_, i) => (
+                    <EmojiIcon key={i} emoji={'\uD83C\uDF47'} size={22} />
+                  ))}
                 </div>
                 <p className="font-bold text-grape-700">{size.label}</p>
                 <p className="text-xs text-warm-sub">{size.description}</p>
