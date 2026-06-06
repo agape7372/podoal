@@ -188,8 +188,10 @@ export default function NotificationsPage() {
     return (
       <div className="pb-4">
         <h1 className="font-display text-2xl font-bold text-grape-700 mb-6">알림 설정</h1>
-        <div className="text-center py-12 text-warm-sub">
-          <p className="text-sm">알림 설정을 불러오지 못했어요</p>
+        <div className="text-center py-12">
+          <p className="text-sm text-warm-text mb-1">알림 설정을 불러오지 못했어요</p>
+          <p className="text-xs text-warm-sub mb-5">잠시 후 다시 시도해주세요</p>
+          <button onClick={fetchData} className="clay-button px-5 py-2.5 rounded-2xl text-sm font-semibold text-grape-700">다시 불러오기</button>
         </div>
       </div>
     );

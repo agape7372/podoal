@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { api } from '@/lib/api';
 import EmojiIcon from '@/components/EmojiIcon';
 
@@ -32,13 +32,18 @@ const typeBgColors: Record<string, string> = {
 export default function VinePage() {
   const [timeline, setTimeline] = useState<DateGroup[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
-  useEffect(() => {
+  const load = useCallback(() => {
+    setLoadError(false);
+    setLoading(true);
     api<{ timeline: DateGroup[] }>('/api/vine')
       .then((data) => setTimeline(data.timeline))
-      .catch(() => {})
+      .catch(() => setLoadError(true))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => { load(); }, [load]);
 
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr + 'T00:00:00');
@@ -64,6 +69,25 @@ export default function VinePage() {
               <div className="skeleton h-16 flex-1" />
             </div>
           ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="pb-4">
+        <div className="text-center mb-8">
+          <h1 className="font-display text-2xl font-bold text-grape-700 mb-1">
+            <span className="inline-flex items-center gap-1.5"><EmojiIcon emoji="🌿" size={22} /> 포도덩쿨</span>
+          </h1>
+          <p className="text-sm text-warm-sub">나의 성장 기록</p>
+        </div>
+        <div className="text-center py-20">
+          <EmojiIcon emoji="😥" size={48} className="block mx-auto mb-4" />
+          <p className="text-sm text-warm-text mb-1">불러오지 못했어요</p>
+          <p className="text-xs text-warm-sub mb-5">잠시 후 다시 시도해주세요</p>
+          <button onClick={load} className="clay-button px-5 py-2.5 rounded-2xl text-sm font-semibold text-grape-700">다시 불러오기</button>
         </div>
       </div>
     );

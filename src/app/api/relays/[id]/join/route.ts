@@ -58,11 +58,15 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
       },
     });
 
+    // Only attach the freshly-created board — do NOT overwrite status here.
+    // A participant who reached their turn (status 'active', set by /pass) must
+    // stay active; forcing 'pending' froze the baton chain (no one stayed active,
+    // so /pass could never advance). Participants who join early stay 'pending'
+    // because their existing status is already 'pending'.
     const updated = await tx.relayParticipant.update({
       where: { id: participant.id },
       data: {
         boardId: board.id,
-        status: 'pending',
       },
     });
 

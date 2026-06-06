@@ -20,6 +20,7 @@ export default function CapsuleModal({ boardId, isOwner, onClose }: CapsuleModal
   const [tab, setTab] = useState<'create' | 'list'>(isOwner ? 'create' : 'list');
   const [capsules, setCapsules] = useState<TimeCapsuleInfo[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   // Create form state
   const [message, setMessage] = useState('');
@@ -33,11 +34,14 @@ export default function CapsuleModal({ boardId, isOwner, onClose }: CapsuleModal
   const [justOpenedId, setJustOpenedId] = useState<string | null>(null);
 
   const fetchCapsules = useCallback(async () => {
+    setLoadError(false);
     try {
       const data = await api<{ capsules: TimeCapsuleInfo[] }>(`/api/boards/${boardId}/capsules`);
       setCapsules(data.capsules);
     } catch {
-      // silently fail
+      // Surface load failures instead of silently showing an empty vault —
+      // a swallowed error here looked identical to "no capsules yet".
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -255,6 +259,13 @@ export default function CapsuleModal({ boardId, isOwner, onClose }: CapsuleModal
                   {[1, 2, 3].map((i) => (
                     <div key={i} className="skeleton h-20 w-full" />
                   ))}
+                </div>
+              ) : loadError ? (
+                <div className="text-center py-12">
+                  <EmojiIcon emoji="😥" size={40} className="block mx-auto mb-3" />
+                  <p className="text-sm text-warm-text mb-1">불러오지 못했어요</p>
+                  <p className="text-xs text-warm-sub mb-4">잠시 후 다시 시도해주세요</p>
+                  <button onClick={fetchCapsules} className="clay-button px-5 py-2.5 rounded-2xl text-sm font-semibold text-grape-700">다시 불러오기</button>
                 </div>
               ) : capsules.length === 0 ? (
                 <div className="text-center py-12 text-warm-sub">

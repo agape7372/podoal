@@ -29,11 +29,23 @@ export default function MessagesPage() {
   useEffect(() => { fetchMessages(); }, [fetchMessages]);
 
   const handleMarkRead = async (id: string) => {
-    await api(`/api/messages/${id}`, { method: 'PATCH', json: {} });
+    const target = messages.find((m) => m.id === id);
+    if (!target || target.isRead) return;
+    // Optimistic: mark read immediately, roll back if the request fails so the
+    // UI never claims "read" when the server didn't record it (previously the
+    // PATCH was awaited first and a failure left the click with no feedback).
     setMessages((prev) =>
       prev.map((m) => (m.id === id ? { ...m, isRead: true } : m))
     );
     setUnreadCount(messages.filter((m) => !m.isRead && m.id !== id).length);
+    try {
+      await api(`/api/messages/${id}`, { method: 'PATCH', json: {} });
+    } catch {
+      setMessages((prev) =>
+        prev.map((m) => (m.id === id ? { ...m, isRead: false } : m))
+      );
+      setUnreadCount(messages.filter((m) => !m.isRead).length);
+    }
   };
 
   const formatTime = (dateStr: string) => {
