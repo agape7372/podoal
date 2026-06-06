@@ -1,13 +1,12 @@
-// Re-center avatar SVGs so each fruit sits dead-center in the round coin.
+// Re-center avatar SVGs so each fruit's VISIBLE MASS sits dead-center in the round coin.
 //
-// "Centered" here balances BOTH:
-//   • cardinal margins (top=bottom, left=right) → the bounding-box center, and
-//   • all-direction mass (incl. the diagonals)  → the silhouette area centroid.
-// A single translation can't satisfy both for an asymmetric shape, so we place the
-// fruit at the BLEND (50/50 average) of the two — the perceptual sweet spot that, in
-// side-by-side coin renders, is never the worst and is near-best for every fruit
-// (fixes watermelon/blueberry pulled to one corner by bbox, and cherry/strawberry
-// pulled low by the pure centroid). See scripts/compare-centers.js for the comparison.
+// What the eye reads as "centered" is the centre of the visible blob, not the bounding
+// box: e.g. blueberry's berries crowd the upper-right while a stray edge balances the
+// bbox at (16,16), so bbox-centering (and even a bbox/centroid blend) leaves the cluster
+// looking pushed up-right. We therefore place each fruit at its SILHOUETTE AREA CENTROID
+// (mass centre) — this evens out the empty margin all the way around the blob, including
+// the diagonals. A clamp keeps the art inside the 0..32 viewBox (the app clips the SVG
+// as an <img>). Verified by clipped coin renders (scripts/tune-blob.js, compare-centers.js).
 //
 // We strip any prior <g data-centered> wrapper first, so re-running is idempotent.
 
@@ -28,13 +27,8 @@ function stripWrapper(svg) {
     .replace(/<\/g>(\s*<\/svg>)/, '$1');
 }
 
-// Per-fruit fine nudges on top of the blend (chosen from coin renders + an adversarial
-// visual panel that flagged exactly these two). Cherry's heavy bodies read bottom-heavy
-// → lift; the watermelon wedge reads pushed-right → shift left. dx<0 = left, dy<0 = up.
-const NUDGE = {
-  cherry: { dx: 0, dy: -1.2 },
-  watermelon: { dx: -1.2, dy: 0 },
-};
+// No per-fruit nudges: the mass centroid centres every fruit's visible blob on its own.
+const NUDGE = {};
 
 async function measure(svgString) {
   const { data, info } = await sharp(Buffer.from(svgString), { density: DENSITY })
@@ -69,9 +63,9 @@ const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
     const orig = fs.readFileSync(file, 'utf8');
     const art = stripWrapper(orig);
 
-    const { bboxC, centroid, bbox } = await measure(art);
-    const cx = (bboxC.x + centroid.x) / 2;   // blend
-    const cy = (bboxC.y + centroid.y) / 2;
+    const { centroid, bbox } = await measure(art);
+    const cx = centroid.x;                    // mass centre = visible-blob centre
+    const cy = centroid.y;
     const nd = NUDGE[f] || { dx: 0, dy: 0 };
     let dx = VB / 2 - cx + nd.dx;
     let dy = VB / 2 - cy + nd.dy;
@@ -87,8 +81,7 @@ const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
     console.log(
       f.padEnd(11),
-      `blend=(${r(cx)},${r(cy)})`,
-      (nd.dx || nd.dy) ? `nudge(${nd.dx},${nd.dy})` : 'nudge(–)',
+      `centroid=(${r(cx)},${r(cy)})`,
       `=> translate(${dx} ${dy})`
     );
   }

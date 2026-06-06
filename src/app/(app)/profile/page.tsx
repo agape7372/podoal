@@ -17,11 +17,11 @@ const AVATAR_LABEL: Record<string, string> = {
   cherry: '체리', peach: '복숭아', apple: '사과', watermelon: '수박',
 };
 // Avatar SVGs are pre-centered at the asset level (public/avatars/*.svg wrap their art
-// in a <g transform>). Each fruit is placed at the BLEND of its bounding-box center and
-// its mass centroid — balancing cardinal margins (top/bottom, left/right) with the
-// diagonals — plus a tiny per-fruit nudge (cherry/watermelon) confirmed by an adversarial
-// visual panel. See scripts/recenter-avatars.js. So <Avatar> renders them centered
-// everywhere with no per-call CSS nudging needed.
+// in a <g transform>). Each fruit is placed at its SILHOUETTE MASS CENTROID so the
+// visible blob — not the bounding box — sits dead-center, evening the margin all around
+// (incl. diagonals). bbox-centering left clusters like blueberry looking pushed up-right;
+// the centroid fixes that. A clamp keeps art inside the viewBox. See
+// scripts/recenter-avatars.js. So <Avatar> renders them centered with no CSS nudging.
 
 export default function ProfilePage() {
   const router = useRouter();
