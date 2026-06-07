@@ -154,7 +154,7 @@ export default function FriendsPage() {
       {DEV_TOOLS && (
         <div className="clay-sm p-3 mb-6 bg-amber-50/50 border border-amber-100">
           <button onClick={handleSeed} disabled={seeding} className="text-xs font-semibold text-grape-700">
-            🧪 {seeding ? '만드는 중…' : '테스트 친구·보드 만들기 (개발용)'}
+            <EmojiIcon emoji="🧪" size={13} className="mr-0.5" />{seeding ? '만드는 중…' : '테스트 친구·보드 만들기 (개발용)'}
           </button>
           {seedInfo && (
             <p className="text-[11px] text-warm-sub mt-2 whitespace-pre-wrap break-all leading-relaxed">{seedInfo}</p>

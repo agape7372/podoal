@@ -7,6 +7,7 @@ import EmojiIcon from './EmojiIcon';
 import { api } from '@/lib/api';
 import { feedbackSuccess } from '@/lib/feedback';
 import { REWARD_TYPE_LABELS } from '@/types';
+import { REWARD_TYPE_ICON } from '@/lib/icons';
 import type { RewardInfo, RewardType } from '@/types';
 
 interface MidRewardModalProps {
@@ -128,7 +129,7 @@ export default function MidRewardModal({ board, position, existingReward, onClos
 
         {/* Reward type */}
         <div className="flex gap-2 mb-4">
-          {(Object.entries(REWARD_TYPE_LABELS) as [RewardType, string][]).map(([t, label]) => (
+          {(Object.keys(REWARD_TYPE_LABELS) as RewardType[]).map((t) => (
             <button
               key={t}
               type="button"
@@ -138,7 +139,7 @@ export default function MidRewardModal({ board, position, existingReward, onClos
                 ${type === t ? 'ring-2 ring-grape-400 clay-pressed' : ''}
               `}
             >
-              {label}
+              <EmojiIcon emoji={REWARD_TYPE_ICON[t]} size={16} className="mr-1" />{REWARD_TYPE_LABELS[t]}
             </button>
           ))}
         </div>

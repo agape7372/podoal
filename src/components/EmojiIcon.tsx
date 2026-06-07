@@ -13,12 +13,14 @@ interface EmojiIconProps {
 }
 
 /**
- * Renders a unicode emoji as a color-illustration SVG (Microsoft Fluent Emoji, MIT)
- * from /public/icons/fluent/<codepoint>.svg — unifying every emoji with the profile
- * grape (/avatars/grape.svg, also Fluent). Keyed by the emoji character itself, so
- * stored values (message.emoji, capsule.emoji) render through the same path with no
- * data migration. If the SVG is missing it falls back to the raw emoji glyph, so a
- * not-yet-downloaded codepoint degrades gracefully instead of showing a broken image.
+ * Renders a unicode emoji as a flat Fluent SVG (Microsoft Fluent Emoji, MIT)
+ * from /public/icons/fluent/<codepoint>.svg.
+ *
+ * It deliberately does NOT fall back to the raw OS emoji glyph — the app is
+ * all-flat-icons by design, and a stray OS emoji is exactly the bug we keep
+ * hitting. A missing SVG instead shows a neutral placeholder (and shouts in
+ * dev). `scripts/check-icons.mjs` fails the build if any used emoji lacks its
+ * SVG, so the placeholder never actually ships.
  */
 function codepoint(emoji: string): string {
   return Array.from(emoji)
@@ -31,16 +33,15 @@ export default function EmojiIcon({ emoji, size = 24, className = '', label }: E
   const [failed, setFailed] = useState(false);
 
   if (failed) {
+    // Neutral placeholder — never the raw OS emoji.
     return (
       <span
         role={label ? 'img' : undefined}
         aria-label={label}
         aria-hidden={label ? undefined : true}
-        className={`inline-block align-[-0.15em] leading-none ${className}`}
-        style={{ fontSize: size * 0.9 }}
-      >
-        {emoji}
-      </span>
+        className={`inline-block align-[-0.15em] rounded-[4px] bg-grape-100/70 ${className}`}
+        style={{ width: size, height: size }}
+      />
     );
   }
 
@@ -52,7 +53,15 @@ export default function EmojiIcon({ emoji, size = 24, className = '', label }: E
       alt={label ?? ''}
       aria-hidden={label ? undefined : true}
       draggable={false}
-      onError={() => setFailed(true)}
+      onError={() => {
+        if (process.env.NODE_ENV !== 'production') {
+          console.error(
+            `[EmojiIcon] missing flat SVG for "${emoji}" (codepoint ${codepoint(emoji)}). ` +
+              `Add public/icons/fluent/${codepoint(emoji)}.svg — raw OS emoji are never rendered.`,
+          );
+        }
+        setFailed(true);
+      }}
       className={`inline-block align-[-0.15em] ${className}`}
     />
   );

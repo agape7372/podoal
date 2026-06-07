@@ -11,12 +11,14 @@ import GiftBoardModal from '@/components/GiftBoardModal';
 import GiftUnboxModal from '@/components/GiftUnboxModal';
 import SurpriseRevealModal from '@/components/SurpriseRevealModal';
 import MidRewardModal from '@/components/MidRewardModal';
+import RewardRevealModal from '@/components/RewardRevealModal';
 import ShareCardModal from '@/components/ShareCardModal';
 import CapsuleModal from '@/components/CapsuleModal';
 import Avatar from '@/components/Avatar';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import EmojiIcon from '@/components/EmojiIcon';
-import type { BoardDetail, PlantedGiftInfo } from '@/types';
+import type { BoardDetail, PlantedGiftInfo, RewardInfo } from '@/types';
+import { REWARD_TYPE_ICON, ICON } from '@/lib/icons';
 import { feedbackTap } from '@/lib/feedback';
 import { stripTitleEmoji } from '@/lib/title';
 
@@ -39,6 +41,8 @@ export default function BoardDetailPage() {
   const [surpriseGift, setSurpriseGift] = useState<PlantedGiftInfo | null>(null);
   // Long-press / "+ 중간 보상" → MidRewardModal targeting this 0-based grape.
   const [plantPos, setPlantPos] = useState<number | null>(null);
+  // A mid reward just reached → opened immediately in a popup (instant "쾌감").
+  const [rewardPopup, setRewardPopup] = useState<RewardInfo | null>(null);
   const initialLoadDoneRef = useRef(false);
 
   const fetchBoard = useCallback(async () => {
@@ -111,6 +115,21 @@ export default function BoardDetailPage() {
       // Reward unlocks are rare; only re-fetch when one fires so the
       // reward card can update from "locked" to "tap to reveal".
       if (result.unlockedReward) {
+        const u = result.unlockedReward;
+        // 중간 보상은 도달 즉시 팝업으로 개봉(열린 순간의 쾌감). 최종 보상은
+        // 기존대로 보상 카드를 탭해서 연다.
+        if (u.triggerAt < board.totalStickers) {
+          try {
+            const d = await api<{ reward: RewardInfo }>(
+              `/api/boards/${id}/rewards/${u.id}/reveal`,
+              { method: 'POST' },
+            );
+            setRewardPopup(d.reward);
+            setConfettiTrigger((t) => t + 1);
+          } catch {
+            // reveal 실패해도 목록에서 탭으로 열 수 있음
+          }
+        }
         fetchBoard();
       }
 
@@ -348,7 +367,7 @@ export default function BoardDetailPage() {
                     }}
                     disabled={isRevealing}
                     className={`
-                      w-full clay p-4 text-center transition-all
+                      w-full clay-sm p-3 text-center transition-all
                       ${isUnlocked
                         ? 'bg-amber-50/60 reward-glow cursor-pointer'
                         : 'bg-grape-50/60'
@@ -357,7 +376,7 @@ export default function BoardDetailPage() {
                     `}
                   >
                     <div className="flex items-center justify-center gap-2">
-                      <EmojiIcon emoji={isUnlocked ? '🎁' : '🔒'} size={26} />
+                      <EmojiIcon emoji={isUnlocked ? REWARD_TYPE_ICON[reward.type] : ICON.lock} size={20} />
                       <div className="text-left">
                         <p className="text-sm font-medium text-grape-600">
                           {isUnlocked ? reward.title : `${remaining}알 더 채우면 열려요`}
@@ -438,6 +457,11 @@ export default function BoardDetailPage() {
       {/* Friend-planted surprise reveal */}
       {surpriseGift && (
         <SurpriseRevealModal gift={surpriseGift} onClose={() => setSurpriseGift(null)} />
+      )}
+
+      {/* Mid reward reached → instant popup reveal */}
+      {rewardPopup && (
+        <RewardRevealModal reward={rewardPopup} onClose={() => setRewardPopup(null)} />
       )}
 
       {/* Plant / edit a 중간 보상 (long-press a grape, or the "+ 중간 보상" button) */}

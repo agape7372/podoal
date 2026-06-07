@@ -295,14 +295,14 @@ export default function NotificationsPage() {
             </div>
           ) : (
             <p className="text-xs text-amber-900 leading-relaxed">
-              ⏰ 리마인더는 <b>앱이 켜져 있는 동안</b> 동작해요. {push.reason}
+              <EmojiIcon emoji="⏰" size={13} className="mr-0.5" />리마인더는 <b>앱이 켜져 있는 동안</b> 동작해요. {push.reason}
             </p>
           )}
         </div>
 
         {reminders.length === 0 ? (
           <div className="text-center py-8 text-warm-sub">
-            <span className="text-3xl block mb-2">⏰</span>
+            <span className="block mb-2"><EmojiIcon emoji="⏰" size={30} /></span>
             <p className="text-sm">아직 리마인더가 없어요</p>
             <p className="text-xs text-warm-sub mt-1">
               리마인더를 추가해서 습관을 잊지 마세요.
