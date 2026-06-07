@@ -33,6 +33,13 @@ export interface BoardDetail extends BoardSummary {
   giftOpenedAt?: string | null;
 }
 
+export interface PlantedGiftInfo {
+  id: string;
+  message: string;
+  emoji: string;
+  plantedBy: { id: string; name: string; avatar: string };
+}
+
 export interface StickerInfo {
   id: string;
   position: number;

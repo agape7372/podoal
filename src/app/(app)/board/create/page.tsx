@@ -26,6 +26,7 @@ function CreateBoardInner() {
   const [rewardType, setRewardType] = useState<RewardType>('letter');
   const [rewardTitle, setRewardTitle] = useState('');
   const [rewardContent, setRewardContent] = useState('');
+  const [midRewards, setMidRewards] = useState<{ triggerAt: number; title: string; content: string }[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -57,6 +58,20 @@ function CreateBoardInner() {
     if (!rewardTitle.trim()) { setError('보상 제목을 입력해주세요'); return; }
     if (!rewardContent.trim()) { setError('보상 내용을 입력해주세요'); return; }
 
+    const cleanMids = midRewards
+      .map((m) => ({ triggerAt: m.triggerAt, title: m.title.trim(), content: m.content.trim() }))
+      .filter((m) => m.title || m.content);
+    for (const m of cleanMids) {
+      if (!m.title || !m.content) { setError('중간 선물의 제목과 내용을 모두 입력해주세요'); return; }
+      if (m.triggerAt < 1 || m.triggerAt >= totalStickers) { setError('중간 선물 위치가 올바르지 않아요'); return; }
+    }
+    const midTriggers = cleanMids.map((m) => m.triggerAt);
+    if (new Set(midTriggers).size !== midTriggers.length) { setError('중간 선물 위치가 서로 겹쳐요'); return; }
+    const rewardsPayload = [
+      ...cleanMids.map((m) => ({ type: 'letter' as RewardType, title: m.title, content: m.content, triggerAt: m.triggerAt })),
+      { type: rewardType, title: rewardTitle.trim(), content: rewardContent.trim(), triggerAt: totalStickers },
+    ];
+
     setLoading(true);
     setError('');
     try {
@@ -67,12 +82,7 @@ function CreateBoardInner() {
           description: description.trim(),
           totalStickers,
           templateId,
-          rewards: [{
-            type: rewardType,
-            title: rewardTitle.trim(),
-            content: rewardContent.trim(),
-            triggerAt: totalStickers,
-          }],
+          rewards: rewardsPayload,
         },
       });
       if (giftTo) {
@@ -148,8 +158,11 @@ function CreateBoardInner() {
         <div className="space-y-5 animate-fade-in">
           <p className="text-sm text-warm-sub">추천 템플릿으로 빠르게 시작하거나, 직접 만들어보세요!</p>
 
-          {/* Category tabs */}
-          <div className="flex flex-wrap gap-2 py-2">
+          {/* Category tabs — single horizontal scroll row (chips keep their
+              width via whitespace-nowrap/flex-shrink-0). -mx-1 px-1 gives the
+              selected chip's ring room at the scroll edges; py-2 keeps the ring
+              from being clipped vertically (overflow-x promotes overflow-y). */}
+          <div className="flex gap-2 py-2 -mx-1 px-1 overflow-x-auto scrollbar-hide">
             {TEMPLATE_CATEGORIES.map((cat) => (
               <button
                 key={cat.id}
@@ -318,6 +331,69 @@ function CreateBoardInner() {
               value={rewardContent}
               onChange={(e) => setRewardContent(e.target.value)}
             />
+          </div>
+
+          {/* 중간 선물 (선택) — 여러 지점에 깜짝 보상 심기 */}
+          <div className="clay-sm p-4">
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-sm font-semibold text-warm-text inline-flex items-center">
+                <EmojiIcon emoji="🎁" size={15} className="mr-1" />중간 선물 <span className="text-warm-light ml-1">(선택)</span>
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  const used = new Set(midRewards.map((m) => m.triggerAt));
+                  if (used.size >= totalStickers - 1) return;
+                  let pos = Math.max(1, Math.round(totalStickers / 2));
+                  while (used.has(pos)) pos = (pos % (totalStickers - 1)) + 1;
+                  setMidRewards((prev) => [...prev, { triggerAt: pos, title: '', content: '' }]);
+                }}
+                className="text-xs font-medium text-grape-600 clay-button px-2.5 py-1 rounded-lg bg-grape-50"
+              >
+                + 추가
+              </button>
+            </div>
+            <p className="text-xs text-warm-sub mb-3">중간 칸에 도달하면 깜짝 공개돼요</p>
+            {midRewards.length === 0 ? (
+              <p className="text-xs text-warm-light">예: 5번째 알에 “여기까지 잘했어!” 쪽지</p>
+            ) : (
+              <div className="space-y-3">
+                {midRewards.map((m, i) => (
+                  <div key={i} className="clay-sm p-3 bg-grape-50/40">
+                    <div className="flex items-center gap-2 mb-2">
+                      <select
+                        aria-label="중간 선물 위치"
+                        value={m.triggerAt}
+                        onChange={(e) => setMidRewards((prev) => prev.map((x, j) => (j === i ? { ...x, triggerAt: Number(e.target.value) } : x)))}
+                        className="clay-input py-1.5 px-2 text-sm flex-1"
+                      >
+                        {Array.from({ length: totalStickers - 1 }, (_, k) => k + 1).map((n) => (
+                          <option key={n} value={n}>{n}번째 알에서</option>
+                        ))}
+                      </select>
+                      <button type="button" onClick={() => setMidRewards((prev) => prev.filter((_, j) => j !== i))} className="text-xs text-grape-700 px-2 py-1.5">
+                        삭제
+                      </button>
+                    </div>
+                    <input
+                      value={m.title}
+                      onChange={(e) => setMidRewards((prev) => prev.map((x, j) => (j === i ? { ...x, title: e.target.value } : x)))}
+                      placeholder="선물 제목 (예: 응원 쪽지)"
+                      maxLength={80}
+                      className="clay-input text-sm mb-2"
+                    />
+                    <textarea
+                      value={m.content}
+                      onChange={(e) => setMidRewards((prev) => prev.map((x, j) => (j === i ? { ...x, content: e.target.value } : x)))}
+                      placeholder="내용 (도달하면 공개돼요)"
+                      maxLength={500}
+                      rows={2}
+                      className="clay-input text-sm resize-none"
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {error && <p role="alert" className="text-grape-700 text-sm text-center">{error}</p>}

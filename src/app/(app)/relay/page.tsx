@@ -8,6 +8,7 @@ import ClayButton from '@/components/ClayButton';
 import Avatar from '@/components/Avatar';
 import type { RelayInfo } from '@/types';
 import { feedbackTap } from '@/lib/feedback';
+import EmojiIcon from '@/components/EmojiIcon';
 
 export default function RelayListPage() {
   const router = useRouter();
@@ -42,7 +43,7 @@ export default function RelayListPage() {
   return (
     <div className="pb-4">
       <h1 className="font-display text-2xl font-bold text-grape-700 mb-6">
-        {'\uD83D\uDD17'} 포도 릴레이
+        <EmojiIcon emoji={'\uD83D\uDD17'} size={24} className="mr-1.5" />포도 릴레이
       </h1>
 
       {/* Create button */}
@@ -72,7 +73,7 @@ export default function RelayListPage() {
       ) : relays.length === 0 ? (
         /* Empty state */
         <div className="text-center py-16">
-          <div className="text-5xl mb-4">{'\uD83D\uDD17'}</div>
+          <EmojiIcon emoji={'\uD83D\uDD17'} size={52} className="block mx-auto mb-4" />
           <p className="text-sm leading-relaxed text-warm-sub mb-1">
             아직 릴레이가 없어요
           </p>
@@ -138,8 +139,8 @@ export default function RelayListPage() {
                                 }
                               />
                               {p.status === 'completed' && (
-                                <span className="absolute -bottom-0.5 -right-0.5 text-xs">
-                                  {'\u2705'}
+                                <span className="absolute -bottom-0.5 -right-0.5">
+                                  <EmojiIcon emoji={'\u2705'} size={14} />
                                 </span>
                               )}
                             </div>
@@ -217,8 +218,8 @@ export default function RelayListPage() {
                           <div key={p.id} className="flex items-center">
                             <div className="relative">
                               <Avatar avatar={p.user.avatar} size="sm" />
-                              <span className="absolute -bottom-0.5 -right-0.5 text-xs">
-                                {'\u2705'}
+                              <span className="absolute -bottom-0.5 -right-0.5">
+                                <EmojiIcon emoji={'\u2705'} size={14} />
                               </span>
                             </div>
                             {idx < relay.participants.length - 1 && (

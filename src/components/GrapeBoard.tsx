@@ -45,6 +45,13 @@ function GrapeBoardInner({ board, onFill, canFill, onCelebrate }: GrapeBoardProp
     return -1; // every grape filled
   }, [filledPositions, board.totalStickers]);
 
+  // Grapes sitting on an intermediate reward trigger — show a 🎁 anticipation
+  // marker. Exclude the completion reward (the whole board already celebrates).
+  const rewardPositions = useMemo(
+    () => new Set((board.rewards ?? []).filter((r) => r.triggerAt < board.totalStickers).map((r) => r.triggerAt - 1)),
+    [board.rewards, board.totalStickers],
+  );
+
   const handleFill = useCallback(async (position: number) => {
     if (!canFill || filledPositions.has(position) || position !== nextPosition) return;
 
@@ -156,7 +163,7 @@ function GrapeBoardInner({ board, onFill, canFill, onCelebrate }: GrapeBoardProp
                     return (
                       <div
                         key={position}
-                        className={`flex-shrink-0 ${justFilled === position ? 'relative z-20' : isNext ? 'relative z-10' : ''}`}
+                        className={`flex-shrink-0 relative ${justFilled === position ? 'z-20' : isNext ? 'z-10' : ''}`}
                         style={{
                           width: `${grapeSize}px`,
                           height: `${grapeSize}px`,
@@ -174,6 +181,11 @@ function GrapeBoardInner({ board, onFill, canFill, onCelebrate }: GrapeBoardProp
                           size={sizeClass}
                           onClick={() => handleFill(position)}
                         />
+                        {rewardPositions.has(position) && !filled && (
+                          <span className="absolute -top-1 -right-1 z-20 pointer-events-none drop-shadow-sm">
+                            <EmojiIcon emoji="🎁" size={Math.round(grapeSize * 0.4)} />
+                          </span>
+                        )}
                       </div>
                     );
                   })}

@@ -9,12 +9,13 @@ import RewardReveal from '@/components/RewardReveal';
 import Confetti from '@/components/Confetti';
 import GiftBoardModal from '@/components/GiftBoardModal';
 import GiftUnboxModal from '@/components/GiftUnboxModal';
+import SurpriseRevealModal from '@/components/SurpriseRevealModal';
 import ShareCardModal from '@/components/ShareCardModal';
 import CapsuleModal from '@/components/CapsuleModal';
 import Avatar from '@/components/Avatar';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import EmojiIcon from '@/components/EmojiIcon';
-import type { BoardDetail } from '@/types';
+import type { BoardDetail, PlantedGiftInfo } from '@/types';
 import { feedbackTap } from '@/lib/feedback';
 import { stripTitleEmoji } from '@/lib/title';
 
@@ -34,6 +35,7 @@ export default function BoardDetailPage() {
   // Burst counter for the shared <Confetti>. Bumped both when a fill unlocks a
   // reward (via GrapeBoard's onCelebrate) and when a reward is opened.
   const [confettiTrigger, setConfettiTrigger] = useState(0);
+  const [surpriseGift, setSurpriseGift] = useState<PlantedGiftInfo | null>(null);
   const initialLoadDoneRef = useRef(false);
 
   const fetchBoard = useCallback(async () => {
@@ -84,6 +86,7 @@ export default function BoardDetailPage() {
         filledCount: number;
         isCompleted: boolean;
         unlockedReward: { id: string; type: string; title: string; triggerAt: number } | null;
+        plantedGift: PlantedGiftInfo | null;
       }>(`/api/boards/${id}/stickers`, {
         method: 'POST',
         json: { position },
@@ -106,6 +109,12 @@ export default function BoardDetailPage() {
       // reward card can update from "locked" to "tap to reveal".
       if (result.unlockedReward) {
         fetchBoard();
+      }
+
+      // A friend's hidden surprise sat on this grape — reveal it with confetti.
+      if (result.plantedGift) {
+        setSurpriseGift(result.plantedGift);
+        setConfettiTrigger((t) => t + 1);
       }
     } catch (err) {
       // Rollback the optimistic sticker on failure.
@@ -395,7 +404,7 @@ export default function BoardDetailPage() {
         />
       )}
 
-      {/* Gift modal */}
+      {/* Gift unbox — received whole-board gift */}
       {board.giftedFrom && !board.giftOpenedAt && isOwner && (
         <GiftUnboxModal
           senderName={board.giftedFrom.name}
@@ -405,6 +414,11 @@ export default function BoardDetailPage() {
           onOpen={handleOpenGift}
           onDecline={handleDeclineGift}
         />
+      )}
+
+      {/* Friend-planted surprise reveal */}
+      {surpriseGift && (
+        <SurpriseRevealModal gift={surpriseGift} onClose={() => setSurpriseGift(null)} />
       )}
 
       {showGift && (
