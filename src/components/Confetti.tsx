@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from 'react';
 
-// Lavender + pale-lime pastel confetti palette.
+// Classic multi-color party confetti.
 const CONFETTI_COLORS = [
-  '#DCC4F2', '#C9A8E8',
-  '#EBE0F6', '#B28CDC',
-  '#F7FAD8', '#EFF5BB',
-  '#CFDC78', '#FBFCEE',
+  '#FF3B30', '#FF9500',
+  '#FFCC00', '#34C759',
+  '#00C7BE', '#007AFF',
+  '#5856D6', '#FF2D55',
 ];
 const CONFETTI_COUNT = 50;
 
