@@ -48,6 +48,7 @@ model Board {
   giftMessage   String    @default("") // optional note the gifter attaches
   giftOpenedAt  DateTime? // set when the recipient first "unwraps" a gifted board
   isCompleted   Boolean  @default(false)
+  allowFriendPlant Boolean @default(true) // owner toggle: may friends plant surprise gifts here?
   completedAt   DateTime?
   createdAt     DateTime @default(now())
 

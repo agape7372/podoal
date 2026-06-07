@@ -36,7 +36,9 @@ export default function BoardDetailPage() {
   // Burst counter for the shared <Confetti>. Bumped both when a fill unlocks a
   // reward (via GrapeBoard's onCelebrate) and when a reward is opened.
   const [confettiTrigger, setConfettiTrigger] = useState(0);
-  const [surpriseGift, setSurpriseGift] = useState<PlantedGiftInfo | null>(null);
+  // Queue of friend-planted surprises waiting to be revealed one-by-one. A single
+  // filled grape can carry several (overlap allowed), shown sequentially.
+  const [surpriseQueue, setSurpriseQueue] = useState<PlantedGiftInfo[]>([]);
   // Long-press / "+ 중간 보상" → MidRewardModal targeting this 0-based grape.
   const [plantPos, setPlantPos] = useState<number | null>(null);
   // A mid reward just reached → opened immediately in a popup (instant "쾌감").
@@ -92,6 +94,7 @@ export default function BoardDetailPage() {
         isCompleted: boolean;
         unlockedReward: { id: string; type: string; title: string; triggerAt: number } | null;
         plantedGift: PlantedGiftInfo | null;
+        plantedGifts?: PlantedGiftInfo[];
       }>(`/api/boards/${id}/stickers`, {
         method: 'POST',
         json: { position },
@@ -131,9 +134,12 @@ export default function BoardDetailPage() {
         fetchBoard();
       }
 
-      // A friend's hidden surprise sat on this grape — reveal it with confetti.
-      if (result.plantedGift) {
-        setSurpriseGift(result.plantedGift);
+      // Friends' hidden surprises on this grape — queue them for sequential
+      // reveal with confetti. (plantedGifts is the full list; plantedGift is the
+      // back-compat single value.)
+      const gifts = result.plantedGifts ?? (result.plantedGift ? [result.plantedGift] : []);
+      if (gifts.length > 0) {
+        setSurpriseQueue((q) => [...q, ...gifts]);
         setConfettiTrigger((t) => t + 1);
       }
     } catch (err) {
@@ -149,6 +155,17 @@ export default function BoardDetailPage() {
       // Best-effort full resync in case the failure was due to drift (e.g.
       // another lambda already created the sticker).
       fetchBoard().catch(() => {});
+    }
+  };
+
+  const handleToggleAllowPlant = async () => {
+    if (!board) return;
+    const next = !(board.allowFriendPlant ?? true);
+    setBoard((b) => (b ? { ...b, allowFriendPlant: next } : b)); // optimistic
+    try {
+      await api(`/api/boards/${id}`, { method: 'PATCH', json: { allowFriendPlant: next } });
+    } catch {
+      setBoard((b) => (b ? { ...b, allowFriendPlant: !next } : b)); // rollback
     }
   };
 
@@ -287,6 +304,26 @@ export default function BoardDetailPage() {
             공유
           </button>
         </div>
+      )}
+
+      {/* Owner: toggle whether friends may plant surprise gifts here */}
+      {isOwner && !board.isCompleted && (
+        <button
+          onClick={() => { feedbackTap(); handleToggleAllowPlant(); }}
+          aria-pressed={board.allowFriendPlant ?? true}
+          className="w-full clay-sm px-4 py-3 mb-5 flex items-center justify-between transition-all active:scale-[0.99]"
+        >
+          <span className="inline-flex items-center gap-2 text-sm text-warm-text">
+            <EmojiIcon emoji="🎁" size={18} />
+            <span className="text-left">
+              친구가 깜짝 선물 심기
+              <span className="block text-[11px] text-warm-sub">친구가 빈 칸에 선물을 숨길 수 있어요</span>
+            </span>
+          </span>
+          <span className={`relative w-11 h-6 rounded-full shrink-0 transition-colors ${(board.allowFriendPlant ?? true) ? 'bg-grape-400' : 'bg-warm-border'}`}>
+            <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform ${(board.allowFriendPlant ?? true) ? 'translate-x-5' : ''}`} />
+          </span>
+        </button>
       )}
 
       {errorMessage && (
@@ -474,9 +511,9 @@ export default function BoardDetailPage() {
         />
       )}
 
-      {/* Friend-planted surprise reveal */}
-      {surpriseGift && (
-        <SurpriseRevealModal gift={surpriseGift} onClose={() => setSurpriseGift(null)} />
+      {/* Friend-planted surprise reveals — one at a time (sequential queue) */}
+      {surpriseQueue.length > 0 && (
+        <SurpriseRevealModal gift={surpriseQueue[0]} onClose={() => setSurpriseQueue((q) => q.slice(1))} />
       )}
 
       {/* Mid reward reached → instant popup reveal */}

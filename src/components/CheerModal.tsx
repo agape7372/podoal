@@ -79,7 +79,7 @@ export default function CheerModal({ recipientName, onSend, onClose }: CheerModa
         </div>
 
         {/* Quick messages */}
-        <div className="flex flex-wrap gap-2 mb-6">
+        <div className="grid grid-cols-2 gap-2 mb-6">
           {quickMessages.map((m) => {
             const value = m.emoji ? `${m.text} ${m.emoji}` : m.text;
             return (
@@ -87,7 +87,7 @@ export default function CheerModal({ recipientName, onSend, onClose }: CheerModa
                 key={value}
                 onClick={() => setSelectedMsg(value)}
                 className={`
-                  px-3 py-2 rounded-xl text-sm font-medium transition-all inline-flex items-center gap-1
+                  px-3 py-2 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-1 w-full
                   ${selectedMsg === value
                     ? 'clay-pressed text-grape-600 ring-2 ring-grape-300'
                     : 'clay-button text-warm-text'

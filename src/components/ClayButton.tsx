@@ -61,7 +61,10 @@ export default function ClayButton({
           <span>잠시만요…</span>
         </span>
       ) : (
-        children
+        // Wrap children in a flex row so an inline <EmojiIcon> img sits centered
+        // beside its label instead of breaking baseline/clipping — this is the
+        // 🎁 "T" tofu on 포도판 선물하기 / 선물 심기 buttons.
+        <span className="inline-flex items-center justify-center gap-1.5">{children}</span>
       )}
     </button>
   );

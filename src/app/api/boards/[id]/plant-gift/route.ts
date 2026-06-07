@@ -19,11 +19,12 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
 
   const board = await prisma.board.findUnique({
     where: { id: boardId },
-    select: { id: true, ownerId: true, totalStickers: true, isCompleted: true, _count: { select: { stickers: true } } },
+    select: { id: true, ownerId: true, totalStickers: true, isCompleted: true, allowFriendPlant: true, _count: { select: { stickers: true } } },
   });
   if (!board) return authResponse('Board not found', 404);
   if (board.isCompleted) return authResponse('이미 완성된 포도판이에요', 400);
   if (board.ownerId === userId) return authResponse('내 포도판에는 심을 수 없어요', 400);
+  if (!board.allowFriendPlant) return authResponse('이 포도판은 깜짝 선물 받기를 꺼두었어요', 403);
 
   // Only accepted friends of the board owner may plant.
   const friendship = await prisma.friendship.findFirst({
@@ -42,9 +43,11 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
     return authResponse('아직 채우지 않은 칸에만 심을 수 있어요', 400);
   }
 
-  // One surprise per position; soft cap of 3 active per planter per board.
-  const existing = await prisma.plantedGift.findFirst({ where: { boardId, position, revealedAt: null } });
-  if (existing) return authResponse('그 칸엔 이미 선물이 숨겨져 있어요', 409);
+  // Overlap is allowed — surprises stack on a grape and reveal in sequence when
+  // it's filled. We only stop the SAME planter from double-stacking one grape.
+  // Soft cap of 3 active per planter per board.
+  const dup = await prisma.plantedGift.findFirst({ where: { boardId, position, plantedById: userId, revealedAt: null } });
+  if (dup) return authResponse('그 칸엔 이미 선물을 심었어요', 409);
   const mine = await prisma.plantedGift.count({ where: { boardId, plantedById: userId, revealedAt: null } });
   if (mine >= 3) return authResponse('이 포도판엔 최대 3개까지 심을 수 있어요', 400);
 

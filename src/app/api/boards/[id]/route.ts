@@ -39,9 +39,23 @@ export async function GET(request: Request, props: { params: Promise<{ id: strin
     return authResponse('Board not found', 404);
   }
 
-  // Only allow the owner or gift recipient to view the board
+  // Owner and gift recipient can always view. An accepted friend of the owner
+  // may also view (read-only) so "친구 포도판 보기" can open the board page
+  // instead of bouncing home — the board page renders read-only when isOwner is
+  // false (no fill, no owner actions). Filling is still owner-gated server-side.
   if (board.ownerId !== userId && board.giftedToId !== userId) {
-    return authResponse('Forbidden', 403);
+    const friendship = await prisma.friendship.findFirst({
+      where: {
+        status: 'accepted',
+        OR: [
+          { requesterId: userId, receiverId: board.ownerId },
+          { requesterId: board.ownerId, receiverId: userId },
+        ],
+      },
+    });
+    if (!friendship) {
+      return authResponse('Forbidden', 403);
+    }
   }
 
   const filledCount = board.stickers.length;
@@ -72,6 +86,7 @@ export async function GET(request: Request, props: { params: Promise<{ id: strin
     totalStickers: board.totalStickers,
     filledCount,
     isCompleted: board.isCompleted,
+    allowFriendPlant: board.allowFriendPlant,
     completedAt: board.completedAt,
     createdAt: board.createdAt,
     owner: board.owner,
@@ -85,6 +100,37 @@ export async function GET(request: Request, props: { params: Promise<{ id: strin
   };
 
   return Response.json({ board: result });
+}
+
+// Owner-only partial update. Currently just the friend-plant toggle; whitelisted
+// so arbitrary fields can't be written. Non-breaking addition (GET/DELETE intact).
+export async function PATCH(request: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
+  const userId = await getCurrentUserId();
+  if (!userId) {
+    return authResponse('Unauthorized');
+  }
+
+  const { id } = params;
+  const board = await prisma.board.findUnique({ where: { id }, select: { ownerId: true } });
+  if (!board) {
+    return authResponse('Board not found', 404);
+  }
+  if (board.ownerId !== userId) {
+    return authResponse('Only the board owner can update this board', 403);
+  }
+
+  const body = await request.json().catch(() => ({}));
+  const data: { allowFriendPlant?: boolean } = {};
+  if (typeof body?.allowFriendPlant === 'boolean') {
+    data.allowFriendPlant = body.allowFriendPlant;
+  }
+  if (Object.keys(data).length === 0) {
+    return authResponse('No valid fields to update', 400);
+  }
+
+  await prisma.board.update({ where: { id }, data });
+  return Response.json({ ok: true });
 }
 
 export async function DELETE(request: Request, props: { params: Promise<{ id: string }> }) {
