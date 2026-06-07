@@ -96,7 +96,7 @@ export default function HomePage() {
               {icon}
               {label}
               <span className={`font-display font-bold leading-none ${isActive ? 'text-grape-700' : 'text-warm-text'}`}>
-                {count}
+                {loading ? <span className="inline-block w-3 h-3 rounded-full bg-warm-border/50 animate-pulse" /> : count}
               </span>
             </button>
           );

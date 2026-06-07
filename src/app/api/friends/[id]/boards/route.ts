@@ -60,7 +60,7 @@ export async function GET(request: Request, props: { params: Promise<{ id: strin
         owner: { select: userProfileSelect },
         giftedTo: { select: userProfileSelect },
         giftedFrom: { select: userProfileSelect },
-        _count: { select: { stickers: true } },
+        _count: { select: { stickers: true, rewards: true } },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -77,7 +77,7 @@ export async function GET(request: Request, props: { params: Promise<{ id: strin
       owner: board.owner,
       giftedTo: board.giftedTo,
       giftedFrom: board.giftedFrom,
-      rewardCount: 0,
+      rewardCount: board._count.rewards,
     }));
 
     return NextResponse.json({

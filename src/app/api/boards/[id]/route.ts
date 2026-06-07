@@ -39,9 +39,23 @@ export async function GET(request: Request, props: { params: Promise<{ id: strin
     return authResponse('Board not found', 404);
   }
 
-  // Only allow the owner or gift recipient to view the board
+  // Owner and gift recipient can always view. An accepted friend of the owner
+  // may also view (read-only) so "친구 포도판 보기" can open the board page
+  // instead of bouncing home — the board page renders read-only when isOwner is
+  // false (no fill, no owner actions). Filling is still owner-gated server-side.
   if (board.ownerId !== userId && board.giftedToId !== userId) {
-    return authResponse('Forbidden', 403);
+    const friendship = await prisma.friendship.findFirst({
+      where: {
+        status: 'accepted',
+        OR: [
+          { requesterId: userId, receiverId: board.ownerId },
+          { requesterId: board.ownerId, receiverId: userId },
+        ],
+      },
+    });
+    if (!friendship) {
+      return authResponse('Forbidden', 403);
+    }
   }
 
   const filledCount = board.stickers.length;

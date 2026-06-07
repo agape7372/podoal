@@ -189,7 +189,7 @@ export default function FriendsPage() {
             tab === 'friends' ? 'clay-pressed text-grape-600' : 'clay-button text-warm-sub'
           }`}
         >
-          전체 ({friends.length})
+          전체{loading ? '' : ` (${friends.length})`}
         </button>
         <button
           onClick={() => { feedbackTap(); setTab('favorite'); }}

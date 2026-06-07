@@ -45,22 +45,43 @@ export default function FriendCard({
     ? statusBg.favorite
     : statusBg[friend.status] || statusBg.accepted;
 
+  const isAccepted = friend.status === 'accepted';
+  const canOpen = isAccepted && !!onViewBoards;
+
+  // Identity block (avatar + name + email). For an accepted friend it becomes a
+  // single large tap target that opens their detail/boards — replacing the old
+  // duplicated 🍇 icon button + "포도판 보기" footer button (which both did the
+  // same thing and squeezed the name into "테스...").
+  const identity = (
+    <>
+      <Avatar avatar={friend.user.avatar} size="lg" />
+      <div className="flex-1 min-w-0">
+        <p className="font-display text-[15px] font-semibold text-warm-text truncate">{friend.user.name}</p>
+        <p className="text-xs text-warm-sub truncate">{friend.user.email}</p>
+        {typeof activeBoardCount === 'number' && isAccepted && (
+          <p className="text-[11px] text-grape-600 mt-0.5 inline-flex items-center gap-1">
+            <EmojiIcon emoji="🍇" size={13} /> 포도판 <span className="font-display font-semibold">{activeBoardCount}</span>개 진행 중
+          </p>
+        )}
+      </div>
+    </>
+  );
+
   return (
     <div className={`clay-sm p-4 ${bg} transition-all`}>
       <div className="flex items-center gap-3">
-        <Avatar avatar={friend.user.avatar} size="lg" />
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <p className="font-display text-[15px] font-semibold text-warm-text truncate">{friend.user.name}</p>
-            {friend.isFavorite && <EmojiIcon emoji="⭐" size={14} />}
-          </div>
-          <p className="text-xs text-warm-sub truncate">{friend.user.email}</p>
-          {typeof activeBoardCount === 'number' && friend.status === 'accepted' && (
-            <p className="text-[11px] text-grape-600 mt-0.5 inline-flex items-center gap-1">
-              <EmojiIcon emoji="🍇" size={13} /> 포도판 <span className="font-display font-semibold">{activeBoardCount}</span>개 진행 중
-            </p>
-          )}
-        </div>
+        {canOpen ? (
+          <button
+            onClick={() => { feedbackTap(); onViewBoards!(friend.user.id); }}
+            className="flex items-center gap-3 flex-1 min-w-0 text-left active:scale-[0.99] transition-transform"
+            aria-label={`${friend.user.name}님의 포도판 보기`}
+          >
+            {identity}
+          </button>
+        ) : (
+          <div className="flex items-center gap-3 flex-1 min-w-0">{identity}</div>
+        )}
+
         <div className="flex items-center gap-1.5 shrink-0">
           {friend.status === 'pending' ? (
             <>
@@ -73,49 +94,37 @@ export default function FriendCard({
             </>
           ) : (
             <>
-              <button
-                onClick={() => { feedbackTap(); onViewBoards?.(friend.user.id); }}
-                className="clay-button p-2 rounded-xl text-sm font-medium text-grape-600 transition-all active:scale-95"
-                aria-label="포도판 보기"
-              >
-                <EmojiIcon emoji="🍇" size={18} />
-              </button>
-              <button
-                onClick={() => { feedbackTap(); onSendCheer?.(friend.user.id); }}
-                className="clay-button p-2 rounded-xl text-lg transition-all active:scale-95"
-                aria-label="응원 보내기"
-              >
-                <EmojiIcon emoji="💜" size={18} />
-              </button>
-              <button
-                onClick={() => { feedbackTap(); onToggleFavorite?.(friend.id); }}
-                className="clay-button p-2 rounded-xl text-lg transition-all active:scale-95"
-                aria-label={friend.isFavorite ? '즐겨찾기 해제' : '즐겨찾기'}
-              >
-                {friend.isFavorite ? <EmojiIcon emoji="⭐" size={18} /> : <EmojiIcon emoji="⭐" size={18} className="opacity-30 grayscale" />}
-              </button>
-              <button
-                onClick={() => onRemove?.(friend.id)}
-                className="clay-button p-2 rounded-xl text-sm text-warm-sub transition-all active:scale-95"
-                aria-label="삭제"
-              >
-                <EmojiIcon emoji="❌" size={16} />
-              </button>
+              {onSendCheer && (
+                <button
+                  onClick={() => { feedbackTap(); onSendCheer(friend.user.id); }}
+                  className="clay-button p-2 rounded-xl transition-all active:scale-95"
+                  aria-label="응원 보내기"
+                >
+                  <EmojiIcon emoji="💜" size={18} />
+                </button>
+              )}
+              {onToggleFavorite && (
+                <button
+                  onClick={() => { feedbackTap(); onToggleFavorite(friend.id); }}
+                  className="clay-button p-2 rounded-xl transition-all active:scale-95"
+                  aria-label={friend.isFavorite ? '즐겨찾기 해제' : '즐겨찾기'}
+                >
+                  <EmojiIcon emoji="⭐" size={18} className={friend.isFavorite ? '' : 'opacity-30 grayscale'} />
+                </button>
+              )}
+              {onRemove && (
+                <button
+                  onClick={() => onRemove(friend.id)}
+                  className="clay-button p-2 rounded-xl transition-all active:scale-95"
+                  aria-label="삭제"
+                >
+                  <EmojiIcon emoji="❌" size={16} />
+                </button>
+              )}
             </>
           )}
         </div>
       </div>
-
-      {friend.status === 'accepted' && onViewBoards && (
-        <button
-          onClick={() => onViewBoards(friend.user.id)}
-          className="mt-3 w-full clay-button px-3 py-2 rounded-2xl text-xs font-medium text-grape-700 bg-grape-50 transition-all active:scale-[0.98] flex items-center justify-center gap-1.5"
-        >
-          <EmojiIcon emoji="🍇" size={16} />
-          <span>포도판 보기</span>
-          <span className="text-warm-light">→</span>
-        </button>
-      )}
     </div>
   );
 }
