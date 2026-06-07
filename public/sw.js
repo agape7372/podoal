@@ -120,15 +120,19 @@ self.addEventListener('push', (event) => {
   );
 });
 
-// Notification click handler
+// Notification click handler — deep-link to the payload's url (gift board, inbox, …)
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
+  const url = (event.notification.data && event.notification.data.url) || '/home';
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
-      if (clients.length > 0) {
-        return clients[0].focus();
+      for (const c of clients) {
+        if ('focus' in c) {
+          if (c.navigate) { c.navigate(url).catch(() => {}); }
+          return c.focus();
+        }
       }
-      return self.clients.openWindow('/home');
+      return self.clients.openWindow(url);
     })
   );
 });

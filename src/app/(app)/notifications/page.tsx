@@ -7,6 +7,7 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import EmojiIcon from '@/components/EmojiIcon';
 import type { NotificationSettingInfo, ReminderInfo, BoardSummary } from '@/types';
 import { stripTitleEmoji } from '@/lib/title';
+import { usePush } from '@/lib/usePush';
 
 const DAY_LABELS: Record<string, string> = {
   '1': '월', '2': '화', '3': '수', '4': '목', '5': '금', '6': '토', '7': '일',
@@ -155,21 +156,7 @@ export default function NotificationsPage() {
     fetchData();
   };
 
-  const [notifPermission, setNotifPermission] = useState<NotificationPermission | 'unsupported'>(
-    typeof window !== 'undefined' && 'Notification' in window
-      ? Notification.permission
-      : 'unsupported'
-  );
-
-  const requestNotifPermission = async () => {
-    if (notifPermission === 'unsupported') return;
-    try {
-      const result = await Notification.requestPermission();
-      setNotifPermission(result);
-    } catch {
-      // ignore
-    }
-  };
+  const push = usePush();
 
   if (loading) {
     return (
@@ -283,28 +270,32 @@ export default function NotificationsPage() {
           </button>
         </div>
 
-        {/* Notification permission + open-tab limitation notice */}
-        <div className="mb-4 p-3 rounded-xl bg-amber-50/60 border border-amber-100">
-          <p className="text-xs text-amber-900 leading-relaxed">
-            ⏰ 현재 리마인더는 <b>앱이 켜져 있는 동안</b>에만 알림이 발송됩니다.
-            백그라운드 푸시는 준비 중이에요.
-          </p>
-          {notifPermission === 'default' && (
-            <button
-              onClick={requestNotifPermission}
-              className="mt-2 text-xs font-medium text-grape-600 underline"
-            >
-              알림 권한 허용하기
-            </button>
-          )}
-          {notifPermission === 'denied' && (
-            <p className="mt-2 text-xs text-amber-800">
-              브라우저 알림 권한이 차단되어 있어요. 브라우저 설정에서 허용해주세요.
-            </p>
-          )}
-          {notifPermission === 'unsupported' && (
-            <p className="mt-2 text-xs text-amber-800">
-              이 브라우저는 알림을 지원하지 않아요.
+        {/* Background push — now actually wired (Web Push / VAPID) */}
+        <div className="mb-4 p-3 rounded-xl bg-grape-50/70 border border-grape-100">
+          {push.subscribed ? (
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-xs text-grape-900 leading-relaxed">
+                <EmojiIcon emoji="🔔" size={13} className="mr-0.5" />백그라운드 푸시가 <b>켜져 있어요</b>. 앱을 닫아도 리마인더·선물·응원 알림을 받습니다.
+              </p>
+              <button onClick={() => push.disable()} disabled={push.busy} className="flex-shrink-0 text-xs font-medium text-warm-sub underline">
+                끄기
+              </button>
+            </div>
+          ) : push.supported ? (
+            <div>
+              <p className="text-xs text-grape-900 leading-relaxed">
+                <EmojiIcon emoji="🔔" size={13} className="mr-0.5" /><b>백그라운드 푸시</b>를 켜면 앱을 닫아도 리마인더·선물 도착·응원 알림을 받을 수 있어요.
+              </p>
+              <button onClick={() => push.enable()} disabled={push.busy} className="mt-2 clay-button px-4 py-2 rounded-xl text-xs font-semibold text-grape-700 bg-grape-100">
+                {push.busy ? '설정 중…' : '푸시 알림 켜기'}
+              </button>
+              {push.permission === 'denied' && (
+                <p className="mt-2 text-xs text-amber-800">브라우저 알림 권한이 차단돼 있어요. 설정에서 허용해주세요.</p>
+              )}
+            </div>
+          ) : (
+            <p className="text-xs text-amber-900 leading-relaxed">
+              ⏰ 리마인더는 <b>앱이 켜져 있는 동안</b> 동작해요. {push.reason}
             </p>
           )}
         </div>

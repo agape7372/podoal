@@ -8,6 +8,7 @@ import GrapeBoard from '@/components/GrapeBoard';
 import RewardReveal from '@/components/RewardReveal';
 import Confetti from '@/components/Confetti';
 import GiftBoardModal from '@/components/GiftBoardModal';
+import GiftUnboxModal from '@/components/GiftUnboxModal';
 import SurpriseRevealModal from '@/components/SurpriseRevealModal';
 import ShareCardModal from '@/components/ShareCardModal';
 import CapsuleModal from '@/components/CapsuleModal';
@@ -130,17 +131,37 @@ export default function BoardDetailPage() {
     }
   };
 
-  const handleGift = async (friendId: string) => {
+  const handleGift = async (friendId: string, message: string) => {
     try {
       await api(`/api/boards/${id}/gift`, {
         method: 'POST',
-        json: { friendId },
+        json: { friendId, message },
       });
       setErrorMessage(null);
     } catch (err) {
       const msg = err instanceof Error ? err.message : '선물 전송에 실패했어요';
       setErrorMessage(`${msg} — 잠시 후 다시 시도해주세요.`);
     }
+  };
+
+  // Recipient unwraps a gifted board (one-time reveal).
+  const handleOpenGift = async () => {
+    try {
+      await api(`/api/boards/${id}/gift-open`, { method: 'POST' });
+    } catch {
+      // non-blocking; still let them in
+    }
+    setBoard((b) => (b ? { ...b, giftOpenedAt: new Date().toISOString() } : b));
+    setConfettiTrigger((t) => t + 1);
+  };
+
+  const handleDeclineGift = async () => {
+    try {
+      await api(`/api/boards/${id}`, { method: 'DELETE' });
+    } catch {
+      // ignore — navigate away regardless
+    }
+    router.push('/home');
   };
 
   const handleRevealReward = async (rewardId: string) => {
@@ -383,7 +404,19 @@ export default function BoardDetailPage() {
         />
       )}
 
-      {/* Gift modal */}
+      {/* Gift unbox — received whole-board gift */}
+      {board.giftedFrom && !board.giftOpenedAt && isOwner && (
+        <GiftUnboxModal
+          senderName={board.giftedFrom.name}
+          senderAvatar={board.giftedFrom.avatar}
+          boardTitle={stripTitleEmoji(board.title)}
+          message={board.giftMessage}
+          onOpen={handleOpenGift}
+          onDecline={handleDeclineGift}
+        />
+      )}
+
+      {/* Friend-planted surprise reveal */}
       {surpriseGift && (
         <SurpriseRevealModal gift={surpriseGift} onClose={() => setSurpriseGift(null)} />
       )}

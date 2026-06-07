@@ -30,6 +30,7 @@ model User {
   relayParticipations RelayParticipant[]
   notificationSetting NotificationSetting?
   reminders           Reminder[]
+  pushSubscriptions   PushSubscription[]
   plantedGifts        PlantedGift[]        @relation("PlantedGiftBy")
 
   @@unique([provider, providerId])
@@ -44,6 +45,8 @@ model Board {
   ownerId       String
   giftedToId    String?
   giftedFromId  String?
+  giftMessage   String    @default("") // optional note the gifter attaches
+  giftOpenedAt  DateTime? // set when the recipient first "unwraps" a gifted board
   isCompleted   Boolean  @default(false)
   completedAt   DateTime?
   createdAt     DateTime @default(now())
@@ -185,10 +188,25 @@ model Reminder {
   days      String   @default("1,2,3,4,5,6,7")
   message   String   @default("")
   isActive  Boolean  @default(true)
+  lastSentAt DateTime? // server-side cron dedupe: last time a push fired for this reminder
   createdAt DateTime @default(now())
 
   user  User   @relation(fields: [userId], references: [id])
   board Board? @relation(fields: [boardId], references: [id])
+}
+
+// Web Push (VAPID) subscription endpoints. One row per browser/device per user.
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 // A surprise gift a FRIEND hides on a specific grape of someone's board.

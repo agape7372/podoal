@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUserId, authResponse } from '@/lib/auth';
 import { clientKey, rateLimit } from '@/lib/rateLimit';
+import { sendPushToUser } from '@/lib/push';
 
 export async function GET() {
   const userId = await getCurrentUserId();
@@ -133,6 +134,21 @@ export async function POST(request: Request) {
         },
       },
     });
+
+    // Background OS notification (respects the receiver's NotificationSetting).
+    const pushTitle =
+      messageType === 'celebration' ? '🎉 축하 메시지'
+      : messageType === 'gift' ? '🎁 선물이 도착했어요'
+      : '💜 응원이 도착했어요';
+    await sendPushToUser(
+      receiverId,
+      {
+        title: pushTitle,
+        body: `${message.sender.name}: ${content}`.slice(0, 120),
+        url: '/messages',
+      },
+      messageType as 'cheer' | 'celebration' | 'gift'
+    );
 
     return NextResponse.json(message, { status: 201 });
   } catch (error) {

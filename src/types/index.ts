@@ -29,6 +29,8 @@ export interface BoardSummary {
 export interface BoardDetail extends BoardSummary {
   stickers: StickerInfo[];
   rewards: RewardInfo[];
+  giftMessage?: string;
+  giftOpenedAt?: string | null;
 }
 
 export interface PlantedGiftInfo {
