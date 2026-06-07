@@ -11,6 +11,7 @@ import ClayInput from '@/components/ClayInput';
 import EmojiIcon from '@/components/EmojiIcon';
 import type { FriendInfo } from '@/types';
 import { feedbackSuccess, feedbackTap } from '@/lib/feedback';
+import { DEV_TOOLS } from '@/lib/devtools';
 
 export default function FriendsPage() {
   const router = useRouter();
@@ -26,6 +27,8 @@ export default function FriendsPage() {
   const [tab, setTab] = useState<'friends' | 'favorite'>('friends');
   const [removeTarget, setRemoveTarget] = useState<string | null>(null);
   const [rejectTarget, setRejectTarget] = useState<string | null>(null);
+  const [seeding, setSeeding] = useState(false);
+  const [seedInfo, setSeedInfo] = useState('');
 
   const fetchFriends = useCallback(async () => {
     setLoadError(false);
@@ -55,6 +58,27 @@ export default function FriendsPage() {
       setAddError(e instanceof Error ? e.message : '요청 실패');
     }
     setAdding(false);
+  };
+
+  const handleSeed = async () => {
+    setSeeding(true);
+    setSeedInfo('');
+    try {
+      const res = await api<{ password: string; friends: { name: string; email: string }[] }>(
+        '/api/dev/seed-friends',
+        { method: 'POST' },
+      );
+      feedbackSuccess();
+      setSeedInfo(
+        `테스트 친구 ${res.friends.length}명 준비 완료! 받는 쪽도 보려면 아래 계정으로 로그인하세요 (비밀번호 ${res.password}):\n` +
+          res.friends.map((f) => `· ${f.name} — ${f.email}`).join('\n'),
+      );
+      fetchFriends();
+    } catch (e) {
+      setSeedInfo(e instanceof Error ? e.message : '생성에 실패했어요');
+    } finally {
+      setSeeding(false);
+    }
   };
 
   const handleAccept = async (id: string) => {
@@ -125,6 +149,18 @@ export default function FriendsPage() {
         {addError && <p className="text-grape-700 text-xs mt-2">{addError}</p>}
         {addSuccess && <p className="text-leaf-700 text-xs mt-2">{addSuccess}</p>}
       </div>
+
+      {/* DEV-only: one-tap test friends + boards for experimenting with social features */}
+      {DEV_TOOLS && (
+        <div className="clay-sm p-3 mb-6 bg-amber-50/50 border border-amber-100">
+          <button onClick={handleSeed} disabled={seeding} className="text-xs font-semibold text-grape-700">
+            🧪 {seeding ? '만드는 중…' : '테스트 친구·보드 만들기 (개발용)'}
+          </button>
+          {seedInfo && (
+            <p className="text-[11px] text-warm-sub mt-2 whitespace-pre-wrap break-all leading-relaxed">{seedInfo}</p>
+          )}
+        </div>
+      )}
 
       {/* Pending requests */}
       {pending.length > 0 && (
