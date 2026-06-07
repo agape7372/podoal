@@ -4,9 +4,9 @@ import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import ClayButton from '@/components/ClayButton';
 import ClayInput from '@/components/ClayInput';
-import ClayCard from '@/components/ClayCard';
+import NumberStepper from '@/components/NumberStepper';
 import { api } from '@/lib/api';
-import { BOARD_SIZES, REWARD_TYPE_LABELS } from '@/types';
+import { REWARD_TYPE_LABELS } from '@/types';
 import { REWARD_TYPE_ICON } from '@/lib/icons';
 import type { RewardType } from '@/types';
 import { TEMPLATE_CATEGORIES, getTemplatesByCategory } from '@/lib/templates';
@@ -29,8 +29,6 @@ function CreateBoardInner() {
   const [rewardContent, setRewardContent] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-
-  const stepLabels = ['템플릿', '기본 정보', '포도 크기', '보상 설정'];
 
   const handleSelectTemplate = (template: HabitTemplate) => {
     feedbackTap();
@@ -139,9 +137,6 @@ function CreateBoardInner() {
             )}
           </div>
         ))}
-        <span className="text-sm text-warm-sub ml-2">
-          {stepLabels[step]}
-        </span>
       </div>
 
       {/* Step 0: Template selection */}
@@ -243,25 +238,19 @@ function CreateBoardInner() {
       {/* Step 2: Board size */}
       {step === 2 && (
         <div className="space-y-4 animate-fade-in">
-          <p className="text-sm text-warm-sub mb-2">포도알 개수를 선택하세요</p>
-          <div className="grid grid-cols-2 gap-3">
-            {BOARD_SIZES.map((size) => (
-              <ClayCard
-                key={size.value}
-                onClick={() => setTotalStickers(size.value)}
-                color={totalStickers === size.value ? 'lavender' : 'white'}
-                className={`text-center ${totalStickers === size.value ? 'ring-2 ring-grape-400' : ''}`}
-              >
-                <div className="mb-2 flex justify-center gap-0.5">
-                  {Array.from({ length: size.value <= 10 ? 1 : size.value <= 15 ? 2 : size.value <= 20 ? 3 : 4 }).map((_, i) => (
-                    <EmojiIcon key={i} emoji="🍇" size={24} />
-                  ))}
-                </div>
-                <p className="font-bold text-grape-700">{size.label}</p>
-                <p className="text-xs text-warm-sub">{size.description}</p>
-              </ClayCard>
-            ))}
+          <p className="text-sm text-warm-sub mb-2">포도알 개수를 정해주세요</p>
+          <div className="clay-sm p-6 flex flex-col items-center gap-4">
+            <NumberStepper value={totalStickers} onChange={setTotalStickers} min={2} max={60} />
+            <div className="flex flex-wrap justify-center items-end gap-0.5 max-w-[230px]">
+              {Array.from({ length: Math.min(totalStickers, 30) }).map((_, i) => (
+                <EmojiIcon key={i} emoji="🍇" size={16} />
+              ))}
+              {totalStickers > 30 && (
+                <span className="text-xs text-warm-sub ml-1 tabular-nums">+{totalStickers - 30}</span>
+              )}
+            </div>
           </div>
+          <p className="text-xs text-warm-light text-center">2~60알까지 자유롭게 설정할 수 있어요</p>
 
           <div className="flex gap-3 mt-4">
             <ClayButton variant="ghost" onClick={() => setStep(1)} fullWidth>
@@ -325,7 +314,7 @@ function CreateBoardInner() {
           </div>
 
           <p className="text-xs text-warm-light">
-            <EmojiIcon emoji="🎁" size={13} className="mr-0.5" />중간 보상은 만든 뒤 포도판에서 빈 포도알을 꾹 눌러 심을 수 있어요
+            <span className="text-grape-400 font-bold mr-0.5">*</span>만들어진 포도알을 꾹 눌러 중간 보상을 설정할 수 있어요!
           </p>
 
           {error && <p role="alert" className="text-grape-700 text-sm text-center">{error}</p>}

@@ -67,8 +67,8 @@ export async function POST(request: Request) {
   if (description !== undefined && (typeof description !== 'string' || description.length > 200)) {
     return authResponse('설명은 200자 이하여야 합니다.', 400);
   }
-  if (![10, 15, 20, 30].includes(totalStickers)) {
-    return authResponse('포도알 개수는 10/15/20/30 중 하나여야 합니다.', 400);
+  if (!Number.isInteger(totalStickers) || totalStickers < 2 || totalStickers > 60) {
+    return authResponse('포도알 개수는 2~60개 사이여야 합니다.', 400);
   }
   if (!Array.isArray(rewards) || rewards.length === 0 || rewards.length > 10) {
     return authResponse('보상은 1~10개여야 합니다.', 400);

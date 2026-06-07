@@ -9,7 +9,7 @@ import { useLongPress } from '@/hooks/useLongPress';
 import { REWARD_TYPE_ICON } from '@/lib/icons';
 import { feedbackFill, feedbackComplete, feedbackReward } from '@/lib/feedback';
 import { progressPercent } from '@/lib/format';
-import type { BoardDetail } from '@/types';
+import type { BoardDetail, RewardInfo } from '@/types';
 
 interface GrapeBoardProps {
   board: BoardDetail;
@@ -22,6 +22,9 @@ interface GrapeBoardProps {
   isOwner?: boolean;
   /** Long-press an unfilled grape → plant/edit a 중간 보상 at that position. */
   onPlantReward?: (position: number) => void;
+  /** Fired (synced to the confetti beat) when a fill reaches a MID reward, so
+   *  the board page can pop the reward open immediately. */
+  onMidRewardReached?: (reward: RewardInfo) => void;
 }
 
 interface GrapeCellProps {
@@ -99,7 +102,8 @@ function GrapeCell({
   );
 }
 
-// Grape bunch layouts: wider at top, narrows at bottom (like a real grape bunch)
+// Hand-tuned bunch layouts for the common sizes (wider at top, tapering to a
+// point) — kept verbatim for the shapes people see most.
 const CLUSTER_LAYOUTS: Record<number, number[]> = {
   10: [3, 4, 2, 1],
   15: [3, 4, 4, 3, 1],
@@ -107,7 +111,41 @@ const CLUSTER_LAYOUTS: Record<number, number[]> = {
   30: [3, 4, 5, 5, 4, 4, 3, 2], // max 5/row (was 6 → overflowed the card on the right)
 };
 
-function GrapeBoardInner({ board, onFill, canFill, onCelebrate, isOwner, onPlantReward }: GrapeBoardProps) {
+// Generate a grape-bunch row layout for ANY count (the size stepper allows 2–60):
+// ramp up 3→5, hold at 5, taper down to a point — a teardrop silhouette, max 5/row.
+function bunchLayout(n: number): number[] {
+  const MAX = 5;
+  const small: Record<number, number[]> = { 1: [1], 2: [2], 3: [2, 1], 4: [3, 1], 5: [3, 2] };
+  if (n <= 5) return small[n] ?? [n];
+  const rows: number[] = [];
+  let rem = n;
+  let w = 3;
+  // ascend 3,4,5 (leave ≥3 for a taper)
+  while (w <= MAX && rem - w >= 3) {
+    rows.push(w);
+    rem -= w;
+    if (w < MAX) w++;
+    else break;
+  }
+  // hold at the peak
+  while (rem - MAX >= 3) {
+    rows.push(MAX);
+    rem -= MAX;
+  }
+  // taper to a point
+  let t = MAX - 1;
+  while (rem > 0) {
+    const ww = Math.min(t > 0 ? t : 1, rem);
+    rows.push(ww);
+    rem -= ww;
+    t = ww - 1;
+  }
+  return rows;
+}
+
+const layoutFor = (n: number): number[] => CLUSTER_LAYOUTS[n] ?? bunchLayout(n);
+
+function GrapeBoardInner({ board, onFill, canFill, onCelebrate, isOwner, onPlantReward, onMidRewardReached }: GrapeBoardProps) {
   const [fillingPos, setFillingPos] = useState<number | null>(null);
   const [justFilled, setJustFilled] = useState<number | null>(null);
 
@@ -148,8 +186,12 @@ function GrapeBoardInner({ board, onFill, canFill, onCelebrate, isOwner, onPlant
     // visual + audio land together, just after the grape's impact-freeze.
     if (newFilledCount >= board.totalStickers) {
       setTimeout(() => { feedbackComplete(); onCelebrate?.(); }, 400);
-    } else if (board.rewards?.some((r) => r.triggerAt === newFilledCount)) {
-      setTimeout(() => { feedbackReward(); onCelebrate?.(); }, 300);
+    } else {
+      const reached = board.rewards?.find((r) => r.triggerAt === newFilledCount);
+      if (reached) {
+        // Confetti + sound + popup all on the same beat (#1: no popup lag).
+        setTimeout(() => { feedbackReward(); onCelebrate?.(); onMidRewardReached?.(reached); }, 300);
+      }
     }
     setTimeout(() => setJustFilled((p) => (p === position ? null : p)), 600);
 
@@ -162,12 +204,12 @@ function GrapeBoardInner({ board, onFill, canFill, onCelebrate, isOwner, onPlant
     } finally {
       setFillingPos((p) => (p === position ? null : p));
     }
-  }, [canFill, filledPositions, filledCount, board.totalStickers, board.rewards, onFill, nextPosition, onCelebrate]);
+  }, [canFill, filledPositions, filledCount, board.totalStickers, board.rewards, onFill, nextPosition, onCelebrate, onMidRewardReached]);
 
   // Size grapes from the widest row so the whole bunch fits the card without
   // clipping. Card inner width ≈ 280px on a ~360px phone; target ~270px for a
   // safe gutter. factor 1.12 accounts for the per-grape horizontal margin.
-  const maxRowCount = Math.max(...(CLUSTER_LAYOUTS[board.totalStickers] || CLUSTER_LAYOUTS[10]));
+  const maxRowCount = Math.max(...layoutFor(board.totalStickers));
   const grapeSize = Math.min(54, Math.floor(270 / (maxRowCount * 1.12)));
   const sizeClass: 'sm' | 'md' | 'lg' = 'lg';
   const rowGap = Math.round(grapeSize * 0.06); // POSITIVE gap between rows — grapes never overlap each other
@@ -176,7 +218,7 @@ function GrapeBoardInner({ board, onFill, canFill, onCelebrate, isOwner, onPlant
   const leafWidth = Math.round(grapeSize * 1.5);
 
   const rows = useMemo<number[][]>(() => {
-    const layoutRows = CLUSTER_LAYOUTS[board.totalStickers] || CLUSTER_LAYOUTS[10];
+    const layoutRows = layoutFor(board.totalStickers);
     let posIndex = 0;
     const built: number[][] = [];
     for (const count of layoutRows) {
