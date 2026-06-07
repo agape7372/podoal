@@ -148,8 +148,11 @@ function CreateBoardInner() {
         <div className="space-y-5 animate-fade-in">
           <p className="text-sm text-warm-sub">추천 템플릿으로 빠르게 시작하거나, 직접 만들어보세요!</p>
 
-          {/* Category tabs */}
-          <div className="flex flex-wrap gap-2 py-2">
+          {/* Category tabs — single horizontal scroll row (chips keep their
+              width via whitespace-nowrap/flex-shrink-0). -mx-1 px-1 gives the
+              selected chip's ring room at the scroll edges; py-2 keeps the ring
+              from being clipped vertically (overflow-x promotes overflow-y). */}
+          <div className="flex gap-2 py-2 -mx-1 px-1 overflow-x-auto scrollbar-hide">
             {TEMPLATE_CATEGORIES.map((cat) => (
               <button
                 key={cat.id}
