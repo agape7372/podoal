@@ -7,6 +7,7 @@ import Avatar from '@/components/Avatar';
 import BoardCard from '@/components/BoardCard';
 import ClayButton from '@/components/ClayButton';
 import CheerModal from '@/components/CheerModal';
+import PlantGiftModal from '@/components/PlantGiftModal';
 import EmojiIcon from '@/components/EmojiIcon';
 import type { BoardSummary, UserProfile } from '@/types';
 
@@ -32,6 +33,8 @@ export default function FriendDetailPage() {
   const [error, setError] = useState('');
   const [showCheer, setShowCheer] = useState(false);
   const [cheerSent, setCheerSent] = useState(false);
+  const [plantTarget, setPlantTarget] = useState<BoardSummary | null>(null);
+  const [plantedFeedback, setPlantedFeedback] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
 
   const fetchFriendData = useCallback(async () => {
@@ -180,6 +183,14 @@ export default function FriendDetailPage() {
         </div>
       )}
 
+      {plantedFeedback && (
+        <div className="clay-sm p-3 mb-4 bg-emerald-50/60 text-center animate-bounce-in">
+          <span className="text-sm font-medium text-grape-600">
+            <EmojiIcon emoji="🎁" size={14} className="mr-0.5" />깜짝 선물을 숨겨놨어요!
+          </span>
+        </div>
+      )}
+
       {/* Active boards */}
       {activeBoards.length > 0 && (
         <div className="mb-6">
@@ -188,7 +199,15 @@ export default function FriendDetailPage() {
           </h2>
           <div className="space-y-3">
             {activeBoards.map((board) => (
-              <BoardCard key={board.id} board={board} />
+              <div key={board.id} className="space-y-1.5">
+                <BoardCard board={board} />
+                <button
+                  onClick={() => setPlantTarget(board)}
+                  className="w-full clay-button py-2 rounded-xl text-xs font-semibold text-grape-600 bg-grape-50/70"
+                >
+                  <EmojiIcon emoji="🎁" size={13} className="mr-1" />이 포도판에 깜짝 선물 심기
+                </button>
+              </div>
             ))}
           </div>
         </div>
@@ -231,6 +250,14 @@ export default function FriendDetailPage() {
           recipientName={friend.name}
           onSend={handleSendCheer}
           onClose={() => setShowCheer(false)}
+        />
+      )}
+
+      {plantTarget && (
+        <PlantGiftModal
+          board={plantTarget}
+          onClose={() => setPlantTarget(null)}
+          onPlanted={() => { setPlantedFeedback(true); setTimeout(() => setPlantedFeedback(false), 2500); }}
         />
       )}
     </div>

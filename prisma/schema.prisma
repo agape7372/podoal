@@ -30,6 +30,7 @@ model User {
   relayParticipations RelayParticipant[]
   notificationSetting NotificationSetting?
   reminders           Reminder[]
+  plantedGifts        PlantedGift[]        @relation("PlantedGiftBy")
 
   @@unique([provider, providerId])
 }
@@ -56,6 +57,7 @@ model Board {
   relayParticipants RelayParticipant[]
   reminders         Reminder[]
   messages          Message[]
+  plantedGifts      PlantedGift[]
 }
 
 model Sticker {
@@ -187,4 +189,22 @@ model Reminder {
 
   user  User   @relation(fields: [userId], references: [id])
   board Board? @relation(fields: [boardId], references: [id])
+}
+
+// A surprise gift a FRIEND hides on a specific grape of someone's board.
+// Revealed (with confetti) the moment the owner fills that grape.
+model PlantedGift {
+  id          String    @id @default(cuid())
+  boardId     String
+  position    Int       // 0-based grape index the surprise hides on
+  plantedById String
+  message     String    @default("")
+  emoji       String    @default("🎁")
+  revealedAt  DateTime?
+  createdAt   DateTime  @default(now())
+
+  board     Board @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  plantedBy User  @relation("PlantedGiftBy", fields: [plantedById], references: [id])
+
+  @@index([boardId])
 }
