@@ -10,6 +10,7 @@ import Confetti from '@/components/Confetti';
 import GiftBoardModal from '@/components/GiftBoardModal';
 import GiftUnboxModal from '@/components/GiftUnboxModal';
 import SurpriseRevealModal from '@/components/SurpriseRevealModal';
+import MidRewardModal from '@/components/MidRewardModal';
 import ShareCardModal from '@/components/ShareCardModal';
 import CapsuleModal from '@/components/CapsuleModal';
 import Avatar from '@/components/Avatar';
@@ -36,6 +37,8 @@ export default function BoardDetailPage() {
   // reward (via GrapeBoard's onCelebrate) and when a reward is opened.
   const [confettiTrigger, setConfettiTrigger] = useState(0);
   const [surpriseGift, setSurpriseGift] = useState<PlantedGiftInfo | null>(null);
+  // Long-press / "+ 중간 보상" → MidRewardModal targeting this 0-based grape.
+  const [plantPos, setPlantPos] = useState<number | null>(null);
   const initialLoadDoneRef = useRef(false);
 
   const fetchBoard = useCallback(async () => {
@@ -299,15 +302,31 @@ export default function BoardDetailPage() {
           onFill={handleFillSticker}
           canFill={isOwner && !board.isCompleted}
           onCelebrate={() => setConfettiTrigger((t) => t + 1)}
+          isOwner={isOwner}
+          onPlantReward={
+            isOwner && !board.isCompleted
+              ? (pos) => { feedbackTap(); setPlantPos(pos); }
+              : undefined
+          }
         />
       </div>
 
       {/* Rewards section */}
       {board.rewards.length > 0 && (
         <div className="mb-6 space-y-3">
-          <h3 className="text-sm font-semibold text-warm-sub">
-            <EmojiIcon emoji="🎁" size={15} className="mr-0.5" />보상 ({board.rewards.filter((r) => filledCount >= r.triggerAt).length}/{board.rewards.length})
-          </h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-warm-sub">
+              <EmojiIcon emoji="🎁" size={15} className="mr-0.5" />보상 ({board.rewards.filter((r) => filledCount >= r.triggerAt).length}/{board.rewards.length})
+            </h3>
+            {isOwner && !board.isCompleted && filledCount < board.totalStickers - 1 && (
+              <button
+                onClick={() => { feedbackTap(); setPlantPos(filledCount); }}
+                className="text-xs font-medium text-grape-600 clay-button px-2.5 py-1 rounded-lg bg-grape-50"
+              >
+                + 중간 보상
+              </button>
+            )}
+          </div>
           {board.rewards.map((reward) => {
             const isUnlocked = filledCount >= reward.triggerAt;
             const isRevealed = reward.revealedAt !== null;
@@ -419,6 +438,17 @@ export default function BoardDetailPage() {
       {/* Friend-planted surprise reveal */}
       {surpriseGift && (
         <SurpriseRevealModal gift={surpriseGift} onClose={() => setSurpriseGift(null)} />
+      )}
+
+      {/* Plant / edit a 중간 보상 (long-press a grape, or the "+ 중간 보상" button) */}
+      {plantPos !== null && (
+        <MidRewardModal
+          board={{ id, totalStickers: board.totalStickers, filledCount: board.stickers.length }}
+          position={plantPos}
+          existingReward={board.rewards.find((r) => r.triggerAt === plantPos + 1) ?? null}
+          onClose={() => setPlantPos(null)}
+          onSaved={() => fetchBoard()}
+        />
       )}
 
       {showGift && (
