@@ -94,10 +94,12 @@ export const AVATAR_EMOJIS: Record<string, string> = {
   watermelon: '🍉',
 };
 
+// Emoji-free names. The icon comes from `REWARD_TYPE_ICON` (src/lib/icons.ts)
+// and renders through <EmojiIcon> — keeping raw emoji out of display text.
 export const REWARD_TYPE_LABELS: Record<RewardType, string> = {
-  letter: '💌 편지',
-  giftcard: '🎁 기프티콘',
-  wish: '⭐ 소원권',
+  letter: '편지',
+  giftcard: '기프티콘',
+  wish: '소원권',
 };
 
 export const CHEER_EMOJIS = ['🍇', '💜', '✨', '🎉', '💪', '🌟', '❤️', '👏', '🔥', '🥳'];

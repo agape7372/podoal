@@ -5,18 +5,19 @@ import { useParams, useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { useAppStore } from '@/lib/store';
 import GrapeBoard from '@/components/GrapeBoard';
-import RewardReveal from '@/components/RewardReveal';
 import Confetti from '@/components/Confetti';
 import GiftBoardModal from '@/components/GiftBoardModal';
 import GiftUnboxModal from '@/components/GiftUnboxModal';
 import SurpriseRevealModal from '@/components/SurpriseRevealModal';
 import MidRewardModal from '@/components/MidRewardModal';
+import RewardRevealModal from '@/components/RewardRevealModal';
 import ShareCardModal from '@/components/ShareCardModal';
 import CapsuleModal from '@/components/CapsuleModal';
 import Avatar from '@/components/Avatar';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import EmojiIcon from '@/components/EmojiIcon';
-import type { BoardDetail, PlantedGiftInfo } from '@/types';
+import type { BoardDetail, PlantedGiftInfo, RewardInfo } from '@/types';
+import { REWARD_TYPE_ICON, ICON } from '@/lib/icons';
 import { feedbackTap } from '@/lib/feedback';
 import { stripTitleEmoji } from '@/lib/title';
 
@@ -29,7 +30,6 @@ export default function BoardDetailPage() {
   const [showGift, setShowGift] = useState(false);
   const [showShare, setShowShare] = useState(false);
   const [showCapsule, setShowCapsule] = useState(false);
-  const [revealing, setRevealing] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -41,6 +41,8 @@ export default function BoardDetailPage() {
   const [surpriseQueue, setSurpriseQueue] = useState<PlantedGiftInfo[]>([]);
   // Long-press / "+ 중간 보상" → MidRewardModal targeting this 0-based grape.
   const [plantPos, setPlantPos] = useState<number | null>(null);
+  // A mid reward just reached → opened immediately in a popup (instant "쾌감").
+  const [rewardPopup, setRewardPopup] = useState<RewardInfo | null>(null);
   const initialLoadDoneRef = useRef(false);
 
   const fetchBoard = useCallback(async () => {
@@ -114,6 +116,21 @@ export default function BoardDetailPage() {
       // Reward unlocks are rare; only re-fetch when one fires so the
       // reward card can update from "locked" to "tap to reveal".
       if (result.unlockedReward) {
+        const u = result.unlockedReward;
+        // 중간 보상: GrapeBoard가 컨페티와 같은 비트에 팝업을 이미 열었음
+        // (onMidRewardReached). 여기선 reveal로 내용만 채워(공개 처리) 열려 있는
+        // 팝업에 흘려보낸다. 최종 보상은 팝업 자동 오픈 없이 카드 탭으로 연다.
+        if (u.triggerAt < board.totalStickers) {
+          try {
+            const d = await api<{ reward: RewardInfo }>(
+              `/api/boards/${id}/rewards/${u.id}/reveal`,
+              { method: 'POST' },
+            );
+            setRewardPopup((prev) => (prev && prev.id === d.reward.id ? d.reward : prev));
+          } catch {
+            // reveal 실패해도 목록 칩 탭으로 열 수 있음
+          }
+        }
         fetchBoard();
       }
 
@@ -132,6 +149,7 @@ export default function BoardDetailPage() {
         stickers: prev.stickers.filter((s) => s.id !== tempId),
         filledCount: Math.max(0, prev.filledCount - 1),
       } : prev);
+      setRewardPopup(null); // close any popup opened optimistically for this fill
       const msg = err instanceof Error ? err.message : '포도알을 채우지 못했어요';
       setErrorMessage(`${msg} — 잠시 후 다시 시도해주세요.`);
       // Best-effort full resync in case the failure was due to drift (e.g.
@@ -184,20 +202,23 @@ export default function BoardDetailPage() {
     router.push('/home');
   };
 
-  const handleRevealReward = async (rewardId: string) => {
-    if (revealing) return;
-    setRevealing(rewardId);
-    try {
-      await api(`/api/boards/${id}/rewards/${rewardId}/reveal`, { method: 'POST' });
-      setErrorMessage(null);
-      await fetchBoard();
-      // Second celebration beat: the moment the user opens the box.
-      setConfettiTrigger((t) => t + 1);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : '보상을 열지 못했어요';
-      setErrorMessage(`${msg} — 잠시 후 다시 시도해주세요.`);
-    } finally {
-      setRevealing(null);
+  // Open a reward in the popup (mid chip / final card tap). Opens INSTANTLY; if
+  // the content isn't loaded yet (unrevealed → board GET hides it) fetch it via
+  // reveal (which also marks it revealed). Revealed rewards already carry content.
+  const openReward = async (reward: RewardInfo) => {
+    setRewardPopup(reward);
+    setConfettiTrigger((t) => t + 1);
+    if (!reward.content) {
+      try {
+        const d = await api<{ reward: RewardInfo }>(
+          `/api/boards/${id}/rewards/${reward.id}/reveal`,
+          { method: 'POST' },
+        );
+        setRewardPopup((prev) => (prev && prev.id === d.reward.id ? d.reward : prev));
+        fetchBoard();
+      } catch {
+        setErrorMessage('보상을 여는 데 실패했어요. 잠시 후 다시 시도해주세요.');
+      }
     }
   };
 
@@ -234,6 +255,11 @@ export default function BoardDetailPage() {
 
   const isOwner = user?.id === board.owner.id;
   const filledCount = board.stickers.length;
+  // 중간 보상(아이콘 슬라이더) vs 완성 보상(카드) 분리.
+  const midRewards = board.rewards
+    .filter((r) => r.triggerAt < board.totalStickers)
+    .sort((a, b) => a.triggerAt - b.triggerAt);
+  const finalReward = board.rewards.find((r) => r.triggerAt === board.totalStickers) ?? null;
 
   return (
     <div className="pb-4">
@@ -345,70 +371,83 @@ export default function BoardDetailPage() {
               ? (pos) => { feedbackTap(); setPlantPos(pos); }
               : undefined
           }
+          onMidRewardReached={(r) => setRewardPopup(r)}
         />
       </div>
 
-      {/* Rewards section */}
+      {/* Rewards section — 중간 보상은 아이콘 슬라이더, 완성 보상은 카드 */}
       {board.rewards.length > 0 && (
         <div className="mb-6 space-y-3">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-warm-sub">
-              <EmojiIcon emoji="🎁" size={15} className="mr-0.5" />보상 ({board.rewards.filter((r) => filledCount >= r.triggerAt).length}/{board.rewards.length})
-            </h3>
-            {isOwner && !board.isCompleted && filledCount < board.totalStickers - 1 && (
-              <button
-                onClick={() => { feedbackTap(); setPlantPos(filledCount); }}
-                className="text-xs font-medium text-grape-600 clay-button px-2.5 py-1 rounded-lg bg-grape-50"
-              >
-                + 중간 보상
-              </button>
-            )}
-          </div>
-          {board.rewards.map((reward) => {
-            const isUnlocked = filledCount >= reward.triggerAt;
-            const isRevealed = reward.revealedAt !== null;
-            const remaining = reward.triggerAt - filledCount;
-            const isRevealing = revealing === reward.id;
-            return (
-              <div key={reward.id}>
-                {isRevealed ? (
-                  <RewardReveal
-                    reward={reward}
-                    isCompleted={isUnlocked}
-                    initialRevealed
-                  />
-                ) : (
+          <h3 className="text-sm font-semibold text-warm-sub">
+            <EmojiIcon emoji={ICON.gift} size={15} className="mr-0.5" />보상
+          </h3>
+
+          {/* 중간 보상 — 가로 스크롤 아이콘 칩 (잠금/도착/공개 상태별) */}
+          {midRewards.length > 0 && (
+            <div className="flex gap-2.5 overflow-x-auto py-2 px-0.5 scrollbar-hide">
+              {midRewards.map((r) => {
+                const unlocked = filledCount >= r.triggerAt;
+                const revealed = r.revealedAt !== null;
+                return (
                   <button
-                    onClick={() => {
-                      if (!isUnlocked || isRevealing) return;
-                      handleRevealReward(reward.id);
-                    }}
-                    disabled={isRevealing}
-                    className={`
-                      w-full clay p-4 text-center transition-all
-                      ${isUnlocked
-                        ? 'bg-amber-50/60 reward-glow cursor-pointer'
-                        : 'bg-grape-50/60'
-                      }
-                      ${isRevealing ? 'opacity-60' : ''}
-                    `}
+                    key={r.id}
+                    onClick={() => { if (unlocked) { feedbackTap(); openReward(r); } }}
+                    disabled={!unlocked}
+                    aria-label={`${r.triggerAt}알 중간 보상${unlocked ? (revealed ? ' 다시 보기' : ' 열기') : ' (잠김)'}`}
+                    className={`relative flex-shrink-0 w-14 h-14 rounded-2xl clay-sm flex items-center justify-center transition-all
+                      ${unlocked ? 'cursor-pointer active:scale-95' : 'opacity-50'}
+                      ${unlocked && !revealed ? 'reward-glow bg-amber-50/70' : ''}`}
                   >
-                    <div className="flex items-center justify-center gap-2">
-                      <EmojiIcon emoji={isUnlocked ? '🎁' : '🔒'} size={26} />
-                      <div className="text-left">
-                        <p className="text-sm font-medium text-grape-600">
-                          {isUnlocked ? reward.title : `${remaining}알 더 채우면 열려요`}
-                        </p>
-                        <p className="text-xs text-warm-sub">
-                          {reward.triggerAt}알 달성 보상
-                        </p>
-                      </div>
-                    </div>
+                    <EmojiIcon emoji={REWARD_TYPE_ICON[r.type]} size={26} />
+                    <span className="absolute -top-1.5 left-1/2 -translate-x-1/2 text-[9px] font-medium text-warm-sub tabular-nums bg-clay-bg border border-warm-border/60 px-1 rounded-full leading-tight">
+                      {r.triggerAt}
+                    </span>
+                    {!unlocked && (
+                      <span className="absolute -bottom-1 -right-1">
+                        <EmojiIcon emoji={ICON.lock} size={13} />
+                      </span>
+                    )}
                   </button>
-                )}
+                );
+              })}
+            </div>
+          )}
+
+          {/* 완성 보상 — 카드 (잠금 / 달성·강조 / 공개됨) */}
+          {finalReward && (
+            finalReward.revealedAt !== null ? (
+              <button
+                onClick={() => { feedbackTap(); openReward(finalReward); }}
+                className="w-full clay-sm p-4 flex items-center gap-3 text-left active:scale-[0.99] transition-transform"
+              >
+                <EmojiIcon emoji={REWARD_TYPE_ICON[finalReward.type]} size={28} />
+                <div className="min-w-0">
+                  <p className="text-sm font-bold text-grape-700 truncate">{finalReward.title}</p>
+                  <p className="text-xs text-warm-sub">완성 보상 · 다시 보기</p>
+                </div>
+              </button>
+            ) : filledCount >= finalReward.triggerAt ? (
+              <button
+                onClick={() => { feedbackTap(); openReward(finalReward); }}
+                className="w-full clay-float p-6 text-center reward-glow active:scale-[0.97] transition-transform bg-gradient-to-br from-amber-50 via-clay-cream/60 to-grape-50"
+              >
+                <div className="animate-float mb-2">
+                  <EmojiIcon emoji="🎉" size={48} className="mx-auto" />
+                </div>
+                <p className="font-display text-xl font-bold text-grape-700">달성! 눌러서 열기</p>
+                <p className="text-sm text-warm-sub mt-1">완성 보상이 도착했어요</p>
+              </button>
+            ) : (
+              <div className="w-full clay-sm p-4 bg-grape-50/50">
+                <div className="flex items-center justify-center gap-2">
+                  <EmojiIcon emoji={ICON.lock} size={20} />
+                  <p className="text-sm text-warm-sub">
+                    완성 보상 · {finalReward.triggerAt - filledCount}알 더 채우면 열려요
+                  </p>
+                </div>
               </div>
-            );
-          })}
+            )
+          )}
         </div>
       )}
 
@@ -475,6 +514,11 @@ export default function BoardDetailPage() {
       {/* Friend-planted surprise reveals — one at a time (sequential queue) */}
       {surpriseQueue.length > 0 && (
         <SurpriseRevealModal gift={surpriseQueue[0]} onClose={() => setSurpriseQueue((q) => q.slice(1))} />
+      )}
+
+      {/* Mid reward reached → instant popup reveal */}
+      {rewardPopup && (
+        <RewardRevealModal reward={rewardPopup} onClose={() => setRewardPopup(null)} />
       )}
 
       {/* Plant / edit a 중간 보상 (long-press a grape, or the "+ 중간 보상" button) */}
