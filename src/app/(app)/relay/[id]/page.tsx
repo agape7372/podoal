@@ -10,6 +10,7 @@ import type { RelayInfo } from '@/types';
 import { feedbackRelay, feedbackSuccess, feedbackTap } from '@/lib/feedback';
 import { progressPercent } from '@/lib/format';
 import { stripTitleEmoji } from '@/lib/title';
+import EmojiIcon from '@/components/EmojiIcon';
 
 interface RelayDetailParticipant {
   id: string;
@@ -160,7 +161,7 @@ export default function RelayDetailPage() {
       {/* Relay completed celebration */}
       {isRelayCompleted && (
         <div className="clay p-6 mb-6 bg-amber-50/60 text-center">
-          <div className="text-4xl mb-2">{'\uD83C\uDF89'}</div>
+          <EmojiIcon emoji={'\uD83C\uDF89'} size={40} className="block mx-auto mb-2" />
           <p className="font-bold text-grape-700 text-lg mb-1">릴레이 완료!</p>
           <p className="text-sm text-warm-sub">
             모든 참가자가 포도판을 완성했어요. 모두 수고했어요!
@@ -292,7 +293,7 @@ export default function RelayDetailPage() {
       {/* Pass baton button: if it's my turn and my board is completed */}
       {isMyTurn && hasBoard && myBoardCompleted && (
         <ClayButton fullWidth size="lg" onClick={handlePass} loading={passing}>
-          {'\uD83C\uDFC3'} 바통 넘기기
+          <EmojiIcon emoji={'\uD83C\uDFC3'} size={18} className="mr-1" />바통 넘기기
         </ClayButton>
       )}
 
