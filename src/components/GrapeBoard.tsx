@@ -5,6 +5,7 @@ import GrapeSticker from './GrapeSticker';
 import GrapeStem from './illustrations/GrapeStem';
 import Sparkle from './illustrations/Sparkle';
 import EmojiIcon from './EmojiIcon';
+import { useLongPress } from '@/hooks/useLongPress';
 import { feedbackFill, feedbackComplete, feedbackReward } from '@/lib/feedback';
 import { progressPercent } from '@/lib/format';
 import type { BoardDetail } from '@/types';
@@ -16,6 +17,85 @@ interface GrapeBoardProps {
   /** Fired the instant a fill unlocks a reward or completes the board — the
    *  board page uses it to burst confetti without waiting for the server. */
   onCelebrate?: () => void;
+  /** The viewer owns this board (gates the long-press "plant reward" gesture). */
+  isOwner?: boolean;
+  /** Long-press an unfilled grape → plant/edit a 중간 보상 at that position. */
+  onPlantReward?: (position: number) => void;
+}
+
+interface GrapeCellProps {
+  position: number;
+  filled: boolean;
+  isNext: boolean;
+  isJustFilled: boolean;
+  isFilling: boolean;
+  dimmed: boolean;
+  hasReward: boolean;
+  grapeSize: number;
+  hMargin: number;
+  sizeClass: 'sm' | 'md' | 'lg';
+  canPlant: boolean;
+  onFill: (position: number) => void;
+  onPlantReward?: (position: number) => void;
+}
+
+// One grape + its 🎁 marker. Extracted so `useLongPress` is called exactly once
+// per cell (Rules of Hooks) rather than inside a .map() callback.
+function GrapeCell({
+  position,
+  filled,
+  isNext,
+  isJustFilled,
+  isFilling,
+  dimmed,
+  hasReward,
+  grapeSize,
+  hMargin,
+  sizeClass,
+  canPlant,
+  onFill,
+  onPlantReward,
+}: GrapeCellProps) {
+  const lp = useLongPress(() => onPlantReward?.(position), { threshold: 500 });
+  const pointerProps = canPlant
+    ? {
+        onPointerDown: lp.onPointerDown,
+        onPointerMove: lp.onPointerMove,
+        onPointerUp: lp.onPointerUp,
+        onPointerLeave: lp.onPointerLeave,
+        onPointerCancel: lp.onPointerCancel,
+      }
+    : {};
+
+  return (
+    <div
+      className={`flex-shrink-0 relative ${isJustFilled ? 'z-20' : isNext ? 'z-10' : ''}`}
+      style={{ width: `${grapeSize}px`, height: `${grapeSize}px`, margin: `0 ${hMargin}px` }}
+      {...pointerProps}
+    >
+      <GrapeSticker
+        position={position}
+        isFilled={filled}
+        isJustFilled={isJustFilled}
+        isFilling={isFilling}
+        canFill={isNext}
+        isNext={isNext}
+        dimmed={dimmed}
+        size={sizeClass}
+        onClick={() => {
+          // A long-press just fired on this grape → it planted a reward, not a
+          // fill. Swallow the synthetic click so the next grape isn't filled too.
+          if (canPlant && lp.consumeLongPress()) return;
+          onFill(position);
+        }}
+      />
+      {hasReward && !filled && (
+        <span className="absolute -top-1 -right-1 z-20 pointer-events-none drop-shadow-sm">
+          <EmojiIcon emoji="🎁" size={Math.round(grapeSize * 0.4)} />
+        </span>
+      )}
+    </div>
+  );
 }
 
 // Grape bunch layouts: wider at top, narrows at bottom (like a real grape bunch)
@@ -26,7 +106,7 @@ const CLUSTER_LAYOUTS: Record<number, number[]> = {
   30: [3, 4, 5, 5, 4, 4, 3, 2], // max 5/row (was 6 → overflowed the card on the right)
 };
 
-function GrapeBoardInner({ board, onFill, canFill, onCelebrate }: GrapeBoardProps) {
+function GrapeBoardInner({ board, onFill, canFill, onCelebrate, isOwner, onPlantReward }: GrapeBoardProps) {
   const [fillingPos, setFillingPos] = useState<number | null>(null);
   const [justFilled, setJustFilled] = useState<number | null>(null);
 
@@ -161,32 +241,22 @@ function GrapeBoardInner({ board, onFill, canFill, onCelebrate }: GrapeBoardProp
                     const filled = filledPositions.has(position);
                     const isNext = canFill && position === nextPosition;
                     return (
-                      <div
+                      <GrapeCell
                         key={position}
-                        className={`flex-shrink-0 relative ${justFilled === position ? 'z-20' : isNext ? 'z-10' : ''}`}
-                        style={{
-                          width: `${grapeSize}px`,
-                          height: `${grapeSize}px`,
-                          margin: `0 ${hMargin}px`,
-                        }}
-                      >
-                        <GrapeSticker
-                          position={position}
-                          isFilled={filled}
-                          isJustFilled={justFilled === position}
-                          isFilling={fillingPos === position}
-                          canFill={isNext}
-                          isNext={isNext}
-                          dimmed={canFill && !filled && !isNext}
-                          size={sizeClass}
-                          onClick={() => handleFill(position)}
-                        />
-                        {rewardPositions.has(position) && !filled && (
-                          <span className="absolute -top-1 -right-1 z-20 pointer-events-none drop-shadow-sm">
-                            <EmojiIcon emoji="🎁" size={Math.round(grapeSize * 0.4)} />
-                          </span>
-                        )}
-                      </div>
+                        position={position}
+                        filled={filled}
+                        isNext={isNext}
+                        isJustFilled={justFilled === position}
+                        isFilling={fillingPos === position}
+                        dimmed={canFill && !filled && !isNext}
+                        hasReward={rewardPositions.has(position)}
+                        grapeSize={grapeSize}
+                        hMargin={hMargin}
+                        sizeClass={sizeClass}
+                        canPlant={!!isOwner && !filled && !!onPlantReward && position < board.totalStickers - 1}
+                        onFill={handleFill}
+                        onPlantReward={onPlantReward}
+                      />
                     );
                   })}
                 </div>
