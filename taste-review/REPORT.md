@@ -5,6 +5,7 @@
 > **방식**: 9개 병렬 audit 에이전트 → 의도된 결정(`CLAUDE.md`) 대조 자기검증 → 오케스트레이터 교차검증·중복제거
 > **중요**: 본 리뷰는 **보고 전용**입니다. 코드는 한 줄도 수정하지 않았습니다.
 > **생성일**: 2026-06-03
+> **⚠️ 스냅샷 주의 (2026-06-07 확인)**: 이 리포트는 2026-06-03 시점이며 이후 다수 항목이 해소됐습니다 — a11y 컨벤션(focus-visible/reduced-motion/ConfirmDialog)은 `CLAUDE.md`에 반영, `juice/leaf/sunshine` 토큰은 `tailwind.config.ts`에 실제 추가, 폰트는 `next/font` 자가호스팅 전환(jsdelivr CDN 제거), ClayCard onClick은 `<button>` 렌더로 수정 후 미사용이 되어 컴포넌트 자체가 삭제됨. 개별 항목은 현재 코드와 대조가 필요합니다.
 
 ---
 

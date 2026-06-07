@@ -18,7 +18,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 > - `src/components/illustrations/*.tsx` — 2 single-export SVG components (VineLeaf, Sparkle) + `GrapeStem.tsx` (used by GrapeBoard). Gradient/defs ids use `useId()` for instance-uniqueness (no cross-instance fill bleed). Unused `Star`/`Heart`/`CloudPuff`/`Ribbon`/`Sun`/`WaterDrop` were removed. Use sparingly: at most one illustration per page section.
 > - `GrapeStem.tsx` is now **two flat curved leaves, no stem/tendril** — a borderless sage-green (`#74A77E`) silhouette vectorized (pixel-traced + smoothed) from a reference, `viewBox="0 0 200 117"`. Props: `size` (= rendered width; height = `size*0.585`). `GrapeBoard` sizes it from `grapeSize` and keeps a gap above the bunch (see layout invariants 6–7). Do **not** ship the original watermarked stock image — keep the redrawn vector (license-safe).
 >
-> **Content untouched** — `src/lib/templates.ts` (7 categories, 38 templates), `src/lib/winery.ts` (포도알 새싹 → 포도 마스터 tier names), `src/lib/sounds.ts` (30 sounds), `src/types/index.ts` (3 reward types), nav labels (홈/만들기/릴레이/와이너리/더보기) all kept verbatim. The redesign deliberately does not touch copy/naming — design carries the change.
+> **Content untouched** — `src/lib/templates.ts` (7 categories, 38 templates), `src/lib/winery.ts` (포도알 새싹 → 포도 마스터 tier names), `src/lib/sounds.ts` (30 sounds), `src/types/index.ts` (3 reward types), nav labels (홈/만들기/릴레이/와이너리/더보기) all kept verbatim. The redesign deliberately does not touch copy/naming — design carries the change. (One later exception: `REWARD_TYPE_LABELS` had its **leading emoji stripped** so labels are name-only — 편지/기프티콘/소원권 — and the icon moved to `src/lib/icons.ts` `REWARD_TYPE_ICON`; the names themselves are unchanged. This was a deliberate copy change to stop raw-emoji leakage — see `scripts/check-icons.mjs`.)
 
 ## Commands
 
@@ -32,7 +32,7 @@ npm run db:seed      # Seed with sample data (tsx prisma/seed.ts)
 npm run db:studio    # Open Prisma Studio GUI
 ```
 
-Dev login: use the "🛠 개발자 모드" button on the auth page, or credentials `dev@podoal.com` / `dev1234`. Available in production builds too (the gate was lifted).
+Dev login: use the "🛠 개발자 모드" button on the auth page, or credentials `dev@podoal.com` / `dev1234`. **Blocked in production by default** (security patch `72fb6f2`): `POST /api/auth/dev` returns 404 in prod unless `ENABLE_DEV_LOGIN=true`, and the welcome button is hidden in prod builds. Local `next dev` works (NODE_ENV=development).
 
 ## Architecture
 
@@ -109,7 +109,7 @@ API routes mirror the resource pattern under `src/app/api/` (auth, boards, capsu
 ### Database Models (Prisma + PostgreSQL/Neon)
 
 - **User** — `email` unique. `password String?` (nullable, OAuth-only users have no password). `provider String?` + `providerId String?` with `@@unique([provider, providerId])`; `provider` values: `null` (email), `"google"`/`"kakao"`/`"naver"` (real OAuth), `"google_guest"` / `"kakao_guest"` / `"naver_guest"` (guest fallback).
-- **Board** — grape sticker board (10/15/20/30 slots), can be gifted between users, optional `templateId`
+- **Board** — grape sticker board (2–60 slots; 10/15/20/30 presets), can be gifted between users (`giftedTo`/`giftedFrom`, `giftMessage`, `giftOpenedAt`), `allowFriendPlant` toggle gates friend surprise gifts, optional `templateId`
 - **Sticker** — individual filled position on a board, unique per `[boardId, position]`
 - **Reward** — hidden reward unlocked at `triggerAt` sticker count, unique per `[boardId, triggerAt]`. Single-shot via `unlockedAt`, content revealed via `revealedAt`.
 - **Friendship** — pending/accepted status, isFavorite flag, unique per `[requesterId, receiverId]`
@@ -118,7 +118,9 @@ API routes mirror the resource pattern under `src/app/api/` (auth, boards, capsu
 - **Relay** — chain challenge with ordered participants (active/completed status)
 - **RelayParticipant** — participant in a relay with order and linked board
 - **NotificationSetting** — per-user notification preferences (global toggle, DND hours, per-category)
-- **Reminder** — scheduled reminders with day-of-week and optional board link
+- **Reminder** — scheduled reminders with day-of-week and optional board link; `lastSentAt` for cron de-duplication
+- **PushSubscription** — web push (VAPID) endpoint per browser/device, `endpoint` unique. Server delivers via `src/lib/push.ts` (gated by `NotificationSetting`). Activated by `VAPID_*` env (see `docs/PUSH_SETUP.md`).
+- **PlantedGift** — a friend's surprise gift hidden on a specific grape `position` of someone else's board; revealed (`revealedAt`) when the owner fills that grape (see `boards/[id]/plant-gift` + `stickers`).
 
 ### Feedback System
 

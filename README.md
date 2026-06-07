@@ -2,7 +2,7 @@
 
 **podoal**은 포도판에 한 알씩 채우며 목표를 달성하는 습관 추적 PWA입니다. 친숙하고 가독성 높은 클레이모피즘 UI 위에 한 알씩 채우는 습관 추적, 친구 응원, 시간 캡슐, 릴레이 챌린지 등 핵심 경험을 담았습니다.
 
-**Stack**: Next.js 14 (App Router) · React 18 · TypeScript · Prisma (PostgreSQL/Neon) · Zustand · Tailwind · PWA
+**Stack**: Next.js 16 (App Router, Turbopack) · React 19 · TypeScript · Prisma (PostgreSQL/Neon) · Zustand · Tailwind · PWA
 
 ---
 
@@ -37,7 +37,7 @@ env 입력:
 | `DATABASE_URL` | Neon에서 복사한 pooled connection string |
 | `JWT_SECRET` | 32자 이상 랜덤 문자열 (`openssl rand -base64 32` 결과) |
 
-빌드 시점에 `prisma db push`가 자동 실행되어 Neon에 11개 테이블 생성.
+빌드 시점에 `prisma db push`가 자동 실행되어 Neon에 필요한 테이블(현재 13개)이 생성됩니다.
 
 ### 3. (선택) 소셜 로그인 실제 연동
 
