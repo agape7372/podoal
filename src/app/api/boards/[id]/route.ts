@@ -1,10 +1,11 @@
 import { prisma } from '@/lib/prisma';
 import { getCurrentUserId, authResponse } from '@/lib/auth';
 
+// Board detail never renders email — and this board GET is now reachable by an
+// accepted friend (read-only), so DON'T expose other users' email to them.
 const userProfileSelect = {
   id: true,
   name: true,
-  email: true,
   avatar: true,
 };
 
@@ -43,7 +44,10 @@ export async function GET(request: Request, props: { params: Promise<{ id: strin
   // may also view (read-only) so "친구 포도판 보기" can open the board page
   // instead of bouncing home — the board page renders read-only when isOwner is
   // false (no fill, no owner actions). Filling is still owner-gated server-side.
-  if (board.ownerId !== userId && board.giftedToId !== userId) {
+  // Owner and gift recipient see the full board; an accepted friend gets a
+  // read-only view with private reward content / gift message masked (below).
+  const isViewerPrivileged = board.ownerId === userId || board.giftedToId === userId;
+  if (!isViewerPrivileged) {
     const friendship = await prisma.friendship.findFirst({
       where: {
         status: 'accepted',
@@ -63,16 +67,18 @@ export async function GET(request: Request, props: { params: Promise<{ id: strin
   // Process rewards:
   // - title is always visible (for the locked preview)
   // - content/imageUrl are revealed ONLY after the user has opened the reward
-  //   (revealedAt is set). Unlocked-but-not-yet-revealed stays as a "click to open"
-  //   surprise.
+  //   (revealedAt is set) AND only to the owner / gift recipient. A visiting
+  //   friend never receives the private body (letter text, giftcard image),
+  //   even for rewards the owner already opened.
   const rewards = board.rewards.map((reward) => {
     const isRevealed = reward.revealedAt !== null;
+    const canSeeBody = isRevealed && isViewerPrivileged;
     return {
       id: reward.id,
       type: reward.type,
       title: reward.title,
-      content: isRevealed ? reward.content : '',
-      imageUrl: isRevealed ? reward.imageUrl : '',
+      content: canSeeBody ? reward.content : '',
+      imageUrl: canSeeBody ? reward.imageUrl : '',
       triggerAt: reward.triggerAt,
       unlockedAt: reward.unlockedAt ? reward.unlockedAt.toISOString() : null,
       revealedAt: reward.revealedAt ? reward.revealedAt.toISOString() : null,
@@ -92,7 +98,8 @@ export async function GET(request: Request, props: { params: Promise<{ id: strin
     owner: board.owner,
     giftedTo: board.giftedTo,
     giftedFrom: board.giftedFrom,
-    giftMessage: board.giftMessage,
+    // Gifter's private note → owner/recipient only, never a visiting friend.
+    giftMessage: isViewerPrivileged ? board.giftMessage : '',
     giftOpenedAt: board.giftOpenedAt ? board.giftOpenedAt.toISOString() : null,
     rewardCount: board.rewards.length,
     stickers: board.stickers,

@@ -32,7 +32,7 @@ export default function SurpriseRevealModal({ gift, onClose }: SurpriseRevealMod
           </div>
         )}
         <ClayButton variant="joyful" onClick={onClose} fullWidth>
-          <EmojiIcon emoji="💜" size={16} className="mr-1" />고마워요!
+          <EmojiIcon emoji="💜" size={16} />고마워요!
         </ClayButton>
       </div>
     </div>
