@@ -1,6 +1,6 @@
 # 선물 알림 · 백그라운드 푸시 활성화 가이드
 
-이 브랜치(`feat/gift-notify-push`)는 다음을 추가합니다.
+선물 알림·백그라운드 푸시 기능(PR #15, main 머지 완료)이 추가한 것:
 
 ## 무엇이 바뀌었나
 - **선물 알림**: 포도판을 선물하면 받는 사람에게 인박스 메시지(`type: 'gift'`) + 백그라운드 푸시가 발송됩니다. (이전엔 조용히 등장만 했음)
@@ -26,11 +26,11 @@
 `npm run build`가 `prisma db push`를 선행하므로 Vercel 배포 시 자동 반영됩니다. (모두 non-breaking 추가)
 
 ## 크론(서버측 리마인더)
-`vercel.json`에 `/api/cron/reminders`가 **매분** 실행으로 등록돼 있습니다.
-- **Vercel Pro**: 분 단위 실행 → 리마인더가 설정 시각에 정확히 발송됩니다.
-- **Vercel Hobby**: 크론은 **하루 1회**로 제한 → 분 단위 리마인더가 필요하면 외부 크론(예: cron-job.org)에서
-  `GET https://podoal-rouge.vercel.app/api/cron/reminders` 를 매분 호출하고 헤더에
-  `Authorization: Bearer <CRON_SECRET>` 를 넣으세요.
+> ⚠️ `vercel.json`에는 **더 이상 cron이 등록돼 있지 않습니다.** 매분(`* * * * *`) 크론이 Vercel Hobby 한도(하루 1회)를 초과해 배포 자체가 거부됐기에 PR #20에서 제거했습니다. 라우트 `/api/cron/reminders` 자체는 존재하므로 외부에서 호출만 하면 동작합니다.
+
+분 단위 리마인더 운영 방법 (둘 중 하나):
+- **외부 크론 (Hobby 권장)**: cron-job.org 등에서 `GET https://podoal-rouge.vercel.app/api/cron/reminders` 를 매분 호출 + 헤더 `Authorization: Bearer <CRON_SECRET>`.
+- **Vercel Pro**: `vercel.json`에 `crons` 블록을 다시 추가 — `{ "path": "/api/cron/reminders", "schedule": "* * * * *" }`.
 
 ## iOS
 iOS는 **홈 화면에 추가한 PWA**에서만 웹푸시가 동작합니다(iOS 16.4+). 설치 전에는 알림 설정 화면에서

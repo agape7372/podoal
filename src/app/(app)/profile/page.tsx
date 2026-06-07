@@ -17,9 +17,10 @@ const AVATAR_LABEL: Record<string, string> = {
   cherry: '체리', peach: '복숭아', apple: '사과', watermelon: '수박',
 };
 // Avatar SVGs carry a baked <g data-centered transform> per fruit. These translate/scale
-// values were dialed in BY THE USER via the interactive tuner (public/avatar-tuner.html,
-// 2026-06-06) — each fruit centred to the user's own eye, not an algorithm. To re-tune,
-// restore the tuner, adjust, and re-bake; to reset, strip the <g data-centered> wrapper.
+// values were dialed in BY THE USER via a throwaway interactive tuner (public/avatar-tuner.html,
+// 2026-06-06 — removed after baking) so each fruit is centred to the user's own eye, not an
+// algorithm. To re-tune, recreate a tuner, adjust, and re-bake; to reset, strip the
+// <g data-centered> wrapper.
 
 export default function ProfilePage() {
   const router = useRouter();
