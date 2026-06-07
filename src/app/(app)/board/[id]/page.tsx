@@ -254,6 +254,7 @@ export default function BoardDetailPage() {
   }
 
   const isOwner = user?.id === board.owner.id;
+  const allowPlant = board.allowFriendPlant ?? true;
   const filledCount = board.stickers.length;
   // 중간 보상(아이콘 슬라이더) vs 완성 보상(카드) 분리.
   const midRewards = board.rewards
@@ -268,7 +269,7 @@ export default function BoardDetailPage() {
 
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
-        <button onClick={() => { feedbackTap(); router.push('/home'); }} className="text-warm-sub text-sm">
+        <button onClick={() => { feedbackTap(); router.push(isOwner ? '/home' : `/friends/${board.owner.id}`); }} className="text-warm-sub text-sm">
           ← 돌아가기
         </button>
         {isOwner && (
@@ -310,7 +311,9 @@ export default function BoardDetailPage() {
       {isOwner && !board.isCompleted && (
         <button
           onClick={() => { feedbackTap(); handleToggleAllowPlant(); }}
-          aria-pressed={board.allowFriendPlant ?? true}
+          role="switch"
+          aria-checked={allowPlant}
+          aria-label="친구가 깜짝 선물 심기"
           className="w-full clay-sm px-4 py-3 mb-5 flex items-center justify-between transition-all active:scale-[0.99]"
         >
           <span className="inline-flex items-center gap-2 text-sm text-warm-text">
@@ -320,8 +323,8 @@ export default function BoardDetailPage() {
               <span className="block text-[11px] text-warm-sub">친구가 빈 칸에 선물을 숨길 수 있어요</span>
             </span>
           </span>
-          <span className={`relative w-11 h-6 rounded-full shrink-0 transition-colors ${(board.allowFriendPlant ?? true) ? 'bg-grape-400' : 'bg-warm-border'}`}>
-            <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform ${(board.allowFriendPlant ?? true) ? 'translate-x-5' : ''}`} />
+          <span className={`relative w-11 h-6 rounded-full shrink-0 transition-colors ${allowPlant ? 'bg-grape-400' : 'bg-warm-border'}`}>
+            <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform ${allowPlant ? 'translate-x-5' : ''}`} />
           </span>
         </button>
       )}
@@ -375,8 +378,10 @@ export default function BoardDetailPage() {
         />
       </div>
 
-      {/* Rewards section — 중간 보상은 아이콘 슬라이더, 완성 보상은 카드 */}
-      {board.rewards.length > 0 && (
+      {/* Rewards section — owner-only. A visiting friend (read-only) must not see
+          the owner's private rewards; the API also masks content, this hides the
+          chips/cards and the dead "open" buttons (reveal is owner/recipient-gated). */}
+      {board.rewards.length > 0 && isOwner && (
         <div className="mb-6 space-y-3">
           <h3 className="text-sm font-semibold text-warm-sub">
             <EmojiIcon emoji={ICON.gift} size={15} className="mr-0.5" />보상
@@ -511,9 +516,11 @@ export default function BoardDetailPage() {
         />
       )}
 
-      {/* Friend-planted surprise reveals — one at a time (sequential queue) */}
+      {/* Friend-planted surprise reveals — one at a time (sequential queue).
+          key={gift.id} remounts the modal per surprise so its bounce-in and the
+          internal one-shot Confetti(trigger=1) replay for the 2nd+ gift too. */}
       {surpriseQueue.length > 0 && (
-        <SurpriseRevealModal gift={surpriseQueue[0]} onClose={() => setSurpriseQueue((q) => q.slice(1))} />
+        <SurpriseRevealModal key={surpriseQueue[0].id} gift={surpriseQueue[0]} onClose={() => setSurpriseQueue((q) => q.slice(1))} />
       )}
 
       {/* Mid reward reached → instant popup reveal */}

@@ -234,7 +234,7 @@ export default function FriendDetailPage() {
             onClick={handleGiftBoard}
             className="mt-4"
           >
-            <EmojiIcon emoji="🎁" size={16} className="mr-1" />포도판 선물하기
+            <EmojiIcon emoji="🎁" size={16} />포도판 선물하기
           </ClayButton>
         </div>
       )}

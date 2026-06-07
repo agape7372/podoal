@@ -22,11 +22,12 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
     select: { id: true, ownerId: true, totalStickers: true, isCompleted: true, allowFriendPlant: true, _count: { select: { stickers: true } } },
   });
   if (!board) return authResponse('Board not found', 404);
-  if (board.isCompleted) return authResponse('이미 완성된 포도판이에요', 400);
-  if (board.ownerId === userId) return authResponse('내 포도판에는 심을 수 없어요', 400);
-  if (!board.allowFriendPlant) return authResponse('이 포도판은 깜짝 선물 받기를 꺼두었어요', 403);
 
-  // Only accepted friends of the board owner may plant.
+  // Authorize BEFORE leaking board state. The owner can't plant on their own
+  // board; everyone else must be an accepted friend. Doing this first means a
+  // non-friend gets a uniform 403 and can't probe isCompleted/allowFriendPlant
+  // via differing error messages (matches the GET route's uniform 403).
+  if (board.ownerId === userId) return authResponse('내 포도판에는 심을 수 없어요', 400);
   const friendship = await prisma.friendship.findFirst({
     where: {
       status: 'accepted',
@@ -38,20 +39,39 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
   });
   if (!friendship) return authResponse('친구만 선물을 심을 수 있어요', 403);
 
+  // State checks — only reachable by an authorized friend now.
+  if (board.isCompleted) return authResponse('이미 완성된 포도판이에요', 400);
+  if (!board.allowFriendPlant) return authResponse('이 포도판은 깜짝 선물 받기를 꺼두었어요', 403);
+
   const filledCount = board._count.stickers;
   if (position < filledCount || position >= board.totalStickers) {
     return authResponse('아직 채우지 않은 칸에만 심을 수 있어요', 400);
   }
 
   // Overlap is allowed — surprises stack on a grape and reveal in sequence when
-  // it's filled. We only stop the SAME planter from double-stacking one grape.
-  // Soft cap of 3 active per planter per board.
-  const dup = await prisma.plantedGift.findFirst({ where: { boardId, position, plantedById: userId, revealedAt: null } });
-  if (dup) return authResponse('그 칸엔 이미 선물을 심었어요', 409);
-  const mine = await prisma.plantedGift.count({ where: { boardId, plantedById: userId, revealedAt: null } });
-  if (mine >= 3) return authResponse('이 포도판엔 최대 3개까지 심을 수 있어요', 400);
-
-  await prisma.plantedGift.create({ data: { boardId, position, plantedById: userId, message, emoji } });
+  // it's filled. We only stop the SAME planter from double-stacking one grape,
+  // and soft-cap 3 active per planter. Run the check-then-create in a Serializable
+  // transaction so two near-simultaneous requests can't both pass the dup/cap
+  // guard and over-insert (the guards are otherwise a classic non-atomic race).
+  const plantError = (msg: string, status: number) => Object.assign(new Error(msg), { status });
+  try {
+    await prisma.$transaction(
+      async (tx) => {
+        const dup = await tx.plantedGift.findFirst({ where: { boardId, position, plantedById: userId, revealedAt: null } });
+        if (dup) throw plantError('그 칸엔 이미 선물을 심었어요', 409);
+        const mine = await tx.plantedGift.count({ where: { boardId, plantedById: userId, revealedAt: null } });
+        if (mine >= 3) throw plantError('이 포도판엔 최대 3개까지 심을 수 있어요', 400);
+        await tx.plantedGift.create({ data: { boardId, position, plantedById: userId, message, emoji } });
+      },
+      { isolationLevel: 'Serializable' },
+    );
+  } catch (e) {
+    const status = (e as { status?: number }).status;
+    if (typeof status === 'number') return authResponse((e as Error).message, status);
+    // Serializable write conflict (concurrent plant on the same board) → dup.
+    if ((e as { code?: string }).code === 'P2034') return authResponse('그 칸엔 이미 선물을 심었어요', 409);
+    throw e;
+  }
 
   // Teaser to the owner (no location) — motivates filling, keeps the surprise.
   try {
