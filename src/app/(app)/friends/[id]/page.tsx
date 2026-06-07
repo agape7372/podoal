@@ -35,7 +35,6 @@ export default function FriendDetailPage() {
   const [cheerSent, setCheerSent] = useState(false);
   const [plantTarget, setPlantTarget] = useState<BoardSummary | null>(null);
   const [plantedFeedback, setPlantedFeedback] = useState(false);
-  const [favoriteLoading, setFavoriteLoading] = useState(false);
 
   const fetchFriendData = useCallback(async () => {
     try {
@@ -65,15 +64,15 @@ export default function FriendDetailPage() {
 
   const handleToggleFavorite = async () => {
     if (!friendshipId) return;
-    setFavoriteLoading(true);
+    setIsFavorite((prev) => !prev); // optimistic — the star reacts instantly
     try {
       await api(`/api/friends/${friendshipId}`, {
         method: 'PATCH',
         json: { action: 'favorite' },
       });
-      setIsFavorite((prev) => !prev);
-    } catch {}
-    setFavoriteLoading(false);
+    } catch {
+      setIsFavorite((prev) => !prev); // rollback on failure
+    }
   };
 
   const handleGiftBoard = () => {
@@ -143,33 +142,25 @@ export default function FriendDetailPage() {
           </div>
         </div>
 
-        {/* Action buttons */}
-        <div className="flex gap-2">
-          <ClayButton
-            variant="primary"
-            size="sm"
-            onClick={() => setShowCheer(true)}
-            className="flex-1"
-          >
-            <EmojiIcon emoji="💜" size={16} className="mr-1" />응원 보내기
-          </ClayButton>
-          <button
-            onClick={handleToggleFavorite}
-            disabled={favoriteLoading}
-            className={`clay-button px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
-              isFavorite
-                ? 'bg-amber-50/60 text-grape-700'
-                : 'text-warm-sub'
-            }`}
-          >
-            {isFavorite ? <span className="inline-flex items-center gap-1"><EmojiIcon emoji="⭐" size={14} /> 즐겨찾기</span> : <span className="inline-flex items-center gap-1"><EmojiIcon emoji="⭐" size={14} className="opacity-30 grayscale" /> 즐겨찾기</span>}
-          </button>
-          <ClayButton
-            variant="secondary"
-            size="sm"
-            onClick={handleGiftBoard}
-          >
-            <EmojiIcon emoji="🎁" size={16} className="mr-1" />포도판 선물하기
+        {/* Action buttons — 응원+즐겨찾기 한 줄, 포도판 선물하기 한 줄 */}
+        <div className="space-y-2">
+          <div className="flex gap-2">
+            <ClayButton variant="primary" size="sm" onClick={() => setShowCheer(true)} className="flex-1">
+              <EmojiIcon emoji="💜" size={16} />응원 보내기
+            </ClayButton>
+            <button
+              onClick={handleToggleFavorite}
+              aria-label={isFavorite ? '즐겨찾기 해제' : '즐겨찾기'}
+              aria-pressed={isFavorite}
+              className={`clay-button px-4 flex items-center justify-center rounded-2xl shrink-0 transition-all active:scale-95 ${
+                isFavorite ? 'bg-amber-50/70' : ''
+              }`}
+            >
+              <EmojiIcon emoji="⭐" size={20} className={isFavorite ? '' : 'opacity-30 grayscale'} />
+            </button>
+          </div>
+          <ClayButton variant="secondary" size="sm" onClick={handleGiftBoard} fullWidth>
+            <EmojiIcon emoji="🎁" size={16} />포도판 선물하기
           </ClayButton>
         </div>
       </div>
@@ -201,12 +192,16 @@ export default function FriendDetailPage() {
             {activeBoards.map((board) => (
               <div key={board.id} className="space-y-1.5">
                 <BoardCard board={board} />
-                <button
-                  onClick={() => setPlantTarget(board)}
-                  className="w-full clay-button py-2 rounded-xl text-xs font-semibold text-grape-600 bg-grape-50/70"
-                >
-                  <EmojiIcon emoji="🎁" size={13} className="mr-1" />이 포도판에 깜짝 선물 심기
-                </button>
+                {board.allowFriendPlant === false ? (
+                  <p className="text-center text-[11px] text-warm-sub py-1.5">이 친구는 깜짝 선물 받기를 꺼뒀어요</p>
+                ) : (
+                  <button
+                    onClick={() => setPlantTarget(board)}
+                    className="w-full clay-button py-2 rounded-xl text-xs font-semibold text-grape-600 bg-grape-50/70"
+                  >
+                    <EmojiIcon emoji="🎁" size={13} className="mr-1" />이 포도판에 깜짝 선물 심기
+                  </button>
+                )}
               </div>
             ))}
           </div>

@@ -77,6 +77,7 @@ export async function GET(request: Request, props: { params: Promise<{ id: strin
       owner: board.owner,
       giftedTo: board.giftedTo,
       giftedFrom: board.giftedFrom,
+      allowFriendPlant: board.allowFriendPlant,
       rewardCount: board._count.rewards,
     }));
 

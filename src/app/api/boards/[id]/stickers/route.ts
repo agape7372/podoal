@@ -141,25 +141,26 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
       }
     }
 
-    // Friend-planted surprise gift hidden on THIS grape? Claim it single-shot
-    // (like rewards) and notify the planter via inbox that it was discovered.
-    let plantedGift: {
-      id: string;
-      message: string;
-      emoji: string;
-      plantedBy: { id: string; name: string; avatar: string };
-    } | null = null;
-    const giftClaim = await tx.plantedGift.updateMany({
+    // Friend-planted surprises hidden on THIS grape. Overlap is allowed, so a
+    // single grape may carry several — claim them ALL single-shot and let the
+    // client reveal them in sequence. Notify each planter (other than the
+    // filler) that their surprise was discovered.
+    type GiftOut = { id: string; message: string; emoji: string; plantedBy: { id: string; name: string; avatar: string } };
+    let plantedGifts: GiftOut[] = [];
+    const pendingGifts = await tx.plantedGift.findMany({
       where: { boardId, position, revealedAt: null },
-      data: { revealedAt: new Date() },
+      include: { plantedBy: { select: { id: true, name: true, avatar: true } } },
+      orderBy: { createdAt: 'asc' },
     });
-    if (giftClaim.count > 0) {
-      const pg = await tx.plantedGift.findFirst({
-        where: { boardId, position },
-        include: { plantedBy: { select: { id: true, name: true, avatar: true } } },
+    if (pendingGifts.length > 0) {
+      await tx.plantedGift.updateMany({
+        where: { boardId, position, revealedAt: null },
+        data: { revealedAt: new Date() },
       });
-      if (pg) {
-        plantedGift = { id: pg.id, message: pg.message, emoji: pg.emoji, plantedBy: pg.plantedBy };
+      plantedGifts = pendingGifts.map((pg) => ({
+        id: pg.id, message: pg.message, emoji: pg.emoji, plantedBy: pg.plantedBy,
+      }));
+      for (const pg of pendingGifts) {
         if (pg.plantedById !== userId) {
           await tx.message.create({
             data: {
@@ -180,7 +181,8 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
       filledCount,
       isCompleted: filledCount >= board.totalStickers,
       unlockedReward,
-      plantedGift,
+      plantedGift: plantedGifts[0] ?? null, // back-compat: first gift
+      plantedGifts,
     };
   });
 

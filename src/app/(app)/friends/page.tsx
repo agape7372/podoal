@@ -87,8 +87,15 @@ export default function FriendsPage() {
   };
 
   const handleToggleFavorite = async (id: string) => {
-    await api(`/api/friends/${id}`, { method: 'PATCH', json: { action: 'favorite' } });
-    fetchFriends();
+    // Optimistic: flip locally so the star reacts instantly. We deliberately do
+    // NOT re-fetch — re-fetching was both slow and reordered the just-favorited
+    // friend to the bottom (the list API has no stable order). Roll back on error.
+    setFriends((prev) => prev.map((f) => (f.id === id ? { ...f, isFavorite: !f.isFavorite } : f)));
+    try {
+      await api(`/api/friends/${id}`, { method: 'PATCH', json: { action: 'favorite' } });
+    } catch {
+      setFriends((prev) => prev.map((f) => (f.id === id ? { ...f, isFavorite: !f.isFavorite } : f)));
+    }
   };
 
   const handleRemove = (id: string) => {
@@ -123,9 +130,11 @@ export default function FriendsPage() {
     });
   };
 
-  const displayed = tab === 'favorite'
-    ? friends.filter((f) => f.isFavorite)
-    : friends;
+  // Favorites float to the top; Array.sort is stable so order within each group
+  // stays put across toggles (no more "favorited friend jumps to the bottom").
+  const displayed = (tab === 'favorite' ? friends.filter((f) => f.isFavorite) : friends)
+    .slice()
+    .sort((a, b) => Number(b.isFavorite) - Number(a.isFavorite));
 
   return (
     <div className="pb-4">

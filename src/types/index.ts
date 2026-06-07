@@ -24,6 +24,8 @@ export interface BoardSummary {
   giftedTo: UserProfile | null;
   giftedFrom: UserProfile | null;
   rewardCount: number;
+  /** Owner toggle: may friends plant surprise gifts here? Surfaced by board detail + friend boards. */
+  allowFriendPlant?: boolean;
 }
 
 export interface BoardDetail extends BoardSummary {

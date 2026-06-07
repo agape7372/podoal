@@ -86,6 +86,7 @@ export async function GET(request: Request, props: { params: Promise<{ id: strin
     totalStickers: board.totalStickers,
     filledCount,
     isCompleted: board.isCompleted,
+    allowFriendPlant: board.allowFriendPlant,
     completedAt: board.completedAt,
     createdAt: board.createdAt,
     owner: board.owner,
@@ -99,6 +100,37 @@ export async function GET(request: Request, props: { params: Promise<{ id: strin
   };
 
   return Response.json({ board: result });
+}
+
+// Owner-only partial update. Currently just the friend-plant toggle; whitelisted
+// so arbitrary fields can't be written. Non-breaking addition (GET/DELETE intact).
+export async function PATCH(request: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
+  const userId = await getCurrentUserId();
+  if (!userId) {
+    return authResponse('Unauthorized');
+  }
+
+  const { id } = params;
+  const board = await prisma.board.findUnique({ where: { id }, select: { ownerId: true } });
+  if (!board) {
+    return authResponse('Board not found', 404);
+  }
+  if (board.ownerId !== userId) {
+    return authResponse('Only the board owner can update this board', 403);
+  }
+
+  const body = await request.json().catch(() => ({}));
+  const data: { allowFriendPlant?: boolean } = {};
+  if (typeof body?.allowFriendPlant === 'boolean') {
+    data.allowFriendPlant = body.allowFriendPlant;
+  }
+  if (Object.keys(data).length === 0) {
+    return authResponse('No valid fields to update', 400);
+  }
+
+  await prisma.board.update({ where: { id }, data });
+  return Response.json({ ok: true });
 }
 
 export async function DELETE(request: Request, props: { params: Promise<{ id: string }> }) {
