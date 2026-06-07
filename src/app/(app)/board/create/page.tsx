@@ -7,6 +7,7 @@ import ClayInput from '@/components/ClayInput';
 import ClayCard from '@/components/ClayCard';
 import { api } from '@/lib/api';
 import { BOARD_SIZES, REWARD_TYPE_LABELS } from '@/types';
+import { REWARD_TYPE_ICON } from '@/lib/icons';
 import type { RewardType } from '@/types';
 import { TEMPLATE_CATEGORIES, getTemplatesByCategory } from '@/lib/templates';
 import type { HabitTemplate } from '@/lib/templates';
@@ -281,7 +282,7 @@ function CreateBoardInner() {
 
           {/* Reward type */}
           <div className="flex gap-2">
-            {(Object.entries(REWARD_TYPE_LABELS) as [RewardType, string][]).map(([type, label]) => (
+            {(Object.keys(REWARD_TYPE_LABELS) as RewardType[]).map((type) => (
               <button
                 key={type}
                 onClick={() => setRewardType(type)}
@@ -290,7 +291,7 @@ function CreateBoardInner() {
                   ${rewardType === type ? 'ring-2 ring-grape-400 clay-pressed' : ''}
                 `}
               >
-                {label}
+                <EmojiIcon emoji={REWARD_TYPE_ICON[type]} size={16} className="mr-1" />{REWARD_TYPE_LABELS[type]}
               </button>
             ))}
           </div>

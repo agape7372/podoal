@@ -6,6 +6,7 @@ import GrapeStem from './illustrations/GrapeStem';
 import Sparkle from './illustrations/Sparkle';
 import EmojiIcon from './EmojiIcon';
 import { useLongPress } from '@/hooks/useLongPress';
+import { REWARD_TYPE_ICON } from '@/lib/icons';
 import { feedbackFill, feedbackComplete, feedbackReward } from '@/lib/feedback';
 import { progressPercent } from '@/lib/format';
 import type { BoardDetail } from '@/types';
@@ -30,7 +31,7 @@ interface GrapeCellProps {
   isJustFilled: boolean;
   isFilling: boolean;
   dimmed: boolean;
-  hasReward: boolean;
+  rewardEmoji?: string | null;
   grapeSize: number;
   hMargin: number;
   sizeClass: 'sm' | 'md' | 'lg';
@@ -48,7 +49,7 @@ function GrapeCell({
   isJustFilled,
   isFilling,
   dimmed,
-  hasReward,
+  rewardEmoji,
   grapeSize,
   hMargin,
   sizeClass,
@@ -89,9 +90,9 @@ function GrapeCell({
           onFill(position);
         }}
       />
-      {hasReward && !filled && (
+      {rewardEmoji && (
         <span className="absolute -top-1 -right-1 z-20 pointer-events-none drop-shadow-sm">
-          <EmojiIcon emoji="🎁" size={Math.round(grapeSize * 0.4)} />
+          <EmojiIcon emoji={rewardEmoji} size={Math.round(grapeSize * 0.4)} />
         </span>
       )}
     </div>
@@ -125,12 +126,17 @@ function GrapeBoardInner({ board, onFill, canFill, onCelebrate, isOwner, onPlant
     return -1; // every grape filled
   }, [filledPositions, board.totalStickers]);
 
-  // Grapes sitting on an intermediate reward trigger — show a 🎁 anticipation
-  // marker. Exclude the completion reward (the whole board already celebrates).
-  const rewardPositions = useMemo(
-    () => new Set((board.rewards ?? []).filter((r) => r.triggerAt < board.totalStickers).map((r) => r.triggerAt - 1)),
-    [board.rewards, board.totalStickers],
-  );
+  // Grapes sitting on an intermediate reward show a TYPE-specific marker
+  // (편지 💌 · 기프티콘 🎁 · 소원권 ⭐). The marker PERSISTS after the grape is
+  // filled so the planted reward leaves a permanent record. Completion reward
+  // excluded (the whole board already celebrates).
+  const rewardMarkers = useMemo(() => {
+    const m = new Map<number, string>();
+    for (const r of board.rewards ?? []) {
+      if (r.triggerAt < board.totalStickers) m.set(r.triggerAt - 1, REWARD_TYPE_ICON[r.type]);
+    }
+    return m;
+  }, [board.rewards, board.totalStickers]);
 
   const handleFill = useCallback(async (position: number) => {
     if (!canFill || filledPositions.has(position) || position !== nextPosition) return;
@@ -249,7 +255,7 @@ function GrapeBoardInner({ board, onFill, canFill, onCelebrate, isOwner, onPlant
                         isJustFilled={justFilled === position}
                         isFilling={fillingPos === position}
                         dimmed={canFill && !filled && !isNext}
-                        hasReward={rewardPositions.has(position)}
+                        rewardEmoji={rewardMarkers.get(position) ?? null}
                         grapeSize={grapeSize}
                         hMargin={hMargin}
                         sizeClass={sizeClass}

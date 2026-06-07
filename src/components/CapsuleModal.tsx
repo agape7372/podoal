@@ -367,7 +367,7 @@ export default function CapsuleModal({ boardId, isOwner, onClose }: CapsuleModal
                               className="clay-button px-2.5 py-1.5 rounded-lg text-xs font-semibold text-grape-600 flex-shrink-0"
                               title="개발용: openAt을 과거로 바꿔 즉시 개봉 가능하게 만듭니다"
                             >
-                              🔧 즉시개봉
+                              <EmojiIcon emoji="🔧" size={13} className="mr-0.5" />즉시개봉
                             </button>
                           ) : (
                             <div className="opacity-50">
