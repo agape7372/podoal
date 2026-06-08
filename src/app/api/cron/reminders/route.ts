@@ -2,12 +2,13 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { sendPushToUser } from '@/lib/push';
 
-// Server-side reminder dispatcher. Intended to be hit once a minute by Vercel
-// Cron (vercel.json) — this is what makes reminders fire even when the app is
-// closed (the client useReminderScheduler only works while a tab is open).
+// Server-side reminder dispatcher. Hit on a schedule by the GitHub Actions
+// workflow (.github/workflows/reminders.yml, ~every 5 min) — this is what makes
+// reminders fire even when the app is closed (the client useReminderScheduler
+// only works while a tab is open). The Hobby plan can't run Vercel Cron, so an
+// external scheduler calls this endpoint with the CRON_SECRET bearer token.
 //
-// Protect with CRON_SECRET env. Vercel Cron automatically sends
-// `Authorization: Bearer <CRON_SECRET>` when that env var is set.
+// Protect with CRON_SECRET env; the caller sends `Authorization: Bearer <CRON_SECRET>`.
 const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
 
 function kstNowParts() {
@@ -35,9 +36,12 @@ export async function GET(request: Request) {
 
   const { date, hhmm, dow } = kstNowParts();
 
-  // Candidate reminders: active + time matches this minute. Day + dedupe in JS.
+  // Due reminders: active + scheduled time already reached today (time <= now).
+  // Day-of-week match + once-per-day dedupe (lastSentAt) handled in JS below.
+  // Using `lte` (not exact-minute) so a coarse ~5-min cron still fires each
+  // reminder on its first run at/after the set time — no minute-precise hit needed.
   const candidates = await prisma.reminder.findMany({
-    where: { isActive: true, time: hhmm },
+    where: { isActive: true, time: { lte: hhmm } },
     include: { board: { select: { title: true } } },
   });
 
