@@ -15,7 +15,7 @@ import EmojiIcon from '@/components/EmojiIcon';
 interface RelayDetailParticipant {
   id: string;
   userId: string;
-  user: { id: string; name: string; email: string; avatar: string };
+  user: { id: string; name: string; avatar: string };
   boardId: string | null;
   order: number;
   status: 'pending' | 'active' | 'completed';

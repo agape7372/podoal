@@ -48,7 +48,7 @@ export default function FriendCard({
   const isAccepted = friend.status === 'accepted';
   const canOpen = isAccepted && !!onViewBoards;
 
-  // Identity block (avatar + name + email). For an accepted friend it becomes a
+  // Identity block (avatar + name). For an accepted friend it becomes a
   // single large tap target that opens their detail/boards — replacing the old
   // duplicated 🍇 icon button + "포도판 보기" footer button (which both did the
   // same thing and squeezed the name into "테스...").

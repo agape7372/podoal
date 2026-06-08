@@ -18,16 +18,16 @@ export async function GET(request: Request) {
 
   try {
     const { searchParams } = new URL(request.url);
-    const query = searchParams.get('q');
+    // 검증은 trim된 값 기준 — 공백-only 쿼리("   ")가 contains "" 로 전체 유저를 열거하는 누수 차단.
+    const q = (searchParams.get('q') ?? '').trim();
 
-    if (!query || typeof query !== 'string' || query.length === 0 || query.length > 254) {
+    if (q.length === 0 || q.length > 254) {
       return NextResponse.json(
         { error: 'Search query (q) is required (1~254 chars)' },
         { status: 400 }
       );
     }
 
-    const q = query.trim();
     // 이름 또는 이메일 부분일치(대소문자 무시). 이메일로도 찾을 수 있지만 응답엔 email을 담지 않는다(PII/enumeration 방지).
     const users = await prisma.user.findMany({
       where: {

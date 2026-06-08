@@ -92,6 +92,7 @@ async function upstashBlocked(redisKey: string, ttlSec: number, max: number): Pr
   if (!res.ok) throw new Error(`Upstash REST ${res.status}`);
   const data = (await res.json()) as Array<{ result?: number; error?: string }>;
   if (data[0]?.error) throw new Error(data[0].error);
+  if (data[1]?.error) throw new Error(data[1].error); // EXPIRE NX 실패도 가시화(키 TTL 누락 방지)
   const count = Number(data[0]?.result ?? 0);
   return count > max;
 }
