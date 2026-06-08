@@ -49,7 +49,8 @@ export default function NumberStepper({ value, onChange, min, max }: NumberStepp
 
   const commit = () => {
     const n = parseInt(draft, 10);
-    if (!Number.isNaN(n)) onChange(clamp(n));
+    if (Number.isNaN(n)) setDraft(String(value)); // 빈/잘못된 입력이면 현재값 복구
+    else onChange(clamp(n));
     setEditing(false);
   };
 
@@ -74,7 +75,14 @@ export default function NumberStepper({ value, onChange, min, max }: NumberStepp
             value={draft}
             min={min}
             max={max}
-            onChange={(e) => setDraft(e.target.value)}
+            onChange={(e) => {
+              // Live-commit: 입력 즉시 부모(value)로 전파해 '다음' 버튼 1탭으로 진행되게 한다.
+              // (이전엔 onBlur에서만 커밋 → 버튼 pointerdown이 blur→commit을 먼저 소비해 click이 삼켜짐)
+              const raw = e.target.value;
+              setDraft(raw);
+              const n = parseInt(raw, 10);
+              if (!Number.isNaN(n)) onChange(clamp(n));
+            }}
             onBlur={commit}
             onKeyDown={(e) => { if (e.key === 'Enter') commit(); }}
             className="clay-input text-center font-display text-4xl font-bold tabular-nums w-full"
