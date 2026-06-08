@@ -20,7 +20,8 @@ const csp = [
   "connect-src 'self'",
   "worker-src 'self'",
   "manifest-src 'self'",
-  'upgrade-insecure-requests',
+  // 'upgrade-insecure-requests'는 Report-Only에선 무시되며 콘솔 경고만 남기므로 제외.
+  // enforce 모드로 승격할 때 다시 추가할 것.
 ].join('; ');
 
 const securityHeaders = [
