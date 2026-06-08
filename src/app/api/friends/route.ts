@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { PUBLIC_USER_SELECT } from '@/lib/userSelect';
 import { getCurrentUserId, authResponse } from '@/lib/auth';
 
 export async function GET() {
@@ -17,10 +18,10 @@ export async function GET() {
       },
       include: {
         requester: {
-          select: { id: true, name: true, email: true, avatar: true },
+          select: PUBLIC_USER_SELECT,
         },
         receiver: {
-          select: { id: true, name: true, email: true, avatar: true },
+          select: PUBLIC_USER_SELECT,
         },
       },
     });
@@ -46,7 +47,7 @@ export async function GET() {
       },
       include: {
         requester: {
-          select: { id: true, name: true, email: true, avatar: true },
+          select: PUBLIC_USER_SELECT,
         },
       },
     });
@@ -127,7 +128,7 @@ export async function POST(request: Request) {
       },
       include: {
         receiver: {
-          select: { id: true, name: true, email: true, avatar: true },
+          select: PUBLIC_USER_SELECT,
         },
       },
     });

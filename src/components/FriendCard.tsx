@@ -57,7 +57,6 @@ export default function FriendCard({
       <Avatar avatar={friend.user.avatar} size="lg" />
       <div className="flex-1 min-w-0">
         <p className="font-display text-[15px] font-semibold text-warm-text truncate">{friend.user.name}</p>
-        <p className="text-xs text-warm-sub truncate">{friend.user.email}</p>
         {typeof activeBoardCount === 'number' && isAccepted && (
           <p className="text-[11px] text-grape-600 mt-0.5 inline-flex items-center gap-1">
             <EmojiIcon emoji="🍇" size={13} /> 포도판 <span className="font-display font-semibold">{activeBoardCount}</span>개 진행 중

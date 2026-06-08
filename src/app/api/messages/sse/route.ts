@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { PUBLIC_USER_SELECT } from '@/lib/userSelect';
 import { getCurrentUserId, authResponse } from '@/lib/auth';
 
 export async function GET(request: Request) {
@@ -20,7 +21,7 @@ export async function GET(request: Request) {
             },
             include: {
               sender: {
-                select: { id: true, name: true, email: true, avatar: true },
+                select: PUBLIC_USER_SELECT,
               },
             },
             orderBy: { createdAt: 'desc' },

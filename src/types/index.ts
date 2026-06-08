@@ -5,7 +5,8 @@ export type FriendStatus = 'pending' | 'accepted';
 export interface UserProfile {
   id: string;
   name: string;
-  email: string;
+  /** Omitted from responses about *other* users (PII) — present only for the requester (auth/me, profile). */
+  email?: string;
   avatar: string;
   /** null = email account; "google"/"kakao"/"naver" (+ "_guest" fallback) = OAuth. Optional: only surfaced by /api/auth/me. */
   provider?: string | null;

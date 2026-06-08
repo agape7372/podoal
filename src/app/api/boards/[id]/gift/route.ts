@@ -1,13 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { getCurrentUserId, authResponse } from '@/lib/auth';
 import { sendPushToUser } from '@/lib/push';
-
-const userProfileSelect = {
-  id: true,
-  name: true,
-  email: true,
-  avatar: true,
-};
+import { PUBLIC_USER_SELECT as userProfileSelect } from '@/lib/userSelect';
 
 export async function POST(request: Request, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;

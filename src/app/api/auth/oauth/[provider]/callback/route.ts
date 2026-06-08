@@ -62,7 +62,7 @@ export async function GET(request: NextRequest, props: { params: Promise<{ provi
   // 보낸 ?guest=1 은 신뢰하지 않는다: 실제 OAuth가 구성된 경우 위조된 guest=1 로
   // provider 로그인을 우회할 수 없어야 한다. 봇 대량가입 방지를 위해 IP 레이트리밋 적용.
   if (!isRealOAuth(provider)) {
-    const blocked = guestLimit(clientKey(request));
+    const blocked = await guestLimit(clientKey(request));
     if (blocked) return blocked;
     const guest = generateGuestIdentity(provider);
     return await finalizeLogin(origin, provider, guest, { guest: true });

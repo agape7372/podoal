@@ -135,7 +135,6 @@ export default function FriendDetailPage() {
               <h1 className="font-display text-xl font-bold text-grape-700 truncate">{friend.name}</h1>
               {isFavorite && <EmojiIcon emoji="⭐" size={18} />}
             </div>
-            <p className="text-sm text-warm-sub truncate">{friend.email}</p>
             <p className="text-xs text-warm-sub mt-1 tabular-nums">
               포도판 {boards.length}개 · 진행중 {activeBoards.length}개 · 완료 {completedBoards.length}개
             </p>

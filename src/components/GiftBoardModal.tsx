@@ -91,7 +91,6 @@ export default function GiftBoardModal({ boardTitle, onGift, onClose }: GiftBoar
                 <Avatar avatar={friend.user.avatar} size="md" />
                 <div className="flex-1 text-left">
                   <p className="font-semibold text-sm">{friend.user.name}</p>
-                  <p className="text-xs text-warm-sub">{friend.user.email}</p>
                 </div>
                 {selectedFriend === friend.user.id && (
                   <EmojiIcon emoji="✅" size={20} />

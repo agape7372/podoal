@@ -13,7 +13,7 @@ export async function GET(request: Request) {
   const userId = await getCurrentUserId();
   if (!userId) return authResponse('Unauthorized');
 
-  const blocked = searchLimit(`${userId}:${clientKey(request)}`);
+  const blocked = await searchLimit(`${userId}:${clientKey(request)}`);
   if (blocked) return blocked;
 
   try {
