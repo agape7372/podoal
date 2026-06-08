@@ -6,10 +6,10 @@ import { api } from '@/lib/api';
 import FriendCard from '@/components/FriendCard';
 import CheerModal from '@/components/CheerModal';
 import ConfirmDialog from '@/components/ConfirmDialog';
-import ClayButton from '@/components/ClayButton';
 import ClayInput from '@/components/ClayInput';
+import Avatar from '@/components/Avatar';
 import EmojiIcon from '@/components/EmojiIcon';
-import type { FriendInfo } from '@/types';
+import type { FriendInfo, SearchedUser } from '@/types';
 import { feedbackSuccess, feedbackTap } from '@/lib/feedback';
 import { DEV_TOOLS } from '@/lib/devtools';
 
@@ -19,10 +19,11 @@ export default function FriendsPage() {
   const [pending, setPending] = useState<FriendInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
-  const [addEmail, setAddEmail] = useState('');
-  const [addError, setAddError] = useState('');
-  const [addSuccess, setAddSuccess] = useState('');
-  const [adding, setAdding] = useState(false);
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<SearchedUser[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [searchError, setSearchError] = useState('');
+  const [requested, setRequested] = useState<Set<string>>(new Set());
   const [cheerTarget, setCheerTarget] = useState<{ id: string; name: string } | null>(null);
   const [tab, setTab] = useState<'friends' | 'favorite'>('friends');
   const [removeTarget, setRemoveTarget] = useState<string | null>(null);
@@ -44,20 +45,41 @@ export default function FriendsPage() {
 
   useEffect(() => { fetchFriends(); }, [fetchFriends]);
 
-  const handleAdd = async () => {
-    if (!addEmail.trim()) return;
-    setAdding(true);
-    setAddError('');
-    setAddSuccess('');
+  // 디바운스 닉네임/이름 검색. 경합은 AbortController로 취소.
+  useEffect(() => {
+    const q = query.trim();
+    if (!q) { setResults([]); setSearchError(''); setSearching(false); return; }
+    setSearching(true);
+    const ctrl = new AbortController();
+    const t = setTimeout(async () => {
+      try {
+        const data = await api<SearchedUser[]>(
+          `/api/friends/search?q=${encodeURIComponent(q)}`,
+          { signal: ctrl.signal },
+        );
+        setResults(data);
+        setSearchError('');
+      } catch (e) {
+        if ((e as Error).name !== 'AbortError') {
+          setSearchError(e instanceof Error ? e.message : '검색에 실패했어요');
+        }
+      } finally {
+        setSearching(false);
+      }
+    }, 250);
+    return () => { clearTimeout(t); ctrl.abort(); };
+  }, [query]);
+
+  const handleRequest = async (u: SearchedUser) => {
+    setRequested((prev) => new Set(prev).add(u.id)); // optimistic '요청됨'
+    setSearchError('');
     try {
-      await api('/api/friends', { method: 'POST', json: { email: addEmail.trim() } });
+      await api('/api/friends', { method: 'POST', json: { targetId: u.id } });
       feedbackSuccess();
-      setAddSuccess('친구 요청을 보냈어요.');
-      setAddEmail('');
     } catch (e) {
-      setAddError(e instanceof Error ? e.message : '요청 실패');
+      setRequested((prev) => { const n = new Set(prev); n.delete(u.id); return n; });
+      setSearchError(e instanceof Error ? e.message : '친구 요청에 실패했어요');
     }
-    setAdding(false);
   };
 
   const handleSeed = async () => {
@@ -140,23 +162,61 @@ export default function FriendsPage() {
     <div className="pb-4">
       <h1 className="font-display text-2xl font-bold text-grape-700 mb-6 inline-flex items-center gap-1.5"><EmojiIcon emoji="👥" size={24} /> 친구</h1>
 
-      {/* Add friend */}
+      {/* Add friend — 이름/이메일 검색 */}
       <div className="clay p-4 mb-6">
         <p className="text-sm font-medium text-warm-text mb-3">친구 추가하기</p>
-        <div className="flex gap-2">
+        <div className="relative">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-warm-sub pointer-events-none">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <circle cx="11" cy="11" r="7" />
+              <path d="m21 21-4.3-4.3" />
+            </svg>
+          </span>
           <ClayInput
-            placeholder="이메일 주소 입력"
-            type="email"
-            value={addEmail}
-            onChange={(e) => { setAddEmail(e.target.value); setAddError(''); setAddSuccess(''); }}
-            onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
+            type="search"
+            placeholder="이름 또는 이메일로 검색"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="pl-9"
           />
-          <ClayButton size="sm" onClick={handleAdd} loading={adding} className="shrink-0">
-            추가
-          </ClayButton>
         </div>
-        {addError && <p className="text-grape-700 text-xs mt-2">{addError}</p>}
-        {addSuccess && <p className="text-leaf-700 text-xs mt-2">{addSuccess}</p>}
+
+        {searchError && <p className="text-grape-700 text-xs mt-2">{searchError}</p>}
+
+        {query.trim() && (
+          <div className="mt-3 space-y-2">
+            {searching && results.length === 0 ? (
+              <p className="text-xs text-warm-sub py-2">검색 중…</p>
+            ) : results.length === 0 ? (
+              <p className="text-xs text-warm-sub py-2">검색 결과가 없어요. 이름을 다시 확인해 보세요.</p>
+            ) : (
+              results.map((u) => {
+                const requestedNow = requested.has(u.id) || u.status === 'pending_sent';
+                const label =
+                  u.status === 'accepted' ? '친구'
+                    : u.status === 'pending_received' ? '요청받음'
+                      : requestedNow ? '요청됨'
+                        : '친구요청';
+                const disabled = u.status !== 'none' || requestedNow;
+                return (
+                  <div key={u.id} className="flex items-center gap-3 clay-sm p-2.5">
+                    <Avatar avatar={u.avatar} size="md" />
+                    <span className="flex-1 min-w-0 text-sm font-medium text-warm-text truncate">{u.name}</span>
+                    <button
+                      onClick={() => !disabled && handleRequest(u)}
+                      disabled={disabled}
+                      className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
+                        disabled ? 'text-warm-sub bg-warm-border/40' : 'text-white bg-grape-600 clay-button'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        )}
       </div>
 
       {/* DEV-only: one-tap test friends + boards for experimenting with social features */}
@@ -227,7 +287,7 @@ export default function FriendsPage() {
           <p className="text-warm-sub">
             {tab === 'favorite' ? '즐겨찾기한 친구가 없어요' : '아직 친구가 없어요'}
           </p>
-          <p className="text-xs text-warm-sub mt-1">이메일로 친구를 추가해 보세요!</p>
+          <p className="text-xs text-warm-sub mt-1">이름으로 친구를 검색해 보세요!</p>
         </div>
       ) : (
         <div className="space-y-2">

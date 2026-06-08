@@ -68,6 +68,17 @@ export interface FriendInfo {
   createdAt: string;
 }
 
+/** Relationship of a search result to the current user (drives the action button). */
+export type SearchStatus = 'none' | 'pending_sent' | 'pending_received' | 'accepted';
+
+/** A user surfaced by /api/friends/search. Email is intentionally NOT returned (PII). */
+export interface SearchedUser {
+  id: string;
+  name: string;
+  avatar: string;
+  status: SearchStatus;
+}
+
 export interface MessageInfo {
   id: string;
   sender: UserProfile;

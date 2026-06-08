@@ -27,25 +27,54 @@ export async function GET(request: Request) {
       );
     }
 
+    const q = query.trim();
+    // 이름 또는 이메일 부분일치(대소문자 무시). 이메일로도 찾을 수 있지만 응답엔 email을 담지 않는다(PII/enumeration 방지).
     const users = await prisma.user.findMany({
       where: {
-        email: {
-          contains: query,
-        },
-        NOT: {
-          id: userId,
-        },
+        AND: [
+          { NOT: { id: userId } },
+          {
+            OR: [
+              { name: { contains: q, mode: 'insensitive' } },
+              { email: { contains: q, mode: 'insensitive' } },
+            ],
+          },
+        ],
       },
       select: {
         id: true,
         name: true,
-        email: true,
         avatar: true,
       },
       take: 10,
     });
 
-    return NextResponse.json(users);
+    // 각 결과의 친구관계 상태를 라벨링 → UI가 버튼(친구요청/요청됨/요청받음/친구)을 분기.
+    const ids = users.map((u) => u.id);
+    const rels = ids.length
+      ? await prisma.friendship.findMany({
+          where: {
+            OR: [
+              { requesterId: userId, receiverId: { in: ids } },
+              { requesterId: { in: ids }, receiverId: userId },
+            ],
+          },
+          select: { requesterId: true, receiverId: true, status: true },
+        })
+      : [];
+
+    const statusFor = (otherId: string): 'none' | 'pending_sent' | 'pending_received' | 'accepted' => {
+      const rel = rels.find(
+        (r) =>
+          (r.requesterId === userId && r.receiverId === otherId) ||
+          (r.requesterId === otherId && r.receiverId === userId),
+      );
+      if (!rel) return 'none';
+      if (rel.status === 'accepted') return 'accepted';
+      return rel.requesterId === userId ? 'pending_sent' : 'pending_received';
+    };
+
+    return NextResponse.json(users.map((u) => ({ ...u, status: statusFor(u.id) })));
   } catch (error) {
     console.error('Failed to search users:', error);
     return NextResponse.json(

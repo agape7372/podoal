@@ -74,18 +74,20 @@ export async function POST(request: Request) {
   if (!userId) return authResponse('Unauthorized');
 
   try {
-    const { email } = await request.json();
+    const { email, targetId } = await request.json();
 
-    if (!email) {
+    // 닉네임 검색 결과는 id를 들고 있어 targetId로 바로 요청한다. email 경로도 보존(non-breaking).
+    let targetUser;
+    if (targetId) {
+      targetUser = await prisma.user.findUnique({ where: { id: targetId } });
+    } else if (email) {
+      targetUser = await prisma.user.findUnique({ where: { email } });
+    } else {
       return NextResponse.json(
-        { error: 'Email is required' },
+        { error: 'Email or targetId is required' },
         { status: 400 }
       );
     }
-
-    const targetUser = await prisma.user.findUnique({
-      where: { email },
-    });
 
     if (!targetUser) {
       return NextResponse.json(
