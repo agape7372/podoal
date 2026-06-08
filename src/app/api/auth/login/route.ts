@@ -12,7 +12,7 @@ const loginLimit = rateLimit({
 
 export async function POST(request: NextRequest) {
   try {
-    const blocked = loginLimit(clientKey(request));
+    const blocked = await loginLimit(clientKey(request));
     if (blocked) return blocked;
 
     const body = await request.json();

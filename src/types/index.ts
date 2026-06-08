@@ -5,7 +5,8 @@ export type FriendStatus = 'pending' | 'accepted';
 export interface UserProfile {
   id: string;
   name: string;
-  email: string;
+  /** Omitted from responses about *other* users (PII) — present only for the requester (auth/me, profile). */
+  email?: string;
   avatar: string;
   /** null = email account; "google"/"kakao"/"naver" (+ "_guest" fallback) = OAuth. Optional: only surfaced by /api/auth/me. */
   provider?: string | null;
@@ -66,6 +67,17 @@ export interface FriendInfo {
   isFavorite: boolean;
   status: FriendStatus;
   createdAt: string;
+}
+
+/** Relationship of a search result to the current user (drives the action button). */
+export type SearchStatus = 'none' | 'pending_sent' | 'pending_received' | 'accepted';
+
+/** A user surfaced by /api/friends/search. Email is intentionally NOT returned (PII). */
+export interface SearchedUser {
+  id: string;
+  name: string;
+  avatar: string;
+  status: SearchStatus;
 }
 
 export interface MessageInfo {

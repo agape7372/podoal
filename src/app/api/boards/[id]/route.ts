@@ -128,9 +128,22 @@ export async function PATCH(request: Request, props: { params: Promise<{ id: str
   }
 
   const body = await request.json().catch(() => ({}));
-  const data: { allowFriendPlant?: boolean } = {};
+  const data: { allowFriendPlant?: boolean; title?: string; description?: string } = {};
   if (typeof body?.allowFriendPlant === 'boolean') {
     data.allowFriendPlant = body.allowFriendPlant;
+  }
+  // 제목/설명 편집 — POST(boards/route.ts)와 동일 검증. stripTitleEmoji는 표시 전용이라 저장경로에 미적용(raw 저장).
+  if (typeof body?.title === 'string') {
+    if (body.title.trim().length === 0 || body.title.length > 80) {
+      return authResponse('제목은 1~80자여야 합니다.', 400);
+    }
+    data.title = body.title;
+  }
+  if (typeof body?.description === 'string') {
+    if (body.description.length > 200) {
+      return authResponse('설명은 200자 이하여야 합니다.', 400);
+    }
+    data.description = body.description;
   }
   if (Object.keys(data).length === 0) {
     return authResponse('No valid fields to update', 400);

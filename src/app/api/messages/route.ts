@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { PUBLIC_USER_SELECT } from '@/lib/userSelect';
 import { getCurrentUserId, authResponse } from '@/lib/auth';
 import { clientKey, rateLimit } from '@/lib/rateLimit';
 import { sendPushToUser } from '@/lib/push';
@@ -15,7 +16,7 @@ export async function GET() {
       },
       include: {
         sender: {
-          select: { id: true, name: true, email: true, avatar: true },
+          select: PUBLIC_USER_SELECT,
         },
       },
       orderBy: { createdAt: 'desc' },
@@ -45,7 +46,7 @@ export async function POST(request: Request) {
   const userId = await getCurrentUserId();
   if (!userId) return authResponse('Unauthorized');
 
-  const blocked = sendMessageLimit(clientKey(request));
+  const blocked = await sendMessageLimit(clientKey(request));
   if (blocked) return blocked;
 
   try {
@@ -130,7 +131,7 @@ export async function POST(request: Request) {
       },
       include: {
         sender: {
-          select: { id: true, name: true, email: true, avatar: true },
+          select: PUBLIC_USER_SELECT,
         },
       },
     });

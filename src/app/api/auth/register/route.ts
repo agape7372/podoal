@@ -12,7 +12,7 @@ const registerLimit = rateLimit({
 
 export async function POST(request: NextRequest) {
   try {
-    const blocked = registerLimit(clientKey(request));
+    const blocked = await registerLimit(clientKey(request));
     if (blocked) return blocked;
 
     const body = await request.json();

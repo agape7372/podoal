@@ -1,23 +1,41 @@
 'use client';
 
 import { usePathname, useRouter } from 'next/navigation';
+import { useMemo } from 'react';
 import { useAppStore } from '@/lib/store';
 import { feedbackTap } from '@/lib/feedback';
 
 // Color-illustration icons (Microsoft Fluent Emoji, MIT) — unified with the
 // profile grape (/avatars/grape.svg). 만들기 reuses the profile grape itself.
+// `owns`: 각 탭이 소유하는 라우트 prefix 목록. 가장 긴(구체적) 매치가 활성탭이 되어
+// /board/create → 만들기, /board/<id> → 홈, 더보기 하위 7개 → 더보기로 귀속된다.
 const navItems = [
-  { path: '/home', icon: '/icons/nav/home.svg', label: '홈' },
-  { path: '/board/create', icon: '/avatars/grape.svg', label: '만들기' },
-  { path: '/relay', icon: '/icons/nav/relay.svg', label: '릴레이' },
-  { path: '/winery', icon: '/icons/nav/winery.svg', label: '와이너리' },
-  { path: '/more', icon: '/icons/nav/more.svg', label: '더보기', badge: 'unread' },
+  { path: '/home', icon: '/icons/nav/home.svg', label: '홈', owns: ['/home', '/board', '/profile'] },
+  { path: '/board/create', icon: '/avatars/grape.svg', label: '만들기', owns: ['/board/create'] },
+  { path: '/relay', icon: '/icons/nav/relay.svg', label: '릴레이', owns: ['/relay'] },
+  { path: '/winery', icon: '/icons/nav/winery.svg', label: '와이너리', owns: ['/winery'] },
+  { path: '/more', icon: '/icons/nav/more.svg', label: '더보기', badge: 'unread', owns: ['/more', '/friends', '/messages', '/stats', '/vine', '/settings', '/notifications', '/sound-test'] },
 ];
 
 export default function Navigation() {
   const pathname = usePathname();
   const router = useRouter();
   const unreadCount = useAppStore((s) => s.unreadCount);
+
+  // 세그먼트 경계를 지키며(p===pre || p.startsWith(pre+'/')) owns 중 최장 prefix를 가진 탭을 활성화.
+  // /winery 가 /winery-x 류를 오매칭하지 않고, 어디에도 안 걸리면 무탭(null)으로 안전 폴백.
+  const activePath = useMemo(() => {
+    const segMatch = (p: string, pre: string) => p === pre || p.startsWith(pre + '/');
+    let best: { path: string; len: number } | null = null;
+    for (const item of navItems) {
+      for (const pre of item.owns) {
+        if (segMatch(pathname, pre) && (!best || pre.length > best.len)) {
+          best = { path: item.path, len: pre.length };
+        }
+      }
+    }
+    return best?.path ?? null;
+  }, [pathname]);
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 pointer-events-none bottom-nav">
@@ -27,7 +45,7 @@ export default function Navigation() {
           style={{ borderRadius: '28px' }}
         >
           {navItems.map((item) => {
-            const isActive = pathname.startsWith(item.path);
+            const isActive = item.path === activePath;
             return (
               <button
                 key={item.path}

@@ -256,7 +256,12 @@ function CreateBoardInner() {
             <ClayButton variant="ghost" onClick={() => setStep(1)} fullWidth>
               ← 이전
             </ClayButton>
-            <ClayButton fullWidth onClick={() => setStep(3)}>
+            <ClayButton
+              fullWidth
+              // 숫자 직접입력 중 탭하면 input blur(commit)를 click보다 먼저 강제해 1탭으로 진행되게 한다.
+              onPointerDown={() => (document.activeElement as HTMLElement | null)?.blur?.()}
+              onClick={() => setStep(3)}
+            >
               다음 →
             </ClayButton>
           </div>

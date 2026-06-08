@@ -5,12 +5,14 @@ import { api } from '@/lib/api';
 import { useAppStore } from '@/lib/store';
 import Avatar from '@/components/Avatar';
 import EmojiIcon from '@/components/EmojiIcon';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import type { MessageInfo } from '@/types';
 
 export default function MessagesPage() {
   const [messages, setMessages] = useState<MessageInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const setUnreadCount = useAppStore((s) => s.setUnreadCount);
 
   const fetchMessages = useCallback(async () => {
@@ -45,6 +47,26 @@ export default function MessagesPage() {
         prev.map((m) => (m.id === id ? { ...m, isRead: false } : m))
       );
       setUnreadCount(messages.filter((m) => !m.isRead).length);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    const idx = messages.findIndex((m) => m.id === id);
+    if (idx === -1) return;
+    const removed = messages[idx];
+    // Optimistic: remove immediately; restore at the original index on failure.
+    setMessages((prev) => prev.filter((m) => m.id !== id));
+    // 안 읽은 메시지만 글로벌 배지(unreadCount)에서 차감. 최신값은 store에서 직접 읽어 stale 클로저 회피.
+    if (!removed.isRead) setUnreadCount(useAppStore.getState().unreadCount - 1);
+    try {
+      await api(`/api/messages/${id}`, { method: 'DELETE' });
+    } catch {
+      setMessages((prev) => {
+        const next = [...prev];
+        next.splice(Math.min(idx, next.length), 0, removed);
+        return next;
+      });
+      if (!removed.isRead) setUnreadCount(useAppStore.getState().unreadCount + 1);
     }
   };
 
@@ -103,42 +125,68 @@ export default function MessagesPage() {
       ) : (
         <div className="space-y-2">
           {messages.map((msg) => (
-            <button
-              key={msg.id}
-              onClick={() => !msg.isRead && handleMarkRead(msg.id)}
-              className={`
-                w-full clay-sm p-4 text-left transition-all
-                ${typeBg(msg.type)}
-                ${!msg.isRead ? 'ring-2 ring-grape-300/50' : 'opacity-80'}
-              `}
-            >
-              <div className="flex items-start gap-3">
-                <Avatar avatar={msg.sender.avatar} size="md" />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <span className="font-semibold text-sm text-warm-text">
-                      {msg.sender.name}
-                    </span>
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-grape-100 text-grape-600">
-                      {typeLabel(msg.type)}
-                    </span>
-                    {!msg.isRead && (
-                      <span className="w-2 h-2 rounded-full bg-grape-500" />
-                    )}
+            <div key={msg.id} className="relative">
+              <button
+                onClick={() => !msg.isRead && handleMarkRead(msg.id)}
+                className={`
+                  w-full clay-sm p-4 pr-11 text-left transition-all
+                  ${typeBg(msg.type)}
+                  ${!msg.isRead ? 'ring-2 ring-grape-300/50' : 'opacity-80'}
+                `}
+              >
+                <div className="flex items-start gap-3">
+                  <Avatar avatar={msg.sender.avatar} size="md" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span className="font-semibold text-sm text-warm-text">
+                        {msg.sender.name}
+                      </span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-grape-100 text-grape-600">
+                        {typeLabel(msg.type)}
+                      </span>
+                      {!msg.isRead && (
+                        <span className="w-2 h-2 rounded-full bg-grape-500" />
+                      )}
+                    </div>
+                    <p className="text-sm text-warm-text">
+                      <EmojiIcon emoji={msg.emoji} size={16} className="mr-1" />
+                      {msg.content}
+                    </p>
+                    <p className="text-xs text-warm-sub mt-1">
+                      {formatTime(msg.createdAt)}
+                    </p>
                   </div>
-                  <p className="text-sm text-warm-text">
-                    <EmojiIcon emoji={msg.emoji} size={16} className="mr-1" />
-                    {msg.content}
-                  </p>
-                  <p className="text-xs text-warm-sub mt-1">
-                    {formatTime(msg.createdAt)}
-                  </p>
                 </div>
-              </div>
-            </button>
+              </button>
+              {/* 삭제 버튼은 카드 button의 형제(중첩 X) — 클릭이 markRead로 버블되지 않는다. */}
+              <button
+                onClick={() => setConfirmDeleteId(msg.id)}
+                aria-label="메시지 삭제"
+                className="absolute top-2.5 right-2.5 p-1.5 rounded-full text-warm-sub hover:text-rose-500 hover:bg-rose-50 transition-colors"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6" />
+                  <path d="M10 11v6M14 11v6" />
+                </svg>
+              </button>
+            </div>
           ))}
         </div>
       )}
+
+      <ConfirmDialog
+        open={confirmDeleteId !== null}
+        title="메시지를 삭제할까요?"
+        description="삭제한 메시지는 복구할 수 없어요."
+        confirmLabel="삭제"
+        destructive
+        onConfirm={() => {
+          const id = confirmDeleteId;
+          setConfirmDeleteId(null);
+          if (id) handleDelete(id);
+        }}
+        onCancel={() => setConfirmDeleteId(null)}
+      />
     </div>
   );
 }

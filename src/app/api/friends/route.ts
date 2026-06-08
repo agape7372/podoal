@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { PUBLIC_USER_SELECT } from '@/lib/userSelect';
 import { getCurrentUserId, authResponse } from '@/lib/auth';
 
 export async function GET() {
@@ -17,10 +18,10 @@ export async function GET() {
       },
       include: {
         requester: {
-          select: { id: true, name: true, email: true, avatar: true },
+          select: PUBLIC_USER_SELECT,
         },
         receiver: {
-          select: { id: true, name: true, email: true, avatar: true },
+          select: PUBLIC_USER_SELECT,
         },
       },
     });
@@ -46,7 +47,7 @@ export async function GET() {
       },
       include: {
         requester: {
-          select: { id: true, name: true, email: true, avatar: true },
+          select: PUBLIC_USER_SELECT,
         },
       },
     });
@@ -74,18 +75,20 @@ export async function POST(request: Request) {
   if (!userId) return authResponse('Unauthorized');
 
   try {
-    const { email } = await request.json();
+    const { email, targetId } = await request.json();
 
-    if (!email) {
+    // 닉네임 검색 결과는 id를 들고 있어 targetId로 바로 요청한다. email 경로도 보존(non-breaking).
+    let targetUser;
+    if (targetId) {
+      targetUser = await prisma.user.findUnique({ where: { id: targetId } });
+    } else if (email) {
+      targetUser = await prisma.user.findUnique({ where: { email } });
+    } else {
       return NextResponse.json(
-        { error: 'Email is required' },
+        { error: 'Email or targetId is required' },
         { status: 400 }
       );
     }
-
-    const targetUser = await prisma.user.findUnique({
-      where: { email },
-    });
 
     if (!targetUser) {
       return NextResponse.json(
@@ -125,7 +128,7 @@ export async function POST(request: Request) {
       },
       include: {
         receiver: {
-          select: { id: true, name: true, email: true, avatar: true },
+          select: PUBLIC_USER_SELECT,
         },
       },
     });

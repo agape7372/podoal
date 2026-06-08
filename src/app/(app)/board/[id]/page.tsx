@@ -10,6 +10,7 @@ import GiftBoardModal from '@/components/GiftBoardModal';
 import GiftUnboxModal from '@/components/GiftUnboxModal';
 import SurpriseRevealModal from '@/components/SurpriseRevealModal';
 import MidRewardModal from '@/components/MidRewardModal';
+import EditBoardInfoModal from '@/components/EditBoardInfoModal';
 import RewardRevealModal from '@/components/RewardRevealModal';
 import ShareCardModal from '@/components/ShareCardModal';
 import CapsuleModal from '@/components/CapsuleModal';
@@ -33,6 +34,7 @@ export default function BoardDetailPage() {
   const [deleting, setDeleting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showEditInfo, setShowEditInfo] = useState(false);
   // Burst counter for the shared <Confetti>. Bumped both when a fill unlocks a
   // reward (via GrapeBoard's onCelebrate) and when a reward is opened.
   const [confettiTrigger, setConfettiTrigger] = useState(0);
@@ -166,6 +168,20 @@ export default function BoardDetailPage() {
       await api(`/api/boards/${id}`, { method: 'PATCH', json: { allowFriendPlant: next } });
     } catch {
       setBoard((b) => (b ? { ...b, allowFriendPlant: !next } : b)); // rollback
+    }
+  };
+
+  const handleEditInfo = async (next: { title: string; description: string }) => {
+    const prev = board;
+    setBoard((b) => (b ? { ...b, ...next } : b)); // optimistic
+    try {
+      await api(`/api/boards/${id}`, { method: 'PATCH', json: next });
+      setErrorMessage(null);
+    } catch (err) {
+      setBoard(prev); // 전체 스냅샷 롤백
+      const msg = err instanceof Error ? err.message : '수정에 실패했어요';
+      setErrorMessage(`${msg} — 잠시 후 다시 시도해주세요.`);
+      throw err; // 모달이 열린 채 자체 에러를 표시하도록 재던짐
     }
   };
 
@@ -345,7 +361,18 @@ export default function BoardDetailPage() {
 
       {/* Board info */}
       <div className="text-center mb-6">
-        <h1 className="font-display text-2xl font-bold text-grape-700 mb-1">{stripTitleEmoji(board.title)}</h1>
+        <div className="flex items-center justify-center gap-1.5 mb-1">
+          <h1 className="font-display text-2xl font-bold text-grape-700">{stripTitleEmoji(board.title)}</h1>
+          {isOwner && (
+            <button
+              onClick={() => { feedbackTap(); setShowEditInfo(true); }}
+              aria-label="제목·설명 수정"
+              className="text-warm-sub hover:text-grape-700 p-1 transition-colors"
+            >
+              <EmojiIcon emoji="✏️" size={15} />
+            </button>
+          )}
+        </div>
         {board.description && (
           <p className="text-sm text-warm-sub mb-2">{board.description}</p>
         )}
@@ -544,6 +571,16 @@ export default function BoardDetailPage() {
           boardTitle={stripTitleEmoji(board.title)}
           onGift={handleGift}
           onClose={() => setShowGift(false)}
+        />
+      )}
+
+      {/* Owner: edit board title/description */}
+      {showEditInfo && (
+        <EditBoardInfoModal
+          initialTitle={board.title}
+          initialDescription={board.description ?? ''}
+          onSave={handleEditInfo}
+          onClose={() => setShowEditInfo(false)}
         />
       )}
     </div>

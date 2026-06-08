@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { PUBLIC_USER_SELECT } from '@/lib/userSelect';
 import { getCurrentUserId, authResponse } from '@/lib/auth';
 
 export async function PATCH(request: Request, props: { params: Promise<{ id: string }> }) {
@@ -42,10 +43,10 @@ export async function PATCH(request: Request, props: { params: Promise<{ id: str
         data: { status: 'accepted' },
         include: {
           requester: {
-            select: { id: true, name: true, email: true, avatar: true },
+            select: PUBLIC_USER_SELECT,
           },
           receiver: {
-            select: { id: true, name: true, email: true, avatar: true },
+            select: PUBLIC_USER_SELECT,
           },
         },
       });
@@ -66,10 +67,10 @@ export async function PATCH(request: Request, props: { params: Promise<{ id: str
         data: { isFavorite: !friendship.isFavorite },
         include: {
           requester: {
-            select: { id: true, name: true, email: true, avatar: true },
+            select: PUBLIC_USER_SELECT,
           },
           receiver: {
-            select: { id: true, name: true, email: true, avatar: true },
+            select: PUBLIC_USER_SELECT,
           },
         },
       });
