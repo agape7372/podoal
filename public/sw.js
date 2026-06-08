@@ -1,7 +1,7 @@
 // IMPORTANT: bump CACHE_VERSION whenever you change which assets you want to
 // invalidate on the next deploy. The activate handler deletes every cache
 // whose name doesn't match the current value, so users get a fresh shell.
-const CACHE_VERSION = '2026-06-07-all-features';
+const CACHE_VERSION = '2026-06-08-push-tag';
 const CACHE_NAME = `podoal-${CACHE_VERSION}`;
 const APP_SHELL = ['/', '/home', '/manifest.json'];
 
@@ -115,6 +115,9 @@ self.addEventListener('push', (event) => {
       icon: data.icon,
       badge: '/icons/icon.svg',
       vibrate: [100, 50, 100],
+      // tag lets the server collapse repeats (e.g. the same reminder) into one
+      // OS toast instead of stacking. Absent tag → undefined → normal behavior.
+      tag: data.tag,
       data: data,
     })
   );
