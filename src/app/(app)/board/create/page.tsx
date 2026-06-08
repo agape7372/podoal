@@ -250,7 +250,7 @@ function CreateBoardInner() {
               )}
             </div>
           </div>
-          <p className="text-xs text-warm-light text-center">2~60알까지 자유롭게 설정할 수 있어요</p>
+          <p className="text-xs text-warm-sub text-center">2~60알까지 자유롭게 설정할 수 있어요</p>
 
           <div className="flex gap-3 mt-4">
             <ClayButton variant="ghost" onClick={() => setStep(1)} fullWidth>
@@ -272,7 +272,7 @@ function CreateBoardInner() {
       {step === 3 && (
         <div className="space-y-5 animate-fade-in">
           <p className="text-sm text-warm-sub">달성하면 받을 보상을 설정해요</p>
-          <p className="text-xs text-warm-light">달성 전까지 내용은 비밀이에요! <EmojiIcon emoji="🤫" size={13} /></p>
+          <p className="text-xs text-warm-sub">달성 전까지 내용은 비밀이에요! <EmojiIcon emoji="🤫" size={13} /></p>
 
           {/* Reward type */}
           <div className="flex gap-2">
@@ -318,7 +318,7 @@ function CreateBoardInner() {
             />
           </div>
 
-          <p className="text-xs text-warm-light">
+          <p className="text-xs text-warm-sub">
             <span className="text-grape-400 font-bold mr-0.5">*</span>만들어진 포도알을 꾹 눌러 중간 보상을 설정할 수 있어요!
           </p>
 

@@ -69,7 +69,7 @@ export default function WineryPage() {
     return (
       <div className="pb-4">
         <h1 className="font-display text-2xl font-bold text-grape-700 mb-6">
-          <span className="mr-1.5" aria-hidden="true">{'\u{1F3F0}'}</span>포도 와이너리
+          <EmojiIcon emoji="🏰" size={24} className="mr-1.5" />포도 와이너리
         </h1>
         <div className="text-center py-12">
           <p className="font-display text-base text-warm-text mb-1.5">불러오지 못했어요</p>
@@ -90,7 +90,7 @@ export default function WineryPage() {
   return (
     <div className="pb-4">
       <h1 className="font-display text-2xl font-bold text-grape-700 mb-6 animate-fade-in">
-        <span className="mr-1.5" aria-hidden="true">{'\u{1F3F0}'}</span>포도 와이너리
+        <EmojiIcon emoji="🏰" size={24} className="mr-1.5" />포도 와이너리
       </h1>
 
       {/* ─── Tier Display Section ──────────────────────────── */}
@@ -119,10 +119,7 @@ export default function WineryPage() {
           <h2 className="font-display text-xl font-bold text-grape-800 mb-1">
             {currentTier.name}
           </h2>
-          <span
-            className="inline-block px-3 py-0.5 rounded-full text-xs font-bold text-white"
-            style={{ background: 'linear-gradient(135deg, #9B7ED8, #7B5FB8)' }}
-          >
+          <span className="inline-block px-3 py-0.5 rounded-full text-xs font-bold text-white bg-gradient-to-br from-grape-700 to-grape-800">
             Lv.{currentTier.level}
           </span>
 

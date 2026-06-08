@@ -28,6 +28,8 @@ export default function FriendsPage() {
   const [tab, setTab] = useState<'friends' | 'favorite'>('friends');
   const [removeTarget, setRemoveTarget] = useState<string | null>(null);
   const [rejectTarget, setRejectTarget] = useState<string | null>(null);
+  const [removing, setRemoving] = useState(false);
+  const [rejecting, setRejecting] = useState(false);
   const [seeding, setSeeding] = useState(false);
   const [seedInfo, setSeedInfo] = useState('');
 
@@ -128,20 +130,32 @@ export default function FriendsPage() {
     }
   };
 
+  // Keep the dialog open with a spinner while the request is in flight (instead of
+  // closing optimistically), so a slow delete gives feedback and can't be double-fired.
   const confirmRemove = async () => {
-    if (!removeTarget) return;
+    if (!removeTarget || removing) return;
     const id = removeTarget;
-    setRemoveTarget(null);
-    await api(`/api/friends/${id}`, { method: 'DELETE' });
-    fetchFriends();
+    setRemoving(true);
+    try {
+      await api(`/api/friends/${id}`, { method: 'DELETE' });
+      await fetchFriends();
+    } finally {
+      setRemoving(false);
+      setRemoveTarget(null);
+    }
   };
 
   const confirmReject = async () => {
-    if (!rejectTarget) return;
+    if (!rejectTarget || rejecting) return;
     const id = rejectTarget;
-    setRejectTarget(null);
-    await api(`/api/friends/${id}`, { method: 'DELETE' });
-    fetchFriends();
+    setRejecting(true);
+    try {
+      await api(`/api/friends/${id}`, { method: 'DELETE' });
+      await fetchFriends();
+    } finally {
+      setRejecting(false);
+      setRejectTarget(null);
+    }
   };
 
   const handleSendCheer = async (message: string, emoji: string) => {
@@ -322,8 +336,9 @@ export default function FriendsPage() {
         description="삭제하면 서로의 포도판을 볼 수 없어요."
         confirmLabel="삭제"
         destructive
+        loading={removing}
         onConfirm={confirmRemove}
-        onCancel={() => setRemoveTarget(null)}
+        onCancel={() => { if (!removing) setRemoveTarget(null); }}
       />
 
       {/* Reject request confirm */}
@@ -332,8 +347,9 @@ export default function FriendsPage() {
         title="친구 요청을 거절할까요?"
         confirmLabel="거절"
         destructive
+        loading={rejecting}
         onConfirm={confirmReject}
-        onCancel={() => setRejectTarget(null)}
+        onCancel={() => { if (!rejecting) setRejectTarget(null); }}
       />
     </div>
   );

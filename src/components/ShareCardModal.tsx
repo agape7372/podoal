@@ -125,7 +125,7 @@ export default function ShareCardModal({ board, userName, onClose }: ShareCardMo
             </div>
           ) : error ? (
             <div className="text-center py-12">
-              <p className="text-sm text-red-400">{error}</p>
+              <p role="alert" className="text-sm text-rose-700">{error}</p>
             </div>
           ) : imageUrl ? (
             <img

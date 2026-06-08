@@ -19,13 +19,13 @@ interface DateGroup {
 
 const typeColors: Record<string, string> = {
   sticker: 'bg-grape-400',
-  board_complete: 'bg-green-400',
+  board_complete: 'bg-leaf-500',
   capsule_open: 'bg-grape-300',
 };
 
 const typeBgColors: Record<string, string> = {
   sticker: 'bg-grape-50/60',
-  board_complete: 'bg-emerald-50/60',
+  board_complete: 'bg-leaf-100/60',
   capsule_open: 'bg-grape-50/60',
 };
 
@@ -126,7 +126,7 @@ export default function VinePage() {
       </div>
 
       {/* Summary */}
-      <div className="clay-sm p-4 mb-6 bg-emerald-50/60 text-center">
+      <div className="clay-sm p-4 mb-6 bg-leaf-100/60 text-center">
         <p className="text-sm text-warm-text">
           최근 90일간 <span className="font-bold text-grape-600 tabular-nums">{timeline.length}</span>일 활동했어요
         </p>
