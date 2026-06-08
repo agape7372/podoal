@@ -77,7 +77,7 @@ export default function SettingsPage() {
               <div className="pl-1">
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-xs text-warm-sub">볼륨</span>
-                  <span className="text-xs text-grape-500 font-medium tabular-nums">
+                  <span className="text-xs text-grape-700 font-medium tabular-nums">
                     {Math.round(settings.soundVolume * 100)}%
                   </span>
                 </div>
@@ -103,7 +103,7 @@ export default function SettingsPage() {
                     <p className="text-xs text-warm-sub">{currentSound.name} - {currentSound.desc}</p>
                   </div>
                 </div>
-                <span className="text-warm-light text-sm">{showSoundPicker ? '▲' : '▼'}</span>
+                <span className="text-warm-sub text-sm">{showSoundPicker ? '▲' : '▼'}</span>
               </button>
             </>
           )}
@@ -246,7 +246,7 @@ export default function SettingsPage() {
                 <p className="text-xs text-warm-sub">방해금지, 리마인더, 카테고리별 설정</p>
               </div>
             </div>
-            <span className="text-warm-light text-sm">{'>'}</span>
+            <span className="text-warm-sub text-sm">{'>'}</span>
           </div>
         </button>
       </section>

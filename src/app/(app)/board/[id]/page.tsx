@@ -252,19 +252,43 @@ export default function BoardDetailPage() {
   };
 
   if (loading || !board) {
+    // Skeleton mirrors the owner layout (the common case): header → segmented bar →
+    // plant toggle → title/desc → grape bunch → reward chips, so content arrival
+    // doesn't shift the page. The grape area apes the teardrop bunch (3·4·3 + leaf).
     return (
       <div className="pb-4" aria-busy="true" aria-label="포도판 불러오는 중">
-        <div className="flex items-center justify-between mb-4">
+        {/* Header: back + delete */}
+        <div className="flex items-center justify-between mb-3">
           <div className="skeleton h-5 w-20" />
-          <div className="skeleton h-7 w-28" />
+          <div className="skeleton h-5 w-10" />
         </div>
-        <div className="skeleton h-7 w-40 mx-auto mb-6" />
+        {/* Segmented action bar (동결건조 · 선물 · 공유) */}
+        <div className="skeleton h-11 w-full rounded-clay mb-5" />
+        {/* Plant-gift toggle */}
+        <div className="skeleton h-[52px] w-full rounded-clay mb-5" />
+        {/* Title + description (centered) */}
+        <div className="skeleton h-7 w-40 mx-auto mb-2" />
+        <div className="skeleton h-4 w-28 mx-auto mb-6" />
+        {/* Grape bunch: progress + teardrop silhouette */}
         <div className="clay-float p-6 mb-6 flex flex-col items-center">
-          <div className="skeleton h-3 w-full mb-5" />
-          <div className="skeleton h-44 w-44 rounded-full" />
+          <div className="skeleton h-3 w-full mb-6" />
+          <div className="skeleton h-4 w-10 rounded-full mb-2" aria-hidden="true" />
+          <div className="flex flex-col items-center gap-1.5" aria-hidden="true">
+            {[3, 4, 3].map((n, ri) => (
+              <div key={ri} className="flex gap-1.5">
+                {Array.from({ length: n }).map((_, ci) => (
+                  <div key={ci} className="skeleton w-9 h-9 rounded-full" />
+                ))}
+              </div>
+            ))}
+          </div>
         </div>
-        <div className="skeleton h-20 w-full mb-3" />
-        <div className="skeleton h-16 w-full" />
+        {/* Reward chips */}
+        <div className="flex gap-2 justify-center">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="skeleton h-14 w-14 rounded-2xl" />
+          ))}
+        </div>
       </div>
     );
   }

@@ -9,6 +9,10 @@ interface ConfirmDialogProps {
   confirmLabel?: string;
   cancelLabel?: string;
   destructive?: boolean;
+  /** While true, the confirm button shows a spinner and both buttons / Esc / backdrop
+   *  are inert — the caller keeps the dialog open until its async action resolves.
+   *  Optional + defaults off, so existing call sites are unaffected. */
+  loading?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -24,6 +28,7 @@ export default function ConfirmDialog({
   confirmLabel = '확인',
   cancelLabel = '취소',
   destructive = false,
+  loading = false,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
@@ -33,11 +38,11 @@ export default function ConfirmDialog({
     if (!open) return;
     confirmRef.current?.focus();
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onCancel();
+      if (e.key === 'Escape' && !loading) onCancel();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [open, onCancel]);
+  }, [open, onCancel, loading]);
 
   if (!open) return null;
 
@@ -48,7 +53,11 @@ export default function ConfirmDialog({
       aria-modal="true"
       aria-labelledby="confirm-title"
     >
-      <div className="absolute inset-0 bg-warm-text/30" onClick={onCancel} aria-hidden="true" />
+      <div
+        className="absolute inset-0 bg-warm-text/30"
+        onClick={loading ? undefined : onCancel}
+        aria-hidden="true"
+      />
       <div className="relative clay-puffy bg-white w-full max-w-xs p-5 text-center animate-fade-in">
         <h2 id="confirm-title" className="font-display text-lg font-bold text-warm-text mb-1.5">
           {title}
@@ -57,18 +66,28 @@ export default function ConfirmDialog({
         <div className="flex gap-2.5 mt-2">
           <button
             onClick={onCancel}
-            className="clay-button flex-1 py-3 rounded-2xl text-sm font-semibold text-warm-sub"
+            disabled={loading}
+            className="clay-button flex-1 py-3 rounded-2xl text-sm font-semibold text-warm-sub disabled:opacity-50"
           >
             {cancelLabel}
           </button>
           <button
             ref={confirmRef}
             onClick={onConfirm}
-            className={`flex-1 py-3 rounded-2xl text-sm font-bold text-white border-[1.3px] border-warm-border clay-button ${
+            disabled={loading}
+            aria-busy={loading}
+            className={`flex-1 py-3 rounded-2xl text-sm font-bold text-white border-[1.3px] border-warm-border clay-button disabled:opacity-80 ${
               destructive ? 'bg-rose-500' : 'bg-grape-600'
             }`}
           >
-            {confirmLabel}
+            {loading ? (
+              <span
+                className="inline-block w-4 h-4 align-[-3px] rounded-full border-2 border-white/40 border-t-white animate-spin"
+                aria-hidden="true"
+              />
+            ) : (
+              confirmLabel
+            )}
           </button>
         </div>
       </div>

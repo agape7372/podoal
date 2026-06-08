@@ -6,10 +6,13 @@ interface HeatmapProps {
   data: { date: string; count: number }[];
 }
 
+// Levels chosen for adjacent-step luminance separation; the empty cell stays a
+// faint warm-border so "0 vs 1+" reads even for low-vision users. Color alone is
+// not the only cue — filled cells also carry an inset ring (WCAG 1.4.1).
 function getColorClass(count: number): string {
-  if (count === 0) return 'bg-warm-border/50';
-  if (count === 1) return 'bg-grape-200';
-  if (count <= 3) return 'bg-grape-300';
+  if (count === 0) return 'bg-warm-border/40';
+  if (count === 1) return 'bg-grape-300';
+  if (count <= 3) return 'bg-grape-400';
   if (count <= 6) return 'bg-grape-500';
   return 'bg-grape-700';
 }
@@ -17,11 +20,6 @@ function getColorClass(count: number): string {
 function formatDate(dateStr: string): string {
   const d = new Date(dateStr);
   return `${d.getMonth() + 1}/${d.getDate()}`;
-}
-
-function formatAriaLabel(dateStr: string, count: number): string {
-  const d = new Date(dateStr);
-  return `${d.getMonth() + 1}월 ${d.getDate()}일 ${count}개`;
 }
 
 export default function Heatmap({ data }: HeatmapProps) {
@@ -129,7 +127,7 @@ export default function Heatmap({ data }: HeatmapProps) {
           {/* Heatmap cells */}
           <div
             role="img"
-            aria-label="최근 90일 활동 히트맵"
+            aria-label="최근 90일 활동 히트맵, 일자별 채운 포도알 수"
             className="grid gap-[2px]"
             style={{
               gridTemplateColumns: `repeat(13, 12px)`,
@@ -145,12 +143,16 @@ export default function Heatmap({ data }: HeatmapProps) {
                 return <div key={idx} className="w-3 h-3" aria-hidden="true" />;
               }
 
+              // Inset ring on any active day = a non-color cue distinguishing
+              // "filled" from "empty" (the container is role="img", so a per-cell
+              // aria-label would be ignored by SR — the title is the hover tooltip).
               return (
                 <div
                   key={idx}
-                  className={`w-3 h-3 rounded-sm ${getColorClass(cell.count)} transition-colors`}
+                  className={`w-3 h-3 rounded-sm ${getColorClass(cell.count)}${
+                    cell.count > 0 ? ' ring-1 ring-inset ring-grape-900/10' : ''
+                  } transition-colors`}
                   title={`${formatDate(cell.date)}: ${cell.count}개`}
-                  aria-label={formatAriaLabel(cell.date, cell.count)}
                 />
               );
             })}
@@ -160,11 +162,11 @@ export default function Heatmap({ data }: HeatmapProps) {
         {/* Legend */}
         <div className="flex items-center justify-end gap-1.5 mt-2" aria-hidden="true">
           <span className="text-[9px] text-warm-sub">적음</span>
-          <div className="w-3 h-3 rounded-sm bg-warm-border/50" />
-          <div className="w-3 h-3 rounded-sm bg-grape-200" />
-          <div className="w-3 h-3 rounded-sm bg-grape-300" />
-          <div className="w-3 h-3 rounded-sm bg-grape-500" />
-          <div className="w-3 h-3 rounded-sm bg-grape-700" />
+          <div className="w-3 h-3 rounded-sm bg-warm-border/40" />
+          <div className="w-3 h-3 rounded-sm bg-grape-300 ring-1 ring-inset ring-grape-900/10" />
+          <div className="w-3 h-3 rounded-sm bg-grape-400 ring-1 ring-inset ring-grape-900/10" />
+          <div className="w-3 h-3 rounded-sm bg-grape-500 ring-1 ring-inset ring-grape-900/10" />
+          <div className="w-3 h-3 rounded-sm bg-grape-700 ring-1 ring-inset ring-grape-900/10" />
           <span className="text-[9px] text-warm-sub">많음</span>
         </div>
       </div>

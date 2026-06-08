@@ -47,7 +47,7 @@ function Chevron() {
       strokeWidth={2.2}
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="text-warm-light shrink-0"
+      className="text-warm-sub shrink-0"
       aria-hidden="true"
     >
       <path d="m9 6 6 6-6 6" />

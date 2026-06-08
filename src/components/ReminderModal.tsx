@@ -160,13 +160,13 @@ export default function ReminderModal({ reminder, boards, onSave, onClose }: Rem
               maxLength={100}
               className="clay-input"
             />
-            <p className="text-xs text-warm-light text-right mt-1">
+            <p className="text-xs text-warm-sub text-right mt-1">
               {message.length}/100
             </p>
           </div>
 
           {error && (
-            <p className="text-red-400 text-sm text-center">{error}</p>
+            <p role="alert" className="text-rose-700 text-sm text-center">{error}</p>
           )}
 
           {/* Buttons */}

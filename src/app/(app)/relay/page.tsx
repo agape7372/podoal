@@ -97,10 +97,11 @@ export default function RelayListPage() {
                   const isMyTurn = active?.userId === user?.id;
 
                   return (
-                    <div
+                    <button
+                      type="button"
                       key={relay.id}
                       onClick={() => { feedbackTap(); router.push(`/relay/${relay.id}`); }}
-                      className="clay p-4 cursor-pointer active:scale-[0.98] transition-transform"
+                      className="clay p-4 w-full text-left block active:scale-[0.98] transition-transform"
                     >
                       <div className="flex items-start justify-between mb-3">
                         <div>
@@ -170,7 +171,7 @@ export default function RelayListPage() {
                           />
                         </div>
                       </div>
-                    </div>
+                    </button>
                   );
                 })}
               </div>
@@ -195,10 +196,11 @@ export default function RelayListPage() {
               {showCompleted && (
                 <div className="space-y-3">
                   {completedRelays.map((relay) => (
-                    <div
+                    <button
+                      type="button"
                       key={relay.id}
                       onClick={() => router.push(`/relay/${relay.id}`)}
-                      className="clay p-4 bg-emerald-50/60 cursor-pointer active:scale-[0.98] transition-transform opacity-80"
+                      className="clay p-4 w-full text-left block bg-leaf-100/60 active:scale-[0.98] transition-transform opacity-80"
                     >
                       <div className="flex items-start justify-between mb-3">
                         <div>
@@ -228,7 +230,7 @@ export default function RelayListPage() {
                           </div>
                         ))}
                       </div>
-                    </div>
+                    </button>
                   ))}
                 </div>
               )}

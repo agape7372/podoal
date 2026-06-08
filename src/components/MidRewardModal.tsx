@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import ClayButton from './ClayButton';
 import ClayInput from './ClayInput';
+import ConfirmDialog from './ConfirmDialog';
 import EmojiIcon from './EmojiIcon';
 import { api } from '@/lib/api';
 import { feedbackSuccess } from '@/lib/feedback';
@@ -33,6 +34,7 @@ export default function MidRewardModal({ board, position, existingReward, onClos
   const [content, setContent] = useState(existingReward?.content ?? '');
   const [busy, setBusy] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [error, setError] = useState('');
 
   // The board GET blanks an unrevealed reward's content (kept secret until
@@ -107,6 +109,7 @@ export default function MidRewardModal({ board, position, existingReward, onClos
     } catch (e) {
       setError(e instanceof Error ? e.message : '보상을 삭제하지 못했어요');
       setDeleting(false);
+      setConfirmDelete(false);
     }
   };
 
@@ -183,7 +186,7 @@ export default function MidRewardModal({ board, position, existingReward, onClos
         {editing && (
           <button
             type="button"
-            onClick={remove}
+            onClick={() => setConfirmDelete(true)}
             disabled={busy || deleting}
             className="w-full text-center text-sm text-grape-700 mt-3 py-2 disabled:opacity-50"
           >
@@ -191,6 +194,17 @@ export default function MidRewardModal({ board, position, existingReward, onClos
           </button>
         )}
       </div>
+
+      <ConfirmDialog
+        open={confirmDelete}
+        title="이 보상을 삭제할까요?"
+        description="삭제하면 작성한 내용이 사라져요."
+        confirmLabel="삭제"
+        destructive
+        loading={deleting}
+        onConfirm={remove}
+        onCancel={() => { if (!deleting) setConfirmDelete(false); }}
+      />
     </div>
   );
 }

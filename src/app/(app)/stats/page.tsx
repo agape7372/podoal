@@ -189,7 +189,7 @@ export default function StatsPage() {
           </div>
 
           {/* Average daily */}
-          <div className="clay-sm p-5 mb-5 bg-emerald-50/60 text-center">
+          <div className="clay-sm p-5 mb-5 bg-leaf-100/60 text-center">
             <EmojiIcon emoji="📊" size={30} className="block mx-auto" />
             <p className="font-display text-2xl font-bold text-grape-600 mt-2 tabular-nums">{stats.averageDaily}</p>
             <p className="text-[10px] text-warm-sub mt-1">일평균 포도알 (최근 30일)</p>
@@ -241,7 +241,7 @@ function StatCard({ icon, label, value, color }: { icon: string; label: string; 
   const bgMap: Record<string, string> = {
     lavender: 'bg-grape-50/60',
     peach: 'bg-orange-50/60',
-    mint: 'bg-emerald-50/60',
+    mint: 'bg-leaf-100/60',
     pink: 'bg-pink-50/60',
     yellow: 'bg-amber-50/60',
     cream: 'bg-amber-50/60',

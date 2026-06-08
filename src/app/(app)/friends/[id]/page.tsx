@@ -166,7 +166,7 @@ export default function FriendDetailPage() {
 
       {/* Cheer sent feedback */}
       {cheerSent && (
-        <div className="clay-sm p-3 mb-4 bg-emerald-50/60 text-center animate-bounce-in">
+        <div className="clay-sm p-3 mb-4 bg-leaf-100/60 text-center animate-bounce-in">
           <span className="text-sm font-medium text-grape-600">
             <EmojiIcon emoji="💜" size={14} className="mr-0.5" />응원을 보냈어요!
           </span>
@@ -174,7 +174,7 @@ export default function FriendDetailPage() {
       )}
 
       {plantedFeedback && (
-        <div className="clay-sm p-3 mb-4 bg-emerald-50/60 text-center animate-bounce-in">
+        <div className="clay-sm p-3 mb-4 bg-leaf-100/60 text-center animate-bounce-in">
           <span className="text-sm font-medium text-grape-600">
             <EmojiIcon emoji="🎁" size={14} className="mr-0.5" />깜짝 선물을 숨겨놨어요!
           </span>
