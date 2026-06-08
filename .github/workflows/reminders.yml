@@ -1,0 +1,19 @@
+name: Reminders
+
+# Hobby 플랜은 Vercel Cron을 못 써서 GitHub Actions로 리마인더 엔드포인트를 주기 호출한다.
+# GitHub 스케줄 최소 간격은 5분(부하 시 더 지연될 수 있음). 라우트가 due-매칭
+# (time <= now + 당일 1회 dedupe)이라 5분 주기로도 각 리마인더가 설정시각 직후 1회 발송된다.
+# 활성화: repo Settings → Secrets and variables → Actions 에 CRON_SECRET 설정(Vercel env와 동일 값).
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger reminder dispatch
+        run: |
+          curl -fsS -X GET "https://podoal-rouge.vercel.app/api/cron/reminders" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
