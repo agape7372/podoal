@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { getCurrentUserId, authResponse } from '@/lib/auth';
 import { PUBLIC_USER_SELECT as userProfileSelect } from '@/lib/userSelect';
+import { validateRewards } from '@/lib/rewardValidation';
 
 export async function GET() {
   const userId = await getCurrentUserId();
@@ -37,6 +38,8 @@ export async function GET() {
     giftedTo: board.giftedTo,
     giftedFrom: board.giftedFrom,
     rewardCount: board._count.rewards,
+    order: board.order,
+    harvestedAt: board.harvestedAt,
   }));
 
   return Response.json({ boards: result });
@@ -64,39 +67,13 @@ export async function POST(request: Request) {
   if (!Number.isInteger(totalStickers) || totalStickers < 2 || totalStickers > 60) {
     return authResponse('포도알 개수는 2~60개 사이여야 합니다.', 400);
   }
-  if (!Array.isArray(rewards) || rewards.length === 0 || rewards.length > 10) {
-    return authResponse('보상은 1~10개여야 합니다.', 400);
-  }
   if (templateId !== undefined && templateId !== null && (typeof templateId !== 'string' || templateId.length > 64)) {
     return authResponse('잘못된 templateId 입니다.', 400);
   }
 
-  const VALID_REWARD_TYPES = new Set(['letter', 'giftcard', 'wish']);
-  for (const reward of rewards) {
-    if (
-      typeof reward.type !== 'string' ||
-      !VALID_REWARD_TYPES.has(reward.type) ||
-      typeof reward.title !== 'string' ||
-      reward.title.trim().length === 0 ||
-      reward.title.length > 80 ||
-      typeof reward.content !== 'string' ||
-      reward.content.length > 500 ||
-      typeof reward.triggerAt !== 'number'
-    ) {
-      return authResponse('보상 형식이 올바르지 않습니다.', 400);
-    }
-    if (!Number.isInteger(reward.triggerAt) || reward.triggerAt < 1 || reward.triggerAt > totalStickers) {
-      return authResponse(`triggerAt은 1~${totalStickers} 사이의 정수여야 합니다.`, 400);
-    }
-    if (reward.imageUrl !== undefined && (typeof reward.imageUrl !== 'string' || reward.imageUrl.length > 1024)) {
-      return authResponse('imageUrl이 올바르지 않습니다.', 400);
-    }
-  }
-
-  // Check for duplicate triggerAt values
-  const triggerAts = rewards.map((r: { triggerAt: number }) => r.triggerAt);
-  if (new Set(triggerAts).size !== triggerAts.length) {
-    return authResponse('각 보상의 triggerAt 값은 달라야 합니다.', 400);
+  const rewardError = validateRewards(rewards, totalStickers);
+  if (rewardError) {
+    return authResponse(rewardError, 400);
   }
 
   const board = await prisma.$transaction(async (tx) => {

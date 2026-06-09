@@ -12,9 +12,9 @@ import { feedbackTap } from '@/lib/feedback';
 const navItems = [
   { path: '/home', icon: '/icons/nav/home.svg', label: '홈', owns: ['/home', '/board', '/profile'] },
   { path: '/board/create', icon: '/avatars/grape.svg', label: '만들기', owns: ['/board/create'] },
-  { path: '/relay', icon: '/icons/nav/relay.svg', label: '릴레이', owns: ['/relay'] },
+  { path: '/friends', icon: '/icons/nav/friends.svg', label: '친구', owns: ['/friends', '/relay'] },
   { path: '/winery', icon: '/icons/nav/winery.svg', label: '와이너리', owns: ['/winery'] },
-  { path: '/more', icon: '/icons/nav/more.svg', label: '더보기', badge: 'unread', owns: ['/more', '/friends', '/messages', '/stats', '/vine', '/settings', '/notifications', '/sound-test'] },
+  { path: '/more', icon: '/icons/nav/more.svg', label: '더보기', badge: 'unread', owns: ['/more', '/messages', '/stats', '/vine', '/rewards', '/settings', '/notifications', '/sound-test'] },
 ];
 
 export default function Navigation() {

@@ -52,6 +52,7 @@ export async function GET(request: Request, props: { params: Promise<{ id: strin
     creatorId: relay.creatorId,
     creator: relay.creator,
     status: relay.status,
+    mode: relay.mode,
     participants: relay.participants.map((p) => ({
       id: p.id,
       userId: p.userId,

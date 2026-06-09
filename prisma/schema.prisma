@@ -50,6 +50,8 @@ model Board {
   isCompleted   Boolean  @default(false)
   allowFriendPlant Boolean @default(true) // owner toggle: may friends plant surprise gifts here?
   completedAt   DateTime?
+  order         Int?      // 홈 목록 사용자 지정 정렬(null=createdAt 폴백)
+  harvestedAt   DateTime? // 수확(숨김) 시각. null=노출
   createdAt     DateTime @default(now())
 
   owner             User               @relation("BoardOwner", fields: [ownerId], references: [id])
@@ -144,6 +146,7 @@ model Relay {
   totalStickers Int      @default(10)
   creatorId     String
   status        String   @default("active") // active | completed
+  mode          String   @default("relay")  // relay(순차) | group(병렬)
   createdAt     DateTime @default(now())
 
   creator      User               @relation("RelayCreator", fields: [creatorId], references: [id])

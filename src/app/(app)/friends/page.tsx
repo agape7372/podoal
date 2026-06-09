@@ -9,6 +9,7 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import ClayInput from '@/components/ClayInput';
 import Avatar from '@/components/Avatar';
 import EmojiIcon from '@/components/EmojiIcon';
+import PodongList from '@/components/PodongList';
 import type { FriendInfo, SearchedUser } from '@/types';
 import { feedbackSuccess, feedbackTap } from '@/lib/feedback';
 import { DEV_TOOLS } from '@/lib/devtools';
@@ -25,7 +26,7 @@ export default function FriendsPage() {
   const [searchError, setSearchError] = useState('');
   const [requested, setRequested] = useState<Set<string>>(new Set());
   const [cheerTarget, setCheerTarget] = useState<{ id: string; name: string } | null>(null);
-  const [tab, setTab] = useState<'friends' | 'favorite'>('friends');
+  const [tab, setTab] = useState<'friends' | 'favorite' | 'podong'>('friends');
   const [removeTarget, setRemoveTarget] = useState<string | null>(null);
   const [rejectTarget, setRejectTarget] = useState<string | null>(null);
   const [removing, setRemoving] = useState(false);
@@ -176,7 +177,8 @@ export default function FriendsPage() {
     <div className="pb-4">
       <h1 className="font-display text-2xl font-bold text-grape-700 mb-6 inline-flex items-center gap-1.5"><EmojiIcon emoji="👥" size={24} /> 친구</h1>
 
-      {/* Add friend — 이름/이메일 검색 */}
+      {/* Add friend — 이름/이메일 검색 (포도동 세그먼트에선 숨김) */}
+      {tab !== 'podong' && (
       <div className="clay p-4 mb-6">
         <p className="text-sm font-medium text-warm-text mb-3">친구 추가하기</p>
         <div className="relative">
@@ -232,9 +234,10 @@ export default function FriendsPage() {
           </div>
         )}
       </div>
+      )}
 
       {/* DEV-only: one-tap test friends + boards for experimenting with social features */}
-      {DEV_TOOLS && (
+      {DEV_TOOLS && tab !== 'podong' && (
         <div className="clay-sm p-3 mb-6 bg-amber-50/50 border border-amber-100">
           <button onClick={handleSeed} disabled={seeding} className="text-xs font-semibold text-grape-700">
             <EmojiIcon emoji="🧪" size={13} className="mr-0.5" />{seeding ? '만드는 중…' : '테스트 친구·보드 만들기 (개발용)'}
@@ -246,7 +249,7 @@ export default function FriendsPage() {
       )}
 
       {/* Pending requests */}
-      {pending.length > 0 && (
+      {pending.length > 0 && tab !== 'podong' && (
         <div className="mb-6">
           <h2 className="text-sm font-semibold text-warm-sub mb-3">
             받은 친구 요청 ({pending.length})
@@ -282,10 +285,20 @@ export default function FriendsPage() {
         >
           <span className="inline-flex items-center gap-1"><EmojiIcon emoji="⭐" size={14} /> 즐겨찾기</span>
         </button>
+        <button
+          onClick={() => { feedbackTap(); setTab('podong'); }}
+          className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+            tab === 'podong' ? 'clay-pressed text-grape-600' : 'clay-button text-warm-sub'
+          }`}
+        >
+          <span className="inline-flex items-center gap-1"><EmojiIcon emoji="🔗" size={14} /> 포도동</span>
+        </button>
       </div>
 
-      {/* Friend list */}
-      {loading ? (
+      {/* Friend list / 포도동 */}
+      {tab === 'podong' ? (
+        <PodongList heading={false} />
+      ) : loading ? (
         <div className="space-y-3">
           {[1, 2, 3].map((i) => <div key={i} className="skeleton h-16 w-full" />)}
         </div>

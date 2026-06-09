@@ -10,17 +10,16 @@ import { stripTitleEmoji } from '@/lib/title';
 
 interface BoardCardProps {
   board: BoardSummary;
+  /** Render as a non-interactive <div> (the home manage-mode wrapper owns gestures/nav). */
+  asStatic?: boolean;
+  className?: string;
 }
 
-export default function BoardCard({ board }: BoardCardProps) {
+export default function BoardCard({ board, asStatic = false, className = '' }: BoardCardProps) {
   const router = useRouter();
   const progress = progressPercent(board.filledCount, board.totalStickers);
 
-  return (
-    <button
-      onClick={() => { feedbackTap(); router.push(`/board/${board.id}`); }}
-      className="clay-float w-full p-4 text-left active:scale-[0.98] transition-transform"
-    >
+  const inner = (
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 mb-1">
@@ -82,6 +81,18 @@ export default function BoardCard({ board }: BoardCardProps) {
           )}
         </div>
       </div>
+  );
+
+  if (asStatic) {
+    return <div className={`clay-float w-full p-4 text-left ${className}`}>{inner}</div>;
+  }
+
+  return (
+    <button
+      onClick={() => { feedbackTap(); router.push(`/board/${board.id}`); }}
+      className={`clay-float w-full p-4 text-left active:scale-[0.98] transition-transform ${className}`}
+    >
+      {inner}
     </button>
   );
 }

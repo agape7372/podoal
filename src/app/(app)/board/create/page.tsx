@@ -5,14 +5,16 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import ClayButton from '@/components/ClayButton';
 import ClayInput from '@/components/ClayInput';
 import NumberStepper from '@/components/NumberStepper';
+import TemplatePicker from '@/components/create/TemplatePicker';
+import RewardEditor from '@/components/create/RewardEditor';
 import { api } from '@/lib/api';
-import { REWARD_TYPE_LABELS } from '@/types';
-import { REWARD_TYPE_ICON } from '@/lib/icons';
 import type { RewardType } from '@/types';
-import { TEMPLATE_CATEGORIES, getTemplatesByCategory } from '@/lib/templates';
 import type { HabitTemplate } from '@/lib/templates';
 import EmojiIcon from '@/components/EmojiIcon';
 import { feedbackSuccess, feedbackTap } from '@/lib/feedback';
+
+// 빠른 선택용 포도알 개수 프리셋. NumberStepper로 이후 미세조정 가능.
+const SIZE_PRESETS = [5, 10, 15, 20, 25, 30];
 
 function CreateBoardInner() {
   const router = useRouter();
@@ -106,8 +108,6 @@ function CreateBoardInner() {
     setLoading(false);
   };
 
-  const categoryTemplates = getTemplatesByCategory(selectedCategory);
-
   return (
     <div className="pb-4">
       <h1 className="font-display text-2xl font-bold text-grape-700 mb-6 inline-flex items-center gap-1.5"><EmojiIcon emoji={giftTo ? '🎁' : '🍇'} size={24} /> {giftTo ? '선물할 포도판 만들기' : '새 포도판 만들기'}</h1>
@@ -120,7 +120,7 @@ function CreateBoardInner() {
       )}
 
       {/* Step indicator */}
-      <div className="flex items-center gap-2 mb-6">
+      <div className="flex items-center justify-center gap-2 mb-6">
         {[0, 1, 2, 3].map((s) => (
           <div key={s} className="flex items-center gap-2">
             <div
@@ -141,64 +141,12 @@ function CreateBoardInner() {
 
       {/* Step 0: Template selection */}
       {step === 0 && (
-        <div className="space-y-5 animate-fade-in">
-          <p className="text-sm text-warm-sub">추천 템플릿으로 빠르게 시작하거나, 직접 만들어보세요!</p>
-
-          {/* Category tabs — single horizontal scroll row (chips keep their
-              width via whitespace-nowrap/flex-shrink-0). -mx-1 px-1 gives the
-              selected chip's ring room at the scroll edges; py-2 keeps the ring
-              from being clipped vertically (overflow-x promotes overflow-y). */}
-          <div className="flex gap-2 py-2 -mx-1 px-1 overflow-x-auto scrollbar-hide">
-            {TEMPLATE_CATEGORIES.map((cat) => (
-              <button
-                key={cat.id}
-                onClick={() => setSelectedCategory(cat.id)}
-                className={`
-                  clay-button px-3 py-2 rounded-xl text-sm whitespace-nowrap flex-shrink-0
-                  ${selectedCategory === cat.id
-                    ? 'ring-2 ring-grape-400 clay-pressed bg-grape-50'
-                    : ''
-                  }
-                `}
-              >
-                <span className="inline-flex items-center gap-1"><EmojiIcon emoji={cat.icon} size={15} /> {cat.name}</span>
-              </button>
-            ))}
-          </div>
-
-          {/* Template grid */}
-          <div className="grid grid-cols-2 gap-3">
-            {categoryTemplates.map((template) => (
-              <button
-                key={template.id}
-                onClick={() => handleSelectTemplate(template)}
-                className={`
-                  clay p-4 text-left transition-all active:scale-[0.97]
-                  hover:bg-grape-50/40
-                `}
-              >
-                <div className="mb-2"><EmojiIcon emoji={template.icon} size={26} /></div>
-                <p className="font-semibold text-sm text-grape-700 mb-1">{template.name}</p>
-                <p className="text-xs text-warm-sub line-clamp-2">{template.description}</p>
-                <div className="mt-2 flex items-center gap-1">
-                  <span className="text-xs text-grape-600 tabular-nums">{template.suggestedSize}알</span>
-                </div>
-              </button>
-            ))}
-          </div>
-
-          {/* Skip to custom */}
-          <div className="pt-2">
-            <ClayButton
-              variant="ghost"
-              fullWidth
-              size="lg"
-              onClick={handleSkipTemplate}
-            >
-              <EmojiIcon emoji="✨" size={16} className="mr-1" />직접 만들기
-            </ClayButton>
-          </div>
-        </div>
+        <TemplatePicker
+          selectedCategory={selectedCategory}
+          onSelectCategory={setSelectedCategory}
+          onSelectTemplate={handleSelectTemplate}
+          onSkip={handleSkipTemplate}
+        />
       )}
 
       {/* Step 1: Basic info */}
@@ -239,16 +187,23 @@ function CreateBoardInner() {
       {step === 2 && (
         <div className="space-y-4 animate-fade-in">
           <p className="text-sm text-warm-sub mb-2">포도알 개수를 정해주세요</p>
-          <div className="clay-sm p-6 flex flex-col items-center gap-4">
+          {/* Quick presets — tap to set, then fine-tune with the stepper below. */}
+          <div className="grid grid-cols-3 gap-2">
+            {SIZE_PRESETS.map((n) => (
+              <button
+                key={n}
+                onClick={() => { feedbackTap(); setTotalStickers(n); }}
+                aria-pressed={totalStickers === n}
+                className={`clay-button py-2.5 rounded-xl text-sm font-medium tabular-nums transition-all ${
+                  totalStickers === n ? 'ring-2 ring-grape-400 clay-pressed text-grape-700' : 'text-warm-sub'
+                }`}
+              >
+                {n}알
+              </button>
+            ))}
+          </div>
+          <div className="clay-sm p-6 flex flex-col items-center">
             <NumberStepper value={totalStickers} onChange={setTotalStickers} min={2} max={60} />
-            <div className="flex flex-wrap justify-center items-end gap-0.5 max-w-[230px]">
-              {Array.from({ length: Math.min(totalStickers, 30) }).map((_, i) => (
-                <EmojiIcon key={i} emoji="🍇" size={16} />
-              ))}
-              {totalStickers > 30 && (
-                <span className="text-xs text-warm-sub ml-1 tabular-nums">+{totalStickers - 30}</span>
-              )}
-            </div>
           </div>
           <p className="text-xs text-warm-sub text-center">2~60알까지 자유롭게 설정할 수 있어요</p>
 
@@ -271,52 +226,14 @@ function CreateBoardInner() {
       {/* Step 3: Reward */}
       {step === 3 && (
         <div className="space-y-5 animate-fade-in">
-          <p className="text-sm text-warm-sub">달성하면 받을 보상을 설정해요</p>
-          <p className="text-xs text-warm-sub">달성 전까지 내용은 비밀이에요! <EmojiIcon emoji="🤫" size={13} /></p>
-
-          {/* Reward type */}
-          <div className="flex gap-2">
-            {(Object.keys(REWARD_TYPE_LABELS) as RewardType[]).map((type) => (
-              <button
-                key={type}
-                onClick={() => setRewardType(type)}
-                className={`
-                  flex-1 clay-button px-3 py-3 rounded-xl text-sm font-medium text-center
-                  ${rewardType === type ? 'ring-2 ring-grape-400 clay-pressed' : ''}
-                `}
-              >
-                <EmojiIcon emoji={REWARD_TYPE_ICON[type]} size={16} className="mr-1" />{REWARD_TYPE_LABELS[type]}
-              </button>
-            ))}
-          </div>
-
-          <ClayInput
-            label="보상 제목"
-            placeholder={
-              rewardType === 'letter' ? '예: 엄마의 편지' :
-              rewardType === 'giftcard' ? '예: 치킨 기프티콘' :
-              '예: 소원 하나 들어주기'
-            }
-            value={rewardTitle}
-            onChange={(e) => setRewardTitle(e.target.value)}
+          <RewardEditor
+            rewardType={rewardType}
+            setRewardType={setRewardType}
+            rewardTitle={rewardTitle}
+            setRewardTitle={setRewardTitle}
+            rewardContent={rewardContent}
+            setRewardContent={setRewardContent}
           />
-
-          <div>
-            <label htmlFor="reward-content" className="block text-sm font-medium text-warm-sub mb-2 ml-1">
-              보상 내용
-            </label>
-            <textarea
-              id="reward-content"
-              className="clay-input min-h-[120px] resize-none"
-              placeholder={
-                rewardType === 'letter' ? '편지 내용을 적어주세요...' :
-                rewardType === 'giftcard' ? '기프티콘 코드나 설명을 적어주세요...' :
-                '소원 내용을 적어주세요...'
-              }
-              value={rewardContent}
-              onChange={(e) => setRewardContent(e.target.value)}
-            />
-          </div>
 
           <p className="text-xs text-warm-sub">
             <span className="text-grape-400 font-bold mr-0.5">*</span>만들어진 포도알을 꾹 눌러 중간 보상을 설정할 수 있어요!

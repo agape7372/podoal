@@ -9,5 +9,21 @@
   "orientation": "portrait",
   "icons": [
     { "src": "/icons/icon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ],
+  "shortcuts": [
+    {
+      "name": "오늘 한 알 채우기",
+      "short_name": "한 알 채우기",
+      "description": "오늘의 포도판으로 바로 이동",
+      "url": "/home",
+      "icons": [{ "src": "/icons/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "새 포도판 만들기",
+      "short_name": "새 포도판",
+      "description": "새로운 포도판을 시작",
+      "url": "/board/create",
+      "icons": [{ "src": "/avatars/grape.svg", "sizes": "any", "type": "image/svg+xml" }]
+    }
   ]
 }
