@@ -8,6 +8,7 @@ import SwipeableBoardCard from '@/components/SwipeableBoardCard';
 import ClayButton from '@/components/ClayButton';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import Avatar from '@/components/Avatar';
+import NotificationBell from '@/components/NotificationBell';
 import Podo from '@/components/mascot/Podo';
 import type { BoardSummary } from '@/types';
 import { feedbackTap } from '@/lib/feedback';
@@ -273,7 +274,7 @@ export default function HomePage() {
         >
           <Avatar avatar={user?.avatar || 'grape'} size="lg" />
         </button>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <h1 className="font-display text-[26px] leading-tight font-bold tracking-tight text-warm-text truncate">
             {user?.name}<span className="text-warm-sub font-normal text-[20px]">님</span>
           </h1>
@@ -281,6 +282,7 @@ export default function HomePage() {
             {greeting}
           </p>
         </div>
+        <NotificationBell />
       </div>
 
       {/* Filter tabs — 한 줄(아이콘 없음): 전체/진행/완료/수확 + 카운트 */}
