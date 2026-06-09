@@ -128,9 +128,13 @@ export async function PATCH(request: Request, props: { params: Promise<{ id: str
   }
 
   const body = await request.json().catch(() => ({}));
-  const data: { allowFriendPlant?: boolean; title?: string; description?: string } = {};
+  const data: { allowFriendPlant?: boolean; title?: string; description?: string; harvestedAt?: Date | null } = {};
   if (typeof body?.allowFriendPlant === 'boolean') {
     data.allowFriendPlant = body.allowFriendPlant;
+  }
+  // 수확(숨김) 토글: true=숨김(now), false=노출(null).
+  if (typeof body?.harvested === 'boolean') {
+    data.harvestedAt = body.harvested ? new Date() : null;
   }
   // 제목/설명 편집 — POST(boards/route.ts)와 동일 검증. stripTitleEmoji는 표시 전용이라 저장경로에 미적용(raw 저장).
   if (typeof body?.title === 'string') {

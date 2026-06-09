@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { getCurrentUserId, authResponse } from '@/lib/auth';
 import { PUBLIC_USER_SELECT as userProfileSelect } from '@/lib/userSelect';
+import { validateRewards } from '@/lib/rewardValidation';
 
 export async function GET() {
   const userId = await getCurrentUserId();
@@ -35,6 +36,7 @@ export async function GET() {
     creatorId: relay.creatorId,
     creator: relay.creator,
     status: relay.status,
+    mode: relay.mode,
     participants: relay.participants.map((p) => ({
       id: p.id,
       userId: p.userId,
@@ -56,10 +58,32 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
-  const { title, totalStickers = 10, friendIds } = body;
+  const { title, totalStickers = 10, friendIds, mode = 'relay', rewards, description = '', templateId } = body;
 
   if (!title || typeof title !== 'string' || !title.trim()) {
     return authResponse('제목을 입력해주세요', 400);
+  }
+
+  if (mode !== 'relay' && mode !== 'group') {
+    return authResponse('잘못된 모드예요', 400);
+  }
+
+  if (!Number.isInteger(totalStickers) || totalStickers < 2 || totalStickers > 60) {
+    return authResponse('포도알 개수는 2~60개 사이여야 합니다.', 400);
+  }
+
+  if (typeof description !== 'string' || description.length > 200) {
+    return authResponse('설명은 200자 이하여야 합니다.', 400);
+  }
+
+  if (templateId !== undefined && templateId !== null && (typeof templateId !== 'string' || templateId.length > 64)) {
+    return authResponse('잘못된 templateId 입니다.', 400);
+  }
+
+  const hasRewards = Array.isArray(rewards) && rewards.length > 0;
+  if (hasRewards) {
+    const rewardError = validateRewards(rewards, totalStickers);
+    if (rewardError) return authResponse(rewardError, 400);
   }
 
   if (!friendIds || !Array.isArray(friendIds) || friendIds.length === 0) {
@@ -67,7 +91,7 @@ export async function POST(request: Request) {
   }
 
   if (friendIds.length > 20) {
-    return authResponse('릴레이는 최대 20명까지 초대할 수 있어요', 400);
+    return authResponse('포도동은 최대 20명까지 초대할 수 있어요', 400);
   }
 
   // Verify all friendIds are valid users
@@ -81,7 +105,6 @@ export async function POST(request: Request) {
   }
 
   // SECURITY: 초대 대상이 실제 요청자의 '수락된(accepted)' 친구인지 검증.
-  // (기존엔 유저 존재 여부만 확인 → 아무 userId나 릴레이에 강제 참가시킬 수 있었음)
   const friendships = await prisma.friendship.findMany({
     where: {
       status: 'accepted',
@@ -96,7 +119,7 @@ export async function POST(request: Request) {
     friendships.map((f) => (f.requesterId === userId ? f.receiverId : f.requesterId)),
   );
   if (friendIds.some((id: string) => !acceptedFriendIds.has(id))) {
-    return authResponse('친구로 수락된 사용자만 릴레이에 초대할 수 있어요', 403);
+    return authResponse('친구로 수락된 사용자만 초대할 수 있어요', 403);
   }
 
   const relay = await prisma.$transaction(async (tx) => {
@@ -107,20 +130,38 @@ export async function POST(request: Request) {
         totalStickers,
         creatorId: userId,
         status: 'active',
+        mode,
+        templateId: templateId || null,
       },
     });
 
-    // Create a board for the creator
+    // Create a board for the creator (this board's rewards are the template joiners copy).
     const creatorBoard = await tx.board.create({
       data: {
         title: `${title.trim()} - 릴레이`,
-        description: '',
+        description: description || '',
         totalStickers,
+        templateId: templateId || null,
         ownerId: userId,
       },
     });
 
-    // Add creator as first participant (order 0, active)
+    if (hasRewards) {
+      for (const r of rewards) {
+        await tx.reward.create({
+          data: {
+            boardId: creatorBoard.id,
+            type: r.type,
+            title: r.title,
+            content: r.content,
+            imageUrl: r.imageUrl || '',
+            triggerAt: r.triggerAt,
+          },
+        });
+      }
+    }
+
+    // Creator is first participant (order 0, active in both modes).
     await tx.relayParticipant.create({
       data: {
         relayId: newRelay.id,
@@ -131,19 +172,18 @@ export async function POST(request: Request) {
       },
     });
 
-    // Add friends as participants (order 1, 2, ..., pending)
+    // Friends: relay → pending(차례 대기), group → active(즉시 시작). boardId는 join 때 생성/연결.
     for (let i = 0; i < friendIds.length; i++) {
       await tx.relayParticipant.create({
         data: {
           relayId: newRelay.id,
           userId: friendIds[i],
           order: i + 1,
-          status: 'pending',
+          status: mode === 'group' ? 'active' : 'pending',
         },
       });
     }
 
-    // Return the full relay with participants
     return tx.relay.findUnique({
       where: { id: newRelay.id },
       include: {
@@ -159,7 +199,7 @@ export async function POST(request: Request) {
   });
 
   if (!relay) {
-    return authResponse('릴레이 생성에 실패했어요', 500);
+    return authResponse('포도동 생성에 실패했어요', 500);
   }
 
   const result = {
@@ -170,6 +210,7 @@ export async function POST(request: Request) {
     creatorId: relay.creatorId,
     creator: relay.creator,
     status: relay.status,
+    mode: relay.mode,
     participants: relay.participants.map((p) => ({
       id: p.id,
       userId: p.userId,

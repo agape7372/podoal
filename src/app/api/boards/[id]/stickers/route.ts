@@ -85,6 +85,7 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
     });
 
     // If all positions are filled, mark the board as completed
+    let relayAdvanced = false;
     if (filledCount >= board.totalStickers) {
       await tx.board.update({
         where: { id: boardId },
@@ -93,6 +94,40 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
           completedAt: new Date(),
         },
       });
+
+      // 포도동 자동 진행 — 이 보드가 진행중 포도동의 참가자 보드라면 같은 tx에서 처리.
+      // (이전엔 /pass 수동 버튼만 있어서 "다 채워도 다음 주자에게 안 넘어가는" 버그)
+      const participant = await tx.relayParticipant.findFirst({
+        where: { boardId },
+        include: { relay: { select: { id: true, status: true, mode: true } } },
+      });
+      if (participant && participant.relay.status === 'active') {
+        if (participant.relay.mode === 'relay' && participant.status === 'active') {
+          // 릴레이(순차): 현재→완료, 다음(order+1)→진행, 없으면 포도동 완료.
+          await tx.relayParticipant.update({ where: { id: participant.id }, data: { status: 'completed' } });
+          const next = await tx.relayParticipant.findFirst({
+            where: { relayId: participant.relayId, order: participant.order + 1 },
+          });
+          if (next) {
+            await tx.relayParticipant.update({ where: { id: next.id }, data: { status: 'active' } });
+          } else {
+            await tx.relay.update({ where: { id: participant.relayId }, data: { status: 'completed' } });
+          }
+          relayAdvanced = true;
+        } else if (participant.relay.mode === 'group') {
+          // 그룹(병렬): 바통 없음. 내 참가자만 완료 처리, 전원 완료면 포도동 완료.
+          if (participant.status !== 'completed') {
+            await tx.relayParticipant.update({ where: { id: participant.id }, data: { status: 'completed' } });
+          }
+          const remaining = await tx.relayParticipant.count({
+            where: { relayId: participant.relayId, status: { not: 'completed' } },
+          });
+          if (remaining === 0) {
+            await tx.relay.update({ where: { id: participant.relayId }, data: { status: 'completed' } });
+          }
+          relayAdvanced = true;
+        }
+      }
     }
 
     // Atomic single-shot reward unlock: try to claim every reward whose
@@ -179,6 +214,7 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
       unlockedReward,
       plantedGift: plantedGifts[0] ?? null, // back-compat: first gift
       plantedGifts,
+      relayAdvanced,
     };
   });
 

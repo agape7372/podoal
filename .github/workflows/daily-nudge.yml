@@ -1,0 +1,18 @@
+name: Daily Nudge
+
+# 진행중 포도판이 있는 사용자에게 하루 1회 "한 알 채우기" 푸시.
+# Hobby 플랜은 Vercel Cron이 일 1회만 가능하므로 reminders.yml과 동일하게 GitHub Actions로 호출.
+# 00:00 UTC = 오전 9시 KST. 활성화: repo Secrets에 CRON_SECRET(Vercel env와 동일 값) 설정 + VAPID env.
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger daily nudge
+        run: |
+          curl -fsS -X GET "https://podoal-rouge.vercel.app/api/cron/daily-nudge" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"

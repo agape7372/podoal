@@ -8,6 +8,8 @@ interface NumberStepperProps {
   onChange: (v: number) => void;
   min: number;
   max: number;
+  /** Unit label rendered inline next to the number (e.g. "10알"). */
+  unit?: string;
 }
 
 /**
@@ -15,7 +17,7 @@ interface NumberStepperProps {
  * The center number can be DRAGGED vertically (up = increase) or TAPPED to type
  * a value directly. − / + buttons give fine control. Always clamped to [min,max].
  */
-export default function NumberStepper({ value, onChange, min, max }: NumberStepperProps) {
+export default function NumberStepper({ value, onChange, min, max, unit = '알' }: NumberStepperProps) {
   const clamp = (v: number) => Math.min(max, Math.max(min, Math.round(v)));
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState('');
@@ -66,27 +68,30 @@ export default function NumberStepper({ value, onChange, min, max }: NumberStepp
         −
       </button>
 
-      <div className="w-28 text-center">
+      <div className="w-32 text-center">
         {editing ? (
-          <input
-            type="number"
-            inputMode="numeric"
-            autoFocus
-            value={draft}
-            min={min}
-            max={max}
-            onChange={(e) => {
-              // Live-commit: 입력 즉시 부모(value)로 전파해 '다음' 버튼 1탭으로 진행되게 한다.
-              // (이전엔 onBlur에서만 커밋 → 버튼 pointerdown이 blur→commit을 먼저 소비해 click이 삼켜짐)
-              const raw = e.target.value;
-              setDraft(raw);
-              const n = parseInt(raw, 10);
-              if (!Number.isNaN(n)) onChange(clamp(n));
-            }}
-            onBlur={commit}
-            onKeyDown={(e) => { if (e.key === 'Enter') commit(); }}
-            className="clay-input text-center font-display text-4xl font-bold tabular-nums w-full"
-          />
+          <span className="inline-flex items-baseline justify-center gap-1 w-full">
+            <input
+              type="number"
+              inputMode="numeric"
+              autoFocus
+              value={draft}
+              min={min}
+              max={max}
+              onChange={(e) => {
+                // Live-commit: 입력 즉시 부모(value)로 전파해 '다음' 버튼 1탭으로 진행되게 한다.
+                // (이전엔 onBlur에서만 커밋 → 버튼 pointerdown이 blur→commit을 먼저 소비해 click이 삼켜짐)
+                const raw = e.target.value;
+                setDraft(raw);
+                const n = parseInt(raw, 10);
+                if (!Number.isNaN(n)) onChange(clamp(n));
+              }}
+              onBlur={commit}
+              onKeyDown={(e) => { if (e.key === 'Enter') commit(); }}
+              className="clay-input text-center font-display text-4xl font-bold tabular-nums w-20"
+            />
+            <span className="font-display text-2xl font-bold text-warm-sub">{unit}</span>
+          </span>
         ) : (
           <button
             type="button"
@@ -96,12 +101,12 @@ export default function NumberStepper({ value, onChange, min, max }: NumberStepp
             onPointerCancel={() => { drag.current = null; }}
             aria-label={`포도알 개수 ${value}개. 위아래로 드래그하거나 눌러서 직접 입력`}
             style={{ touchAction: 'none' }}
-            className="font-display text-5xl font-bold text-grape-700 tabular-nums cursor-ns-resize w-full leading-none py-1"
+            className="inline-flex items-baseline justify-center gap-1 font-display text-grape-700 tabular-nums cursor-ns-resize w-full leading-none py-1"
           >
-            {value}
+            <span className="text-5xl font-bold">{value}</span>
+            <span className="text-2xl font-bold text-warm-sub">{unit}</span>
           </button>
         )}
-        <p className="text-xs text-warm-sub mt-1">알</p>
       </div>
 
       <button

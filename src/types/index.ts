@@ -27,6 +27,10 @@ export interface BoardSummary {
   rewardCount: number;
   /** Owner toggle: may friends plant surprise gifts here? Surfaced by board detail + friend boards. */
   allowFriendPlant?: boolean;
+  /** User-defined sort order on the home list (null = fall back to createdAt). */
+  order?: number | null;
+  /** "Harvested" (hidden) timestamp. null = visible on the home list. */
+  harvestedAt?: string | null;
 }
 
 export interface BoardDetail extends BoardSummary {
@@ -59,6 +63,11 @@ export interface RewardInfo {
   triggerAt: number;
   unlockedAt: string | null;
   revealedAt: string | null;
+}
+
+/** A reward the user has already obtained, with its source board — for the 포도밭 page. */
+export interface CollectedReward extends RewardInfo {
+  board: { id: string; title: string; totalStickers: number };
 }
 
 export interface FriendInfo {
@@ -145,6 +154,8 @@ export interface RelayParticipantInfo {
   status: 'pending' | 'active' | 'completed';
 }
 
+export type RelayMode = 'relay' | 'group';
+
 export interface RelayInfo {
   id: string;
   title: string;
@@ -153,6 +164,8 @@ export interface RelayInfo {
   creatorId: string;
   creator: UserProfile;
   status: 'active' | 'completed';
+  /** relay = 순차(바통), group = 병렬. 기존 데이터는 'relay'로 간주. */
+  mode?: RelayMode;
   participants: RelayParticipantInfo[];
   createdAt: string;
 }

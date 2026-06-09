@@ -13,7 +13,6 @@ const sections: MoreSection[] = [
     title: '소통',
     chip: 'bg-grape-100',
     items: [
-      { path: '/friends', icon: '👥', label: '친구', desc: '함께 채우는 친구' },
       { path: '/messages', icon: '💌', label: '메시지', desc: '응원·축하 메시지', badge: 'unread' },
     ],
   },
@@ -21,6 +20,7 @@ const sections: MoreSection[] = [
     title: '나의 기록',
     chip: 'bg-leaf-100',
     items: [
+      { path: '/rewards', icon: '🍇', label: '포도밭', desc: '받은 보상·중간보상' },
       { path: '/stats', icon: '📊', label: '통계', desc: '달성률·히트맵' },
       { path: '/vine', icon: '🌿', label: '포도덩쿨', desc: '활동 타임라인' },
     ],
