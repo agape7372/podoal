@@ -30,7 +30,7 @@ const sections: MoreSection[] = [
     chip: 'bg-sunshine-100',
     items: [
       { path: '/notifications', icon: '🔔', label: '알림 설정' },
-      { path: '/sound-test', icon: '🔊', label: '효과음' },
+      { path: '/sound-test', icon: '🔊', label: '포도알 소리' },
       { path: '/settings', icon: '⚙️', label: '설정' },
     ],
   },
