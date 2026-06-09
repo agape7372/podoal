@@ -25,7 +25,7 @@ export default function SoundTestPage() {
 
   return (
     <div className="pb-4">
-      <h1 className="font-display text-2xl font-bold text-grape-700 mb-2">효과음 테스트</h1>
+      <h1 className="font-display text-2xl font-bold text-grape-700 mb-2">포도알 소리 테스트</h1>
       <p className="text-sm text-warm-sub mb-6">포도알 채울 때 쓸 효과음을 골라주세요</p>
 
       <div className="space-y-3">

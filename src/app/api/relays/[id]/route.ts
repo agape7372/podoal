@@ -25,6 +25,7 @@ export async function GET(request: Request, props: { params: Promise<{ id: strin
               totalStickers: true,
               isCompleted: true,
               completedAt: true,
+              harvestedAt: true,
               _count: { select: { stickers: true } },
             },
           },
@@ -68,6 +69,7 @@ export async function GET(request: Request, props: { params: Promise<{ id: strin
             filledCount: p.board._count.stickers,
             isCompleted: p.board.isCompleted,
             completedAt: p.board.completedAt,
+            harvestedAt: p.board.harvestedAt,
           }
         : null,
     })),

@@ -6,13 +6,17 @@ import { useAppStore } from '@/lib/store';
 import Avatar from '@/components/Avatar';
 import EmojiIcon from '@/components/EmojiIcon';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import RewardList from '@/components/RewardList';
 import type { MessageInfo } from '@/types';
+
+type Tab = 'messages' | 'rewards';
 
 export default function MessagesPage() {
   const [messages, setMessages] = useState<MessageInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [tab, setTab] = useState<Tab>('messages');
   const setUnreadCount = useAppStore((s) => s.setUnreadCount);
 
   const fetchMessages = useCallback(async () => {
@@ -104,9 +108,30 @@ export default function MessagesPage() {
 
   return (
     <div className="pb-4">
-      <h1 className="font-display text-2xl font-bold text-grape-700 mb-6 inline-flex items-center gap-1.5"><EmojiIcon emoji="💌" size={24} /> 메시지</h1>
+      <h1 className="font-display text-2xl font-bold text-grape-700 mb-4 inline-flex items-center gap-1.5"><EmojiIcon emoji="💌" size={24} /> 소통</h1>
 
-      {loading ? (
+      {/* 탭: 메시지 | 받은 보상 (REQ8) */}
+      <div className="flex gap-2 mb-5">
+        {([['messages', '메시지'], ['rewards', '받은 보상']] as const).map(([key, label]) => {
+          const isActive = tab === key;
+          return (
+            <button
+              key={key}
+              onClick={() => setTab(key)}
+              aria-pressed={isActive}
+              className={`px-4 py-2 rounded-2xl text-sm font-semibold transition-all ${
+                isActive ? 'clay-pressed text-grape-700' : 'clay-button text-warm-sub'
+              }`}
+            >
+              {label}
+            </button>
+          );
+        })}
+      </div>
+
+      {tab === 'rewards' ? (
+        <RewardList />
+      ) : loading ? (
         <div className="space-y-3">
           {[1, 2, 3, 4].map((i) => <div key={i} className="skeleton h-20 w-full" />)}
         </div>

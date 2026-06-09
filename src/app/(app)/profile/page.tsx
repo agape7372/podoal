@@ -77,13 +77,8 @@ export default function ProfilePage() {
 
   return (
     <div className="pb-4">
-      {/* Back */}
-      <button
-        onClick={() => router.push('/home')}
-        className="clay-button px-3 py-2 rounded-xl text-sm text-warm-sub mb-5"
-      >
-        ← 돌아가기
-      </button>
+      {/* 돌아가기 버튼 제거(REQ5): 프로필은 홈 아바타로만 진입하고 하단 네비 '홈'이 항상
+          /profile을 owns하여 복귀 경로를 보장 — 별도 백 버튼은 중복. */}
 
       {/* Identity */}
       <div className="flex items-center gap-3.5 mb-7">

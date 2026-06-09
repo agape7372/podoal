@@ -31,6 +31,8 @@ export interface BoardSummary {
   order?: number | null;
   /** "Harvested" (hidden) timestamp. null = visible on the home list. */
   harvestedAt?: string | null;
+  /** True when this board belongs to a 포도동(group) relay — drives the home source badge. */
+  podong?: boolean;
 }
 
 export interface BoardDetail extends BoardSummary {
@@ -100,6 +102,26 @@ export interface MessageInfo {
   createdAt: string;
 }
 
+/** 홈 종(🔔)이 여는 통합 알림 피드의 한 항목. 여러 기존 소스를 집계해 만든다(별도 테이블 없음). */
+export type NotificationType =
+  | 'cheer' | 'celebration' | 'gift'
+  | 'reward' | 'friend-request' | 'invite' | 'planted-gift';
+
+export interface NotificationEvent {
+  id: string;
+  type: NotificationType;
+  title: string;
+  body: string;
+  /** 항목 아이콘(EmojiIcon으로 렌더). */
+  emoji: string;
+  /** 탭하면 이동할 경로. */
+  url: string;
+  read: boolean;
+  createdAt: string;
+  /** 알림을 일으킨 상대(있으면 아바타 표시). */
+  actor?: { name: string; avatar: string } | null;
+}
+
 export const AVATAR_OPTIONS = [
   'grape', 'strawberry', 'orange', 'blueberry', 'cherry', 'peach', 'apple', 'watermelon'
 ] as const;
@@ -151,7 +173,7 @@ export interface RelayParticipantInfo {
   user: UserProfile;
   boardId: string | null;
   order: number;
-  status: 'pending' | 'active' | 'completed';
+  status: 'invited' | 'pending' | 'active' | 'completed';
 }
 
 export type RelayMode = 'relay' | 'group';

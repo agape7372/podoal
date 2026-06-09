@@ -13,7 +13,7 @@ const sections: MoreSection[] = [
     title: '소통',
     chip: 'bg-grape-100',
     items: [
-      { path: '/messages', icon: '💌', label: '메시지', desc: '응원·축하 메시지', badge: 'unread' },
+      { path: '/messages', icon: '💌', label: '소통', desc: '메시지·받은 보상', badge: 'unread' },
     ],
   },
   {
@@ -30,7 +30,7 @@ const sections: MoreSection[] = [
     chip: 'bg-sunshine-100',
     items: [
       { path: '/notifications', icon: '🔔', label: '알림 설정' },
-      { path: '/sound-test', icon: '🔊', label: '효과음' },
+      { path: '/sound-test', icon: '🔊', label: '포도알 소리' },
       { path: '/settings', icon: '⚙️', label: '설정' },
     ],
   },

@@ -137,6 +137,8 @@ export async function POST(request: Request) {
     });
 
     // Background OS notification (respects the receiver's NotificationSetting).
+    // 보낸이가 고른 이모지를 본문 앞에 실어, 인앱 팝업(이모지+내용)과 표시를 일치시킨다(REQ4).
+    const chosenEmoji = emoji || '🍇';
     const pushTitle =
       messageType === 'celebration' ? '🎉 축하 메시지'
       : messageType === 'gift' ? '🎁 선물이 도착했어요'
@@ -145,8 +147,9 @@ export async function POST(request: Request) {
       receiverId,
       {
         title: pushTitle,
-        body: `${message.sender.name}: ${content}`.slice(0, 120),
+        body: `${chosenEmoji} ${message.sender.name}: ${content}`.slice(0, 120),
         url: '/messages',
+        emoji: chosenEmoji,
       },
       messageType as 'cheer' | 'celebration' | 'gift'
     );

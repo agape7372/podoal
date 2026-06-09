@@ -8,6 +8,7 @@ import EmojiIcon from '@/components/EmojiIcon';
 import type { NotificationSettingInfo, ReminderInfo, BoardSummary } from '@/types';
 import { stripTitleEmoji } from '@/lib/title';
 import { usePush } from '@/lib/usePush';
+import { useAppStore } from '@/lib/store';
 
 const DAY_LABELS: Record<string, string> = {
   '1': '월', '2': '화', '3': '수', '4': '목', '5': '금', '6': '토', '7': '일',
@@ -158,6 +159,10 @@ export default function NotificationsPage() {
 
   const push = usePush();
 
+  // 앱에서 메시지를 받는 방식(클라이언트 설정) — 설정 탭에서 이관(REQ7)
+  const appSettings = useAppStore((s) => s.settings);
+  const updateAppSettings = useAppStore((s) => s.updateSettings);
+
   if (loading) {
     return (
       <div className="pb-4">
@@ -203,6 +208,35 @@ export default function NotificationsPage() {
             size="large"
             ariaLabel="전체 알림"
           />
+        </div>
+      </section>
+
+      {/* 메시지 알림 — 앱에서 받는 방식(설정 탭에서 이관, REQ7) */}
+      <section className="clay p-5 mb-4">
+        <h2 className="text-sm font-semibold text-warm-sub mb-4">메시지 알림</h2>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-warm-text">메시지 팝업</p>
+              <p className="text-xs text-warm-sub">새 응원 메시지를 팝업으로 표시</p>
+            </div>
+            <Toggle
+              enabled={appSettings.showMessagePopup}
+              onToggle={() => updateAppSettings({ showMessagePopup: !appSettings.showMessagePopup })}
+              ariaLabel="메시지 팝업"
+            />
+          </div>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-warm-text">실시간 알림</p>
+              <p className="text-xs text-warm-sub">앱이 켜져 있을 때 실시간으로 메시지 수신</p>
+            </div>
+            <Toggle
+              enabled={appSettings.realtimeNotifications}
+              onToggle={() => updateAppSettings({ realtimeNotifications: !appSettings.realtimeNotifications })}
+              ariaLabel="실시간 알림"
+            />
+          </div>
         </div>
       </section>
 

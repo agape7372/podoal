@@ -20,6 +20,7 @@ export async function GET() {
       owner: { select: userProfileSelect },
       giftedTo: { select: userProfileSelect },
       giftedFrom: { select: userProfileSelect },
+      relayParticipants: { select: { relay: { select: { mode: true } } } },
       _count: { select: { stickers: true, rewards: true } },
     },
     orderBy: { createdAt: 'desc' },
@@ -40,6 +41,8 @@ export async function GET() {
     rewardCount: board._count.rewards,
     order: board.order,
     harvestedAt: board.harvestedAt,
+    // 포도동(group 릴레이)에 속한 보드인지 — 홈 카드 출처 배지용.
+    podong: board.relayParticipants.some((rp) => rp.relay.mode === 'group'),
   }));
 
   return Response.json({ boards: result });
