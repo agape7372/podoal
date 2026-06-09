@@ -50,10 +50,10 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
     return authResponse('포도판을 먼저 완성해주세요', 400);
   }
 
-  // Find the next participant in order
-  const nextParticipant = relay.participants.find(
-    (p) => p.order === currentParticipant.order + 1
-  );
+  // Find the next ACCEPTED participant by order — 미수락(invited) 참가자는 건너뛴다(REQ10).
+  const nextParticipant = relay.participants
+    .filter((p) => p.order > currentParticipant.order && p.status === 'pending')
+    .sort((a, b) => a.order - b.order)[0];
 
   await prisma.$transaction(async (tx) => {
     // Set current participant to completed

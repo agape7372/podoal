@@ -172,14 +172,15 @@ export async function POST(request: Request) {
       },
     });
 
-    // Friends: relay → pending(차례 대기), group → active(즉시 시작). boardId는 join 때 생성/연결.
+    // Friends: 초대(invited) 상태로 생성 — 수락해야 실제 참여(REQ10). boardId는 수락 후 join 때.
+    // 수락 시 group → active(즉시 시작), relay → pending(차례 대기)로 전환.
     for (let i = 0; i < friendIds.length; i++) {
       await tx.relayParticipant.create({
         data: {
           relayId: newRelay.id,
           userId: friendIds[i],
           order: i + 1,
-          status: mode === 'group' ? 'active' : 'pending',
+          status: 'invited',
         },
       });
     }

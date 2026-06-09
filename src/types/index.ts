@@ -173,7 +173,7 @@ export interface RelayParticipantInfo {
   user: UserProfile;
   boardId: string | null;
   order: number;
-  status: 'pending' | 'active' | 'completed';
+  status: 'invited' | 'pending' | 'active' | 'completed';
 }
 
 export type RelayMode = 'relay' | 'group';

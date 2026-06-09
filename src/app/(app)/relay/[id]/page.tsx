@@ -8,9 +8,18 @@ import ClayButton from '@/components/ClayButton';
 import Avatar from '@/components/Avatar';
 import type { RelayInfo, RelayMode, BoardSummary } from '@/types';
 import { feedbackRelay, feedbackSuccess, feedbackTap } from '@/lib/feedback';
-import { progressPercent } from '@/lib/format';
 import { stripTitleEmoji } from '@/lib/title';
 import EmojiIcon from '@/components/EmojiIcon';
+
+interface RelayDetailBoard {
+  id: string;
+  title: string;
+  totalStickers: number;
+  filledCount: number;
+  isCompleted: boolean;
+  completedAt: string | null;
+  harvestedAt: string | null;
+}
 
 interface RelayDetailParticipant {
   id: string;
@@ -18,15 +27,8 @@ interface RelayDetailParticipant {
   user: { id: string; name: string; avatar: string };
   boardId: string | null;
   order: number;
-  status: 'pending' | 'active' | 'completed';
-  board: {
-    id: string;
-    title: string;
-    totalStickers: number;
-    filledCount: number;
-    isCompleted: boolean;
-    completedAt: string | null;
-  } | null;
+  status: 'invited' | 'pending' | 'active' | 'completed';
+  board: RelayDetailBoard | null;
 }
 
 interface RelayDetail extends Omit<RelayInfo, 'participants'> {
@@ -44,6 +46,7 @@ export default function RelayDetailPage() {
   const [loading, setLoading] = useState(true);
   const [passing, setPassing] = useState(false);
   const [joining, setJoining] = useState(false);
+  const [responding, setResponding] = useState(false);
   const [message, setMessage] = useState('');
 
   // 그룹: 기존 포도판 불러오기
@@ -64,6 +67,33 @@ export default function RelayDetailPage() {
 
   useEffect(() => { fetchRelay(); }, [fetchRelay]);
 
+  const handleAccept = async () => {
+    setResponding(true);
+    setMessage('');
+    try {
+      await api(`/api/relays/${relayId}/accept`, { method: 'POST' });
+      feedbackSuccess();
+      setMessage('포도동에 참여했어요.');
+      await fetchRelay();
+    } catch (e) {
+      setMessage(e instanceof Error ? e.message : '수락에 실패했어요');
+    }
+    setResponding(false);
+  };
+
+  const handleDecline = async () => {
+    setResponding(true);
+    setMessage('');
+    try {
+      await api(`/api/relays/${relayId}/decline`, { method: 'POST' });
+      feedbackTap();
+      router.replace('/relay');
+    } catch (e) {
+      setMessage(e instanceof Error ? e.message : '거절에 실패했어요');
+      setResponding(false);
+    }
+  };
+
   const handleJoin = async (boardId?: string) => {
     setJoining(true);
     setMessage('');
@@ -71,7 +101,7 @@ export default function RelayDetailPage() {
       await api(`/api/relays/${relayId}/join`, boardId ? { method: 'POST', json: { boardId } } : { method: 'POST' });
       feedbackSuccess();
       setAttachOpen(false);
-      setMessage('포도동에 참여했어요.');
+      setMessage('포도판을 연결했어요.');
       await fetchRelay();
     } catch (e) {
       setMessage(e instanceof Error ? e.message : '참여에 실패했어요');
@@ -122,10 +152,11 @@ export default function RelayDetailPage() {
 
   const isGroup = relay.mode === 'group';
   const myParticipant = relay.participants.find((p) => p.userId === user?.id);
+  const myInvited = myParticipant?.status === 'invited';
   const isMyTurn = myParticipant?.status === 'active';
   const hasBoard = !!myParticipant?.boardId;
   const myBoardCompleted = myParticipant?.board?.isCompleted ?? false;
-  const needsToJoin = !!myParticipant && !myParticipant.boardId;
+  const needsToJoin = !!myParticipant && !myInvited && !myParticipant.boardId;
   const isRelayCompleted = relay.status === 'completed';
 
   // 그룹: 가장 먼저 완성한 참가자(1등) 강조
@@ -143,50 +174,34 @@ export default function RelayDetailPage() {
     switch (status) {
       case 'completed': return { text: '완료', color: 'bg-leaf-100 text-leaf-700' };
       case 'active': return { text: '진행중', color: 'bg-grape-100 text-grape-600' };
+      case 'invited': return { text: '초대 대기', color: 'bg-warm-border text-warm-sub' };
       default: return { text: '대기중', color: 'bg-warm-border text-warm-sub' };
     }
   };
 
-  const boardProgress = (p: RelayDetailParticipant) => p.board && (
+  // 멤버 카드의 실시간 포도알 미리보기(REQ9) — 홈 카드와 동일한 미니 포도알.
+  const miniGrapes = (board: RelayDetailBoard) => (
     <div className="mt-3">
-      <div className="flex items-center justify-between text-xs text-warm-sub mb-1">
-        <span>{stripTitleEmoji(p.board.title)}</span>
-        <span className="tabular-nums">{p.board.filledCount}/{p.board.totalStickers}</span>
+      <div className="clay-pressed inline-flex flex-wrap gap-[3px] px-2 py-1.5" style={{ borderRadius: '12px' }}>
+        {Array.from({ length: Math.min(board.totalStickers, 10) }, (_, i) => (
+          <div key={i} className={`w-3 h-3 rounded-full ${i < board.filledCount ? 'grape-filled-mini' : 'grape-empty-mini'}`} />
+        ))}
+        {board.totalStickers > 10 && (
+          <span className="text-[10px] text-warm-sub self-center ml-0.5">+{board.totalStickers - 10}</span>
+        )}
       </div>
-      <div className="w-full h-1.5 bg-grape-100 rounded-full overflow-hidden">
-        <div
-          className="h-full bg-gradient-to-r from-grape-300 to-grape-500 rounded-full transition-all duration-500"
-          style={{ width: `${progressPercent(p.board.filledCount, p.board.totalStickers)}%` }}
-        />
+      <div className="flex justify-between mt-1.5 text-[10px] text-warm-sub tabular-nums">
+        <span className="truncate max-w-[60%]">{stripTitleEmoji(board.title)}</span>
+        <span><span className="font-semibold text-warm-text">{board.filledCount}</span>/{board.totalStickers}</span>
       </div>
     </div>
   );
 
-  const myBoardLink = (p: RelayDetailParticipant) => p.userId === user?.id && p.boardId && (isGroup || p.status === 'active') && (
-    <div className="mt-3">
-      <ClayButton
-        size="sm"
-        variant={myBoardCompleted ? 'secondary' : 'primary'}
-        fullWidth
-        onClick={(e) => { e.stopPropagation(); router.push(`/board/${p.boardId}`); }}
-      >
-        {myBoardCompleted ? '내 포도판 보기' : '내 포도판으로 이동'}
-      </ClayButton>
-    </div>
-  );
-
-  // 동료 포도판 읽기전용 열람(#5 그룹의 의미) — 내 보드가 아니고 보드가 있을 때.
-  const peekBoardLink = (p: RelayDetailParticipant) => p.userId !== user?.id && p.boardId && (
-    <div className="mt-3">
-      <ClayButton
-        size="sm"
-        variant="ghost"
-        fullWidth
-        onClick={(e) => { e.stopPropagation(); router.push(`/board/${p.boardId}`); }}
-      >
-        포도판 구경하기
-      </ClayButton>
-    </div>
+  // 수확 완료 멤버 코너 배지(REQ13) — '완료'와 구분되는 와인색 표식.
+  const harvestBadge = (
+    <span className="absolute top-2.5 right-2.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-juice-100 text-juice-700 text-[10px] font-semibold">
+      <EmojiIcon emoji="🍷" size={12} /> 수확 완료
+    </span>
   );
 
   return (
@@ -205,7 +220,7 @@ export default function RelayDetailPage() {
         <span className={`px-3 py-1 rounded-lg text-xs font-semibold ${statusBadge.color}`}>{statusBadge.text}</span>
       </div>
 
-      {/* Info — 파이프 제거, 위계 정리(좌: 모드·만든이 / 우: 인원·알) */}
+      {/* Info */}
       <div className="clay-sm p-4 mb-6 flex items-center justify-between gap-3">
         <div className="min-w-0">
           <span className={`inline-block px-2 py-0.5 rounded-md text-xs font-semibold ${isGroup ? 'bg-leaf-100 text-leaf-700' : 'bg-grape-100 text-grape-600'}`}>
@@ -218,6 +233,19 @@ export default function RelayDetailPage() {
           <p className="text-xs text-warm-sub tabular-nums">{relay.totalStickers}알</p>
         </div>
       </div>
+
+      {/* 초대 수락/거절 배너(REQ10) */}
+      {myInvited && (
+        <div className="clay p-5 mb-6 bg-grape-50 text-center">
+          <EmojiIcon emoji="🔗" size={32} className="block mx-auto mb-2" />
+          <p className="font-bold text-grape-700 mb-1">포도동에 초대받았어요</p>
+          <p className="text-sm text-warm-sub mb-4 [text-wrap:balance]">{relay.creator.name}님이 함께 습관을 채우자고 초대했어요</p>
+          <div className="flex gap-3">
+            <ClayButton variant="ghost" fullWidth onClick={handleDecline} disabled={responding}>거절</ClayButton>
+            <ClayButton fullWidth size="lg" onClick={handleAccept} loading={responding}>수락하기</ClayButton>
+          </div>
+        </div>
+      )}
 
       {/* Completed celebration */}
       {isRelayCompleted && (
@@ -235,51 +263,67 @@ export default function RelayDetailPage() {
         <h2 className="text-sm font-semibold text-warm-sub mb-4">참가자 현황</h2>
 
         {isGroup ? (
-          /* 그룹: 병렬 멤버 리스트 (순서/바통/연결선 없음) */
+          /* 그룹: 병렬 멤버 카드 — 탭하면 해당 포도판으로 이동, 실시간 포도알 미리보기 */
           <div className="space-y-3">
             {relay.participants.map((p) => {
+              const harvested = !!p.board?.harvestedAt;
               const done = p.status === 'completed' || p.board?.isCompleted;
+              const tappable = !!p.boardId;
               return (
-                <div key={p.id} className={`p-4 rounded-2xl ${done ? 'clay bg-leaf-100/40' : 'clay-sm'}`}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <Avatar avatar={p.user.avatar} size="md" />
-                      <div>
-                        <p className="font-semibold text-warm-text">
-                          {p.user.name}
-                          {p.userId === user?.id && <span className="text-xs text-grape-400 ml-1">(나)</span>}
-                        </p>
-                        {p.id === firstFinisherId && (
-                          <p className="text-xs font-semibold text-sunshine-700">1등 완성!</p>
-                        )}
-                      </div>
+                <button
+                  key={p.id}
+                  type="button"
+                  disabled={!tappable}
+                  onClick={() => { if (p.boardId) { feedbackTap(); router.push(`/board/${p.boardId}`); } }}
+                  className={`relative block w-full text-left p-4 rounded-2xl ${done ? 'clay bg-leaf-100/40' : 'clay-sm'} ${harvested ? 'opacity-75' : ''} ${tappable ? 'active:scale-[0.98] transition-transform' : 'cursor-default'}`}
+                >
+                  {harvested && harvestBadge}
+                  <div className="flex items-center gap-3">
+                    <Avatar avatar={p.user.avatar} size="md" />
+                    <div className="min-w-0">
+                      <p className="font-semibold text-warm-text">
+                        {p.user.name}
+                        {p.userId === user?.id && <span className="text-xs text-grape-400 ml-1">(나)</span>}
+                      </p>
+                      {p.status === 'invited' ? (
+                        <p className="text-xs text-warm-sub">초대 대기중</p>
+                      ) : p.id === firstFinisherId ? (
+                        <p className="text-xs font-semibold text-sunshine-700">1등 완성!</p>
+                      ) : done && !harvested ? (
+                        <p className="text-xs text-leaf-700 font-medium">완료</p>
+                      ) : null}
                     </div>
-                    {done && (
-                      <span className="px-2 py-1 rounded-lg text-xs font-semibold bg-leaf-100 text-leaf-700">완료</span>
-                    )}
                   </div>
-                  {boardProgress(p)}
-                  {myBoardLink(p)}
-                  {peekBoardLink(p)}
-                </div>
+                  {p.board ? miniGrapes(p.board) : (
+                    <p className="text-xs text-warm-sub mt-3">{p.status === 'invited' ? '초대를 수락하면 시작할 수 있어요' : '아직 포도판을 시작하지 않았어요'}</p>
+                  )}
+                </button>
               );
             })}
           </div>
         ) : (
-          /* 릴레이: 세로 턴 타임라인 */
+          /* 릴레이: 세로 턴 타임라인 — 카드 탭하면 포도판으로 이동 */
           <div className="relative">
             {relay.participants.map((p, idx) => {
               const statusInfo = participantStatusLabel(p.status);
               const isActive = p.status === 'active';
               const isCompleted = p.status === 'completed';
               const isLast = idx === relay.participants.length - 1;
+              const harvested = !!p.board?.harvestedAt;
+              const tappable = !!p.boardId;
               return (
                 <div key={p.id} className="flex items-start gap-4">
                   <div className="flex flex-col items-center">
                     <div className={`w-3 h-3 rounded-full flex-shrink-0 ${isCompleted ? 'bg-grape-500' : isActive ? 'bg-grape-400 ring-4 ring-grape-200 animate-pulse' : 'bg-warm-border'}`} />
                     {!isLast && <div className={`w-0.5 h-16 ${isCompleted ? 'bg-grape-400' : 'bg-warm-border'}`} />}
                   </div>
-                  <div className={`flex-1 mb-3 p-4 rounded-2xl transition-all ${isActive ? 'clay bg-grape-50 ring-2 ring-grape-300' : 'clay-sm'}`}>
+                  <button
+                    type="button"
+                    disabled={!tappable}
+                    onClick={() => { if (p.boardId) { feedbackTap(); router.push(`/board/${p.boardId}`); } }}
+                    className={`relative flex-1 mb-3 p-4 rounded-2xl text-left ${isActive ? 'clay bg-grape-50 ring-2 ring-grape-300' : 'clay-sm'} ${harvested ? 'opacity-75' : ''} ${tappable ? 'active:scale-[0.98] transition-transform' : 'cursor-default'}`}
+                  >
+                    {harvested && harvestBadge}
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <Avatar avatar={p.user.avatar} size="md" />
@@ -293,10 +337,8 @@ export default function RelayDetailPage() {
                       </div>
                       <span className={`px-2 py-1 rounded-lg text-xs font-semibold ${statusInfo.color}`}>{statusInfo.text}</span>
                     </div>
-                    {boardProgress(p)}
-                    {myBoardLink(p)}
-                    {peekBoardLink(p)}
-                  </div>
+                    {p.board && miniGrapes(p.board)}
+                  </button>
                 </div>
               );
             })}
@@ -311,10 +353,10 @@ export default function RelayDetailPage() {
         </div>
       )}
 
-      {/* Join: 참가자인데 아직 보드 없음 */}
+      {/* Join: 수락한 참가자인데 아직 보드 없음 */}
       {needsToJoin && !isGroup && (
         <ClayButton fullWidth size="lg" onClick={() => handleJoin()} loading={joining}>
-          포도동 참여하기
+          새 포도판으로 참여하기
         </ClayButton>
       )}
       {needsToJoin && isGroup && (
