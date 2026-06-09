@@ -205,7 +205,7 @@ function CreateBoardInner() {
           <div className="clay-sm p-6 flex flex-col items-center">
             <NumberStepper value={totalStickers} onChange={setTotalStickers} min={2} max={60} />
           </div>
-          <p className="text-xs text-warm-sub text-center">2~60알까지 자유롭게 설정할 수 있어요</p>
+          <p className="text-xs text-warm-sub text-center [text-wrap:balance]">2~60알까지 자유롭게 설정할 수 있어요</p>
 
           <div className="flex gap-3 mt-4">
             <ClayButton variant="ghost" onClick={() => setStep(1)} fullWidth>

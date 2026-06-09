@@ -246,7 +246,7 @@ export default function CapsuleModal({ boardId, isOwner, onClose }: CapsuleModal
                   loading={submitting}
                   disabled={!message.trim() || !openAt}
                 >
-                  동결건조 하기 <EmojiIcon emoji="💊" size={16} className="ml-1" />
+                  완료
                 </ClayButton>
               </div>
             </div>
@@ -346,6 +346,7 @@ export default function CapsuleModal({ boardId, isOwner, onClose }: CapsuleModal
                     }
 
                     // Locked capsule: not yet time
+                    const dleft = Math.max(0, Math.ceil((new Date(capsule.openAt).getTime() - new Date().getTime()) / 86400000));
                     return (
                       <div
                         key={capsule.id}
@@ -354,8 +355,8 @@ export default function CapsuleModal({ boardId, isOwner, onClose }: CapsuleModal
                         <div className="flex items-center gap-3">
                           <EmojiIcon emoji={capsule.emoji} size={26} className="grayscale-[30%]" />
                           <div className="flex-1">
-                            <p className="text-sm font-medium text-blue-400">
-                              <EmojiIcon emoji="🔒" size={13} className="mr-0.5" /> {formatDate(capsule.openAt)} 개봉 예정
+                            <p className="text-sm font-medium text-grape-600">
+                              <EmojiIcon emoji="🔒" size={13} className="mr-0.5" /> D-{dleft} · {formatDate(capsule.openAt)} 개봉
                             </p>
                             <p className="text-xs text-warm-sub">
                               {formatDate(capsule.createdAt)} 동결건조됨

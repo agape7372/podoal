@@ -175,6 +175,20 @@ export default function RelayDetailPage() {
     </div>
   );
 
+  // 동료 포도판 읽기전용 열람(#5 그룹의 의미) — 내 보드가 아니고 보드가 있을 때.
+  const peekBoardLink = (p: RelayDetailParticipant) => p.userId !== user?.id && p.boardId && (
+    <div className="mt-3">
+      <ClayButton
+        size="sm"
+        variant="ghost"
+        fullWidth
+        onClick={(e) => { e.stopPropagation(); router.push(`/board/${p.boardId}`); }}
+      >
+        포도판 구경하기
+      </ClayButton>
+    </div>
+  );
+
   return (
     <div className="pb-4">
       {/* Back */}
@@ -191,17 +205,17 @@ export default function RelayDetailPage() {
         <span className={`px-3 py-1 rounded-lg text-xs font-semibold ${statusBadge.color}`}>{statusBadge.text}</span>
       </div>
 
-      {/* Info */}
-      <div className="clay-sm p-4 mb-6">
-        <div className="flex items-center gap-3 text-sm text-warm-sub flex-wrap">
-          <span className={`px-2 py-0.5 rounded-md text-xs font-semibold ${isGroup ? 'bg-leaf-100 text-leaf-700' : 'bg-grape-100 text-grape-600'}`}>
+      {/* Info — 파이프 제거, 위계 정리(좌: 모드·만든이 / 우: 인원·알) */}
+      <div className="clay-sm p-4 mb-6 flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <span className={`inline-block px-2 py-0.5 rounded-md text-xs font-semibold ${isGroup ? 'bg-leaf-100 text-leaf-700' : 'bg-grape-100 text-grape-600'}`}>
             {isGroup ? '그룹' : '릴레이'}
           </span>
-          <span className="tabular-nums">{relay.totalStickers}알</span>
-          <span>|</span>
-          <span className="tabular-nums">{relay.participants.length}명 참여</span>
-          <span>|</span>
-          <span>만든이: {relay.creator.name}</span>
+          <p className="text-xs text-warm-sub mt-1.5 truncate">만든이 {relay.creator.name}</p>
+        </div>
+        <div className="text-right shrink-0">
+          <p className="font-display font-bold text-warm-text tabular-nums leading-tight">{relay.participants.length}명</p>
+          <p className="text-xs text-warm-sub tabular-nums">{relay.totalStickers}알</p>
         </div>
       </div>
 
@@ -246,6 +260,7 @@ export default function RelayDetailPage() {
                   </div>
                   {boardProgress(p)}
                   {myBoardLink(p)}
+                  {peekBoardLink(p)}
                 </div>
               );
             })}
@@ -280,6 +295,7 @@ export default function RelayDetailPage() {
                     </div>
                     {boardProgress(p)}
                     {myBoardLink(p)}
+                    {peekBoardLink(p)}
                   </div>
                 </div>
               );
@@ -322,7 +338,7 @@ export default function RelayDetailPage() {
       {/* 릴레이: 내 차례이고 아직 미완성 — 완성 시 자동 진행 안내 */}
       {!isGroup && isMyTurn && hasBoard && !myBoardCompleted && (
         <div className="clay-sm p-4 text-center bg-grape-50">
-          <p className="text-sm text-warm-sub">포도판을 완성하면 자동으로 다음 주자에게 넘어가요!</p>
+          <p className="text-sm text-warm-sub [text-wrap:balance]">완성하면 다음 주자에게 자동으로 넘어가요</p>
         </div>
       )}
 

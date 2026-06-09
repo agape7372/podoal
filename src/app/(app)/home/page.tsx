@@ -26,12 +26,8 @@ function timeOfDayGreeting(): string {
 
 type Filter = 'all' | 'active' | 'completed' | 'harvested';
 
-// 제스처 상수
-const LONG_PRESS_MS = 450;  // 꾹 누름 → 카드 "집기"
-const MOVE_TOL = 10;        // 집기 전 이만큼 움직이면 스크롤로 간주(집기 취소)
-const AXIS_TOL = 8;         // 집은 뒤 축(세로=정렬/가로=액션) 결정 임계
-const ACTION_WIDTH = 152;   // 스와이프로 드러나는 액션 영역 폭(px)
-const ACTION_OPEN = 60;     // 이만큼 왼쪽으로 밀면 액션 고정
+const LONG_PRESS_MS = 450; // 꾹 누름 → 관리 모드 진입
+const MOVE_TOL = 10;       // 진입 전 이만큼 움직이면 스크롤 의도로 보고 취소
 
 export default function HomePage() {
   const router = useRouter();
@@ -42,16 +38,15 @@ export default function HomePage() {
   const [filter, setFilter] = useState<Filter>('all');
   const greeting = useMemo(timeOfDayGreeting, []);
 
-  // 관리 제스처 상태
-  const [armedId, setArmedId] = useState<string | null>(null);   // 꾹 눌러 집은 카드
-  const [axis, setAxis] = useState<'' | 'v' | 'h'>('');           // 집은 뒤 잠긴 축
-  const [swipeX, setSwipeX] = useState(0);                        // 집은 카드의 가로 오프셋
-  const [actionId, setActionId] = useState<string | null>(null); // 액션(수확/삭제) 열린 카드
+  // 관리 모드 + 드래그 정렬 상태
+  const [manageMode, setManageMode] = useState(false);
+  const [dragId, setDragId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<BoardSummary | null>(null);
   const [deleting, setDeleting] = useState(false);
 
   const lpTimer = useRef<number | null>(null);
-  const gesture = useRef<{ id: string; startX: number; startY: number; moved: boolean; el: HTMLElement; pointerId: number } | null>(null);
+  const lpStart = useRef<{ x: number; y: number } | null>(null);
+  const lpMoved = useRef(false);
   const cardRefs = useRef<Map<string, HTMLElement>>(new Map());
   const dragOrderRef = useRef<string[]>([]); // 드래그 중 보이는 카드 순서(클로저 staleness 회피)
 
@@ -92,18 +87,8 @@ export default function HomePage() {
 
   const clearLp = () => { if (lpTimer.current) { window.clearTimeout(lpTimer.current); lpTimer.current = null; } };
 
-  const resetGesture = useCallback(() => {
-    clearLp();
-    gesture.current = null;
-    dragOrderRef.current = [];
-    setArmedId(null);
-    setAxis('');
-    setSwipeX(0);
-  }, []);
-
-  // 세로 드래그 — 드래그 순서를 ref(dragOrderRef)에 보관해 클로저 staleness/이벤트 배치 레이스를 피한다.
-  // hit-test는 포인터 Y가 들어있는 카드 1개를 찾으므로 순서와 무관. 보이는(비수확) 카드만 재배열하고
-  // 수확된 카드의 order는 건드리지 않는다.
+  // 보이는(비수확) 카드만 재배열, 수확된 카드의 order는 보존. hit-test는 포인터 Y가
+  // 들어있는 행 1개를 찾으므로 순서와 무관. 순서는 ref에 보관해 클로저 staleness를 피한다.
   const reorderMove = useCallback((clientY: number, draggingId: string) => {
     const ids = dragOrderRef.current;
     let overId: string | null = null;
@@ -131,82 +116,51 @@ export default function HomePage() {
     api('/api/boards/reorder', { method: 'PATCH', json: { orderedIds } }).catch(() => {});
   }, []);
 
-  const onPointerDown = (e: React.PointerEvent, board: BoardSummary) => {
+  // --- 비-관리 모드: 카드 탭=내비, 꾹 누름=관리 모드 진입 ---
+  const onCardDown = (e: React.PointerEvent) => {
+    if (manageMode || (e.pointerType === 'mouse' && e.button !== 0)) return;
+    lpStart.current = { x: e.clientX, y: e.clientY };
+    lpMoved.current = false;
+    clearLp();
+    lpTimer.current = window.setTimeout(() => { feedbackTap(); setManageMode(true); }, LONG_PRESS_MS);
+  };
+  const onCardMove = (e: React.PointerEvent) => {
+    if (manageMode || !lpStart.current) return;
+    const dx = e.clientX - lpStart.current.x;
+    const dy = e.clientY - lpStart.current.y;
+    if (Math.hypot(dx, dy) > MOVE_TOL) { lpMoved.current = true; clearLp(); } // 스크롤 의도 → 진입 취소
+  };
+  const onCardUp = (board: BoardSummary) => {
+    clearLp();
+    const moved = lpMoved.current;
+    lpStart.current = null;
+    if (manageMode) return; // 진입 직후엔 내비 안 함
+    if (!moved) { feedbackTap(); router.push(`/board/${board.id}`); } // 빠른 탭 → 보드 열기
+  };
+
+  // --- 관리 모드: 드래그 핸들(touch-action:none)로 순서변경 ---
+  const onGripDown = (e: React.PointerEvent, board: BoardSummary) => {
     if (e.pointerType === 'mouse' && e.button !== 0) return;
-    // 다른 카드의 열린 액션은 닫는다.
-    if (actionId && actionId !== board.id) setActionId(null);
-    const el = e.currentTarget as HTMLElement;
-    const pointerId = e.pointerId;
-    gesture.current = { id: board.id, startX: e.clientX, startY: e.clientY, moved: false, el, pointerId };
-    clearLp();
-    // 캡처는 "집은 순간"에만 — 그 전엔 페이지 세로 스크롤을 그대로 허용.
-    lpTimer.current = window.setTimeout(() => {
-      feedbackTap();
-      try { el.setPointerCapture(pointerId); } catch { /* noop */ }
-      setArmedId(board.id);
-      setAxis('');
-      setSwipeX(0);
-    }, LONG_PRESS_MS);
+    e.stopPropagation();
+    dragOrderRef.current = displayBoards.map((b) => b.id);
+    setDragId(board.id);
+    try { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); } catch { /* noop */ }
   };
-
-  const onPointerMove = (e: React.PointerEvent, board: BoardSummary) => {
-    const g = gesture.current;
-    if (!g || g.id !== board.id) return;
-    const dx = e.clientX - g.startX;
-    const dy = e.clientY - g.startY;
-
-    if (armedId !== board.id) {
-      // 집기 전 움직임 → 스크롤 의도. 집기 타이머 취소하고 손 뗀다(브라우저 스크롤 허용).
-      if (Math.hypot(dx, dy) > MOVE_TOL) { g.moved = true; clearLp(); }
-      return;
-    }
-
-    // 집은 상태 — 축 잠금 후 처리
-    let ax = axis;
-    if (!ax) {
-      if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > AXIS_TOL) ax = 'h';
-      else if (Math.abs(dy) > AXIS_TOL) ax = 'v';
-      if (ax) setAxis(ax);
-    }
-    if (ax === 'v') {
-      if (canReorder) {
-        if (dragOrderRef.current.length === 0) dragOrderRef.current = displayBoards.map((b) => b.id);
-        reorderMove(e.clientY, board.id);
-      }
-    } else if (ax === 'h') {
-      setSwipeX(Math.max(-ACTION_WIDTH, Math.min(0, dx))); // 왼쪽으로만 열림
-    }
+  const onGripMove = (e: React.PointerEvent, board: BoardSummary) => {
+    if (dragId !== board.id) return;
+    reorderMove(e.clientY, board.id);
   };
-
-  const onPointerUp = (e: React.PointerEvent, board: BoardSummary) => {
-    const g = gesture.current;
-    const wasArmed = armedId === board.id;
-    clearLp();
+  const onGripUp = (e: React.PointerEvent) => {
     try { (e.currentTarget as HTMLElement).releasePointerCapture?.(e.pointerId); } catch { /* noop */ }
-
-    if (!wasArmed) {
-      // 빠른 탭 → 내비게이션(움직이지 않았고 액션도 안 열렸을 때)
-      if (g && !g.moved) {
-        if (actionId === board.id) setActionId(null);
-        else { feedbackTap(); router.push(`/board/${board.id}`); }
-      }
-      gesture.current = null;
-      return;
-    }
-
-    if (axis === 'h') {
-      setActionId(swipeX <= -ACTION_OPEN ? board.id : null);
-    } else if (axis === 'v') {
-      persistOrder();
-    }
-    resetGesture();
+    if (dragId) persistOrder();
+    setDragId(null);
+    dragOrderRef.current = [];
   };
 
-  const onPointerCancel = () => { resetGesture(); };
+  const exitManage = () => { feedbackTap(); setManageMode(false); setDragId(null); };
 
   const harvestBoard = async (board: BoardSummary, harvested: boolean) => {
     feedbackTap();
-    setActionId(null);
     setBoards((prev) => prev.map((b) => (b.id === board.id ? { ...b, harvestedAt: harvested ? new Date().toISOString() : null } : b)));
     try {
       await api(`/api/boards/${board.id}`, { method: 'PATCH', json: { harvested } });
@@ -225,8 +179,12 @@ export default function HomePage() {
     } finally {
       setDeleting(false);
       setDeleteTarget(null);
-      setActionId(null);
     }
+  };
+
+  const setCardRef = (id: string) => (el: HTMLElement | null) => {
+    if (el) cardRefs.current.set(id, el);
+    else cardRefs.current.delete(id);
   };
 
   return (
@@ -260,7 +218,7 @@ export default function HomePage() {
           return (
             <button
               key={f}
-              onClick={() => { feedbackTap(); setFilter(f); setActionId(null); }}
+              onClick={() => { feedbackTap(); setFilter(f); }}
               aria-pressed={isActive}
               className={`
                 px-3.5 py-2 rounded-2xl text-sm font-medium transition-all inline-flex items-center gap-1.5
@@ -279,6 +237,21 @@ export default function HomePage() {
           );
         })}
       </div>
+
+      {/* 관리 모드 바 */}
+      {manageMode && (
+        <div className="flex items-center justify-between mb-3 px-1 animate-fade-in">
+          <span className="text-sm font-medium text-grape-700">
+            {canReorder ? '핸들을 끌어 순서 변경 · 수확·삭제' : '수확·삭제'}
+          </span>
+          <button
+            onClick={exitManage}
+            className="clay-button px-3.5 py-1.5 rounded-xl text-sm font-semibold text-grape-700"
+          >
+            완료
+          </button>
+        </div>
+      )}
 
       {/* Board list */}
       {loading ? (
@@ -303,7 +276,7 @@ export default function HomePage() {
           </p>
           {filter === 'all' && (
             <>
-              <p className="text-sm text-warm-sub mb-5">한 알씩 채워볼 첫 판을 만들어 보세요</p>
+              <p className="text-sm text-warm-sub mb-5 [text-wrap:balance]">한 알씩 채워볼 첫 판을 만들어 보세요</p>
               <ClayButton variant="joyful" onClick={() => router.push('/board/create')}>
                 포도판 만들기
               </ClayButton>
@@ -314,42 +287,59 @@ export default function HomePage() {
         <>
           <ul className="space-y-3">
             {displayBoards.map((board) => {
-              const isArmed = armedId === board.id;
-              const isDragging = isArmed && axis === 'v';
-              const tx = isArmed && axis === 'h' ? swipeX : actionId === board.id ? -ACTION_WIDTH : 0;
-              return (
-                <li key={board.id} className="relative">
-                  {/* 액션 레이어 (스와이프로 드러남) */}
-                  <div className="absolute inset-y-0 right-0 flex items-stretch gap-2" style={{ width: ACTION_WIDTH }} aria-hidden={actionId !== board.id}>
-                    <button
-                      onClick={() => harvestBoard(board, !board.harvestedAt)}
-                      className={`flex-1 rounded-2xl text-xs font-semibold flex items-center justify-center ${board.harvestedAt ? 'bg-leaf-100 text-leaf-700' : 'bg-grape-100 text-grape-700'}`}
-                    >
-                      {board.harvestedAt ? '되돌리기' : '수확'}
-                    </button>
-                    <button
-                      onClick={() => setDeleteTarget(board)}
-                      className="flex-1 rounded-2xl text-xs font-semibold flex items-center justify-center bg-red-500 text-white"
-                    >
-                      삭제
-                    </button>
-                  </div>
+              const isDragging = dragId === board.id;
 
-                  {/* 카드(제스처 래퍼) */}
+              if (manageMode) {
+                return (
+                  <li
+                    key={board.id}
+                    ref={setCardRef(board.id)}
+                    className={`flex items-stretch gap-2 transition-transform ${isDragging ? 'scale-[1.02] relative z-10' : ''}`}
+                  >
+                    {canReorder && (
+                      <button
+                        aria-label="드래그하여 순서 변경"
+                        onPointerDown={(e) => onGripDown(e, board)}
+                        onPointerMove={(e) => onGripMove(e, board)}
+                        onPointerUp={onGripUp}
+                        onPointerCancel={onGripUp}
+                        style={{ touchAction: 'none' }}
+                        className={`clay-sm shrink-0 w-9 rounded-2xl flex flex-col items-center justify-center gap-1 cursor-grab active:cursor-grabbing ${isDragging ? 'shadow-grape-glow' : ''}`}
+                      >
+                        {[0, 1, 2].map((i) => <span key={i} className="block w-4 h-0.5 rounded-full bg-warm-light" />)}
+                      </button>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <BoardCard board={board} asStatic />
+                    </div>
+                    <div className="shrink-0 flex flex-col gap-1.5 justify-center w-[58px]">
+                      {board.isCompleted && (
+                        <button
+                          onClick={() => harvestBoard(board, !board.harvestedAt)}
+                          className={`rounded-xl py-2 text-xs font-semibold ${board.harvestedAt ? 'bg-leaf-100 text-leaf-700' : 'bg-grape-100 text-grape-700'}`}
+                        >
+                          {board.harvestedAt ? '되돌리기' : '수확'}
+                        </button>
+                      )}
+                      <button
+                        onClick={() => setDeleteTarget(board)}
+                        className="rounded-xl py-2 text-xs font-semibold bg-red-500 text-white"
+                      >
+                        삭제
+                      </button>
+                    </div>
+                  </li>
+                );
+              }
+
+              return (
+                <li key={board.id} ref={setCardRef(board.id)}>
                   <div
-                    ref={(el) => { if (el) cardRefs.current.set(board.id, el); else cardRefs.current.delete(board.id); }}
-                    onPointerDown={(e) => onPointerDown(e, board)}
-                    onPointerMove={(e) => onPointerMove(e, board)}
-                    onPointerUp={(e) => onPointerUp(e, board)}
-                    onPointerCancel={onPointerCancel}
-                    style={{
-                      transform: `translateX(${tx}px)${isDragging ? ' scale(1.03)' : ''}`,
-                      transition: isArmed && axis === 'h' ? 'none' : 'transform 0.18s ease',
-                      touchAction: isArmed ? 'none' : 'pan-y',
-                      zIndex: isDragging ? 10 : undefined,
-                      position: 'relative',
-                    }}
-                    className={isDragging ? 'shadow-grape-glow' : ''}
+                    onPointerDown={onCardDown}
+                    onPointerMove={onCardMove}
+                    onPointerUp={() => onCardUp(board)}
+                    onPointerCancel={() => { clearLp(); lpStart.current = null; }}
+                    style={{ touchAction: 'pan-y' }}
                   >
                     <BoardCard board={board} asStatic />
                   </div>
@@ -357,14 +347,16 @@ export default function HomePage() {
               );
             })}
           </ul>
-          <p className="text-center text-[11px] text-warm-sub mt-4">
-            {canReorder ? '카드를 꾹 눌러 위·아래로 옮기거나, 옆으로 밀어 수확·삭제할 수 있어요' : '카드를 옆으로 밀어 수확·삭제할 수 있어요'}
-          </p>
+          {!manageMode && (
+            <p className="text-center text-[11px] text-warm-sub mt-4 [text-wrap:balance]">
+              카드를 꾹 누르면 정렬·수확·삭제할 수 있어요
+            </p>
+          )}
         </>
       )}
 
-      {/* FAB */}
-      {boards.length > 0 && (
+      {/* FAB — 관리 모드에선 숨김 */}
+      {boards.length > 0 && !manageMode && (
         <button
           onClick={() => { feedbackTap(); router.push('/board/create'); }}
           className="fixed bottom-28 right-6 w-14 h-14 rounded-full flex items-center justify-center text-3xl text-white bg-grape-600 border-[1.3px] border-warm-border active:translate-x-[1.5px] active:translate-y-[2px] transition-all z-40 safe-bottom"
@@ -384,7 +376,7 @@ export default function HomePage() {
         destructive
         loading={deleting}
         onConfirm={confirmDelete}
-        onCancel={() => { if (!deleting) { setDeleteTarget(null); setActionId(null); } }}
+        onCancel={() => { if (!deleting) setDeleteTarget(null); }}
       />
     </div>
   );

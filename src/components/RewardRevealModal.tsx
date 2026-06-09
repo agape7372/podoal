@@ -33,13 +33,13 @@ export default function RewardRevealModal({ reward, onClose }: RewardRevealModal
         <div className="text-xs font-medium text-grape-600 mb-1">{REWARD_TYPE_LABELS[reward.type]}</div>
         <h3 className="font-display text-xl font-bold text-grape-700 mb-3 break-words">{reward.title}</h3>
         {reward.content ? (
-          <div className="clay-sm bg-white p-4 mb-5 text-left">
+          <div className="clay-sm bg-white p-4 mb-5 text-center">
             <p className="text-sm text-warm-text whitespace-pre-wrap leading-relaxed break-words">
               {reward.content}
             </p>
           </div>
         ) : (
-          <div className="clay-sm bg-white p-4 mb-5 text-left space-y-2" aria-label="내용 불러오는 중">
+          <div className="clay-sm bg-white p-4 mb-5 text-center space-y-2" aria-label="내용 불러오는 중">
             <div className="skeleton h-4 w-full" />
             <div className="skeleton h-4 w-2/3" />
           </div>

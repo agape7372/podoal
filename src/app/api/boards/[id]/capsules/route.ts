@@ -64,16 +64,16 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
     return authResponse('Missing required fields: message, openAt', 400);
   }
 
-  const openAtDate = new Date(openAt);
+  // <input type=date>는 'YYYY-MM-DD'. 이를 그대로 new Date()하면 UTC 자정 = KST 09:00에
+  // 개봉되는 버그가 있었음. 선택한 날짜의 KST 자정(00:00 +09:00)으로 해석해 그 날 0시에 열리게 한다.
+  const dateOnly = typeof openAt === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(openAt);
+  const openAtDate = dateOnly ? new Date(`${openAt}T00:00:00+09:00`) : new Date(openAt);
   if (isNaN(openAtDate.getTime())) {
     return authResponse('Invalid openAt date', 400);
   }
 
-  const now = new Date();
-  // Compare dates only (not time) - openAt must be at least tomorrow
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const openAtStart = new Date(openAtDate.getFullYear(), openAtDate.getMonth(), openAtDate.getDate());
-  if (openAtStart.getTime() <= todayStart.getTime()) {
+  // 미래여야 함(이미 KST 자정 인스턴트라 오늘 선택 시 now보다 과거 → 거부, 내일+ 만 통과).
+  if (openAtDate.getTime() <= Date.now()) {
     return authResponse('openAt must be a future date', 400);
   }
 

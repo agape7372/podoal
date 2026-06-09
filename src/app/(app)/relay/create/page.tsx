@@ -133,30 +133,24 @@ export default function CreatePodongPage() {
 
   return (
     <div className="pb-4">
-      <button
-        onClick={() => { feedbackTap(); router.push('/relay'); }}
-        className="clay-button px-3 py-2 rounded-xl text-sm text-warm-sub mb-4"
-      >
-        ← 포도동 목록
-      </button>
+      {/* 컴팩트 상단: 뒤로 + 제목 한 줄 → 슬림 진행 바 (상단 혼잡 해소) */}
+      <div className="flex items-center gap-2 mb-3">
+        <button
+          onClick={() => { feedbackTap(); router.push('/relay'); }}
+          aria-label="포도동 목록"
+          className="clay-button w-9 h-9 rounded-full flex items-center justify-center text-warm-sub shrink-0"
+        >
+          ←
+        </button>
+        <h1 className="font-display text-lg font-bold text-grape-700 inline-flex items-center gap-1.5">
+          <EmojiIcon emoji={'🔗'} size={18} /> 새 포도동 만들기
+        </h1>
+      </div>
 
-      <h1 className="font-display text-2xl font-bold text-grape-700 mb-6 inline-flex items-center gap-1.5">
-        <EmojiIcon emoji={'🔗'} size={24} /> 새 포도동 만들기
-      </h1>
-
-      {/* Step indicator (0~5) */}
-      <div className="flex items-center justify-center gap-1.5 mb-6">
+      {/* 슬림 6-세그먼트 진행 바 */}
+      <div className="flex gap-1 mb-6" aria-label={`${step + 1}/6 단계`}>
         {[0, 1, 2, 3, 4, 5].map((s) => (
-          <div key={s} className="flex items-center gap-1.5">
-            <div
-              className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold tabular-nums transition-all ${
-                step >= s ? 'bg-gradient-to-br from-grape-400 to-grape-500 text-white' : 'bg-grape-100 text-warm-light'
-              }`}
-            >
-              {s}
-            </div>
-            {s < 5 && <div className={`w-4 h-0.5 ${step > s ? 'bg-grape-400' : 'bg-grape-100'}`} />}
-          </div>
+          <div key={s} className={`h-1.5 flex-1 rounded-full transition-colors ${step >= s ? 'bg-grape-400' : 'bg-grape-100'}`} />
         ))}
       </div>
 
@@ -169,14 +163,14 @@ export default function CreatePodongPage() {
             className={`clay p-5 w-full text-left transition-all active:scale-[0.98] ${mode === 'relay' ? 'ring-2 ring-grape-400 bg-grape-50' : ''}`}
           >
             <p className="font-bold text-grape-700 mb-1"><EmojiIcon emoji={'🔗'} size={18} className="mr-1" />릴레이</p>
-            <p className="text-sm text-warm-sub">순서대로 한 명씩, 바통을 이어받아요</p>
+            <p className="text-sm text-warm-sub [text-wrap:balance]">순서대로 한 명씩, 바통을 이어받아요</p>
           </button>
           <button
             onClick={() => { feedbackTap(); setMode('group'); setStep(1); }}
             className={`clay p-5 w-full text-left transition-all active:scale-[0.98] ${mode === 'group' ? 'ring-2 ring-grape-400 bg-grape-50' : ''}`}
           >
             <p className="font-bold text-grape-700 mb-1"><EmojiIcon emoji={'👥'} size={18} className="mr-1" />그룹</p>
-            <p className="text-sm text-warm-sub">다 같이 동시에! 각자 포도판을 채워요</p>
+            <p className="text-sm text-warm-sub [text-wrap:balance]">다 같이 동시에! 각자 포도판을 채워요</p>
           </button>
         </div>
       )}
@@ -369,7 +363,7 @@ export default function CreatePodongPage() {
           )}
 
           {mode === 'group' && (
-            <p className="text-xs text-warm-sub ml-1">다 같이 동시에 시작해요. 친구는 각자 새 포도판을 만들거나 기존 포도판을 불러올 수 있어요.</p>
+            <p className="text-xs text-warm-sub ml-1 [text-wrap:balance]">다 같이 동시에 시작해요. 친구는 각자 새 포도판을 만들거나 기존 포도판을 불러올 수 있어요.</p>
           )}
 
           {error && <p className="text-grape-700 text-sm text-center">{error}</p>}
