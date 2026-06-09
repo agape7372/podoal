@@ -1,0 +1,100 @@
+'use client';
+
+import type { PointerEventHandler } from 'react';
+import type { BoardSummary } from '@/types';
+import BoardCard from './BoardCard';
+import EmojiIcon from './EmojiIcon';
+
+interface SwipeableBoardCardProps {
+  board: BoardSummary;
+  /** Horizontal offset of the card layer in px (≤ 0 reveals the right action tray). */
+  offset: number;
+  /** Visually lifted for drag-to-reorder (scale + glow + raised z). */
+  lifted: boolean;
+  /** Animate the transform (off while the finger is actively dragging the swipe). */
+  animating: boolean;
+  /** Pixel width of the revealed action tray. */
+  trayWidth: number;
+  onHarvest: () => void;
+  onDelete: () => void;
+  /** Outer (non-translating) element ref — used by the parent for drag hit-testing. */
+  innerRef: (el: HTMLElement | null) => void;
+  pointerHandlers: {
+    onPointerDown: PointerEventHandler;
+    onPointerMove: PointerEventHandler;
+    onPointerUp: PointerEventHandler;
+    onPointerCancel: PointerEventHandler;
+  };
+}
+
+export default function SwipeableBoardCard({
+  board,
+  offset,
+  lifted,
+  animating,
+  trayWidth,
+  onHarvest,
+  onDelete,
+  innerRef,
+  pointerHandlers,
+}: SwipeableBoardCardProps) {
+  const harvested = !!board.harvestedAt;
+  // 서버는 완성된 보드만 수확 허용. harvested 보드는 항상 완성 상태이므로 되돌리기는 항상 가능.
+  const canHarvest = board.isCompleted;
+  const revealed = offset <= -1;
+
+  return (
+    <div ref={innerRef} className={`relative ${lifted ? 'z-20' : ''}`}>
+      <div className="relative overflow-hidden" style={{ borderRadius: 20 }}>
+        {/* Right-side action tray, revealed as the card slides left */}
+        <div
+          className="absolute inset-y-0 right-0 flex items-stretch gap-1.5"
+          style={{ width: trayWidth }}
+          aria-hidden={!revealed}
+        >
+          <button
+            type="button"
+            onClick={onHarvest}
+            disabled={!canHarvest}
+            tabIndex={revealed ? 0 : -1}
+            className={`flex-1 rounded-2xl text-xs font-semibold flex flex-col items-center justify-center gap-0.5 transition-colors ${
+              harvested
+                ? 'bg-leaf-100 text-leaf-700'
+                : canHarvest
+                  ? 'bg-grape-100 text-grape-700'
+                  : 'bg-warm-border/40 text-warm-light cursor-not-allowed'
+            }`}
+          >
+            <EmojiIcon emoji="🍇" size={16} />
+            {harvested ? '되돌리기' : '수확'}
+          </button>
+          <button
+            type="button"
+            onClick={onDelete}
+            tabIndex={revealed ? 0 : -1}
+            className="flex-1 rounded-2xl text-xs font-semibold flex flex-col items-center justify-center gap-0.5 bg-red-500 text-white"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6" />
+              <path d="M10 11v6M14 11v6" />
+            </svg>
+            삭제
+          </button>
+        </div>
+
+        {/* Moving card layer — owns the pointer gesture */}
+        <div
+          {...pointerHandlers}
+          className={`relative ${lifted ? 'shadow-grape-glow' : ''}`}
+          style={{
+            transform: `translateX(${offset}px) scale(${lifted ? 1.02 : 1})`,
+            transition: animating ? 'transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1)' : 'none',
+            touchAction: lifted ? 'none' : 'pan-y',
+          }}
+        >
+          <BoardCard board={board} asStatic />
+        </div>
+      </div>
+    </div>
+  );
+}

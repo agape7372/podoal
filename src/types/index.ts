@@ -31,6 +31,8 @@ export interface BoardSummary {
   order?: number | null;
   /** "Harvested" (hidden) timestamp. null = visible on the home list. */
   harvestedAt?: string | null;
+  /** True when this board belongs to a 포도동(group) relay — drives the home source badge. */
+  podong?: boolean;
 }
 
 export interface BoardDetail extends BoardSummary {
