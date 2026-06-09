@@ -17,7 +17,7 @@ import CapsuleModal from '@/components/CapsuleModal';
 import Avatar from '@/components/Avatar';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import EmojiIcon from '@/components/EmojiIcon';
-import type { BoardDetail, PlantedGiftInfo, RewardInfo } from '@/types';
+import type { BoardDetail, PlantedGiftInfo, RewardInfo, TimeCapsuleInfo } from '@/types';
 import { REWARD_TYPE_ICON, ICON } from '@/lib/icons';
 import { feedbackTap } from '@/lib/feedback';
 import { stripTitleEmoji } from '@/lib/title';
@@ -69,6 +69,33 @@ export default function BoardDetailPage() {
   useEffect(() => {
     fetchBoard();
   }, [fetchBoard]);
+
+  // 동결건조 캡슐 요약(보드 존재감용) — owner만 조회. 모달에서 생성/개봉 후 갱신.
+  const [capsules, setCapsules] = useState<TimeCapsuleInfo[] | null>(null);
+  const [capsuleTeaser, setCapsuleTeaser] = useState<{ text: string; glow: boolean } | null>(null);
+  const loadCapsules = useCallback(() => {
+    api<{ capsules: TimeCapsuleInfo[] }>(`/api/boards/${id}/capsules`)
+      .then((d) => setCapsules(d.capsules))
+      .catch(() => {});
+  }, [id]);
+  const ownerViewing = !!board && !!user && user.id === board.owner.id;
+  useEffect(() => {
+    if (ownerViewing) loadCapsules();
+  }, [ownerViewing, loadCapsules]);
+  // Date.now()는 render/useMemo가 아닌 effect에서만 사용(react-hooks/purity 회피).
+  useEffect(() => {
+    if (!capsules) { setCapsuleTeaser(null); return; }
+    const now = Date.now();
+    const openable = capsules.find((c) => !c.isOpened && new Date(c.openAt).getTime() <= now);
+    const nextLocked = capsules
+      .filter((c) => !c.isOpened && new Date(c.openAt).getTime() > now)
+      .sort((a, b) => new Date(a.openAt).getTime() - new Date(b.openAt).getTime())[0];
+    let text: string | null = null;
+    if (openable) text = '지금 개봉할 수 있어요!';
+    else if (nextLocked) text = `다음 개봉 D-${Math.max(0, Math.ceil((new Date(nextLocked.openAt).getTime() - now) / 86400000))}`;
+    else if (capsules.length > 0) text = `보관함 ${capsules.length}개`;
+    setCapsuleTeaser(text ? { text, glow: !!openable } : null);
+  }, [capsules]);
 
   const handleFillSticker = async (position: number) => {
     if (!board || !user) return;
@@ -347,6 +374,18 @@ export default function BoardDetailPage() {
         </div>
       )}
 
+      {/* 동결건조 존재감 — owner: 캡슐 상태 티저(개봉 가능 / 다음 개봉 D-N / 보관함) */}
+      {isOwner && capsuleTeaser && (
+        <button
+          onClick={() => { feedbackTap(); setShowCapsule(true); }}
+          className={`w-full clay-sm px-4 py-2.5 mb-5 flex items-center gap-2 text-sm transition-all active:scale-[0.99] ${capsuleTeaser.glow ? 'reward-glow bg-amber-50/70' : ''}`}
+        >
+          <EmojiIcon emoji="💊" size={16} />
+          <span className="flex-1 text-left text-warm-text">동결건조 · {capsuleTeaser.text}</span>
+          <span className="text-warm-sub" aria-hidden>›</span>
+        </button>
+      )}
+
       {/* Owner: toggle whether friends may plant surprise gifts here */}
       {isOwner && !board.isCompleted && (
         <button
@@ -360,7 +399,7 @@ export default function BoardDetailPage() {
             <EmojiIcon emoji="🎁" size={18} />
             <span className="text-left">
               친구가 깜짝 선물 심기
-              <span className="block text-[11px] text-warm-sub">친구가 빈 칸에 선물을 숨길 수 있어요</span>
+              <span className="block text-[11px] text-warm-sub [text-wrap:balance]">친구가 빈 칸에 선물을 숨길 수 있어요</span>
             </span>
           </span>
           <span className={`relative w-11 h-6 rounded-full shrink-0 transition-colors ${allowPlant ? 'bg-grape-400' : 'bg-warm-border'}`}>
@@ -551,7 +590,7 @@ export default function BoardDetailPage() {
         <CapsuleModal
           boardId={id}
           isOwner={isOwner}
-          onClose={() => setShowCapsule(false)}
+          onClose={() => { setShowCapsule(false); loadCapsules(); }}
         />
       )}
 

@@ -58,7 +58,16 @@ export async function GET(request: Request, props: { params: Promise<{ id: strin
       },
     });
     if (!friendship) {
-      return authResponse('Forbidden', 403);
+      // 같은 포도동(릴레이)에 속한 보드면 동료가 읽기전용으로 열람 허용 —
+      // 이 board가 어떤 릴레이 참가자의 보드이고, 요청자도 그 릴레이 참가자일 때.
+      // (보상 본문은 아래 canSeeBody에서 비-privileged로 계속 마스킹됨.)
+      const coParticipant = await prisma.relayParticipant.findFirst({
+        where: { boardId: id, relay: { participants: { some: { userId } } } },
+        select: { id: true },
+      });
+      if (!coParticipant) {
+        return authResponse('Forbidden', 403);
+      }
     }
   }
 
@@ -119,7 +128,7 @@ export async function PATCH(request: Request, props: { params: Promise<{ id: str
   }
 
   const { id } = params;
-  const board = await prisma.board.findUnique({ where: { id }, select: { ownerId: true } });
+  const board = await prisma.board.findUnique({ where: { id }, select: { ownerId: true, isCompleted: true } });
   if (!board) {
     return authResponse('Board not found', 404);
   }
@@ -132,8 +141,11 @@ export async function PATCH(request: Request, props: { params: Promise<{ id: str
   if (typeof body?.allowFriendPlant === 'boolean') {
     data.allowFriendPlant = body.allowFriendPlant;
   }
-  // 수확(숨김) 토글: true=숨김(now), false=노출(null).
+  // 수확(숨김) 토글: 완료된 판만 수확 가능(true). 되돌리기(false)는 항상 허용.
   if (typeof body?.harvested === 'boolean') {
+    if (body.harvested && !board.isCompleted) {
+      return authResponse('완료된 포도판만 수확할 수 있어요', 400);
+    }
     data.harvestedAt = body.harvested ? new Date() : null;
   }
   // 제목/설명 편집 — POST(boards/route.ts)와 동일 검증. stripTitleEmoji는 표시 전용이라 저장경로에 미적용(raw 저장).
