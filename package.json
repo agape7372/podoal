@@ -8,6 +8,7 @@
     "start": "next start",
     "test": "node --import tsx --test \"src/**/*.test.ts\"",
     "test:watch": "node --import tsx --test --watch \"src/**/*.test.ts\"",
+    "test:integration": "node --import tsx --test \"tests/integration/**/*.test.ts\"",
     "lint": "eslint . && node scripts/check-icons.mjs",
     "check:icons": "node scripts/check-icons.mjs",
     "db:generate": "prisma generate",
