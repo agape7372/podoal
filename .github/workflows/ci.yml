@@ -25,6 +25,9 @@ jobs:
       - run: npm ci
       - run: npx tsc --noEmit
       - run: npm run lint
+      # node:test + tsx 단위 테스트 (DB 불필요 — 릴레이 상태머신 로직·토큰·검증·유틸).
+      # 동시성 race 통합테스트는 실 Postgres가 필요해 별도(로드맵 M2).
+      - run: npm test
       # next build (Turbopack, default in Next 16) catches App-Router server/client
       # boundary errors that tsc/lint miss. Runs next build directly, not the
       # `build` npm script, to skip the `prisma db push` that needs a live DB.

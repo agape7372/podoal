@@ -1,5 +1,7 @@
 import { SignJWT, jwtVerify } from 'jose';
-import { cookies } from 'next/headers';
+// `next/headers`는 `server-only`를 import해 서버 요청 스코프 밖(테스트·번들)에서 throw한다.
+// 이 모듈의 순수 토큰 함수(createToken/verifyToken/cookie 빌더)를 단위테스트할 수 있도록
+// 최상위 import 대신 getCurrentUserId 내부에서 동적 import한다(런타임 동작 동일).
 
 const rawSecret = process.env.JWT_SECRET;
 if (!rawSecret || rawSecret.length < 16) {
@@ -31,6 +33,7 @@ export async function verifyToken(token: string): Promise<{ userId: string } | n
 }
 
 export async function getCurrentUserId(): Promise<string | null> {
+  const { cookies } = await import('next/headers');
   const cookieStore = await cookies();
   const token = cookieStore.get(COOKIE_NAME)?.value;
   if (!token) return null;

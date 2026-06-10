@@ -3,6 +3,7 @@
 import type { PointerEventHandler } from 'react';
 import type { BoardSummary } from '@/types';
 import BoardCard from './BoardCard';
+import BoardCardMenu from './BoardCardMenu';
 import EmojiIcon from './EmojiIcon';
 
 interface SwipeableBoardCardProps {
@@ -90,7 +91,7 @@ export default function SwipeableBoardCard({
 
         {/* Moving card layer — owns the pointer gesture. role/tabIndex/onKeyDown give
             keyboard + screen-reader users a way to OPEN the board (the swipe/longpress
-            gestures are pointer-only); harvest/delete via keyboard is the kebab menu (M2). */}
+            gestures are pointer-only); harvest/delete via keyboard is the ⋮ menu below. */}
         <div
           {...pointerHandlers}
           role="button"
@@ -109,9 +110,21 @@ export default function SwipeableBoardCard({
             touchAction: lifted ? 'none' : 'pan-y',
           }}
         >
-          <BoardCard board={board} asStatic />
+          <BoardCard board={board} asStatic reserveTopRight />
         </div>
       </div>
+
+      {/* ⋮ 메뉴 — overflow-hidden 클립 '바깥'(형제)이라 드롭다운이 잘리지 않고, 카드 포인터
+          핸들러로 이벤트가 새지 않는다. 스와이프 열림/정렬 리프트 중엔 제스처 UI에 양보해 숨김. */}
+      {!revealed && !lifted && (
+        <BoardCardMenu
+          onOpen={onOpen}
+          onHarvest={onHarvest}
+          onDelete={onDelete}
+          canHarvest={canHarvest}
+          harvested={harvested}
+        />
+      )}
     </div>
   );
 }

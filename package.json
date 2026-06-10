@@ -6,6 +6,8 @@
     "dev": "next dev",
     "build": "prisma db push --skip-generate && next build",
     "start": "next start",
+    "test": "node --import tsx --test \"src/**/*.test.ts\"",
+    "test:watch": "node --import tsx --test --watch \"src/**/*.test.ts\"",
     "lint": "eslint . && node scripts/check-icons.mjs",
     "check:icons": "node scripts/check-icons.mjs",
     "db:generate": "prisma generate",
