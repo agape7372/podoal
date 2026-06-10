@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useCallback, useEffect, useState } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import EmojiIcon from './EmojiIcon';
 import { feedbackTap } from '@/lib/feedback';
@@ -10,13 +10,29 @@ import type { NotificationEvent } from '@/types';
 /** 홈 헤더의 알림 종 — 통합 피드의 미읽음 수 배지를 보여주고 인박스로 이동. */
 export default function NotificationBell() {
   const router = useRouter();
+  const pathname = usePathname();
   const [count, setCount] = useState(0);
 
-  useEffect(() => {
+  const refresh = useCallback(() => {
     api<{ events: NotificationEvent[] }>('/api/notifications')
       .then((d) => setCount(d.events.filter((e) => !e.read).length))
       .catch(() => {});
   }, []);
+
+  // 라우트 전환마다 재조회(인박스에서 읽고 돌아오면 배지 갱신).
+  useEffect(() => { refresh(); }, [refresh, pathname]);
+
+  // 탭이 다시 보이거나 창에 포커스될 때 재조회 — 체류 중 도착한 응원·초대·보상을 즉시 반영
+  // (마운트 1회만 fetch하던 탓에 앱을 켜둔 채로는 새 알림이 안 뜨던 문제).
+  useEffect(() => {
+    const onVisible = () => { if (document.visibilityState === 'visible') refresh(); };
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('focus', refresh);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('focus', refresh);
+    };
+  }, [refresh]);
 
   return (
     <button

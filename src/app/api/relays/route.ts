@@ -2,6 +2,8 @@ import { prisma } from '@/lib/prisma';
 import { getCurrentUserId, authResponse } from '@/lib/auth';
 import { PUBLIC_USER_SELECT as userProfileSelect } from '@/lib/userSelect';
 import { validateRewards } from '@/lib/rewardValidation';
+import { stripTitleEmoji } from '@/lib/title';
+import { sendPushToUser } from '@/lib/push';
 
 export async function GET() {
   const userId = await getCurrentUserId();
@@ -201,6 +203,29 @@ export async function POST(request: Request) {
 
   if (!relay) {
     return authResponse('포도동 생성에 실패했어요', 500);
+  }
+
+  // 초대 알림 — 통합 피드(상태 invited 집계)에는 이미 뜨지만, 앱을 안 켜둔 친구는 인지 못 함.
+  // 웹푸시로도 알려 '초대→인지' 루프를 살린다(VAPID 미설정 시 sendPushToUser는 조용히 no-op).
+  const inviteeIds = relay.participants
+    .filter((p) => p.status === 'invited')
+    .map((p) => p.userId);
+  if (inviteeIds.length > 0) {
+    const cleanTitle = stripTitleEmoji(relay.title);
+    await Promise.all(
+      inviteeIds.map((id) =>
+        sendPushToUser(
+          id,
+          {
+            title: '🔗 포도동 초대',
+            body: `${relay.creator.name}님이 '${cleanTitle}'에 초대했어요`,
+            url: `/relay/${relay.id}`,
+            emoji: '🔗',
+          },
+          'relay',
+        ),
+      ),
+    );
   }
 
   const result = {
