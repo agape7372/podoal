@@ -24,6 +24,8 @@ function timeOfDayGreeting(): string {
 }
 
 type Filter = 'all' | 'active' | 'completed' | 'harvested';
+const FILTERS: Filter[] = ['all', 'active', 'completed', 'harvested'];
+const FILTER_KEY = 'podoal-home-filter'; // 마지막으로 본 필터 탭 기억(기기별)
 
 const LIFT_MS = 450;   // 정지 후 이 시간 유지하면 카드를 들어 정렬 모드로
 const MOVE_TOL = 10;   // 이만큼 움직이면 제스처 방향(스크롤/스와이프)을 확정
@@ -45,6 +47,15 @@ export default function HomePage() {
   const [swipeOpenId, setSwipeOpenId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<BoardSummary | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  // 가벼운 토스트 — 무음 실패(정렬 저장 실패)·비활성 동작 안내(미완성 보드 수확)에 사용.
+  const [toast, setToast] = useState<string | null>(null);
+  const toastTimer = useRef<number | null>(null);
+  const showToast = useCallback((msg: string) => {
+    setToast(msg);
+    if (toastTimer.current) window.clearTimeout(toastTimer.current);
+    toastTimer.current = window.setTimeout(() => setToast(null), 2600);
+  }, []);
 
   const cardRefs = useRef<Map<string, HTMLElement>>(new Map());
   const dragOrderRef = useRef<string[]>([]); // 드래그 중 보이는 카드 순서(클로저 staleness 회피)
@@ -68,6 +79,14 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => { loadBoards(); }, [loadBoards]);
+
+  // 마지막으로 본 필터 탭 복원(재진입 시 항상 '전체'로 리셋되던 마찰 해소).
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(FILTER_KEY);
+      if (saved && (FILTERS as string[]).includes(saved)) setFilter(saved as Filter);
+    } catch { /* localStorage 불가 환경 무시 */ }
+  }, []);
 
   // order 우선, 없으면 createdAt 내림차순 폴백.
   const sortByOrder = (a: BoardSummary, b: BoardSummary) => {
@@ -121,8 +140,13 @@ export default function HomePage() {
   const persistOrder = useCallback(() => {
     const orderedIds = dragOrderRef.current;
     if (orderedIds.length === 0) return;
-    api('/api/boards/reorder', { method: 'PATCH', json: { orderedIds } }).catch(() => {});
-  }, []);
+    // 실패를 조용히 삼키면 화면 순서와 서버 순서가 어긋난 채 재진입 시 슬그머니 원복됨 →
+    // 사용자에게 알리고 서버 순서로 되돌린다.
+    api('/api/boards/reorder', { method: 'PATCH', json: { orderedIds } }).catch(() => {
+      showToast('순서를 저장하지 못했어요. 다시 시도해주세요.');
+      loadBoards();
+    });
+  }, [showToast, loadBoards]);
 
   // 길게 눌러 카드를 들어올림 → 세로 드래그 정렬 모드 진입.
   const doLift = (board: BoardSummary) => {
@@ -294,7 +318,12 @@ export default function HomePage() {
           return (
             <button
               key={f}
-              onClick={() => { feedbackTap(); setSwipeOpenId(null); setFilter(f); }}
+              onClick={() => {
+                feedbackTap();
+                setSwipeOpenId(null);
+                setFilter(f);
+                try { localStorage.setItem(FILTER_KEY, f); } catch { /* noop */ }
+              }}
               aria-pressed={isActive}
               className={`
                 shrink-0 px-3.5 py-2 rounded-2xl text-sm font-medium transition-all inline-flex items-center gap-1.5
@@ -351,8 +380,9 @@ export default function HomePage() {
                   lifted={liftedId === board.id}
                   animating={swipeDragId !== board.id}
                   trayWidth={TRAY_W}
-                  onHarvest={() => harvestBoard(board)}
+                  onHarvest={() => board.isCompleted ? harvestBoard(board) : showToast('포도판을 다 채우면 수확할 수 있어요')}
                   onDelete={() => { setSwipeOpenId(null); setDeleteTarget(board); }}
+                  onOpen={() => { feedbackTap(); router.push(`/board/${board.id}`); }}
                   innerRef={setCardRef(board.id)}
                   pointerHandlers={{
                     onPointerDown: (e) => onDown(e, board),
@@ -380,6 +410,17 @@ export default function HomePage() {
         >
           +
         </button>
+      )}
+
+      {/* 가벼운 토스트 (정렬 저장 실패·미완성 수확 안내). 모달(z-90) 아래, 네비(z-50) 위. */}
+      {toast && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed bottom-44 left-1/2 -translate-x-1/2 z-[80] max-w-[88%] px-4 py-2.5 rounded-2xl clay-float bg-warm-text text-white text-sm font-medium text-center animate-fade-in"
+        >
+          {toast}
+        </div>
       )}
 
       {/* 삭제 확인 */}

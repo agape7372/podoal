@@ -14,17 +14,19 @@ export async function GET(request: Request, props: { params: Promise<{ id: strin
     where: { id: boardId },
     select: {
       ownerId: true,
-      giftedFromId: true,
+      giftedToId: true,
     },
   });
 
   if (!board) {
-    return authResponse('Board not found', 404);
+    return authResponse('포도판을 찾을 수 없어요', 404);
   }
 
-  // Only the board owner or the person who gifted the board can view capsules
-  if (board.ownerId !== userId && board.giftedFromId !== userId) {
-    return authResponse('Forbidden', 403);
+  // 캡슐은 봉인된 개인 메시지 — 보드 소유자(선물받아 소유권이 넘어온 사람 포함)만 열람.
+  // 이전엔 '선물한 사람'(giftedFromId)도 열람 가능해, A가 B에게 선물한 보드에 B가 만든
+  // 캡슐을 A가 개봉일 전에 읽는 교차사용자 누수가 있었음 — board GET과 동일 권한으로 통일.
+  if (board.ownerId !== userId && board.giftedToId !== userId) {
+    return authResponse('권한이 없어요', 403);
   }
 
   const capsules = await prisma.timeCapsule.findMany({

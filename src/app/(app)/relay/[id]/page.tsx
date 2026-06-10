@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { api } from '@/lib/api';
 import { useAppStore } from '@/lib/store';
 import ClayButton from '@/components/ClayButton';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import Avatar from '@/components/Avatar';
 import type { RelayInfo, RelayMode, BoardSummary } from '@/types';
 import { feedbackRelay, feedbackSuccess, feedbackTap } from '@/lib/feedback';
@@ -47,6 +48,7 @@ export default function RelayDetailPage() {
   const [passing, setPassing] = useState(false);
   const [joining, setJoining] = useState(false);
   const [responding, setResponding] = useState(false);
+  const [confirmDecline, setConfirmDecline] = useState(false);
   const [message, setMessage] = useState('');
 
   // 그룹: 기존 포도판 불러오기
@@ -81,16 +83,19 @@ export default function RelayDetailPage() {
     setResponding(false);
   };
 
+  // 거절은 비가역(참가자 행 삭제) — 오탭 방지로 ConfirmDialog를 거친다.
   const handleDecline = async () => {
     setResponding(true);
     setMessage('');
     try {
       await api(`/api/relays/${relayId}/decline`, { method: 'POST' });
       feedbackTap();
+      setConfirmDecline(false);
       router.replace('/relay');
     } catch (e) {
       setMessage(e instanceof Error ? e.message : '거절에 실패했어요');
       setResponding(false);
+      setConfirmDecline(false);
     }
   };
 
@@ -241,7 +246,7 @@ export default function RelayDetailPage() {
           <p className="font-bold text-grape-700 mb-1">포도동에 초대받았어요</p>
           <p className="text-sm text-warm-sub mb-4 [text-wrap:balance]">{relay.creator.name}님이 함께 습관을 채우자고 초대했어요</p>
           <div className="flex gap-3">
-            <ClayButton variant="ghost" fullWidth onClick={handleDecline} disabled={responding}>거절</ClayButton>
+            <ClayButton variant="ghost" fullWidth onClick={() => setConfirmDecline(true)} disabled={responding}>거절</ClayButton>
             <ClayButton fullWidth size="lg" onClick={handleAccept} loading={responding}>수락하기</ClayButton>
           </div>
         </div>
@@ -419,6 +424,18 @@ export default function RelayDetailPage() {
           </div>
         </div>
       )}
+
+      {/* 초대 거절 확인 — 거절은 참가자에서 영구 제외되어 다시 초대받아야 함 */}
+      <ConfirmDialog
+        open={confirmDecline}
+        title="초대를 거절할까요?"
+        description="거절하면 이 포도동에서 빠지고, 다시 참여하려면 새로 초대받아야 해요."
+        confirmLabel="거절"
+        destructive
+        loading={responding}
+        onConfirm={handleDecline}
+        onCancel={() => { if (!responding) setConfirmDecline(false); }}
+      />
     </div>
   );
 }

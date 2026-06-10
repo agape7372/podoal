@@ -53,8 +53,10 @@ export default function InstallPrompt() {
 
   if (!showBanner) return null;
 
+  // 우측 하단 FAB(홈, bottom-28 right-6)와 겹쳐 '설치' 버튼이 가려지던 문제 →
+  // 오른쪽에 FAB 폭만큼 여백을 둬 배너 카드가 코너를 비킨다.
   return (
-    <div className="fixed bottom-[88px] left-0 right-0 z-30 px-4 safe-bottom animate-slide-up pointer-events-none">
+    <div className="fixed bottom-[88px] left-0 right-0 z-30 pl-4 pr-[88px] safe-bottom animate-slide-up pointer-events-none">
       <div className="max-w-md mx-auto pointer-events-auto">
         <div
           className="clay-puffy bg-white/95 backdrop-blur-md flex items-center gap-3 p-3 pr-4"

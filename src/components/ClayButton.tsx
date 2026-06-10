@@ -12,7 +12,7 @@ interface ClayButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantStyles: Record<NonNullable<ClayButtonProps['variant']>, string> = {
   primary:
-    'bg-grape-500 hover:bg-grape-600 text-white border-warm-border',
+    'bg-grape-700 hover:bg-grape-800 text-white border-warm-border',
   secondary:
     'bg-lime-200 hover:bg-lime-300 text-warm-text border-warm-border',
   ghost:

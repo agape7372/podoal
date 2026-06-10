@@ -27,7 +27,7 @@ export async function GET() {
   } catch (error) {
     console.error('Failed to fetch messages:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch messages' },
+      { error: '메시지를 불러오지 못했어요' },
       { status: 500 }
     );
   }
@@ -90,7 +90,7 @@ export async function POST(request: Request) {
       where: { id: receiverId },
     });
     if (!receiver) {
-      return NextResponse.json({ error: 'Receiver not found' }, { status: 404 });
+      return NextResponse.json({ error: '받는 사람을 찾을 수 없어요' }, { status: 404 });
     }
 
     // Validate boardId points at a board the sender can actually reference.
@@ -113,7 +113,7 @@ export async function POST(request: Request) {
       });
       if (!board) {
         return NextResponse.json(
-          { error: 'Board not found or unauthorized' },
+          { error: '포도판을 찾을 수 없어요' },
           { status: 404 }
         );
       }
@@ -158,7 +158,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('Failed to send message:', error);
     return NextResponse.json(
-      { error: 'Failed to send message' },
+      { error: '메시지를 보내지 못했어요. 잠시 후 다시 시도해주세요.' },
       { status: 500 }
     );
   }
