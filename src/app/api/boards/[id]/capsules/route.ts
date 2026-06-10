@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { getCurrentUserId, authResponse } from '@/lib/auth';
+import { isNonEmptyString, isOptString, isPlainObject } from '@/lib/validate';
 
 export async function GET(request: Request, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
@@ -59,11 +60,21 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
     return authResponse('Only the board owner can create capsules', 403);
   }
 
-  const body = await request.json();
+  const body = await request.json().catch(() => null);
+  if (!isPlainObject(body)) {
+    return authResponse('잘못된 요청이에요', 400);
+  }
   const { message, emoji, openAt } = body;
 
-  if (!message || !openAt) {
-    return authResponse('Missing required fields: message, openAt', 400);
+  // 타입/길이 검증 — 비문자열 message가 그대로 들어가 Prisma 500이 나던 것을 400으로.
+  if (!isNonEmptyString(message, 1000)) {
+    return authResponse('메시지를 입력해주세요 (최대 1000자)', 400);
+  }
+  if (!isOptString(emoji, 16)) {
+    return authResponse('잘못된 이모지예요', 400);
+  }
+  if (!isNonEmptyString(openAt)) {
+    return authResponse('개봉일을 선택해주세요', 400);
   }
 
   // <input type=date>는 'YYYY-MM-DD'. 이를 그대로 new Date()하면 UTC 자정 = KST 09:00에

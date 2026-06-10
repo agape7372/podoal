@@ -15,10 +15,16 @@ export async function api<T = unknown>(
     body: json ? JSON.stringify(json) : fetchOptions?.body,
   });
 
-  const data = await res.json();
+  // 응답이 JSON이 아닐 수 있다(500 HTML 에러 페이지·502/504 게이트웨이·빈 본문 등).
+  // 그대로 res.json()하면 SyntaxError가 터져 진짜 상태/원인을 가린다 → 방어적으로 파싱.
+  const data = await res.json().catch(() => null);
 
   if (!res.ok) {
-    throw new Error(data.error || `API Error: ${res.status}`);
+    const serverMsg =
+      data && typeof data === 'object' && typeof (data as { error?: unknown }).error === 'string'
+        ? (data as { error: string }).error
+        : null;
+    throw new Error(serverMsg || `요청에 실패했어요 (${res.status})`);
   }
 
   return data as T;
