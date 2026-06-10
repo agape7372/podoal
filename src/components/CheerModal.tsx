@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { CHEER_EMOJIS } from '@/types';
 import { feedbackCheer } from '@/lib/feedback';
+import Modal from './Modal';
 import ClayButton from './ClayButton';
 import EmojiIcon from './EmojiIcon';
 
@@ -45,10 +46,13 @@ export default function CheerModal({ recipientName, onSend, onClose }: CheerModa
   };
 
   return (
-    <div className="fixed inset-0 z-[90] flex items-end justify-center bg-black/30 backdrop-blur-sm"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="w-full max-w-lg bg-clay-bg rounded-t-[32px] clay-float p-6 pb-8 safe-bottom animate-slide-up">
-        <div className="w-12 h-1.5 bg-warm-border rounded-full mx-auto mb-5" />
+    <Modal
+      onClose={onClose}
+      label="응원 보내기"
+      backdropClassName="z-[90] bg-black/30 backdrop-blur-sm"
+      sheetClassName="w-full max-w-lg bg-clay-bg rounded-t-[32px] clay-float p-6 pb-8 safe-bottom animate-slide-up"
+    >
+      <div className="w-12 h-1.5 bg-warm-border rounded-full mx-auto mb-5" />
 
         <h3 className="font-display text-xl font-bold text-grape-700 text-center mb-1">
           응원 보내기
@@ -119,7 +123,6 @@ export default function CheerModal({ recipientName, onSend, onClose }: CheerModa
             <EmojiIcon emoji={selectedEmoji} size={16} className="mr-1" />보내기
           </ClayButton>
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 }

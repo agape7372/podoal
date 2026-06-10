@@ -3,6 +3,7 @@
 import type { RewardInfo } from '@/types';
 import { REWARD_TYPE_LABELS } from '@/types';
 import { REWARD_TYPE_ICON, ICON } from '@/lib/icons';
+import Modal from './Modal';
 import ClayButton from './ClayButton';
 import EmojiIcon from './EmojiIcon';
 import Confetti from './Confetti';
@@ -20,15 +21,15 @@ interface RewardRevealModalProps {
  */
 export default function RewardRevealModal({ reward, onClose }: RewardRevealModalProps) {
   return (
-    <div
-      className="fixed inset-0 z-[95] flex items-center justify-center bg-black/40 backdrop-blur-sm p-6"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
+    <Modal
+      variant="center"
+      onClose={onClose}
+      label={`보상 개봉 — ${reward.title}`}
+      backdropClassName="z-[95] bg-black/40 backdrop-blur-sm p-6"
+      overlay={<Confetti trigger={1} />}
+      sheetClassName="w-full max-w-sm bg-clay-bg rounded-[28px] clay-float p-6 text-center animate-bounce-in"
     >
-      <Confetti trigger={1} />
-      <div className="w-full max-w-sm bg-clay-bg rounded-[28px] clay-float p-6 text-center animate-bounce-in">
-        <p className="text-sm text-warm-sub mb-2">보상 개봉!</p>
+      <p className="text-sm text-warm-sub mb-2">보상 개봉!</p>
         <EmojiIcon emoji={REWARD_TYPE_ICON[reward.type]} size={56} className="block mx-auto mb-2" />
         <div className="text-xs font-medium text-grape-600 mb-1">{REWARD_TYPE_LABELS[reward.type]}</div>
         <h3 className="font-display text-xl font-bold text-grape-700 mb-3 break-words">{reward.title}</h3>
@@ -49,10 +50,9 @@ export default function RewardRevealModal({ reward, onClose }: RewardRevealModal
             <img src={reward.imageUrl} alt={reward.title} className="w-full object-cover max-h-60" />
           </div>
         )}
-        <ClayButton variant="joyful" onClick={onClose} fullWidth>
-          <EmojiIcon emoji={ICON.heart} size={16} className="mr-1" />확인
-        </ClayButton>
-      </div>
-    </div>
+      <ClayButton variant="joyful" onClick={onClose} fullWidth>
+        <EmojiIcon emoji={ICON.heart} size={16} className="mr-1" />확인
+      </ClayButton>
+    </Modal>
   );
 }

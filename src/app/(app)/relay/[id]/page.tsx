@@ -6,6 +6,7 @@ import { api } from '@/lib/api';
 import { useAppStore } from '@/lib/store';
 import ClayButton from '@/components/ClayButton';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import Modal from '@/components/Modal';
 import Avatar from '@/components/Avatar';
 import type { RelayInfo, RelayMode, BoardSummary } from '@/types';
 import { feedbackRelay, feedbackSuccess, feedbackTap } from '@/lib/feedback';
@@ -391,38 +392,38 @@ export default function RelayDetailPage() {
 
       {/* 기존 포도판 불러오기 모달(그룹) */}
       {attachOpen && (
-        <div
-          className="fixed inset-0 z-[90] flex items-end justify-center bg-black/40 backdrop-blur-sm"
-          onClick={(e) => { if (e.target === e.currentTarget) setAttachOpen(false); }}
+        <Modal
+          onClose={() => setAttachOpen(false)}
+          label="기존 포도판 불러오기"
+          backdropClassName="z-[90] bg-black/40 backdrop-blur-sm"
+          sheetClassName="w-full max-w-lg bg-clay-bg rounded-t-[28px] clay-float p-5 pb-8 safe-bottom max-h-[75vh] flex flex-col"
         >
-          <div className="w-full max-w-lg bg-clay-bg rounded-t-[28px] clay-float p-5 pb-8 safe-bottom max-h-[75vh] flex flex-col">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-display text-lg font-bold text-grape-700">기존 포도판 불러오기</h3>
-              <button onClick={() => setAttachOpen(false)} className="text-warm-sub text-sm">닫기</button>
-            </div>
-            <div className="flex-1 overflow-y-auto pb-4">
-              {loadingMyBoards ? (
-                <div className="space-y-2">{[1, 2].map((i) => <div key={i} className="skeleton h-14 w-full" />)}</div>
-              ) : myBoards.length === 0 ? (
-                <p className="text-sm text-warm-sub text-center py-8">불러올 진행중인 포도판이 없어요</p>
-              ) : (
-                <div className="space-y-2">
-                  {myBoards.map((b) => (
-                    <button
-                      key={b.id}
-                      onClick={() => handleJoin(b.id)}
-                      disabled={joining}
-                      className="w-full clay-sm p-3 text-left flex items-center justify-between disabled:opacity-60"
-                    >
-                      <span className="text-sm font-medium text-warm-text truncate">{stripTitleEmoji(b.title)}</span>
-                      <span className="text-xs text-warm-sub tabular-nums ml-2">{b.filledCount}/{b.totalStickers}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-display text-lg font-bold text-grape-700">기존 포도판 불러오기</h3>
+            <button onClick={() => setAttachOpen(false)} className="text-warm-sub text-sm">닫기</button>
           </div>
-        </div>
+          <div className="flex-1 overflow-y-auto pb-4">
+            {loadingMyBoards ? (
+              <div className="space-y-2">{[1, 2].map((i) => <div key={i} className="skeleton h-14 w-full" />)}</div>
+            ) : myBoards.length === 0 ? (
+              <p className="text-sm text-warm-sub text-center py-8">불러올 진행중인 포도판이 없어요</p>
+            ) : (
+              <div className="space-y-2">
+                {myBoards.map((b) => (
+                  <button
+                    key={b.id}
+                    onClick={() => handleJoin(b.id)}
+                    disabled={joining}
+                    className="w-full clay-sm p-3 text-left flex items-center justify-between disabled:opacity-60"
+                  >
+                    <span className="text-sm font-medium text-warm-text truncate">{stripTitleEmoji(b.title)}</span>
+                    <span className="text-xs text-warm-sub tabular-nums ml-2">{b.filledCount}/{b.totalStickers}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </Modal>
       )}
 
       {/* 초대 거절 확인 — 거절은 참가자에서 영구 제외되어 다시 초대받아야 함 */}

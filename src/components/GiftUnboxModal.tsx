@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Modal from './Modal';
 import Avatar from './Avatar';
 import ClayButton from './ClayButton';
 import EmojiIcon from './EmojiIcon';
@@ -49,10 +50,16 @@ export default function GiftUnboxModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[95] flex items-center justify-center bg-black/40 backdrop-blur-sm p-6">
-      <Confetti trigger={confetti} />
-      <div className="w-full max-w-sm bg-clay-bg rounded-[28px] clay-float p-6 text-center animate-bounce-in">
-        <EmojiIcon emoji="🎁" size={64} className="block mx-auto mb-3" />
+    <Modal
+      variant="center"
+      onClose={handleDecline}
+      dismissable={false}
+      label={`${senderName}님의 선물 — ${boardTitle}`}
+      backdropClassName="z-[95] bg-black/40 backdrop-blur-sm p-6"
+      overlay={<Confetti trigger={confetti} />}
+      sheetClassName="w-full max-w-sm bg-clay-bg rounded-[28px] clay-float p-6 text-center animate-bounce-in"
+    >
+      <EmojiIcon emoji="🎁" size={64} className="block mx-auto mb-3" />
         <div className="flex items-center justify-center gap-2 mb-1">
           <Avatar avatar={senderAvatar} size="sm" />
           <p className="text-sm text-warm-sub">
@@ -79,7 +86,6 @@ export default function GiftUnboxModal({
             정중히 거절하기
           </button>
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 }

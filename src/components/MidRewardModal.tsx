@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Modal from './Modal';
 import ClayButton from './ClayButton';
 import ClayInput from './ClayInput';
 import ConfirmDialog from './ConfirmDialog';
@@ -114,14 +115,14 @@ export default function MidRewardModal({ board, position, existingReward, onClos
   };
 
   return (
-    <div
-      className="fixed inset-0 z-[90] flex items-end justify-center bg-black/30 backdrop-blur-sm"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
+    <Modal
+      onClose={onClose}
+      dismissable={!busy && !deleting}
+      label={editing ? '중간 보상 수정' : '중간 보상'}
+      backdropClassName="z-[90] bg-black/30 backdrop-blur-sm"
+      sheetClassName="w-full max-w-lg bg-clay-bg rounded-t-[32px] clay-float p-6 pb-8 safe-bottom animate-slide-up"
     >
-      <div className="w-full max-w-lg bg-clay-bg rounded-t-[32px] clay-float p-6 pb-8 safe-bottom animate-slide-up">
-        <div className="w-12 h-1.5 bg-warm-border rounded-full mx-auto mb-5" />
+      <div className="w-12 h-1.5 bg-warm-border rounded-full mx-auto mb-5" />
         <h3 className="font-display text-xl font-bold text-grape-700 text-center mb-1">
           <EmojiIcon emoji="🎁" size={22} className="mr-1" />
           {editing ? '중간 보상 수정' : '중간 보상'}
@@ -193,7 +194,6 @@ export default function MidRewardModal({ board, position, existingReward, onClos
             {deleting ? '삭제 중…' : '이 보상 삭제'}
           </button>
         )}
-      </div>
 
       <ConfirmDialog
         open={confirmDelete}
@@ -205,6 +205,6 @@ export default function MidRewardModal({ board, position, existingReward, onClos
         onConfirm={remove}
         onCancel={() => { if (!deleting) setConfirmDelete(false); }}
       />
-    </div>
+    </Modal>
   );
 }
