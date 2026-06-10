@@ -292,6 +292,25 @@ export default function NotificationsPage() {
         </div>
       </section>
 
+      {/* Daily nudge — opt-in, 하루 1회 (기본 꺼짐) */}
+      <section className={`clay p-5 mb-4 transition-opacity ${!settings.globalEnabled ? 'opacity-50 pointer-events-none' : ''}`}>
+        <h2 className="text-sm font-semibold text-warm-sub mb-4">데일리 넛지</h2>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <EmojiIcon emoji="🍇" size={20} />
+            <div>
+              <p className="text-sm font-medium text-warm-text">하루 한 번 부드러운 응원</p>
+              <p className="text-xs text-warm-sub">진행 중인 포도판이 있으면 하루 한 번만 살짝 알려드려요</p>
+            </div>
+          </div>
+          <Toggle
+            enabled={settings.dailyNudgeEnabled}
+            onToggle={() => updateSetting('dailyNudgeEnabled', !settings.dailyNudgeEnabled)}
+            ariaLabel="하루 한 번 부드러운 응원"
+          />
+        </div>
+      </section>
+
       {/* Reminders section */}
       <section className={`clay p-5 mb-4 transition-opacity ${!settings.globalEnabled ? 'opacity-50 pointer-events-none' : ''}`}>
         <div className="flex items-center justify-between mb-4">

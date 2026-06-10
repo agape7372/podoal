@@ -10,6 +10,7 @@ const defaultSettings = {
   rewardEnabled: true,
   relayEnabled: true,
   reminderEnabled: true,
+  dailyNudgeEnabled: false, // 데일리 넛지는 opt-in — 기본 꺼짐
 };
 
 export async function GET() {
@@ -35,6 +36,7 @@ export async function GET() {
       rewardEnabled: settings.rewardEnabled,
       relayEnabled: settings.relayEnabled,
       reminderEnabled: settings.reminderEnabled,
+      dailyNudgeEnabled: settings.dailyNudgeEnabled,
     },
   });
 }
@@ -48,7 +50,8 @@ export async function PUT(request: Request) {
     return authResponse('잘못된 요청이에요', 400);
   }
 
-  const boolKeys = ['globalEnabled', 'cheerEnabled', 'rewardEnabled', 'relayEnabled', 'reminderEnabled'];
+  // 화이트리스트 방식 — 여기 없는 키(특히 서버 전용 lastNudgeSentAt)는 무시된다.
+  const boolKeys = ['globalEnabled', 'cheerEnabled', 'rewardEnabled', 'relayEnabled', 'reminderEnabled', 'dailyNudgeEnabled'];
   const timeKeys = ['dndStart', 'dndEnd'];
 
   // 타입 검증 — boolean 키에 문자열, 시간 키에 'HH:MM' 아닌 값이 들어와 Prisma 500이 나던 것을 400으로.
@@ -85,6 +88,7 @@ export async function PUT(request: Request) {
       rewardEnabled: settings.rewardEnabled,
       relayEnabled: settings.relayEnabled,
       reminderEnabled: settings.reminderEnabled,
+      dailyNudgeEnabled: settings.dailyNudgeEnabled,
     },
   });
 }
