@@ -70,7 +70,7 @@ export default function NotificationInboxPage() {
         <div className="text-center py-16">
           <EmojiIcon emoji="🔔" size={48} className="block mx-auto mb-4" />
           <p className="text-warm-sub">아직 알림이 없어요</p>
-          <p className="text-xs text-warm-sub mt-1 [text-wrap:balance]">응원·보상·초대가 도착하면 여기에 모여요</p>
+          <p className="text-xs text-warm-sub mt-1 [text-wrap:balance]">응원·보상·친구 요청·포도동 초대·깜짝 선물이 도착하면 여기에 모여요</p>
         </div>
       ) : (
         <div className="space-y-2">

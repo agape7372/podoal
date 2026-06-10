@@ -64,7 +64,7 @@ export async function GET() {
   } catch (error) {
     console.error('Failed to fetch friends:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch friends' },
+      { error: '친구 목록을 불러오지 못했어요' },
       { status: 500 }
     );
   }
@@ -92,14 +92,14 @@ export async function POST(request: Request) {
 
     if (!targetUser) {
       return NextResponse.json(
-        { error: 'User not found' },
+        { error: '해당 사용자를 찾을 수 없어요' },
         { status: 404 }
       );
     }
 
     if (targetUser.id === userId) {
       return NextResponse.json(
-        { error: 'Cannot send friend request to yourself' },
+        { error: '나에게는 친구 요청을 보낼 수 없어요' },
         { status: 400 }
       );
     }
@@ -115,7 +115,7 @@ export async function POST(request: Request) {
 
     if (existingFriendship) {
       return NextResponse.json(
-        { error: 'Friendship already exists' },
+        { error: '이미 친구이거나 요청을 보냈어요' },
         { status: 409 }
       );
     }
@@ -137,7 +137,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('Failed to send friend request:', error);
     return NextResponse.json(
-      { error: 'Failed to send friend request' },
+      { error: '친구 요청에 실패했어요. 잠시 후 다시 시도해주세요.' },
       { status: 500 }
     );
   }

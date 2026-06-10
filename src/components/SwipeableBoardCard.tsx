@@ -17,6 +17,8 @@ interface SwipeableBoardCardProps {
   trayWidth: number;
   onHarvest: () => void;
   onDelete: () => void;
+  /** Keyboard/SR path to open the board detail (pointer tap is handled by the gesture layer). */
+  onOpen: () => void;
   /** Outer (non-translating) element ref — used by the parent for drag hit-testing. */
   innerRef: (el: HTMLElement | null) => void;
   pointerHandlers: {
@@ -35,6 +37,7 @@ export default function SwipeableBoardCard({
   trayWidth,
   onHarvest,
   onDelete,
+  onOpen,
   innerRef,
   pointerHandlers,
 }: SwipeableBoardCardProps) {
@@ -55,7 +58,8 @@ export default function SwipeableBoardCard({
           <button
             type="button"
             onClick={onHarvest}
-            disabled={!canHarvest}
+            aria-disabled={!canHarvest}
+            title={canHarvest ? undefined : '포도판을 다 채우면 수확할 수 있어요'}
             tabIndex={revealed ? 0 : -1}
             className={`flex-1 rounded-2xl text-xs font-semibold flex flex-col items-center justify-center gap-0.5 transition-colors ${
               harvested
@@ -82,9 +86,20 @@ export default function SwipeableBoardCard({
           </button>
         </div>
 
-        {/* Moving card layer — owns the pointer gesture */}
+        {/* Moving card layer — owns the pointer gesture. role/tabIndex/onKeyDown give
+            keyboard + screen-reader users a way to OPEN the board (the swipe/longpress
+            gestures are pointer-only); harvest/delete via keyboard is the kebab menu (M2). */}
         <div
           {...pointerHandlers}
+          role="button"
+          tabIndex={lifted ? -1 : 0}
+          aria-label={`${board.title} 열기 · ${board.filledCount}/${board.totalStickers}알`}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              onOpen();
+            }
+          }}
           className={`relative ${lifted ? 'shadow-grape-glow' : ''}`}
           style={{
             transform: `translateX(${offset}px) scale(${lifted ? 1.02 : 1})`,

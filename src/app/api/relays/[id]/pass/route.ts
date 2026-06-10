@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { getCurrentUserId, authResponse } from '@/lib/auth';
+import { advanceRelayOnBoardComplete } from '@/lib/relay';
 
 export async function POST(request: Request, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
@@ -50,40 +51,18 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
     return authResponse('포도판을 먼저 완성해주세요', 400);
   }
 
-  // Find the next ACCEPTED participant by order — 미수락(invited) 참가자는 건너뛴다(REQ10).
-  const nextParticipant = relay.participants
-    .filter((p) => p.order > currentParticipant.order && p.status === 'pending')
-    .sort((a, b) => a.order - b.order)[0];
-
-  await prisma.$transaction(async (tx) => {
-    // Set current participant to completed
-    await tx.relayParticipant.update({
-      where: { id: currentParticipant.id },
-      data: { status: 'completed' },
-    });
-
-    if (nextParticipant) {
-      // Set next participant to active
-      await tx.relayParticipant.update({
-        where: { id: nextParticipant.id },
-        data: { status: 'active' },
-      });
-    }
-
-    // Check if all participants are now completed
-    // (current is being set to completed, and there's no next participant)
-    if (!nextParticipant) {
-      await tx.relay.update({
-        where: { id: relay.id },
-        data: { status: 'completed' },
-      });
-    }
-  });
+  // 자동 진행(stickers)과 동일한 단일 규칙으로 처리 — relay: 다음 '수락된(pending)' 참가자에게
+  // 바통(미수락·거절 갭은 건너뜀), group: 본인만 완료 처리 후 전원 완료 시에만 포도동 완료.
+  const result = await prisma.$transaction((tx) =>
+    advanceRelayOnBoardComplete(tx, { id: relay.id, mode: relay.mode }, currentParticipant)
+  );
 
   return Response.json({
-    message: nextParticipant
-      ? '바통을 넘겼어요! 다음 참가자의 차례예요.'
-      : '릴레이가 완료되었어요! 모두 수고했어요!',
-    relayCompleted: !nextParticipant,
+    message: result.relayCompleted
+      ? '릴레이가 완료되었어요! 모두 수고했어요!'
+      : relay.mode === 'group'
+        ? '포도판을 완성했어요! 다른 참가자를 기다려요.'
+        : '바통을 넘겼어요! 다음 참가자의 차례예요.',
+    relayCompleted: result.relayCompleted,
   });
 }

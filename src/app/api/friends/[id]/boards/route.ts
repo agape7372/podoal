@@ -42,18 +42,12 @@ export async function GET(request: Request, props: { params: Promise<{ id: strin
       );
     }
 
-    // Fetch friend's boards (owned or gifted to them)
+    // 친구가 '소유한' 보드만 노출. 이전엔 `giftedToId` OR + giftedFrom/giftedTo 프로필까지
+    // 포함해, 친구가 제3자에게서 선물받은 보드를 통해 무관한 제3자 이름/아바타·제목이 새어나갔음.
     const boards = await prisma.board.findMany({
-      where: {
-        OR: [
-          { ownerId: friendUserId },
-          { giftedToId: friendUserId },
-        ],
-      },
+      where: { ownerId: friendUserId },
       include: {
         owner: { select: userProfileSelect },
-        giftedTo: { select: userProfileSelect },
-        giftedFrom: { select: userProfileSelect },
         _count: { select: { stickers: true, rewards: true } },
       },
       orderBy: { createdAt: 'desc' },
@@ -69,8 +63,6 @@ export async function GET(request: Request, props: { params: Promise<{ id: strin
       completedAt: board.completedAt,
       createdAt: board.createdAt,
       owner: board.owner,
-      giftedTo: board.giftedTo,
-      giftedFrom: board.giftedFrom,
       allowFriendPlant: board.allowFriendPlant,
       rewardCount: board._count.rewards,
     }));
