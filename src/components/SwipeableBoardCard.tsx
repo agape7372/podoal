@@ -48,7 +48,9 @@ export default function SwipeableBoardCard({
 
   return (
     <div ref={innerRef} className={`relative ${lifted ? 'z-20' : ''}`}>
-      <div className="relative overflow-hidden" style={{ borderRadius: 20 }}>
+      {/* 클립 반경은 카드(.clay-float = 28px)와 반드시 일치시켜야 한다. 더 작으면(예: 20px)
+          카드의 둥근 모서리 바깥·클립 안쪽 틈으로 뒤의 빨간 삭제 트레이가 비친다. */}
+      <div className="relative overflow-hidden" style={{ borderRadius: 28 }}>
         {/* Right-side action tray, revealed as the card slides left */}
         <div
           className="absolute inset-y-0 right-0 flex items-stretch gap-1.5"
