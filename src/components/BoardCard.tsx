@@ -11,6 +11,8 @@ interface BoardCardProps {
   board: BoardSummary;
   /** Render as a non-interactive <div> (the home gesture wrapper owns gestures/nav). */
   asStatic?: boolean;
+  /** Shift the source badge left so it doesn't sit under the ⋮ menu (home cards). */
+  reserveTopRight?: boolean;
   className?: string;
 }
 
@@ -21,7 +23,7 @@ function sourceBadge(board: BoardSummary): { emoji: string; label: string } | nu
   return null;
 }
 
-export default function BoardCard({ board, asStatic = false, className = '' }: BoardCardProps) {
+export default function BoardCard({ board, asStatic = false, reserveTopRight = false, className = '' }: BoardCardProps) {
   const router = useRouter();
   const progress = progressPercent(board.filledCount, board.totalStickers);
   const badge = sourceBadge(board);
@@ -30,7 +32,7 @@ export default function BoardCard({ board, asStatic = false, className = '' }: B
     <>
       {badge && (
         <span
-          className="absolute top-2.5 right-2.5 w-6 h-6 rounded-full bg-white/85 clay-sm grid place-items-center"
+          className={`absolute top-2.5 w-6 h-6 rounded-full bg-white/85 clay-sm grid place-items-center ${reserveTopRight ? 'right-11' : 'right-2.5'}`}
           title={badge.label}
           aria-label={badge.label}
         >
@@ -38,7 +40,7 @@ export default function BoardCard({ board, asStatic = false, className = '' }: B
         </span>
       )}
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1.5 mb-1 pr-7">
+        <div className={`flex items-center gap-1.5 mb-1 ${reserveTopRight ? 'pr-11' : 'pr-7'}`}>
           {board.isCompleted && <EmojiIcon emoji="🎉" size={16} />}
           <h3 className="font-display text-[17px] font-bold text-warm-text truncate">{stripTitleEmoji(board.title)}</h3>
         </div>
