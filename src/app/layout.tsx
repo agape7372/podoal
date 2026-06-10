@@ -27,11 +27,14 @@ export const metadata: Metadata = {
   title: 'podoal — 한 알씩, 매일의 기록',
   description: '포도알을 한 알씩 채우며 목표를 달성하고, 소중한 사람에게 응원과 보상을 주고받아요.',
   manifest: '/manifest.json',
-  // 브라우저 기본 /favicon.ico 요청(404)을 막기 위해 아이콘을 명시(현재 SVG만 존재 — PNG 세트는 추후).
+  // 브라우저 기본 /favicon.ico 요청(404) 방지 + iOS는 PNG apple-touch-icon만 인식(SVG 무시).
   icons: {
-    icon: '/icons/icon.svg',
+    icon: [
+      { url: '/icons/icon.svg', type: 'image/svg+xml' },
+      { url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+    ],
     shortcut: '/icons/icon.svg',
-    apple: '/icons/icon.svg',
+    apple: '/icons/icon-180.png',
   },
 };
 
@@ -52,7 +55,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <link rel="apple-touch-icon" href="/icons/icon.svg" />
+        <link rel="apple-touch-icon" href="/icons/icon-180.png" />
       </head>
       <body className="min-h-dvh bg-clay-bg text-warm-text antialiased">
         {children}
