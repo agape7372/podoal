@@ -26,9 +26,39 @@ jobs:
       - run: npx tsc --noEmit
       - run: npm run lint
       # node:test + tsx 단위 테스트 (DB 불필요 — 릴레이 상태머신 로직·토큰·검증·유틸).
-      # 동시성 race 통합테스트는 실 Postgres가 필요해 별도(로드맵 M2).
       - run: npm test
       # next build (Turbopack, default in Next 16) catches App-Router server/client
       # boundary errors that tsc/lint miss. Runs next build directly, not the
       # `build` npm script, to skip the `prisma db push` that needs a live DB.
       - run: npx next build
+
+  # 동시성 통합테스트 — 실 Postgres가 필요해 별도 잡(서비스 컨테이너)으로 분리.
+  # 마지막 칸 동시 채움 race(Serializable+재시도)가 회귀하면 여기서 빨개진다.
+  integration:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: podoal_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      DATABASE_URL: postgresql://test:test@localhost:5432/podoal_test?schema=public
+      TEST_DATABASE_URL: postgresql://test:test@localhost:5432/podoal_test?schema=public
+      JWT_SECRET: ci-dummy-secret-1234567890
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx prisma db push --skip-generate
+      - run: npm run test:integration

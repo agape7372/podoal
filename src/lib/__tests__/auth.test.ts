@@ -22,9 +22,11 @@ test('createToken → verifyToken 라운드트립', async () => {
 
 test('verifyToken: 변조된 토큰은 null', async () => {
   const token = await createToken('user-123');
-  // 서명 마지막 글자를 바꿔 변조
-  const tampered = token.slice(0, -1) + (token.endsWith('A') ? 'B' : 'A');
-  assert.equal(await verifyToken(tampered), null);
+  // payload 세그먼트 첫 글자를 바꿔 변조 — 서명 대상(header.payload)이 달라져 서명이 항상
+  // 불일치한다. (서명 끝 글자만 뒤집으면 base64url 미사용 비트 때문에 같은 서명으로 디코드돼 flaky)
+  const parts = token.split('.');
+  parts[1] = (parts[1][0] === 'a' ? 'b' : 'a') + parts[1].slice(1);
+  assert.equal(await verifyToken(parts.join('.')), null);
 });
 
 test('verifyToken: 형식이 깨진 토큰은 null', async () => {
