@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import Modal from './Modal';
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -32,65 +32,47 @@ export default function ConfirmDialog({
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
-  const confirmRef = useRef<HTMLButtonElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    confirmRef.current?.focus();
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !loading) onCancel();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [open, onCancel, loading]);
-
   if (!open) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-[90] flex items-center justify-center px-6"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="confirm-title"
+    <Modal
+      variant="center"
+      onClose={onCancel}
+      dismissable={!loading}
+      labelledBy="confirm-title"
+      backdropClassName="z-[90] bg-warm-text/30 px-6"
+      sheetClassName="clay-puffy bg-white w-full max-w-xs p-5 text-center animate-fade-in"
     >
-      <div
-        className="absolute inset-0 bg-warm-text/30"
-        onClick={loading ? undefined : onCancel}
-        aria-hidden="true"
-      />
-      <div className="relative clay-puffy bg-white w-full max-w-xs p-5 text-center animate-fade-in">
-        <h2 id="confirm-title" className="font-display text-lg font-bold text-warm-text mb-1.5">
-          {title}
-        </h2>
-        {description && <p className="text-sm text-warm-sub mb-4 leading-relaxed">{description}</p>}
-        <div className="flex gap-2.5 mt-2">
-          <button
-            onClick={onCancel}
-            disabled={loading}
-            className="clay-button flex-1 py-3 rounded-2xl text-sm font-semibold text-warm-sub disabled:opacity-50"
-          >
-            {cancelLabel}
-          </button>
-          <button
-            ref={confirmRef}
-            onClick={onConfirm}
-            disabled={loading}
-            aria-busy={loading}
-            className={`flex-1 py-3 rounded-2xl text-sm font-bold text-white border-[1.3px] border-warm-border clay-button disabled:opacity-80 ${
-              destructive ? 'bg-rose-500' : 'bg-grape-600'
-            }`}
-          >
-            {loading ? (
-              <span
-                className="inline-block w-4 h-4 align-[-3px] rounded-full border-2 border-white/40 border-t-white animate-spin"
-                aria-hidden="true"
-              />
-            ) : (
-              confirmLabel
-            )}
-          </button>
-        </div>
+      <h2 id="confirm-title" className="font-display text-lg font-bold text-warm-text mb-1.5">
+        {title}
+      </h2>
+      {description && <p className="text-sm text-warm-sub mb-4 leading-relaxed">{description}</p>}
+      <div className="flex gap-2.5 mt-2">
+        <button
+          onClick={onCancel}
+          disabled={loading}
+          className="clay-button flex-1 py-3 rounded-2xl text-sm font-semibold text-warm-sub disabled:opacity-50"
+        >
+          {cancelLabel}
+        </button>
+        <button
+          onClick={onConfirm}
+          disabled={loading}
+          aria-busy={loading}
+          className={`flex-1 py-3 rounded-2xl text-sm font-bold text-white border-[1.3px] border-warm-border clay-button disabled:opacity-80 ${
+            destructive ? 'bg-rose-500' : 'bg-grape-600'
+          }`}
+        >
+          {loading ? (
+            <span
+              className="inline-block w-4 h-4 align-[-3px] rounded-full border-2 border-white/40 border-t-white animate-spin"
+              aria-hidden="true"
+            />
+          ) : (
+            confirmLabel
+          )}
+        </button>
       </div>
-    </div>
+    </Modal>
   );
 }

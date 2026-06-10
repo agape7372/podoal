@@ -1,5 +1,6 @@
 'use client';
 
+import Modal from './Modal';
 import Avatar from './Avatar';
 import ClayButton from './ClayButton';
 import EmojiIcon from './EmojiIcon';
@@ -15,10 +16,16 @@ interface SurpriseRevealModalProps {
 // surprise gift on.
 export default function SurpriseRevealModal({ gift, onClose }: SurpriseRevealModalProps) {
   return (
-    <div className="fixed inset-0 z-[95] flex items-center justify-center bg-black/40 backdrop-blur-sm p-6">
-      <Confetti trigger={1} />
-      <div className="w-full max-w-sm bg-clay-bg rounded-[28px] clay-float p-6 text-center animate-bounce-in">
-        <EmojiIcon emoji={gift.emoji || '🎁'} size={64} className="block mx-auto mb-3" />
+    <Modal
+      variant="center"
+      onClose={onClose}
+      dismissable={false}
+      label="포도알 속 깜짝 선물"
+      backdropClassName="z-[95] bg-black/40 backdrop-blur-sm p-6"
+      overlay={<Confetti trigger={1} />}
+      sheetClassName="w-full max-w-sm bg-clay-bg rounded-[28px] clay-float p-6 text-center animate-bounce-in"
+    >
+      <EmojiIcon emoji={gift.emoji || '🎁'} size={64} className="block mx-auto mb-3" />
         <p className="text-sm text-warm-sub mb-1">포도알 속 깜짝 선물!</p>
         <div className="flex items-center justify-center gap-2 mb-3">
           <Avatar avatar={gift.plantedBy.avatar} size="sm" />
@@ -31,10 +38,9 @@ export default function SurpriseRevealModal({ gift, onClose }: SurpriseRevealMod
             &ldquo;{gift.message}&rdquo;
           </div>
         )}
-        <ClayButton variant="joyful" onClick={onClose} fullWidth>
-          <EmojiIcon emoji="💜" size={16} />고마워요!
-        </ClayButton>
-      </div>
-    </div>
+      <ClayButton variant="joyful" onClick={onClose} fullWidth>
+        <EmojiIcon emoji="💜" size={16} />고마워요!
+      </ClayButton>
+    </Modal>
   );
 }

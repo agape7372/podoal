@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Modal from './Modal';
 import ClayButton from './ClayButton';
 import ClayInput from './ClayInput';
 import EmojiIcon from './EmojiIcon';
@@ -41,15 +42,15 @@ export default function EditBoardInfoModal({ initialTitle, initialDescription, o
   };
 
   return (
-    <div
-      className="fixed inset-0 z-[90] flex items-end justify-center bg-black/30 backdrop-blur-sm"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
+    <Modal
+      onClose={onClose}
+      dismissable={!busy}
+      label="포도판 수정"
+      backdropClassName="z-[90] bg-black/30 backdrop-blur-sm"
+      sheetClassName="w-full max-w-lg bg-clay-bg rounded-t-[32px] clay-float p-6 pb-8 safe-bottom animate-slide-up"
     >
-      <div className="w-full max-w-lg bg-clay-bg rounded-t-[32px] clay-float p-6 pb-8 safe-bottom animate-slide-up">
-        <div className="w-12 h-1.5 bg-warm-border rounded-full mx-auto mb-5" />
-        <h3 className="font-display text-xl font-bold text-grape-700 text-center mb-5">
+      <div className="w-12 h-1.5 bg-warm-border rounded-full mx-auto mb-5" />
+      <h3 className="font-display text-xl font-bold text-grape-700 text-center mb-5">
           <EmojiIcon emoji="✏️" size={20} className="mr-1" />
           포도판 수정
         </h3>
@@ -88,7 +89,6 @@ export default function EditBoardInfoModal({ initialTitle, initialDescription, o
             저장
           </ClayButton>
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 }

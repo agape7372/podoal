@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { api } from '@/lib/api';
+import Modal from './Modal';
 import ClayButton from './ClayButton';
 import EmojiIcon from './EmojiIcon';
 import type { TimeCapsuleInfo } from '@/types';
@@ -122,14 +123,15 @@ export default function CapsuleModal({ boardId, isOwner, onClose }: CapsuleModal
   };
 
   return (
-    <div
-      className="fixed inset-0 z-[90] flex items-end justify-center bg-black/30 backdrop-blur-sm"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    <Modal
+      onClose={onClose}
+      label="동결건조 — 미래의 나에게 보내는 메시지"
+      backdropClassName="z-[90] bg-black/30 backdrop-blur-sm"
+      sheetClassName="w-full max-w-lg bg-clay-bg rounded-t-[32px] clay-float p-6 pb-8 safe-bottom animate-slide-up max-h-[85vh] flex flex-col"
     >
-      <div className="w-full max-w-lg bg-clay-bg rounded-t-[32px] clay-float p-6 pb-8 safe-bottom animate-slide-up max-h-[85vh] flex flex-col">
-        <div className="w-12 h-1.5 bg-warm-border rounded-full mx-auto mb-5" />
+      <div className="w-12 h-1.5 bg-warm-border rounded-full mx-auto mb-5" />
 
-        <h3 className="font-display text-xl font-bold text-grape-700 text-center mb-1">
+      <h3 className="font-display text-xl font-bold text-grape-700 text-center mb-1">
           <EmojiIcon emoji="💊" size={22} className="mr-1" />동결건조
         </h3>
         <p className="text-sm text-warm-sub text-center mb-5">
@@ -393,7 +395,6 @@ export default function CapsuleModal({ boardId, isOwner, onClose }: CapsuleModal
             </div>
           )}
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 }

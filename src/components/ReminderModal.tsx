@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Modal from './Modal';
 import { api } from '@/lib/api';
 import type { ReminderInfo } from '@/types';
 import { stripTitleEmoji } from '@/lib/title';
@@ -77,14 +78,15 @@ export default function ReminderModal({ reminder, boards, onSave, onClose }: Rem
   };
 
   return (
-    <div
-      className="fixed inset-0 z-[90] flex items-end justify-center bg-black/30 backdrop-blur-sm"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    <Modal
+      onClose={onClose}
+      label={reminder ? '리마인더 수정' : '리마인더 추가'}
+      backdropClassName="z-[90] bg-black/30 backdrop-blur-sm"
+      sheetClassName="w-full max-w-lg bg-clay-bg rounded-t-[32px] clay-float p-6 pb-8 safe-bottom animate-slide-up max-h-[85vh] flex flex-col"
     >
-      <div className="w-full max-w-lg bg-clay-bg rounded-t-[32px] clay-float p-6 pb-8 safe-bottom animate-slide-up max-h-[85vh] flex flex-col">
-        <div className="w-12 h-1.5 bg-warm-border rounded-full mx-auto mb-5" />
+      <div className="w-12 h-1.5 bg-warm-border rounded-full mx-auto mb-5" />
 
-        <h3 className="font-display text-xl font-bold text-grape-700 text-center mb-5">
+      <h3 className="font-display text-xl font-bold text-grape-700 text-center mb-5">
           {reminder ? '리마인더 수정' : '리마인더 추가'}
         </h3>
 
@@ -190,7 +192,6 @@ export default function ReminderModal({ reminder, boards, onSave, onClose }: Rem
             </button>
           </div>
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 }
