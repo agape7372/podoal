@@ -1,15 +1,15 @@
 import { prisma } from '@/lib/prisma';
 import { getCurrentUserId, authResponse } from '@/lib/auth';
 import { TEMPLATE_CATEGORIES } from '@/lib/templates';
-import { KST_OFFSET_MS, kstDateKey, kstTodayKey, computeStreaks, canFreeze } from '@/lib/streak';
+import { KST_OFFSET_MS, kstDateKey, kstTodayKey, computeStreaks } from '@/lib/streak';
 
 const DAY_NAMES = ['일', '월', '화', '수', '목', '금', '토'];
 
 // KST timezone (Asia/Seoul, UTC+9, no DST). Stats are presented to a Korean
 // audience, so all date-key grouping happens in KST instead of UTC to avoid
 // off-by-day bugs (a sticker filled at 23:30 KST should land on that calendar
-// day, not the next one). Date-key helpers live in src/lib/streak.ts so the
-// freeze route + unit tests share the exact same logic.
+// day, not the next one). Date-key helpers live in src/lib/streak.ts so this
+// route + unit tests share the exact same logic.
 
 function kstStartOfTodayUtc(): Date {
   // Returns the UTC instant corresponding to 00:00 KST today.
@@ -38,7 +38,7 @@ export async function GET() {
     friendsCount,
     boardsGifted,
     boardsReceived,
-    // 스트릭 유예(freeze) 상태 — streak 계산과 freezeAvailable/freezeSuggestion에 쓴다.
+    // 폐지된 유예(freeze) 기능의 레거시 날짜 — 아래 streak 계산에서만 쓴다.
     freezeUser,
   ] = await Promise.all([
     prisma.board.count({ where: { ownerId: userId } }),
@@ -56,7 +56,7 @@ export async function GET() {
     prisma.board.count({ where: { giftedToId: userId } }),
     prisma.user.findUnique({
       where: { id: userId },
-      select: { streakFreezeDate: true, streakFreezeUsedAt: true },
+      select: { streakFreezeDate: true },
     }),
   ]);
 
@@ -97,22 +97,15 @@ export async function GET() {
   }
 
   // Streaks from KST-bucketed date set — src/lib/streak.ts 공유 로직 사용.
-  // 유예(freeze)로 메꾼 날짜는 채워진 날로 간주해 스트릭이 이어진다.
-  // (heatmap/dailyStickers에는 넣지 않는다 — 실제 채운 알이 아니므로.)
   const todayKey = kstTodayKey();
   const streakDates = new Set(countByDate.keys());
+  // 폐지된 유예(freeze) 기능의 레거시 보존 — 과거에 유예로 메꾼 날짜는 계속 채워진 날로
+  // 간주해 스트릭을 이어붙인다. 이 주입을 제거하면 유예를 이미 사용한 계정의 스트릭이
+  // 소급 감소하므로 제거 금지. (heatmap/dailyStickers에는 넣지 않는다 — 실제 채운 알이 아니므로.)
   if (freezeUser?.streakFreezeDate) streakDates.add(freezeUser.streakFreezeDate);
   const { currentStreak, longestStreak } = computeStreaks(streakDates, todayKey);
   // `streak` (legacy alias) kept for backwards compat with existing clients.
   const streak = currentStreak;
-
-  // 유예 보유 여부 + "어제만 메꾸면 이어붙는" 제안 상태(서버 단일 판정 — 클라 재계산 금지).
-  const freezeAvailable = !freezeUser?.streakFreezeUsedAt;
-  const freezeSuggestion = canFreeze(
-    streakDates,
-    freezeUser?.streakFreezeUsedAt ?? null,
-    todayKey,
-  ).eligible;
 
   // 30-day average.
   const thirtyDaysAgoUtc = new Date(todayKstStart.getTime() - 30 * 86_400_000);
@@ -189,8 +182,6 @@ export async function GET() {
       heatmap,
       longestStreak,
       currentStreak,
-      freezeAvailable,
-      freezeSuggestion,
       averageDaily,
       mostActiveDay,
       completionRate,

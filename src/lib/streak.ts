@@ -1,5 +1,5 @@
-// 스트릭(연속 기록) KST 날짜·유예(freeze) 판정 순수 함수 모음.
-// 서버 라우트(/api/stats, /api/streak/freeze)와 단위 테스트가 공유한다 —
+// 스트릭(연속 기록) KST 날짜 판정 순수 함수 모음.
+// 서버 라우트(/api/stats)와 단위 테스트가 공유한다 —
 // 클라이언트는 절대 재계산하지 않고 서버 응답만 표시한다(타임존 어긋남 방지).
 
 // KST(Asia/Seoul, UTC+9, DST 없음). 모든 날짜 버킷팅은 KST 기준 —
@@ -30,33 +30,9 @@ export function kstDayRangeUtc(key: string): { start: Date; end: Date } {
   return { start: new Date(startMs), end: new Date(startMs + DAY_MS) };
 }
 
-export type FreezeReason = 'ok' | 'already-used' | 'yesterday-filled' | 'no-anchor';
-
-export interface FreezeVerdict {
-  eligible: boolean;
-  reason: FreezeReason;
-}
-
 /**
- * 유예(freeze) 1회 자격 판정.
- * 조건: ① 아직 유예 미사용 ② 어제(KST)가 비어 있음 ③ 그제는 채워져 있음
- * (= 어제 하루만 메꾸면 스트릭이 이어붙는 상태).
- */
-export function canFreeze(
-  filledDates: ReadonlySet<string>,
-  freezeUsedAt: Date | string | null,
-  todayKey: string,
-): FreezeVerdict {
-  if (freezeUsedAt) return { eligible: false, reason: 'already-used' };
-  const yesterday = shiftDateKey(todayKey, -1);
-  if (filledDates.has(yesterday)) return { eligible: false, reason: 'yesterday-filled' };
-  const dayBefore = shiftDateKey(todayKey, -2);
-  if (!filledDates.has(dayBefore)) return { eligible: false, reason: 'no-anchor' };
-  return { eligible: true, reason: 'ok' };
-}
-
-/**
- * 현재/최장 스트릭 계산. dateKeys에는 실제 채운 날짜 + (사용했다면) 유예 날짜가 들어온다.
+ * 현재/최장 스트릭 계산. dateKeys에는 실제 채운 날짜 + (폐지된 유예 기능을 과거에
+ * 사용한 계정이라면) 레거시 유예 날짜가 들어온다 — 주입 경로는 /api/stats 참조.
  *
  * 오늘은 아직 '진행 중'인 날 — 오늘 칸이 비어 있어도 어제까지의 연속은 끊긴 게 아니다
  * (자정 전까지 기회가 남아 있다). 그래서 오늘이 비어 있으면 어제를 기준으로 거꾸로 센다.

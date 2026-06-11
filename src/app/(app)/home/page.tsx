@@ -120,20 +120,18 @@ export default function HomePage() {
   }, [boardsData]);
 
   // 스트릭 카드 데이터 — 보드 fetch와 병렬(독립 effect, 직렬 워터폴 금지).
-  // mount 1회 + 유예 사용 직후만 재조회(stats API는 비용이 있어 잦은 refetch 금지).
+  // mount 1회만 조회(stats API는 비용이 있어 잦은 refetch 금지).
   // 로딩 중엔 같은 높이의 스켈레톤으로 자리를 예약(늦게 끼어들며 콘텐츠가 점프하던 시프트 방지),
   // 실패 시에만 자리까지 조용히 접음 — 홈 핵심 흐름(보드 목록)엔 영향 없음.
   // SWR 캐시 — 통계 페이지와 같은 '/api/stats' 키 공유: 홈→통계 또는 그 반대로
   // 이동하면 어느 쪽도 다시 기다리지 않는다. 응답 전체가 캐시에 들어가므로
-  // 여기선 스트릭 4필드만 뽑아 쓴다.
-  const { data: statsData, error: streakFailed, refresh: loadStreak } =
+  // 여기선 스트릭 2필드만 뽑아 쓴다.
+  const { data: statsData, error: streakFailed } =
     useCachedApi<{ stats: StreakInfo }>('/api/stats');
   const streakInfo: StreakInfo | null = statsData
     ? {
         currentStreak: statsData.stats.currentStreak,
         longestStreak: statsData.stats.longestStreak,
-        freezeAvailable: statsData.stats.freezeAvailable,
-        freezeSuggestion: statsData.stats.freezeSuggestion,
       }
     : null;
 
@@ -448,7 +446,7 @@ export default function HomePage() {
 
       {/* 스트릭 카드 — 로딩 중엔 동일 높이 스켈레톤으로 자리 예약(레이아웃 시프트 방지), 필터 탭과 무관하게 항상 노출 */}
       {streakInfo
-        ? <StreakCard streak={streakInfo} onRefresh={loadStreak} onError={showToast} />
+        ? <StreakCard streak={streakInfo} />
         : !streakFailed && <div className="skeleton h-[62px] mb-4 rounded-[28px]" aria-hidden="true" />}
 
       {/* Filter tabs — 한 줄(아이콘 없음): 전체/진행/완료/수확 + 카운트 */}

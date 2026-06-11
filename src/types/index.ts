@@ -246,10 +246,6 @@ export interface EnhancedStats {
   heatmap: HeatmapData[];
   longestStreak: number;
   currentStreak: number;
-  /** 스트릭 유예(freeze) 1회 보유 여부 (streakFreezeUsedAt null). */
-  freezeAvailable: boolean;
-  /** 어제(KST)가 비었고 그제는 채워졌고 유예 보유 — "유예로 이어붙일 수 있는" 상태. */
-  freezeSuggestion: boolean;
   averageDaily: number;
   mostActiveDay: string;
   completionRate: number;
