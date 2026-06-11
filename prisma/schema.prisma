@@ -68,6 +68,9 @@ model Board {
   reminders         Reminder[]
   messages          Message[]
   plantedGifts      PlantedGift[]
+
+  @@index([ownerId])    // 홈 보드 목록
+  @@index([giftedToId]) // 받은 선물 보드·친구 활동 피드
 }
 
 model Sticker {
@@ -81,6 +84,7 @@ model Sticker {
   filler User  @relation(fields: [filledBy], references: [id])
 
   @@unique([boardId, position])
+  @@index([filledBy]) // stats·winery·vine의 사용자별 스티커 집계
 }
 
 model Reward {
@@ -111,6 +115,7 @@ model Friendship {
   receiver  User @relation("FriendReceiver", fields: [receiverId], references: [id])
 
   @@unique([requesterId, receiverId])
+  @@index([receiverId]) // 받은 친구신청 조회 (unique는 requesterId 접두라 커버 안 됨)
 }
 
 model Message {
@@ -127,6 +132,10 @@ model Message {
   sender   User   @relation("MessageSender", fields: [senderId], references: [id])
   receiver User   @relation("MessageReceiver", fields: [receiverId], references: [id])
   board    Board? @relation(fields: [boardId], references: [id], onDelete: SetNull)
+
+  // SSE가 접속 클라이언트당 10초마다 (receiverId, createdAt>) 조회 — 최다 빈도 쿼리.
+  // 복합 인덱스라 receiverId 단독 조회(인박스)도 접두로 커버한다.
+  @@index([receiverId, createdAt])
 }
 
 model TimeCapsule {
@@ -172,6 +181,7 @@ model RelayParticipant {
 
   @@unique([relayId, userId])
   @@unique([relayId, order])
+  @@index([userId]) // 내 포도동/초대 조회 (unique 2개 모두 relayId 접두라 커버 안 됨)
 }
 
 model NotificationSetting {
