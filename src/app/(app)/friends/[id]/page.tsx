@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { api } from '@/lib/api';
+import { useCachedApi } from '@/lib/cachedApi';
 import Avatar from '@/components/Avatar';
 import BoardCard from '@/components/BoardCard';
 import ClayButton from '@/components/ClayButton';
@@ -25,33 +26,18 @@ export default function FriendDetailPage() {
   const params = useParams();
   const friendId = params.id as string;
 
-  const [friend, setFriend] = useState<UserProfile | null>(null);
-  const [boards, setBoards] = useState<BoardSummary[]>([]);
-  const [friendshipId, setFriendshipId] = useState<string>('');
-  const [isFavorite, setIsFavorite] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  // SWR 캐시(친구별 키): 재방문 시 직전 프로필·보드로 즉시 렌더 + 무음 재검증.
+  const { data, loading, error, mutate } = useCachedApi<FriendBoardsResponse>(
+    `/api/friends/${friendId}/boards`,
+  );
+  const friend = data?.friend ?? null;
+  const boards = data?.boards ?? [];
+  const friendshipId = data?.friendship.id ?? '';
+  const isFavorite = data?.friendship.isFavorite ?? false;
   const [showCheer, setShowCheer] = useState(false);
   const [cheerSent, setCheerSent] = useState(false);
   const [plantTarget, setPlantTarget] = useState<BoardSummary | null>(null);
   const [plantedFeedback, setPlantedFeedback] = useState(false);
-
-  const fetchFriendData = useCallback(async () => {
-    try {
-      const data = await api<FriendBoardsResponse>(`/api/friends/${friendId}/boards`);
-      setFriend(data.friend);
-      setBoards(data.boards);
-      setFriendshipId(data.friendship.id);
-      setIsFavorite(data.friendship.isFavorite);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : '데이터를 불러올 수 없습니다');
-    }
-    setLoading(false);
-  }, [friendId]);
-
-  useEffect(() => {
-    fetchFriendData();
-  }, [fetchFriendData]);
 
   const handleSendCheer = async (message: string, emoji: string) => {
     await api('/api/messages', {
@@ -64,14 +50,17 @@ export default function FriendDetailPage() {
 
   const handleToggleFavorite = async () => {
     if (!friendshipId) return;
-    setIsFavorite((prev) => !prev); // optimistic — the star reacts instantly
+    // optimistic — the star reacts instantly; rollback = same flip on failure
+    const flip = (prev: typeof data) =>
+      prev && { ...prev, friendship: { ...prev.friendship, isFavorite: !prev.friendship.isFavorite } };
+    mutate(flip);
     try {
       await api(`/api/friends/${friendshipId}`, {
         method: 'PATCH',
         json: { action: 'favorite' },
       });
     } catch {
-      setIsFavorite((prev) => !prev); // rollback on failure
+      mutate(flip);
     }
   };
 
@@ -110,7 +99,7 @@ export default function FriendDetailPage() {
         </button>
         <div className="text-center py-12">
           <EmojiIcon emoji="😥" size={40} className="block mx-auto mb-3" />
-          <p className="text-warm-sub">{error || '친구를 찾을 수 없습니다'}</p>
+          <p className="text-warm-sub">친구를 찾을 수 없습니다</p>
         </div>
       </div>
     );

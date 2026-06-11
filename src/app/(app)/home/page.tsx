@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppStore } from '@/lib/store';
 import { api } from '@/lib/api';
+import { useCachedApi } from '@/lib/cachedApi';
 import SwipeableBoardCard, { SWIPE_TRANSITION } from '@/components/SwipeableBoardCard';
 import StreakCard, { type StreakInfo } from '@/components/StreakCard';
 import ClayButton from '@/components/ClayButton';
@@ -38,9 +39,16 @@ const TRAY_W = 144;    // 스와이프로 드러나는 액션 트레이 폭(px)
 export default function HomePage() {
   const router = useRouter();
   const user = useAppStore((s) => s.user);
-  const [boards, setBoards] = useState<BoardSummary[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState(false);
+  // SWR 캐시: 재방문 시 직전 보드 목록으로 즉시 렌더 + 무음 재검증.
+  // (loadBoards/loadError 이름은 기존 호출처 호환을 위해 유지.)
+  const {
+    data: boardsData,
+    loading,
+    error: loadError,
+    refresh: loadBoards,
+    mutate: mutateBoards,
+  } = useCachedApi<{ boards: BoardSummary[] }>('/api/boards');
+  const boards = boardsData?.boards ?? [];
   const [filter, setFilter] = useState<Filter>('all');
   const greeting = useMemo(timeOfDayGreeting, []);
 
@@ -83,17 +91,6 @@ export default function HomePage() {
   const gLpTimer = useRef<number | null>(null);
   const gSwipeDx = useRef(0); // 라이브 스와이프 오프셋(리렌더 타이밍과 무관하게 onUp이 판정)
 
-  const loadBoards = useCallback(() => {
-    setLoading(true);
-    setLoadError(false);
-    api<{ boards: BoardSummary[] }>('/api/boards')
-      .then((data) => setBoards(data.boards))
-      .catch(() => setLoadError(true))
-      .finally(() => setLoading(false));
-  }, []);
-
-  useEffect(() => { loadBoards(); }, [loadBoards]);
-
   // 보이는 보드의 상세 라우트를 미리 받아둔다 — board/[id]는 동적 라우트라
   // <Link> 없이는 카드 탭 시점에야 RSC 왕복이 시작돼 무반응 구간이 생긴다.
   // (카드 자체는 스와이프 제스처와 얽혀 있어 Link화 대신 명령형 프리페치를 쓴다.)
@@ -105,19 +102,19 @@ export default function HomePage() {
   // mount 1회 + 유예 사용 직후만 재조회(stats API는 비용이 있어 잦은 refetch 금지).
   // 로딩 중엔 같은 높이의 스켈레톤으로 자리를 예약(늦게 끼어들며 콘텐츠가 점프하던 시프트 방지),
   // 실패 시에만 자리까지 조용히 접음 — 홈 핵심 흐름(보드 목록)엔 영향 없음.
-  const [streakInfo, setStreakInfo] = useState<StreakInfo | null>(null);
-  const [streakFailed, setStreakFailed] = useState(false);
-  const loadStreak = useCallback(() => {
-    api<{ stats: StreakInfo }>('/api/stats')
-      .then((d) => setStreakInfo({
-        currentStreak: d.stats.currentStreak,
-        longestStreak: d.stats.longestStreak,
-        freezeAvailable: d.stats.freezeAvailable,
-        freezeSuggestion: d.stats.freezeSuggestion,
-      }))
-      .catch(() => setStreakFailed(true));
-  }, []);
-  useEffect(() => { loadStreak(); }, [loadStreak]);
+  // SWR 캐시 — 통계 페이지와 같은 '/api/stats' 키 공유: 홈→통계 또는 그 반대로
+  // 이동하면 어느 쪽도 다시 기다리지 않는다. 응답 전체가 캐시에 들어가므로
+  // 여기선 스트릭 4필드만 뽑아 쓴다.
+  const { data: statsData, error: streakFailed, refresh: loadStreak } =
+    useCachedApi<{ stats: StreakInfo }>('/api/stats');
+  const streakInfo: StreakInfo | null = statsData
+    ? {
+        currentStreak: statsData.stats.currentStreak,
+        longestStreak: statsData.stats.longestStreak,
+        freezeAvailable: statsData.stats.freezeAvailable,
+        freezeSuggestion: statsData.stats.freezeSuggestion,
+      }
+    : null;
 
   // 첫 방문(보드 0개 + 미온보딩) 시 환영 온보딩 — "빈 홈에서 뭘 해야 하지?" 이탈 완화.
   useEffect(() => {
@@ -190,8 +187,9 @@ export default function HomePage() {
     next.splice(to, 0, m);
     dragOrderRef.current = next;
     const orderMap = new Map(next.map((id, i) => [id, i] as const));
-    setBoards((prev) => prev.map((b) => (orderMap.has(b.id) ? { ...b, order: orderMap.get(b.id)! } : b)));
-  }, []);
+    mutateBoards((prev) =>
+      prev && { ...prev, boards: prev.boards.map((b) => (orderMap.has(b.id) ? { ...b, order: orderMap.get(b.id)! } : b)) });
+  }, [mutateBoards]);
 
   const persistOrder = useCallback(() => {
     const orderedIds = dragOrderRef.current;
@@ -326,11 +324,13 @@ export default function HomePage() {
     feedbackTap();
     setSwipeOpenId(null);
     const harvested = !board.harvestedAt;
-    setBoards((prev) => prev.map((b) => (b.id === board.id ? { ...b, harvestedAt: harvested ? new Date().toISOString() : null } : b)));
+    mutateBoards((prev) =>
+      prev && { ...prev, boards: prev.boards.map((b) => (b.id === board.id ? { ...b, harvestedAt: harvested ? new Date().toISOString() : null } : b)) });
     try {
       await api(`/api/boards/${board.id}`, { method: 'PATCH', json: { harvested } });
     } catch {
-      setBoards((prev) => prev.map((b) => (b.id === board.id ? { ...b, harvestedAt: harvested ? null : board.harvestedAt ?? null } : b)));
+      mutateBoards((prev) =>
+        prev && { ...prev, boards: prev.boards.map((b) => (b.id === board.id ? { ...b, harvestedAt: harvested ? null : board.harvestedAt ?? null } : b)) });
     }
   };
 
@@ -340,7 +340,7 @@ export default function HomePage() {
     setDeleting(true);
     try {
       await api(`/api/boards/${id}`, { method: 'DELETE' });
-      setBoards((prev) => prev.filter((b) => b.id !== id));
+      mutateBoards((prev) => prev && { ...prev, boards: prev.boards.filter((b) => b.id !== id) });
     } finally {
       setDeleting(false);
       setDeleteTarget(null);
@@ -359,23 +359,16 @@ export default function HomePage() {
 
   // ── 친구 소식 피드 (보드 목록 아래 독립 섹션) ──────────────────────────────
   // 홈 mount 시 1회, 보드 fetch와 병렬. 폴링/SSE 없음. 활동 0건이면 섹션 미렌더.
-  const [friendActivities, setFriendActivities] = useState<FriendActivity[]>([]);
-  // 상대시간 기준 시각 — 렌더 중 현재시각 호출 금지(react-hooks/purity)라 fetch 시점에 고정.
+  // SWR 캐시: 재방문 시 직전 피드로 즉시 렌더 + 무음 재검증. 실패 시 섹션을 조용히 숨김(보조 정보).
+  const { data: activityData } = useCachedApi<{ activities: FriendActivity[] }>('/api/activity/friends');
+  const friendActivities = activityData?.activities ?? [];
+  // 상대시간 기준 시각 — 렌더 중 현재시각 호출 금지(react-hooks/purity)라 데이터 도착 시점에 고정.
   const [activityFetchedAt, setActivityFetchedAt] = useState(0);
+  useEffect(() => {
+    if (activityData) setActivityFetchedAt(new Date().getTime());
+  }, [activityData]);
   // 세션 내 동일 항목 재발송 차단(클라 상태) — 서버에는 레이트리밋이 별도로 있음.
   const [cheerStates, setCheerStates] = useState<Record<string, CheerState>>({});
-
-  useEffect(() => {
-    let cancelled = false;
-    api<{ activities: FriendActivity[] }>('/api/activity/friends')
-      .then((data) => {
-        if (cancelled) return;
-        setFriendActivities(data.activities);
-        setActivityFetchedAt(new Date().getTime());
-      })
-      .catch(() => { /* 친구 소식은 보조 정보 — 실패 시 섹션을 조용히 숨김 */ });
-    return () => { cancelled = true; };
-  }, []);
 
   const sendCelebration = useCallback(async (activity: FriendActivity) => {
     feedbackTap();

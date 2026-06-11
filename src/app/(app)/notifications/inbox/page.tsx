@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { api } from '@/lib/api';
+import { useCachedApi } from '@/lib/cachedApi';
 import { useAppStore } from '@/lib/store';
 import { countUnread } from '@/lib/notifications';
 import Avatar from '@/components/Avatar';
@@ -23,26 +23,16 @@ function timeAgo(iso: string): string {
 
 export default function NotificationInboxPage() {
   const router = useRouter();
-  const [events, setEvents] = useState<NotificationEvent[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState(false);
   const setUnreadCount = useAppStore((s) => s.setUnreadCount);
+  // SWR 캐시: 재방문 시 직전 피드로 즉시 렌더 + 무음 재검증.
+  const { data, loading, error, refresh } = useCachedApi<{ events: NotificationEvent[] }>('/api/notifications');
+  const events = data?.events ?? [];
 
-  const load = useCallback(() => {
-    setLoading(true);
-    setLoadError(false);
-    api<{ events: NotificationEvent[] }>('/api/notifications')
-      .then((d) => {
-        setEvents(d.events);
-        // 방금 받은 피드가 곧 배지의 단일 출처 — 추가 fetch 없이 store를 같은 값으로 동기화
-        // (인박스에 머무는 동안 네비 '더보기' 배지도 일치).
-        setUnreadCount(countUnread(d.events));
-      })
-      .catch(() => setLoadError(true))
-      .finally(() => setLoading(false));
-  }, [setUnreadCount]);
-
-  useEffect(() => { load(); }, [load]);
+  // 방금 받은 피드가 곧 배지의 단일 출처 — 추가 fetch 없이 store를 같은 값으로 동기화
+  // (인박스에 머무는 동안 네비 '더보기' 배지도 일치).
+  useEffect(() => {
+    if (data) setUnreadCount(countUnread(data.events));
+  }, [data, setUnreadCount]);
 
   const open = (e: NotificationEvent) => {
     feedbackTap();
@@ -68,11 +58,11 @@ export default function NotificationInboxPage() {
         <div className="space-y-2">
           {[1, 2, 3, 4].map((i) => <div key={i} className="skeleton h-16 w-full" />)}
         </div>
-      ) : loadError ? (
+      ) : error ? (
         <div className="text-center py-12">
           <p className="font-display text-base text-warm-text mb-1.5">알림을 불러오지 못했어요</p>
           <p className="text-sm text-warm-sub mb-5">잠시 후 다시 시도해주세요</p>
-          <button onClick={load} className="clay-button px-5 py-2.5 rounded-2xl text-sm font-semibold text-grape-700">다시 불러오기</button>
+          <button onClick={refresh} className="clay-button px-5 py-2.5 rounded-2xl text-sm font-semibold text-grape-700">다시 불러오기</button>
         </div>
       ) : events.length === 0 ? (
         <div className="text-center py-16">

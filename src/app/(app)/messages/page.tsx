@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
+import { useCachedApi } from '@/lib/cachedApi';
 import { refreshUnreadCount } from '@/lib/notifications';
 import Avatar from '@/components/Avatar';
 import EmojiIcon from '@/components/EmojiIcon';
@@ -9,26 +10,16 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import type { MessageInfo } from '@/types';
 
 export default function MessagesPage() {
-  const [messages, setMessages] = useState<MessageInfo[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState(false);
+  // SWR 캐시: 재방문 시 직전 목록으로 즉시 렌더 + 무음 재검증.
+  const { data, loading, error, refresh, mutate } = useCachedApi<MessageInfo[]>('/api/messages');
+  const messages = data ?? [];
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
-  const fetchMessages = useCallback(async () => {
-    setLoadError(false);
-    try {
-      const data = await api<MessageInfo[]>('/api/messages');
-      setMessages(data);
-      // 배지는 통합 알림 피드 기준 단일 계약 — 메시지만의 로컬 계산으로 덮지 않고
-      // 서버값으로 동기화한다(refreshUnreadCount가 store.unreadCount를 갱신).
-      refreshUnreadCount();
-    } catch {
-      setLoadError(true);
-    }
-    setLoading(false);
-  }, []);
-
-  useEffect(() => { fetchMessages(); }, [fetchMessages]);
+  // 배지는 통합 알림 피드 기준 단일 계약 — 메시지만의 로컬 계산으로 덮지 않고
+  // 피드 도착 시 서버값으로 동기화한다(refreshUnreadCount가 store.unreadCount 갱신, 스로틀 있음).
+  useEffect(() => {
+    if (data) refreshUnreadCount();
+  }, [data]);
 
   const handleMarkRead = async (id: string) => {
     const target = messages.find((m) => m.id === id);
@@ -36,16 +27,16 @@ export default function MessagesPage() {
     // Optimistic: mark read immediately, roll back if the request fails so the
     // UI never claims "read" when the server didn't record it (previously the
     // PATCH was awaited first and a failure left the click with no feedback).
-    setMessages((prev) =>
-      prev.map((m) => (m.id === id ? { ...m, isRead: true } : m))
+    mutate((prev) =>
+      prev?.map((m) => (m.id === id ? { ...m, isRead: true } : m))
     );
     try {
       await api(`/api/messages/${id}`, { method: 'PATCH', json: {} });
       // 서버 반영이 끝난 뒤 배지를 피드 기준으로 동기화(force: 스로틀 우회).
       refreshUnreadCount({ force: true });
     } catch {
-      setMessages((prev) =>
-        prev.map((m) => (m.id === id ? { ...m, isRead: false } : m))
+      mutate((prev) =>
+        prev?.map((m) => (m.id === id ? { ...m, isRead: false } : m))
       );
     }
   };
@@ -55,13 +46,14 @@ export default function MessagesPage() {
     if (idx === -1) return;
     const removed = messages[idx];
     // Optimistic: remove immediately; restore at the original index on failure.
-    setMessages((prev) => prev.filter((m) => m.id !== id));
+    mutate((prev) => prev?.filter((m) => m.id !== id));
     try {
       await api(`/api/messages/${id}`, { method: 'DELETE' });
       // 서버 반영이 끝난 뒤 배지를 피드 기준으로 동기화(force: 스로틀 우회).
       refreshUnreadCount({ force: true });
     } catch {
-      setMessages((prev) => {
+      mutate((prev) => {
+        if (!prev) return undefined;
         const next = [...prev];
         next.splice(Math.min(idx, next.length), 0, removed);
         return next;
@@ -110,11 +102,11 @@ export default function MessagesPage() {
         <div className="space-y-3">
           {[1, 2, 3, 4].map((i) => <div key={i} className="skeleton h-20 w-full" />)}
         </div>
-      ) : loadError ? (
+      ) : error ? (
         <div className="text-center py-12">
           <p className="font-display text-base text-warm-text mb-1.5">불러오지 못했어요</p>
           <p className="text-sm text-warm-sub mb-5">잠시 후 다시 시도해주세요</p>
-          <button onClick={fetchMessages} className="clay-button px-5 py-2.5 rounded-2xl text-sm font-semibold text-grape-700">다시 불러오기</button>
+          <button onClick={refresh} className="clay-button px-5 py-2.5 rounded-2xl text-sm font-semibold text-grape-700">다시 불러오기</button>
         </div>
       ) : messages.length === 0 ? (
         <div className="text-center py-16">
