@@ -71,6 +71,8 @@ function makeStats(overrides: Partial<EnhancedStats> = {}): EnhancedStats {
     completionRate: 33.3,
     monthlyTrend: [],
     categoryBreakdown: [],
+    freezeAvailable: true,
+    freezeSuggestion: false,
     ...overrides,
   };
 }
