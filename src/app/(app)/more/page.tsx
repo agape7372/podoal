@@ -32,9 +32,9 @@ const sections: MoreSection[] = [
     title: '설정',
     chip: 'bg-sunshine-100',
     items: [
-      { path: '/notifications', icon: '🔔', label: '알림 설정' },
-      { path: '/sound-test', icon: '🔊', label: '포도알 소리' },
-      { path: '/settings', icon: '⚙️', label: '설정' },
+      // 설정 진입점은 이 한 행뿐 — 알림·소리 설정은 /settings 허브 하위로 통합됐다.
+      // 행을 다시 늘리면 알림함(🔔)과의 종 아이콘 중복이 재발한다.
+      { path: '/settings', icon: '⚙️', label: '설정', desc: '소리·진동, 알림, 앱 정보' },
     ],
   },
 ];
@@ -72,7 +72,7 @@ export default function MorePage() {
 
             <div className="clay overflow-hidden">
               {section.items.map((item, i) => (
-                // <Link>: 메뉴 항목이 뷰포트에 들어오는 순간 하위 7개 라우트가 프리페치됨
+                // <Link>: 메뉴 항목이 뷰포트에 들어오는 순간 하위 6개 라우트가 프리페치됨
                 <Link
                   key={item.path}
                   href={item.path}

@@ -76,8 +76,9 @@ src/app/(app)/
   relay/             # Relay challenge list
   relay/[id]/        # Relay detail with chain visualization
   relay/create/      # Create relay with friend selector
-  settings/          # Sound/haptic settings
-  sound-test/        # All 30 fill sounds preview
+  settings/          # Settings hub — link rows to 소리 및 진동(/settings/sound)·알림(/notifications) + app info
+  settings/sound/    # 소리 및 진동: sound/haptic toggles, volume slider, fill-sound link
+  sound-test/        # '포도알 소리' — all 30 fill sounds preview & selection
   stats/             # Statistics (summary, heatmap, analysis tabs)
   vine/              # Grape vine activity timeline
   winery/            # Wine cellar with tier progression
@@ -161,7 +162,7 @@ The app is a Progressive Web App with `public/manifest.json`, `public/sw.js`, an
 
 ### Navigation
 
-Bottom nav: 🏠 홈 | 🍇 만들기 | 👥 친구 | 🍷 와이너리 | ☰ 더보기 — the 친구 tab owns both `/friends` and `/relay` (the old standalone 릴레이 tab was folded into it; see `Navigation.tsx` `owns`). The "더보기" page provides grid access to 알림함(inbox), messages, stats, vine, settings, notifications, and sound test.
+Bottom nav: 🏠 홈 | 🍇 만들기 | 👥 친구 | 🍷 와이너리 | ☰ 더보기 — the 친구 tab owns both `/friends` and `/relay` (the old standalone 릴레이 tab was folded into it; see `Navigation.tsx` `owns`). The "더보기" page provides access to 알림함(inbox), messages, rewards(포도밭), stats, vine, and a single 설정 entry — sound/haptic and notification settings live under the `/settings` hub.
 
 ### Styling: Claymorphism Design System
 
