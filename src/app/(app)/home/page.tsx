@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppStore } from '@/lib/store';
 import { api } from '@/lib/api';
-import SwipeableBoardCard from '@/components/SwipeableBoardCard';
+import SwipeableBoardCard, { SWIPE_TRANSITION } from '@/components/SwipeableBoardCard';
 import ClayButton from '@/components/ClayButton';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import OnboardingWelcome from '@/components/OnboardingWelcome';
@@ -41,10 +41,12 @@ export default function HomePage() {
   const [filter, setFilter] = useState<Filter>('all');
   const greeting = useMemo(timeOfDayGreeting, []);
 
-  // 정렬(드래그 리프트) + 스와이프 액션 상태
+  // 정렬(드래그 리프트) + 스와이프 액션 상태.
+  // 상태는 '임계 전이'(리프트 시작/종료, 축 잠금, 트레이 열림/닫힘)만 표현한다 —
+  // 손가락을 따라가는 픽셀 오프셋은 setState가 아니라 ref + style.transform 직접
+  // 조작으로 처리해 pointermove마다 리스트 전체가 리렌더되지 않게 한다.
   const [liftedId, setLiftedId] = useState<string | null>(null);
   const [swipeDragId, setSwipeDragId] = useState<string | null>(null);
-  const [swipeDx, setSwipeDx] = useState(0);
   const [swipeOpenId, setSwipeOpenId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<BoardSummary | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -66,6 +68,7 @@ export default function HomePage() {
   }, []);
 
   const cardRefs = useRef<Map<string, HTMLElement>>(new Map());
+  const moveLayerRefs = useRef<Map<string, HTMLElement>>(new Map()); // 카드의 '움직이는 레이어'(transform 직접 조작 대상)
   const dragOrderRef = useRef<string[]>([]); // 드래그 중 보이는 카드 순서(클로저 staleness 회피)
 
   // 제스처 추적용 ref (렌더와 무관, 동기적 판정)
@@ -129,6 +132,15 @@ export default function HomePage() {
   const canReorder = filter === 'all'; // 정렬은 '전체'에서만(필터된 부분집합 정렬은 혼란)
 
   const clearLp = () => { if (gLpTimer.current) { window.clearTimeout(gLpTimer.current); gLpTimer.current = null; } };
+
+  // 스와이프 중 카드 이동은 React를 거치지 않고 DOM에 직접 쓴다(리스트 리렌더 0회).
+  // 제스처가 끝나면 같은 '정지 값'을 상태(swipeOpenId)로도 커밋해 선언적 스타일과 일치시킨다.
+  const setCardX = (id: string, x: number, animate: boolean) => {
+    const el = moveLayerRefs.current.get(id);
+    if (!el) return;
+    el.style.transition = animate ? SWIPE_TRANSITION : 'none';
+    el.style.transform = `translateX(${x}px) scale(1)`;
+  };
 
   // 보이는 카드만 재배열, 수확된 카드의 order는 보존. hit-test는 포인터 Y가 들어있는 행 1개를
   // 찾으므로 순서와 무관. 순서는 ref에 보관해 클로저 staleness를 피한다.
@@ -216,7 +228,8 @@ export default function HomePage() {
       const base = swipeOpenId === board.id ? -TRAY_W : 0;
       const next = Math.max(-TRAY_W, Math.min(0, base + dx));
       gSwipeDx.current = next;
-      setSwipeDx(next);
+      // pointermove마다 setState 금지 — transform 직접 조작(상태 전이는 onUp에서만).
+      setCardX(board.id, next, false);
     }
   };
 
@@ -237,9 +250,12 @@ export default function HomePage() {
     }
     if (gAxis.current === 'x') {
       const open = gSwipeDx.current <= -TRAY_W / 2;
+      // 손을 뗀 지점 → 확정 위치 스냅백도 직접 조작으로 애니메이션한다.
+      // (열림/닫힘이 기존 상태와 같으면 React가 transform을 다시 쓰지 않으므로
+      //  이 수동 쓰기가 없으면 카드가 드래그 위치에 멈춘 채 남는다.)
+      setCardX(board.id, open ? -TRAY_W : 0, true);
       setSwipeOpenId(open ? board.id : null);
       setSwipeDragId(null);
-      setSwipeDx(0);
       gSwipeDx.current = 0;
       releaseCapture(e);
       gStart.current = null;
@@ -260,15 +276,20 @@ export default function HomePage() {
   const onCancel = (e: React.PointerEvent, board: BoardSummary) => {
     clearLp();
     if (liftedId === board.id) { setLiftedId(null); dragOrderRef.current = []; }
-    if (swipeDragId === board.id) { setSwipeDragId(null); setSwipeDx(0); gSwipeDx.current = 0; }
+    // swipeDragId(state)는 축 잠금 직후 취소되면 아직 stale일 수 있어 ref로도 판정.
+    if (gAxis.current === 'x' || swipeDragId === board.id) {
+      setSwipeDragId(null);
+      setCardX(board.id, swipeOpenId === board.id ? -TRAY_W : 0, true); // 직전 정지 위치로 복귀
+      gSwipeDx.current = 0;
+    }
     releaseCapture(e);
     gStart.current = null;
     gAxis.current = null;
   };
 
+  // 카드의 '정지 상태' 오프셋만 상태로 표현한다(드래그 중 라이브 오프셋은 setCardX가 직접 씀).
   const offsetFor = (id: string) => {
     if (liftedId === id) return 0;
-    if (swipeDragId === id) return swipeDx;
     if (swipeOpenId === id) return -TRAY_W;
     return 0;
   };
@@ -303,6 +324,11 @@ export default function HomePage() {
     else cardRefs.current.delete(id);
   };
 
+  const setMoveLayerRef = (id: string) => (el: HTMLElement | null) => {
+    if (el) moveLayerRefs.current.set(id, el);
+    else moveLayerRefs.current.delete(id);
+  };
+
   return (
     <div className="pb-4">
       {/* Header — tap the avatar to open the profile sheet */}
@@ -315,9 +341,14 @@ export default function HomePage() {
           <Avatar avatar={user?.avatar || 'grape'} size="lg" />
         </button>
         <div className="min-w-0 flex-1">
-          <h1 className="font-display text-[26px] leading-tight font-bold tracking-tight text-warm-text truncate">
-            {user?.name}<span className="text-warm-sub font-normal text-[20px]">님</span>
-          </h1>
+          {/* 인증이 병렬화돼 user가 잠깐 없을 수 있다 — "님"만 덩그러니 뜨지 않게 스켈레톤 폴백 */}
+          {user ? (
+            <h1 className="font-display text-[26px] leading-tight font-bold tracking-tight text-warm-text truncate">
+              {user.name}<span className="text-warm-sub font-normal text-[20px]">님</span>
+            </h1>
+          ) : (
+            <div className="skeleton h-[30px] w-28 rounded-xl" aria-hidden="true" />
+          )}
           <p className="text-xs leading-normal tracking-wide text-warm-sub mt-0.5">
             {greeting}
           </p>
@@ -394,12 +425,13 @@ export default function HomePage() {
                   board={board}
                   offset={offsetFor(board.id)}
                   lifted={liftedId === board.id}
-                  animating={swipeDragId !== board.id}
+                  dragging={swipeDragId === board.id}
                   trayWidth={TRAY_W}
                   onHarvest={() => board.isCompleted ? harvestBoard(board) : showToast('포도판을 다 채우면 수확할 수 있어요')}
                   onDelete={() => { setSwipeOpenId(null); setDeleteTarget(board); }}
                   onOpen={() => { feedbackTap(); router.push(`/board/${board.id}`); }}
                   innerRef={setCardRef(board.id)}
+                  moveLayerRef={setMoveLayerRef(board.id)}
                   pointerHandlers={{
                     onPointerDown: (e) => onDown(e, board),
                     onPointerMove: (e) => onMove(e, board),

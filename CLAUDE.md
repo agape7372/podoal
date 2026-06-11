@@ -103,7 +103,7 @@ API routes mirror the resource pattern under `src/app/api/` (auth, boards, capsu
 | `src/lib/shareCard.ts` | Canvas API share card image generator (1080x1350 Instagram ratio) |
 | `src/lib/winery.ts` | 7-tier winery system, bottle size utilities |
 | `src/lib/prisma.ts` | Prisma client singleton (single instance, no /tmp bootstrap now that we're on Neon) |
-| `src/lib/useSSE.ts` | SSE hook for real-time message delivery (polls `/api/messages/sse` every 3s) |
+| `src/lib/useSSE.ts` | SSE hook for real-time message delivery (server polls DB every 10s; stream is capped at 4 min then the client auto-reconnects with backoff) |
 | `src/types/index.ts` | All shared TypeScript interfaces and const arrays |
 
 ### Database Models (Prisma + PostgreSQL/Neon)
