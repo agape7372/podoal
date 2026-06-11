@@ -46,7 +46,7 @@ export default function RelayDetailPage() {
   const user = useAppStore((s) => s.user);
 
   // SWR 캐시(포도동별 키): 재방문 시 직전 상세로 즉시 렌더 + 무음 재검증.
-  const { data, loading, refreshFailed, refresh } = useCachedApi<{ relay: RelayDetail }>(
+  const { data, loading, error, refreshFailedStatus, refresh } = useCachedApi<{ relay: RelayDetail }>(
     `/api/relays/${relayId}`,
   );
   const relay = data?.relay ?? null;
@@ -63,11 +63,16 @@ export default function RelayDetailPage() {
 
   const fetchRelay = refresh;
 
-  // 로드 실패(권한 없음/삭제됨)는 종전처럼 목록으로 복귀 — 캐시가 있어도
-  // 재검증이 실패했다면 이미 접근 불가한 포도동이므로 스테일 화면을 유지하지 않는다.
+  // 목록 복귀 조건: ① 접근 상실(403 권한 없음/404 삭제) — 캐시가 있어도 이미 접근
+  // 불가한 포도동이라 스테일 화면을 유지하지 않는다. ② 보여줄 캐시조차 없는 실패
+  // (첫 방문 오프라인 등) — null 렌더로 빈 화면이 고착되는 것 방지.
+  // 캐시가 있는 일시 장애(네트워크 단절·오프라인 SW 503·5xx)는 복귀 재검증에서도
+  // 발생하므로 화면을 유지한다 — 실패 일괄 복귀였다면 오프라인 복귀만으로 튕겨났다.
   useEffect(() => {
-    if (refreshFailed) router.replace('/relay');
-  }, [refreshFailed, router]);
+    if (error || refreshFailedStatus === 403 || refreshFailedStatus === 404) {
+      router.replace('/relay');
+    }
+  }, [error, refreshFailedStatus, router]);
 
   const handleAccept = async () => {
     setResponding(true);

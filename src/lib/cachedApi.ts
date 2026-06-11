@@ -11,7 +11,7 @@
 // 의도적으로 localStorage persist 하지 않음 — 세션 간 신선도/프라이버시 단순화.
 // (PWA 재시작 첫 화면은 어차피 콜드 API 1회가 필요하다.)
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { api } from '@/lib/api';
+import { api, ApiError } from '@/lib/api';
 
 const cache = new Map<string, unknown>();
 
@@ -52,6 +52,8 @@ export function writeCachedApi<T>(url: string, value: T) {
 export function useCachedApi<T>(url: string) {
   const [data, setData] = useState<T | undefined>(() => cache.get(url) as T | undefined);
   const [error, setError] = useState(false);
+  // 실패가 HTTP 응답이었을 때의 상태 코드 — 네트워크 단절(fetch TypeError)은 undefined.
+  const [errorStatus, setErrorStatus] = useState<number | undefined>(undefined);
   // fetched: 이번 mount의 재검증이 완료됐는가 (성공/실패 불문)
   const [fetched, setFetched] = useState(false);
 
@@ -61,12 +63,14 @@ export function useCachedApi<T>(url: string) {
   const refresh = useCallback(async () => {
     lastRefreshAtRef.current = Date.now();
     setError(false);
+    setErrorStatus(undefined);
     try {
       const fresh = await api<T>(url);
       cache.set(url, fresh);
       setData(fresh);
-    } catch {
+    } catch (e) {
       setError(true);
+      setErrorStatus(e instanceof ApiError ? e.status : undefined);
     } finally {
       setFetched(true);
     }
@@ -81,14 +85,19 @@ export function useCachedApi<T>(url: string) {
   useEffect(() => {
     const onVisible = () => {
       if (document.visibilityState !== 'visible') return;
+      // 오프라인 복귀(라디오 재연결 전)엔 sw.js가 /api/*를 즉시 503으로 응답하므로
+      // 확정 실패할 재검증을 건너뛴다 — 연결이 돌아오면 'online' 이벤트가 따라잡는다.
+      if (navigator.onLine === false) return;
       if (Date.now() - lastRefreshAtRef.current < FOCUS_REVALIDATE_THROTTLE_MS) return;
       refresh();
     };
     document.addEventListener('visibilitychange', onVisible);
     window.addEventListener('focus', onVisible);
+    window.addEventListener('online', onVisible);
     return () => {
       document.removeEventListener('visibilitychange', onVisible);
       window.removeEventListener('focus', onVisible);
+      window.removeEventListener('online', onVisible);
     };
   }, [refresh]);
 
@@ -113,9 +122,12 @@ export function useCachedApi<T>(url: string) {
     loading: data === undefined && !fetched,
     /** 에러 화면 게이트: 보여줄 데이터가 전혀 없을 때만 — 무음 재검증 실패는 기존 화면 유지 */
     error: error && data === undefined,
-    /** 무음 재검증 실패 포함 원시 에러 — 캐시가 있어도 '지금 접근 불가'에 반응해야 할 때
-     *  (예: relay 상세가 삭제/권한 상실 시 목록으로 복귀) 이쪽을 본다. */
+    /** 무음 재검증 실패 포함 원시 에러 — 캐시가 있어도 실패 자체에 반응해야 할 때. */
     refreshFailed: error,
+    /** 실패가 HTTP 응답일 때의 상태 코드(네트워크 단절은 undefined, 오프라인 SW는 503).
+     *  '접근 상실'(403 권한 없음/404 삭제)만 골라 반응해야 할 때 이쪽을 본다
+     *  (예: relay 상세의 목록 복귀 — 일시 장애에 스테일 화면을 버리면 안 된다). */
+    refreshFailedStatus: errorStatus,
     /** 이번 mount의 재검증이 완료됐는가 — '서버 기준 확정값'이 필요한 분기(온보딩 등)용. */
     validated: fetched,
     refresh,

@@ -1,5 +1,15 @@
 'use client';
 
+/** HTTP 응답이 도착했지만 non-OK였던 실패. 네트워크 단절(fetch TypeError)과 달리
+ *  상태 코드가 존재하므로, '권한 상실(403/404)'과 '일시 장애(5xx·오프라인 SW 503)'를
+ *  구분해 반응해야 하는 소비자가 instanceof로 식별한다. */
+export class ApiError extends Error {
+  constructor(message: string, readonly status: number) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
 export async function api<T = unknown>(
   path: string,
   options?: RequestInit & { json?: unknown }
@@ -24,7 +34,7 @@ export async function api<T = unknown>(
       data && typeof data === 'object' && typeof (data as { error?: unknown }).error === 'string'
         ? (data as { error: string }).error
         : null;
-    throw new Error(serverMsg || `요청에 실패했어요 (${res.status})`);
+    throw new ApiError(serverMsg || `요청에 실패했어요 (${res.status})`, res.status);
   }
 
   return data as T;
