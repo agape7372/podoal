@@ -10,9 +10,11 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import OnboardingWelcome from '@/components/OnboardingWelcome';
 import Avatar from '@/components/Avatar';
 import NotificationBell from '@/components/NotificationBell';
+import FriendActivityCard, { type CheerState } from '@/components/FriendActivityCard';
 import Podo from '@/components/mascot/Podo';
 import type { BoardSummary } from '@/types';
-import { feedbackTap } from '@/lib/feedback';
+import { feedbackTap, feedbackCheer } from '@/lib/feedback';
+import { formatRelativeTime, type FriendActivity } from '@/lib/activity';
 
 function timeOfDayGreeting(): string {
   const h = new Date().getHours();
@@ -303,6 +305,53 @@ export default function HomePage() {
     else cardRefs.current.delete(id);
   };
 
+  // ── 친구 소식 피드 (보드 목록 아래 독립 섹션) ──────────────────────────────
+  // 홈 mount 시 1회, 보드 fetch와 병렬. 폴링/SSE 없음. 활동 0건이면 섹션 미렌더.
+  const [friendActivities, setFriendActivities] = useState<FriendActivity[]>([]);
+  // 상대시간 기준 시각 — 렌더 중 현재시각 호출 금지(react-hooks/purity)라 fetch 시점에 고정.
+  const [activityFetchedAt, setActivityFetchedAt] = useState(0);
+  // 세션 내 동일 항목 재발송 차단(클라 상태) — 서버에는 레이트리밋이 별도로 있음.
+  const [cheerStates, setCheerStates] = useState<Record<string, CheerState>>({});
+
+  useEffect(() => {
+    let cancelled = false;
+    api<{ activities: FriendActivity[] }>('/api/activity/friends')
+      .then((data) => {
+        if (cancelled) return;
+        setFriendActivities(data.activities);
+        setActivityFetchedAt(new Date().getTime());
+      })
+      .catch(() => { /* 친구 소식은 보조 정보 — 실패 시 섹션을 조용히 숨김 */ });
+    return () => { cancelled = true; };
+  }, []);
+
+  const sendCelebration = useCallback(async (activity: FriendActivity) => {
+    feedbackTap();
+    setCheerStates((prev) => ({ ...prev, [activity.boardId]: 'sending' }));
+    try {
+      // CheerModal과 동일한 요청 형태(POST /api/messages) — type만 celebration.
+      await api('/api/messages', {
+        method: 'POST',
+        json: {
+          receiverId: activity.actor.id,
+          content: '포도판 완성 축하해요!',
+          type: 'celebration',
+          emoji: '🎉',
+          boardId: activity.boardId,
+        },
+      });
+      feedbackCheer();
+      setCheerStates((prev) => ({ ...prev, [activity.boardId]: 'sent' }));
+    } catch {
+      setCheerStates((prev) => {
+        const next = { ...prev };
+        delete next[activity.boardId];
+        return next;
+      });
+      showToast('축하를 보내지 못했어요. 잠시 후 다시 시도해주세요.');
+    }
+  }, [showToast]);
+
   return (
     <div className="pb-4">
       {/* Header — tap the avatar to open the profile sheet */}
@@ -414,6 +463,25 @@ export default function HomePage() {
             {canReorder ? '꾹 눌러 위아래로 정렬 · 옆으로 밀어 수확·삭제' : '카드를 옆으로 밀어 수확·삭제할 수 있어요'}
           </p>
         </>
+      )}
+
+      {/* 친구 소식 — 최근 7일 내 친구가 완성한 포도판. 활동 0건/친구 0명이면 통째로 숨김. */}
+      {friendActivities.length > 0 && (
+        <section className="mt-8" aria-label="친구 소식">
+          <h2 className="font-display text-lg font-bold text-warm-text mb-3">친구 소식</h2>
+          <ul className="space-y-2.5">
+            {friendActivities.map((a) => (
+              <li key={a.boardId}>
+                <FriendActivityCard
+                  activity={a}
+                  timeText={formatRelativeTime(a.completedAt, activityFetchedAt)}
+                  cheerState={cheerStates[a.boardId] ?? 'idle'}
+                  onCheer={() => sendCelebration(a)}
+                />
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
 
       {/* FAB */}
