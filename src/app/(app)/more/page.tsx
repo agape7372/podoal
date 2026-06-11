@@ -13,7 +13,10 @@ const sections: MoreSection[] = [
     title: '소통',
     chip: 'bg-grape-100',
     items: [
-      { path: '/messages', icon: '💌', label: '소통', desc: '응원·축하·선물 메시지', badge: 'unread' },
+      // 배지는 '알림함'에만 — store.unreadCount는 통합 알림 피드(/api/notifications)의
+      // 미읽음 수라 정직한 목적지가 인박스다('소통'=메시지함에 달면 숫자와 내용물이 어긋남).
+      { path: '/notifications/inbox', icon: '🔔', label: '알림함', desc: '응원·보상·초대 알림 모아보기', badge: 'unread' },
+      { path: '/messages', icon: '💌', label: '소통', desc: '응원·축하·선물 메시지' },
     ],
   },
   {
