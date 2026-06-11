@@ -66,7 +66,7 @@ export default function Confetti({ trigger, durationMs = 3000 }: ConfettiProps) 
   if (!show) return null;
 
   return (
-    <div className="fixed inset-0 pointer-events-none z-[200]" aria-hidden="true">
+    <div className="fixed inset-0 pointer-events-none z-200" aria-hidden="true">
       {pieces.map((piece, i) => (
         // key includes `trigger` so each burst remounts fresh DOM → animation restarts.
         <div key={`${trigger}-${i}`} className="confetti-particle" style={piece} />

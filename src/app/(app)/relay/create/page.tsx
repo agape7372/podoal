@@ -163,14 +163,14 @@ export default function CreatePodongPage() {
             className={`clay p-5 w-full text-left transition-all active:scale-[0.98] ${mode === 'relay' ? 'ring-2 ring-grape-400 bg-grape-50' : ''}`}
           >
             <p className="font-bold text-grape-700 mb-1"><EmojiIcon emoji={'🔗'} size={18} className="mr-1" />릴레이</p>
-            <p className="text-sm text-warm-sub [text-wrap:balance]">순서대로 한 명씩, 바통을 이어받아요</p>
+            <p className="text-sm text-warm-sub text-balance">순서대로 한 명씩, 바통을 이어받아요</p>
           </button>
           <button
             onClick={() => { feedbackTap(); setMode('group'); setStep(1); }}
             className={`clay p-5 w-full text-left transition-all active:scale-[0.98] ${mode === 'group' ? 'ring-2 ring-grape-400 bg-grape-50' : ''}`}
           >
             <p className="font-bold text-grape-700 mb-1"><EmojiIcon emoji={'👥'} size={18} className="mr-1" />그룹</p>
-            <p className="text-sm text-warm-sub [text-wrap:balance]">다 같이 동시에! 각자 포도판을 채워요</p>
+            <p className="text-sm text-warm-sub text-balance">다 같이 동시에! 각자 포도판을 채워요</p>
           </button>
         </div>
       )}
@@ -311,7 +311,7 @@ export default function CreatePodongPage() {
                       onClick={() => toggleFriend(friend.user.id)}
                       className={`w-full flex items-center gap-3 p-3 rounded-2xl transition-all ${isSelected ? 'clay bg-grape-50 ring-2 ring-grape-300' : 'clay-sm'}`}
                     >
-                      <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-all ${isSelected ? 'bg-grape-500 border-grape-500 text-white' : 'border-warm-border bg-white'}`}>
+                      <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all ${isSelected ? 'bg-grape-500 border-grape-500 text-white' : 'border-warm-border bg-white'}`}>
                         {isSelected && (
                           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
@@ -335,11 +335,11 @@ export default function CreatePodongPage() {
               <div className="clay p-4 space-y-2">
                 {orderedParticipants.map((p, idx) => (
                   <div key={p.id} className={`flex items-center gap-3 p-2.5 rounded-xl transition-all ${p.isCreator ? 'bg-grape-50' : 'bg-white/60'}`}>
-                    <span className="text-xs font-bold text-grape-500 w-5 text-center flex-shrink-0 tabular-nums">{idx + 1}</span>
+                    <span className="text-xs font-bold text-grape-500 w-5 text-center shrink-0 tabular-nums">{idx + 1}</span>
                     <Avatar avatar={p.avatar} size="sm" />
                     <span className="text-sm font-medium text-warm-text flex-1">{p.isCreator ? `${p.name} (나)` : p.name}</span>
                     {!p.isCreator && (
-                      <div className="flex gap-1 flex-shrink-0">
+                      <div className="flex gap-1 shrink-0">
                         <button
                           onClick={() => moveFriend(p.id, -1)}
                           disabled={idx <= 1}
@@ -363,7 +363,7 @@ export default function CreatePodongPage() {
           )}
 
           {mode === 'group' && (
-            <p className="text-xs text-warm-sub ml-1 [text-wrap:balance]">다 같이 동시에 시작해요. 친구는 각자 새 포도판을 만들거나 기존 포도판을 불러올 수 있어요.</p>
+            <p className="text-xs text-warm-sub ml-1 text-balance">다 같이 동시에 시작해요. 친구는 각자 새 포도판을 만들거나 기존 포도판을 불러올 수 있어요.</p>
           )}
 
           {error && <p className="text-grape-700 text-sm text-center">{error}</p>}

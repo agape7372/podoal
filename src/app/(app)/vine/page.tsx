@@ -65,7 +65,7 @@ export default function VinePage() {
         <div className="space-y-4">
           {[1, 2, 3, 4].map((i) => (
             <div key={i} className="flex gap-4">
-              <div className="skeleton w-16 h-16 flex-shrink-0" />
+              <div className="skeleton w-16 h-16 shrink-0" />
               <div className="skeleton h-16 flex-1" />
             </div>
           ))}
@@ -149,7 +149,7 @@ export default function VinePage() {
               <div className="absolute -left-8 top-0 flex items-center justify-center">
                 <div className="w-[29px] h-7 flex flex-col items-center justify-center">
                   {/* Outer ring */}
-                  <div className="w-4 h-4 rounded-full bg-white flex items-center justify-center shadow-sm border-2 border-grape-300">
+                  <div className="w-4 h-4 rounded-full bg-white flex items-center justify-center shadow-xs border-2 border-grape-300">
                     <div className="w-2 h-2 rounded-full bg-grape-400" />
                   </div>
                 </div>
@@ -185,7 +185,7 @@ export default function VinePage() {
                   >
                     <div className="flex items-center gap-3">
                       {/* Type indicator dot */}
-                      <div className="flex-shrink-0 flex items-center gap-2">
+                      <div className="shrink-0 flex items-center gap-2">
                         <EmojiIcon emoji={activity.icon} size={20} />
                         <div className={`w-1.5 h-1.5 rounded-full ${typeColors[activity.type] || 'bg-grape-400'}`} />
                       </div>

@@ -95,7 +95,7 @@ export default function RewardList() {
         <div className="text-center py-12">
           <EmojiIcon emoji="🍇" size={40} className="block mx-auto mb-3" />
           <p className="text-warm-sub">{filter === 'all' ? '아직 받은 보상이 없어요' : '이 종류의 보상이 없어요'}</p>
-          <p className="text-xs text-warm-sub mt-1 [text-wrap:balance]">포도판을 채워 보상을 모아보세요!</p>
+          <p className="text-xs text-warm-sub mt-1 text-balance">포도판을 채워 보상을 모아보세요!</p>
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-3">

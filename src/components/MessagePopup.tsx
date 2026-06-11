@@ -23,7 +23,7 @@ export default function MessagePopup() {
   if (!popupMessage) return null;
 
   return (
-    <div role="alert" aria-live="polite" className={`fixed top-4 left-4 right-4 z-[100] ${visible ? 'popup-enter' : 'opacity-0 transition-opacity duration-300'}`}>
+    <div role="alert" aria-live="polite" className={`fixed top-4 left-4 right-4 z-100 ${visible ? 'popup-enter' : 'opacity-0 transition-opacity duration-300'}`}>
       <div className="max-w-lg mx-auto clay-float p-4">
         <div className="flex items-start gap-3">
           <Avatar avatar={popupMessage.sender.avatar} size="md" />

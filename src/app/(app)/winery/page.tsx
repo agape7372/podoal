@@ -97,7 +97,7 @@ export default function WineryPage() {
       <section className="clay-float p-6 mb-6 animate-fade-in relative overflow-hidden">
         {/* Background glow matching tier color */}
         <div
-          className={`absolute inset-0 bg-gradient-to-br ${currentTier.color} opacity-20 pointer-events-none`}
+          className={`absolute inset-0 bg-linear-to-br ${currentTier.color} opacity-20 pointer-events-none`}
         />
 
         <div className="relative z-10 text-center">
@@ -111,7 +111,7 @@ export default function WineryPage() {
             />
             {/* Glow ring */}
             <div
-              className={`absolute inset-0 -m-3 rounded-full bg-gradient-to-br ${currentTier.color} opacity-40 blur-xl pointer-events-none`}
+              className={`absolute inset-0 -m-3 rounded-full bg-linear-to-br ${currentTier.color} opacity-40 blur-xl pointer-events-none`}
             />
           </div>
 
@@ -119,7 +119,7 @@ export default function WineryPage() {
           <h2 className="font-display text-xl font-bold text-grape-800 mb-1">
             {currentTier.name}
           </h2>
-          <span className="inline-block px-3 py-0.5 rounded-full text-xs font-bold text-white bg-gradient-to-br from-grape-700 to-grape-800">
+          <span className="inline-block px-3 py-0.5 rounded-full text-xs font-bold text-white bg-linear-to-br from-grape-700 to-grape-800">
             Lv.{currentTier.level}
           </span>
 
@@ -148,11 +148,11 @@ export default function WineryPage() {
                 aria-label={`${currentTier.name}에서 ${nextTier.name}까지 진행률`}
               >
                 <div
-                  className="h-full rounded-full bg-gradient-to-r from-grape-400 via-grape-500 to-grape-600 transition-all duration-1000 ease-out relative"
+                  className="h-full rounded-full bg-linear-to-r from-grape-400 via-grape-500 to-grape-600 transition-all duration-1000 ease-out relative"
                   style={{ width: `${tierProgress}%` }}
                 >
                   {/* Animated shimmer on progress bar */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer" />
+                  <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/30 to-transparent animate-shimmer" />
                 </div>
               </div>
               <p className="text-xs text-warm-sub mt-2">
@@ -229,15 +229,15 @@ export default function WineryPage() {
 
                 <div className="flex items-start gap-4">
                   {/* Mini bottle icon area */}
-                  <div className="flex-shrink-0">
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-grape-500 to-grape-700 flex items-center justify-center shadow-md">
+                  <div className="shrink-0">
+                    <div className="w-12 h-12 rounded-xl bg-linear-to-br from-grape-500 to-grape-700 flex items-center justify-center shadow-md">
                       <EmojiIcon emoji="🍷" size={26} />
                     </div>
                   </div>
 
                   <div className="flex-1 min-w-0">
                     {/* Title */}
-                    <h4 className="text-base font-bold text-grape-800 mb-2 break-words">
+                    <h4 className="text-base font-bold text-grape-800 mb-2 wrap-break-word">
                       {stripTitleEmoji(selectedBottle.title)}
                     </h4>
 
@@ -282,7 +282,7 @@ export default function WineryPage() {
         <div className="clay p-5">
           <div className="relative">
             {/* Vertical connecting line */}
-            <div className="absolute left-[22px] top-4 bottom-4 w-0.5 bg-gradient-to-b from-grape-300 via-grape-200 to-warm-border/30" />
+            <div className="absolute left-[22px] top-4 bottom-4 w-0.5 bg-linear-to-b from-grape-300 via-grape-200 to-warm-border/30" />
 
             <div className="space-y-1">
               {WINERY_TIERS.map((tier) => {
@@ -296,7 +296,7 @@ export default function WineryPage() {
                     className={`
                       relative flex items-center gap-3 py-3 px-3 rounded-2xl transition-all duration-300
                       ${isCurrent
-                        ? 'bg-gradient-to-r from-grape-100/60 to-grape-50/40 shadow-sm'
+                        ? 'bg-linear-to-r from-grape-100/60 to-grape-50/40 shadow-xs'
                         : ''
                       }
                       ${isFuture ? 'opacity-40' : ''}
@@ -305,12 +305,12 @@ export default function WineryPage() {
                     {/* Node dot on the line */}
                     <div
                       className={`
-                        relative z-10 w-11 h-11 rounded-full flex items-center justify-center text-xl flex-shrink-0
+                        relative z-10 w-11 h-11 rounded-full flex items-center justify-center text-xl shrink-0
                         ${isCurrent
-                          ? 'bg-gradient-to-br from-grape-400 to-grape-600 shadow-lg ring-2 ring-grape-300 ring-offset-2'
+                          ? 'bg-linear-to-br from-grape-400 to-grape-600 shadow-lg ring-2 ring-grape-300 ring-offset-2'
                           : isPast
-                            ? 'bg-gradient-to-br from-grape-200 to-grape-300 shadow-sm'
-                            : 'bg-warm-border/40 shadow-sm'
+                            ? 'bg-linear-to-br from-grape-200 to-grape-300 shadow-xs'
+                            : 'bg-warm-border/40 shadow-xs'
                         }
                       `}
                     >
@@ -350,7 +350,7 @@ export default function WineryPage() {
 
                     {/* Level badge */}
                     <span
-                      className={`text-xs font-bold flex-shrink-0 tabular-nums ${
+                      className={`text-xs font-bold shrink-0 tabular-nums ${
                         isCurrent
                           ? 'text-grape-600'
                           : isPast

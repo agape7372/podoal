@@ -49,8 +49,8 @@ export default function CheerModal({ recipientName, onSend, onClose }: CheerModa
     <Modal
       onClose={onClose}
       label="응원 보내기"
-      backdropClassName="z-[90] bg-black/30 backdrop-blur-sm"
-      sheetClassName="w-full max-w-lg bg-clay-bg rounded-t-[32px] clay-float p-6 pb-8 safe-bottom animate-slide-up"
+      backdropClassName="z-90 bg-black/30 backdrop-blur-xs"
+      sheetClassName="w-full max-w-lg bg-clay-bg rounded-t-clay-lg clay-float p-6 pb-8 safe-bottom animate-slide-up"
     >
       <div className="w-12 h-1.5 bg-warm-border rounded-full mx-auto mb-5" />
 

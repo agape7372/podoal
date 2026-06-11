@@ -55,7 +55,7 @@ export default function GiftUnboxModal({
       onClose={handleDecline}
       dismissable={false}
       label={`${senderName}님의 선물 — ${boardTitle}`}
-      backdropClassName="z-[95] bg-black/40 backdrop-blur-sm p-6"
+      backdropClassName="z-95 bg-black/40 backdrop-blur-xs p-6"
       overlay={<Confetti trigger={confetti} />}
       sheetClassName="w-full max-w-sm bg-clay-bg rounded-[28px] clay-float p-6 text-center animate-bounce-in"
     >
@@ -68,7 +68,7 @@ export default function GiftUnboxModal({
         </div>
         <h3 className="font-display text-xl font-bold text-grape-700 mb-3">{boardTitle}</h3>
         {message ? (
-          <div className="clay-sm bg-grape-50 p-3 mb-5 text-sm text-warm-text whitespace-pre-wrap break-words">
+          <div className="clay-sm bg-grape-50 p-3 mb-5 text-sm text-warm-text whitespace-pre-wrap wrap-break-word">
             &ldquo;{message}&rdquo;
           </div>
         ) : (

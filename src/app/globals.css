@@ -1,231 +1,587 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* Tailwind 4 — source 자동 감지를 v3 content 글롭과 동일하게 고정.
+   (src/lib/winery.ts 등 비스캔 파일의 클래스 문자열이 v4 자동 감지로 새로 생성되면
+   v3 대비 시각이 달라지므로, 순수 이전을 위해 스캔 범위를 v3과 1:1로 맞춘다.) */
+@import 'tailwindcss' source(none);
+@source '../components/**/*.{js,ts,jsx,tsx,mdx}';
+@source '../app/**/*.{js,ts,jsx,tsx,mdx}';
 
-/* Fonts are loaded via next/font in src/app/layout.tsx (self-hosted, no render-blocking @import):
-   --font-sans = Noto Sans KR, --font-display = MaruBuri (woff2 in src/app/fonts). */
+/* v3 동작 보존: v4의 hover 변형은 @media (hover: hover) 게이트가 기본이라
+   터치 기기에서 hover: 유틸리티가 죽는다. podoal은 모바일 우선 PWA이고
+   탭 시 hover 스타일(스티키 호버)이 기존 UX의 일부이므로 v3 방식으로 복원. */
+@custom-variant hover (&:hover);
 
-:root {
-  --grape-primary: #DCC4F2;
-  --grape-light: #EBE0F6;
-  --grape-mid: #C9A8E8;
-  --grape-deep: #9970C8;
-  --grape-deepest: #5E3F80;
-  --lime-bg: #FBFCEE;
-  --lime-soft: #F7FAD8;
-  --lime-mid: #EFF5BB;
-  --lime-deep: #A8B85A;
-  --clay-bg: #FFFFFF;
-  --clay-surface: #FDFCFE;
-  --clay-pink: #FBE6EC;
-  --clay-mint: #E5F2DC;
-  --clay-lavender: #EBE0F6;
-  --clay-peach: #FFE9D8;
-  --clay-cream: #FBFCEE;
-  --clay-yellow: #FBFCEE;
-  --warm-text: #2F2A3F;
-  --warm-sub: #6E6680;
-  --warm-border: #ECE0F3;
-  /* single canonical purple-warm shadow tint (matches tailwind boxShadow tokens) */
-  --shadow-tint: 73, 50, 100;
-}
+@theme {
+  --color-grape-50: #fbf7fe;
+  --color-grape-100: #f4ecfb;
+  --color-grape-200: #ebe0f6;
+  --color-grape-300: #dcc4f2;
+  --color-grape-400: #c9a8e8;
+  --color-grape-500: #b28cdc;
+  --color-grape-600: #9970c8;
+  --color-grape-700: #7d58a8;
+  --color-grape-800: #5e3f80;
+  --color-grape-900: #3d2a56;
 
-* {
-  -webkit-tap-highlight-color: transparent;
-}
+  --color-lime-100: #fbfcee;
+  --color-lime-200: #f7fad8;
+  --color-lime-300: #eff5bb;
+  --color-lime-400: #e2ec9a;
+  --color-lime-500: #cfdc78;
+  --color-lime-600: #a8b85a;
+  --color-lime-700: #7f8a3f;
 
-html {
-  font-family: var(--font-sans), 'Noto Sans KR', system-ui, -apple-system, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  letter-spacing: -0.01em;
-  word-break: keep-all;
-  overflow-wrap: break-word;
-}
+  --color-clay-bg: #ffffff;
+  --color-clay-surface: #fdfcfe;
+  --color-clay-pink: #fbe6ec;
+  --color-clay-mint: #e5f2dc;
+  --color-clay-lavender: #ebe0f6;
+  --color-clay-peach: #ffe9d8;
+  --color-clay-cream: #fbfcee;
+  --color-clay-yellow: #fbfcee;
 
-h1, h2, h3 {
-  letter-spacing: -0.02em;
-  word-break: keep-all;
-}
+  --color-warm-text: #2f2a3f;
+  --color-warm-sub: #6e6680;
+  --color-warm-light: #a89fb8;
+  --color-warm-border: #ece0f3;
 
-p {
-  line-height: 1.7;
-  word-break: keep-all;
-}
+  --color-juice-100: #ffe9f0;
+  --color-juice-200: #ffd0e0;
+  --color-juice-300: #fbb2cc;
+  --color-juice-400: #f58bae;
+  --color-juice-500: #e86a92;
+  --color-juice-600: #c84b73;
+  --color-juice-700: #9e3656;
 
-body {
-  background: var(--clay-bg);
-  background-image:
-    radial-gradient(at 15% 10%, rgba(220, 196, 242, 0.18) 0%, transparent 45%),
-    radial-gradient(at 85% 88%, rgba(247, 250, 216, 0.30) 0%, transparent 45%);
-  color: var(--warm-text);
-  min-height: 100dvh;
-  overscroll-behavior: none;
-}
+  --color-leaf-100: #eaf6e4;
+  --color-leaf-200: #d3ecc6;
+  --color-leaf-300: #b2dc9c;
+  --color-leaf-400: #8fc972;
+  --color-leaf-500: #6fb050;
+  --color-leaf-600: #558a3c;
+  --color-leaf-700: #3f6a2c;
 
-/* Safe area padding for mobile */
-.safe-bottom {
-  padding-bottom: max(16px, env(safe-area-inset-bottom));
-}
+  --color-sunshine-100: #fff7db;
+  --color-sunshine-200: #fdefb4;
+  --color-sunshine-300: #f9e082;
+  --color-sunshine-400: #f2c94c;
+  --color-sunshine-500: #e0ae2c;
+  --color-sunshine-600: #b98a1c;
+  --color-sunshine-700: #8a6612;
 
-.safe-top {
-  padding-top: max(16px, env(safe-area-inset-top));
-}
+  --radius-clay: 24px;
+  --radius-clay-lg: 32px;
+  --radius-clay-xl: 40px;
+  --radius-clay-pill: 999px;
 
-/* Claymorphism — Lavender + Pale-Lime pastel (V3 palette) */
-@layer components {
-  .clay {
-    background: var(--clay-surface);
-    border-radius: 24px;
-    border: 1.3px solid var(--warm-border);
-    box-shadow:
-      2px 3px 0 rgba(var(--shadow-tint), 0.05),
-      0 1px 3px rgba(var(--shadow-tint), 0.03),
-      0 0 0 1px rgba(255, 255, 255, 0.7) inset;
+  --shadow-clay:
+    0 4px 12px rgba(73, 50, 100, 0.06), 0 1px 3px rgba(73, 50, 100, 0.04);
+  --shadow-clay-sm: 0 2px 6px rgba(73, 50, 100, 0.05);
+  --shadow-clay-pressed: inset 0 2px 5px rgba(73, 50, 100, 0.08);
+  --shadow-clay-float:
+    0 8px 24px rgba(73, 50, 100, 0.1), 0 2px 6px rgba(73, 50, 100, 0.05);
+  --shadow-clay-puffy:
+    0 14px 32px rgba(73, 50, 100, 0.14), 0 4px 10px rgba(73, 50, 100, 0.07);
+  --shadow-grape-glow:
+    0 0 0 4px rgba(155, 126, 216, 0.15), 0 6px 18px rgba(123, 95, 184, 0.2);
+
+  /* 폰트 토큰은 @theme에 정의하지 않는다 — next/font가 <html>에 --font-sans/--font-display를
+     주입하므로 같은 이름의 @theme 토큰(var 자기참조 = 순환)을 만들면 안 된다.
+     본문 폰트는 아래 html 규칙이, 헤더는 .font-display 헬퍼가 (v3과 동일하게) 담당한다.
+     `font-sans`/`font-display` 유틸리티는 마크업에서 사용되지 않음을 확인함. */
+
+  /* v3 시각 보존: v4의 text-xs~9xl 기본 line-height는 무단위 비율(예: sm = 1.4286)이라
+     자식 요소가 '비율'을 상속한다(자식 font-size × 비율). v3은 절대값(rem)이라 자식이
+     '절대 px'를 상속했다 — text-sm 안의 text-[11px] 캡션 줄높이가 20px → 15.7px로 줄어
+     카드가 4px 낮아지는 실측 회귀를 확인. v3 절대값으로 전부 복원. */
+  --text-xs--line-height: 1rem;
+  --text-sm--line-height: 1.25rem;
+  --text-base--line-height: 1.5rem;
+  --text-lg--line-height: 1.75rem;
+  --text-xl--line-height: 1.75rem;
+  --text-2xl--line-height: 2rem;
+  --text-3xl--line-height: 2.25rem;
+  --text-4xl--line-height: 2.5rem;
+  --text-5xl--line-height: 1;
+  --text-6xl--line-height: 1;
+  --text-7xl--line-height: 1;
+  --text-8xl--line-height: 1;
+  --text-9xl--line-height: 1;
+
+  --leading-snug: 1.4;
+  --leading-normal: 1.6;
+  --leading-relaxed: 1.7;
+  --leading-loose: 1.85;
+
+  --tracking-tighter: -0.03em;
+  --tracking-tight: -0.02em;
+  --tracking-normal: -0.01em;
+  --tracking-wide: 0.01em;
+  --tracking-wider: 0.03em;
+
+  --animate-bounce-in: bounceIn 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+  --animate-pop: pop 0.3s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+  --animate-shake: shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+  --animate-float: float 3s ease-in-out infinite;
+  --animate-sparkle: sparkle 0.6s ease-in-out;
+  --animate-slide-up: slideUp 0.4s ease-out;
+  --animate-slide-down: slideDown 0.3s ease-out;
+  --animate-fade-in: fadeIn 0.3s ease-out;
+  --animate-grape-fill: grapeFill 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+  --animate-reward-reveal: rewardReveal 1s cubic-bezier(0.34, 1.56, 0.64, 1);
+  --animate-confetti: confetti 1s ease-out forwards;
+  --animate-shimmer: shimmer 2s infinite;
+  --animate-wiggle: wiggle 0.25s ease-in-out;
+
+  @keyframes bounceIn {
+    0% {
+      transform: scale(0);
+      opacity: 0;
+    }
+    50% {
+      transform: scale(1.15);
+    }
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
   }
-
-  .clay-sm {
-    background: var(--clay-surface);
-    border-radius: 16px;
-    border: 1.2px solid var(--warm-border);
-    box-shadow:
-      1.5px 2px 0 rgba(var(--shadow-tint), 0.04);
+  @keyframes pop {
+    0% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.2);
+    }
+    100% {
+      transform: scale(1);
+    }
   }
-
-  .clay-pressed {
-    background: #F8F4FC;
-    border-radius: 20px;
-    border: 1.2px solid var(--warm-border);
-    box-shadow:
-      inset 0 2px 4px rgba(var(--shadow-tint), 0.07);
+  @keyframes shake {
+    0%,
+    100% {
+      transform: translateX(0);
+    }
+    25% {
+      transform: translateX(-5px);
+    }
+    75% {
+      transform: translateX(5px);
+    }
   }
-
-  .clay-float {
-    background: var(--clay-surface);
-    border-radius: 28px;
-    border: 1.3px solid var(--warm-border);
-    box-shadow:
-      2.5px 3.5px 0 rgba(var(--shadow-tint), 0.06),
-      0 6px 14px rgba(var(--shadow-tint), 0.04);
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-8px);
+    }
   }
-
-  .clay-puffy {
-    background: var(--clay-surface);
-    border-radius: 28px;
-    border: 1.5px solid var(--warm-border);
-    box-shadow:
-      3px 4px 0 rgba(var(--shadow-tint), 0.07),
-      0 10px 20px rgba(var(--shadow-tint), 0.05);
+  @keyframes sparkle {
+    0% {
+      transform: scale(0) rotate(0deg);
+      opacity: 0;
+    }
+    50% {
+      transform: scale(1.2) rotate(180deg);
+      opacity: 1;
+    }
+    100% {
+      transform: scale(1) rotate(360deg);
+      opacity: 1;
+    }
   }
+  @keyframes slideUp {
+    0% {
+      transform: translateY(100%);
+      opacity: 0;
+    }
+    100% {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+  @keyframes slideDown {
+    0% {
+      transform: translateY(-20px);
+      opacity: 0;
+    }
+    100% {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+  @keyframes fadeIn {
+    0% {
+      opacity: 0;
+    }
+    100% {
+      opacity: 1;
+    }
+  }
+  @keyframes grapeFill {
+    0% {
+      transform: scale(0);
+      opacity: 0;
+    }
+    60% {
+      transform: scale(1.3);
+    }
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+  @keyframes rewardReveal {
+    0% {
+      transform: scale(0) rotateY(180deg);
+      opacity: 0;
+    }
+    60% {
+      transform: scale(1.1) rotateY(10deg);
+    }
+    100% {
+      transform: scale(1) rotateY(0deg);
+      opacity: 1;
+    }
+  }
+  @keyframes confetti {
+    0% {
+      transform: translateY(0) rotate(0deg);
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(-200px) rotate(720deg);
+      opacity: 0;
+    }
+  }
+  @keyframes shimmer {
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(100%);
+    }
+  }
+  @keyframes wiggle {
+    0%,
+    100% {
+      transform: rotate(0deg);
+    }
+    25% {
+      transform: rotate(-2deg);
+    }
+    75% {
+      transform: rotate(2deg);
+    }
+  }
+}
 
-  .clay-button {
-    background: var(--clay-surface);
-    border-radius: 18px;
-    border: 1.3px solid var(--warm-border);
-    box-shadow: 1.5px 2px 0 rgba(var(--shadow-tint), 0.05);
-    transition: all 0.12s ease;
+/*
+  The default border color has changed to `currentcolor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+}
+
+/* v3 동작 보존: v4 Preflight는 버튼 커서를 `default`로 바꿨다(공식 업그레이드 가이드 스니펫).
+   v3처럼 활성 버튼은 pointer 유지. */
+@layer base {
+  button:not(:disabled),
+  [role='button']:not(:disabled) {
     cursor: pointer;
-    user-select: none;
   }
+}
 
-  .clay-button:hover {
+/* v3 시각 보존: v4 Preflight가 date/time 인풋을 리셋해
+   ① ::-webkit-datetime-edit-fields-wrapper 패딩 0 → 인풋 높이 52px → 50.7px
+   ② ::-webkit-datetime-edit inline-flex → 내부 텍스트 1px 아래로
+   둘 다 Chrome UA 기본값으로 복원(알림 DND 시간 인풋 픽셀 diff=0 실측). */
+@layer base {
+  ::-webkit-datetime-edit-fields-wrapper {
+    padding: 1px 0;
+  }
+  ::-webkit-datetime-edit {
+    display: inline-block;
+  }
+}
+
+@utility clay {
+  background: var(--clay-surface);
+  border-radius: 24px;
+  border: 1.3px solid var(--warm-border);
+  box-shadow:
+    2px 3px 0 rgba(var(--shadow-tint), 0.05),
+    0 1px 3px rgba(var(--shadow-tint), 0.03),
+    0 0 0 1px rgba(255, 255, 255, 0.7) inset;
+}
+@utility clay-sm {
+  background: var(--clay-surface);
+  border-radius: 16px;
+  border: 1.2px solid var(--warm-border);
+  box-shadow: 1.5px 2px 0 rgba(var(--shadow-tint), 0.04);
+}
+@utility clay-pressed {
+  background: #f8f4fc;
+  border-radius: 20px;
+  border: 1.2px solid var(--warm-border);
+  box-shadow: inset 0 2px 4px rgba(var(--shadow-tint), 0.07);
+}
+@utility clay-float {
+  background: var(--clay-surface);
+  border-radius: 28px;
+  border: 1.3px solid var(--warm-border);
+  box-shadow:
+    2.5px 3.5px 0 rgba(var(--shadow-tint), 0.06),
+    0 6px 14px rgba(var(--shadow-tint), 0.04);
+}
+@utility clay-puffy {
+  background: var(--clay-surface);
+  border-radius: 28px;
+  border: 1.5px solid var(--warm-border);
+  box-shadow:
+    3px 4px 0 rgba(var(--shadow-tint), 0.07),
+    0 10px 20px rgba(var(--shadow-tint), 0.05);
+}
+@utility clay-button {
+  background: var(--clay-surface);
+  border-radius: 18px;
+  border: 1.3px solid var(--warm-border);
+  box-shadow: 1.5px 2px 0 rgba(var(--shadow-tint), 0.05);
+  transition: all 0.12s ease;
+  cursor: pointer;
+  user-select: none;
+
+  &:hover {
     transform: translate(-1px, -1px);
     box-shadow: 2.5px 3px 0 rgba(var(--shadow-tint), 0.07);
   }
 
-  .clay-button:active {
+  &:active {
     transform: translate(1.5px, 2px);
     box-shadow: 0 0 0 rgba(var(--shadow-tint), 0);
   }
-
+}
+@utility pastel-stamp {
   /* Kitsch utility: rotated sticker label */
   /* Rotated sticker label (lavender) */
-  .pastel-stamp {
-    display: inline-block;
-    transform: rotate(-4deg);
-    border: 1.3px solid var(--warm-border);
-    background: var(--grape-light);
-    color: var(--warm-text);
-    padding: 2px 10px;
-    border-radius: 6px;
-    font-weight: 700;
-    box-shadow: 1.5px 2px 0 rgba(var(--shadow-tint), 0.06);
+  display: inline-block;
+  transform: rotate(-4deg);
+  border: 1.3px solid var(--warm-border);
+  background: var(--grape-light);
+  color: var(--warm-text);
+  padding: 2px 10px;
+  border-radius: 6px;
+  font-weight: 700;
+  box-shadow: 1.5px 2px 0 rgba(var(--shadow-tint), 0.06);
+  &.lime {
+    background: var(--lime-soft);
   }
-  .pastel-stamp.lime { background: var(--lime-soft); }
-  .pastel-stamp.deep { background: var(--grape-deep); color: #fff; }
-
+  &.deep {
+    background: var(--grape-deep);
+    color: #fff;
+  }
+}
+@utility lime {
+  &.pastel-stamp {
+    background: var(--lime-soft);
+  }
+}
+@utility deep {
+  &.pastel-stamp {
+    background: var(--grape-deep);
+    color: #fff;
+  }
+}
+@utility grape-filled {
   /* Filled grape — single canonical definition (purple-warm tinted, juice-handoff shadow) */
-  .grape-filled {
-    background: linear-gradient(145deg, #d4b8f0, #b794d6);
-    border-radius: 50%;
-    box-shadow:
-      inset 0 2px 4px rgba(255, 255, 255, 0.45),
-      inset 0 -3px 6px rgba(94, 63, 128, 0.22),
-      0 2px 8px rgba(155, 112, 200, 0.28);
-    transition: all 0.2s ease;
-  }
-
+  background: linear-gradient(145deg, #d4b8f0, #b794d6);
+  border-radius: 50%;
+  box-shadow:
+    inset 0 2px 4px rgba(255, 255, 255, 0.45),
+    inset 0 -3px 6px rgba(94, 63, 128, 0.22),
+    0 2px 8px rgba(155, 112, 200, 0.28);
+  transition: all 0.2s ease;
+}
+@utility grape-empty {
   /* Empty grape — clay pressed inset */
-  .grape-empty {
-    background: linear-gradient(145deg, #f0e8f8 0%, #e4daf0 100%);
-    border-radius: 50%;
-    box-shadow:
-      inset 3px 3px 6px rgba(94, 63, 128, 0.10),
-      inset -2px -2px 4px rgba(255, 255, 255, 0.8),
-      2px 2px 4px rgba(255, 255, 255, 0.5);
-    transition: all 0.2s ease;
-    cursor: pointer;
-  }
+  background: linear-gradient(145deg, #f0e8f8 0%, #e4daf0 100%);
+  border-radius: 50%;
+  box-shadow:
+    inset 3px 3px 6px rgba(94, 63, 128, 0.1),
+    inset -2px -2px 4px rgba(255, 255, 255, 0.8),
+    2px 2px 4px rgba(255, 255, 255, 0.5);
+  transition: all 0.2s ease;
+  cursor: pointer;
 
-  .grape-empty:hover:not(:disabled) {
+  &:hover:not(:disabled) {
     background: linear-gradient(145deg, #e8ddf5 0%, #ddd0ee 100%);
     transform: scale(1.08);
   }
 
-  .grape-empty:active:not(:disabled) {
+  &:active:not(:disabled) {
     transform: scale(0.93);
   }
-
+}
+@utility grape-filled-mini {
   /* Mini grape for board card previews */
-  .grape-filled-mini {
-    background: linear-gradient(145deg, #d4b8f0, #b794d6);
-    border-radius: 50%;
-    box-shadow:
-      2px 2px 4px rgba(94, 63, 128, 0.14),
-      inset 1px 1px 3px rgba(255, 255, 255, 0.4),
-      inset -1px -1px 2px rgba(94, 63, 128, 0.12);
-  }
+  background: linear-gradient(145deg, #d4b8f0, #b794d6);
+  border-radius: 50%;
+  box-shadow:
+    2px 2px 4px rgba(94, 63, 128, 0.14),
+    inset 1px 1px 3px rgba(255, 255, 255, 0.4),
+    inset -1px -1px 2px rgba(94, 63, 128, 0.12);
+}
+@utility grape-empty-mini {
+  background: linear-gradient(145deg, #f0e8f8, #e4daf0);
+  border-radius: 50%;
+  box-shadow: inset 1px 1px 2px rgba(94, 63, 128, 0.09);
+}
+@utility clay-input {
+  background: var(--clay-surface);
+  border-radius: 14px;
+  border: 1.3px solid var(--warm-border);
+  box-shadow: 1.5px 2px 0 rgba(var(--shadow-tint), 0.04);
+  outline: none;
+  padding: 14px 18px;
+  font-size: 16px;
+  color: var(--warm-text);
+  width: 100%;
+  transition: all 0.15s ease;
 
-  .grape-empty-mini {
-    background: linear-gradient(145deg, #f0e8f8, #e4daf0);
-    border-radius: 50%;
-    box-shadow:
-      inset 1px 1px 2px rgba(94, 63, 128, 0.09);
-  }
-
-  .clay-input {
-    background: var(--clay-surface);
-    border-radius: 14px;
-    border: 1.3px solid var(--warm-border);
-    box-shadow: 1.5px 2px 0 rgba(var(--shadow-tint), 0.04);
-    outline: none;
-    padding: 14px 18px;
-    font-size: 16px;
-    color: var(--warm-text);
-    width: 100%;
-    transition: all 0.15s ease;
-  }
-
-  .clay-input:focus {
+  &:focus {
     border-color: var(--grape-mid);
     box-shadow: 2px 3px 0 rgba(var(--shadow-tint), 0.08);
-    background: #FFFFFF;
+    background: #ffffff;
   }
 
-  .clay-input::placeholder {
+  &::placeholder {
     /* full opacity so the hint clears WCAG AA (was opacity:0.5 ≈ 2:1) */
     color: var(--warm-sub);
     opacity: 1;
+  }
+}
+
+@layer utilities {
+  /* Fonts are loaded via next/font in src/app/layout.tsx (self-hosted, no render-blocking @import):
+   --font-sans = Noto Sans KR, --font-display = MaruBuri (woff2 in src/app/fonts). */
+
+  :root {
+    --grape-primary: #dcc4f2;
+    --grape-light: #ebe0f6;
+    --grape-mid: #c9a8e8;
+    --grape-deep: #9970c8;
+    --grape-deepest: #5e3f80;
+    --lime-bg: #fbfcee;
+    --lime-soft: #f7fad8;
+    --lime-mid: #eff5bb;
+    --lime-deep: #a8b85a;
+    --clay-bg: #ffffff;
+    --clay-surface: #fdfcfe;
+    --clay-pink: #fbe6ec;
+    --clay-mint: #e5f2dc;
+    --clay-lavender: #ebe0f6;
+    --clay-peach: #ffe9d8;
+    --clay-cream: #fbfcee;
+    --clay-yellow: #fbfcee;
+    --warm-text: #2f2a3f;
+    --warm-sub: #6e6680;
+    --warm-border: #ece0f3;
+    /* single canonical purple-warm shadow tint (matches tailwind boxShadow tokens) */
+    --shadow-tint: 73, 50, 100;
+  }
+
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html {
+    font-family:
+      var(--font-sans),
+      'Noto Sans KR',
+      system-ui,
+      -apple-system,
+      sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    letter-spacing: -0.01em;
+    word-break: keep-all;
+    overflow-wrap: break-word;
+  }
+
+  h1,
+  h2,
+  h3 {
+    letter-spacing: -0.02em;
+    word-break: keep-all;
+  }
+
+  p {
+    line-height: 1.7;
+    word-break: keep-all;
+  }
+
+  body {
+    background: var(--clay-bg);
+    background-image:
+      radial-gradient(
+        at 15% 10%,
+        rgba(220, 196, 242, 0.18) 0%,
+        transparent 45%
+      ),
+      radial-gradient(at 85% 88%, rgba(247, 250, 216, 0.3) 0%, transparent 45%);
+    color: var(--warm-text);
+    min-height: 100dvh;
+    overscroll-behavior: none;
+  }
+
+  /* Safe area padding for mobile */
+  .safe-bottom {
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+  }
+
+  .safe-top {
+    padding-top: max(16px, env(safe-area-inset-top));
+  }
+
+  /* Claymorphism — Lavender + Pale-Lime pastel (V3 palette) */
+}
+
+/* v3 시각 보존: v4의 bg-linear-to-*는 OKLAB 보간이 기본(`to <side> in oklab`)이라
+   그라데이션 중간색이 v3(sRGB)과 미세하게 달라진다. 사용 중인 방향만 sRGB로 복원.
+   (이 블록은 @import 뒤에 오므로 utilities 레이어 내에서 생성 유틸리티보다 나중 = 승리) */
+@layer utilities {
+  .bg-linear-to-t {
+    --tw-gradient-position: to top;
+  }
+  .bg-linear-to-b {
+    --tw-gradient-position: to bottom;
+  }
+  .bg-linear-to-l {
+    --tw-gradient-position: to left;
+  }
+  .bg-linear-to-r {
+    --tw-gradient-position: to right;
+  }
+  .bg-linear-to-br {
+    --tw-gradient-position: to bottom right;
+  }
+
+  /* v3 수치 보존: v4 rounded-full은 calc(infinity * 1px)라 computed 값이
+     3.35544e+07px로 직렬화된다. 렌더링은 동일하지만 토큰 수치를 v3 그대로 유지. */
+  .rounded-full {
+    border-radius: 9999px;
   }
 }
 
@@ -241,45 +597,51 @@ body {
 /* ---- 0) 채워진 알 본체: 위 .grape-filled 단일 정의로 통합됨(중복 선언 제거) ---- */
 
 /* 1) IDLE — '다음 차례' 알(누르기 전): 타격 직전 에너지 응축된 듯한 긴장 펄스
-   (40안 누르기 전 — scale 1.018↔1.015 미세 텐션, 본체는 그대로) */
-.grape-empty.grape-next {
-  position: relative;
-  background:
-    radial-gradient(120% 120% at 32% 26%, rgba(255,255,255,0.55), rgba(255,255,255,0) 46%),
-    linear-gradient(150deg, #efe6f8, #e0d0f4);
-  box-shadow:
-    0 1px 5px rgba(155, 112, 200, 0.20),
-    inset 0 1px 1px rgba(255, 255, 255, 0.45);
-  animation: grapeNextTension 3.6s ease-in-out infinite;
-  will-change: transform;
+   (40안 누르기 전 — scale 1.018↔1.015 미세 텐션, 본체는 그대로)
+   ⚠ v4 주의: grape-empty가 @utility(utilities 레이어)가 되었으므로, 이 규칙들도
+   같은 레이어에 둬야 v3의 명시도 싸움이 유지된다 — 호버 시 .grape-empty:hover(0,3,0)가
+   .grape-empty.grape-next(0,2,0)를 이겨 호버 배경/스케일이 살아나는 동작. 레이어 밖(unlayered)에
+   두면 grape-next 배경이 호버를 항상 덮어 v3과 달라진다. */
+@layer utilities {
+  .grape-empty.grape-next {
+    position: relative;
+    background:
+      radial-gradient(120% 120% at 32% 26%, rgba(255,255,255,0.55), rgba(255,255,255,0) 46%),
+      linear-gradient(150deg, #efe6f8, #e0d0f4);
+    box-shadow:
+      0 1px 5px rgba(155, 112, 200, 0.20),
+      inset 0 1px 1px rgba(255, 255, 255, 0.45);
+    animation: grapeNextTension 3.6s ease-in-out infinite;
+    will-change: transform;
+  }
+  /* 호버/탭 시엔 텐션 펄스를 멈춰 :hover(1.08)·:active(0.93) 피드백이 살아나도록 */
+  .grape-empty.grape-next:hover:not(:disabled),
+  .grape-empty.grape-next:active:not(:disabled) {
+    animation: none;
+  }
+  /* sheen: 평면 위를 미끄러지는 빛 (transform 미사용 → active/팝과 충돌 없음) */
+  .grape-empty.grape-next::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    overflow: hidden;
+    pointer-events: none;
+    background: linear-gradient(
+      115deg,
+      rgba(255,255,255,0) 38%,
+      rgba(255,255,255,0.55) 50%,
+      rgba(223,196,242,0) 62%
+    );
+    background-size: 280% 100%;
+    background-position: 180% 0;
+    animation: grapeNextSheen 2.8s ease-in-out infinite;
+  }
 }
 @keyframes grapeNextTension {
   0%, 100% { transform: translateZ(0) scale(1); }
   46%      { transform: translateZ(0) scale(1.018); }
   54%      { transform: translateZ(0) scale(1.015); }
-}
-/* 호버/탭 시엔 텐션 펄스를 멈춰 :hover(1.08)·:active(0.93) 피드백이 살아나도록 */
-.grape-empty.grape-next:hover:not(:disabled),
-.grape-empty.grape-next:active:not(:disabled) {
-  animation: none;
-}
-/* sheen: 평면 위를 미끄러지는 빛 (transform 미사용 → active/팝과 충돌 없음) */
-.grape-empty.grape-next::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  overflow: hidden;
-  pointer-events: none;
-  background: linear-gradient(
-    115deg,
-    rgba(255,255,255,0) 38%,
-    rgba(255,255,255,0.55) 50%,
-    rgba(223,196,242,0) 62%
-  );
-  background-size: 280% 100%;
-  background-position: 180% 0;
-  animation: grapeNextSheen 2.8s ease-in-out infinite;
 }
 @keyframes grapeNextSheen {
   0%   { background-position: 180% 0; }
@@ -330,10 +692,16 @@ body {
   100% { opacity: 0; }
 }
 
-/* 4) 접근성: 무한·큰 모션 정지 — 채워짐 결과색은 유지 */
+/* 4) 접근성: 무한·큰 모션 정지 — 채워짐 결과색은 유지
+   (grape-next 규칙은 본체와 같은 utilities 레이어에 — 위 ⚠ 주석 참조.
+    grape-hit/grape-flash는 본체가 unlayered이므로 여기 그대로 둔다.) */
+@layer utilities {
+  @media (prefers-reduced-motion: reduce) {
+    .grape-empty.grape-next { animation: none; transform: none; }
+    .grape-empty.grape-next::before { animation: none; opacity: 0; }
+  }
+}
 @media (prefers-reduced-motion: reduce) {
-  .grape-empty.grape-next { animation: none; transform: none; }
-  .grape-empty.grape-next::before { animation: none; opacity: 0; }
   .grape-hit { animation: none; }
   .grape-flash { animation: none; opacity: 0; }
 }

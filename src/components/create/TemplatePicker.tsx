@@ -56,7 +56,7 @@ export default function TemplatePicker({
               key={cat.id}
               onClick={() => onSelectCategory(cat.id)}
               className={`
-                clay-button px-3 py-2 rounded-xl text-sm whitespace-nowrap flex-shrink-0
+                clay-button px-3 py-2 rounded-xl text-sm whitespace-nowrap shrink-0
                 ${selectedCategory === cat.id ? 'ring-2 ring-grape-400 clay-pressed bg-grape-50' : ''}
               `}
             >
@@ -66,11 +66,11 @@ export default function TemplatePicker({
         </div>
         <div
           aria-hidden
-          className={`pointer-events-none absolute inset-y-0 left-0 w-8 bg-gradient-to-r from-white to-transparent transition-opacity duration-200 ${catEdges.left ? 'opacity-100' : 'opacity-0'}`}
+          className={`pointer-events-none absolute inset-y-0 left-0 w-8 bg-linear-to-r from-white to-transparent transition-opacity duration-200 ${catEdges.left ? 'opacity-100' : 'opacity-0'}`}
         />
         <div
           aria-hidden
-          className={`pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-white to-transparent transition-opacity duration-200 ${catEdges.right ? 'opacity-100' : 'opacity-0'}`}
+          className={`pointer-events-none absolute inset-y-0 right-0 w-8 bg-linear-to-l from-white to-transparent transition-opacity duration-200 ${catEdges.right ? 'opacity-100' : 'opacity-0'}`}
         />
       </div>
 

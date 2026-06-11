@@ -42,7 +42,7 @@ function Toggle({
       className={`
         ${isLarge ? 'w-14 h-8' : 'w-12 h-7'} rounded-full transition-all duration-200 relative
         ${enabled
-          ? 'bg-gradient-to-r from-grape-400 to-grape-500'
+          ? 'bg-linear-to-r from-grape-400 to-grape-500'
           : 'bg-warm-border'
         }
       `}
@@ -330,7 +330,7 @@ export default function NotificationsPage() {
               <p className="text-xs text-grape-900 leading-relaxed">
                 <EmojiIcon emoji="🔔" size={13} className="mr-0.5" />백그라운드 푸시가 <b>켜져 있어요</b>. 앱을 닫아도 리마인더·선물·응원 알림을 받습니다.
               </p>
-              <button onClick={() => push.disable()} disabled={push.busy} className="flex-shrink-0 text-xs font-medium text-warm-sub underline">
+              <button onClick={() => push.disable()} disabled={push.busy} className="shrink-0 text-xs font-medium text-warm-sub underline">
                 끄기
               </button>
             </div>

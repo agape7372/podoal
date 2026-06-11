@@ -399,7 +399,7 @@ export default function BoardDetailPage() {
             <EmojiIcon emoji="🎁" size={18} />
             <span className="text-left">
               친구가 깜짝 선물 심기
-              <span className="block text-[11px] text-warm-sub [text-wrap:balance]">친구가 빈 칸에 선물을 숨길 수 있어요</span>
+              <span className="block text-[11px] text-warm-sub text-balance">친구가 빈 칸에 선물을 숨길 수 있어요</span>
             </span>
           </span>
           <span className={`relative w-11 h-6 rounded-full shrink-0 transition-colors ${allowPlant ? 'bg-grape-400' : 'bg-warm-border'}`}>
@@ -489,7 +489,7 @@ export default function BoardDetailPage() {
                     onClick={() => { if (unlocked) { feedbackTap(); openReward(r); } }}
                     disabled={!unlocked}
                     aria-label={`${r.triggerAt}알 중간 보상${unlocked ? (revealed ? ' 다시 보기' : ' 열기') : ' (잠김)'}`}
-                    className={`relative flex-shrink-0 w-14 h-14 rounded-2xl clay-sm flex items-center justify-center transition-all
+                    className={`relative shrink-0 w-14 h-14 rounded-2xl clay-sm flex items-center justify-center transition-all
                       ${unlocked ? 'cursor-pointer active:scale-95' : 'opacity-50'}
                       ${unlocked && !revealed ? 'reward-glow bg-amber-50/70' : ''}`}
                   >
@@ -524,7 +524,7 @@ export default function BoardDetailPage() {
             ) : filledCount >= finalReward.triggerAt ? (
               <button
                 onClick={() => { feedbackTap(); openReward(finalReward); }}
-                className="w-full clay-float p-6 text-center reward-glow active:scale-[0.97] transition-transform bg-gradient-to-br from-amber-50 via-clay-cream/60 to-grape-50"
+                className="w-full clay-float p-6 text-center reward-glow active:scale-[0.97] transition-transform bg-linear-to-br from-amber-50 via-clay-cream/60 to-grape-50"
               >
                 <div className="animate-float mb-2">
                   <EmojiIcon emoji="🎉" size={48} className="mx-auto" />

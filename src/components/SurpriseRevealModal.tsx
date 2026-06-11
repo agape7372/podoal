@@ -21,7 +21,7 @@ export default function SurpriseRevealModal({ gift, onClose }: SurpriseRevealMod
       onClose={onClose}
       dismissable={false}
       label="포도알 속 깜짝 선물"
-      backdropClassName="z-[95] bg-black/40 backdrop-blur-sm p-6"
+      backdropClassName="z-95 bg-black/40 backdrop-blur-xs p-6"
       overlay={<Confetti trigger={1} />}
       sheetClassName="w-full max-w-sm bg-clay-bg rounded-[28px] clay-float p-6 text-center animate-bounce-in"
     >
@@ -34,7 +34,7 @@ export default function SurpriseRevealModal({ gift, onClose }: SurpriseRevealMod
           </p>
         </div>
         {gift.message && (
-          <div className="clay-sm bg-grape-50 p-3 mb-5 text-sm text-warm-text whitespace-pre-wrap break-words">
+          <div className="clay-sm bg-grape-50 p-3 mb-5 text-sm text-warm-text whitespace-pre-wrap wrap-break-word">
             &ldquo;{gift.message}&rdquo;
           </div>
         )}

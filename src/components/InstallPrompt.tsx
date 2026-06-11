@@ -73,7 +73,7 @@ export default function InstallPrompt() {
           className="clay-puffy bg-white/95 backdrop-blur-md flex items-center gap-3 p-3 pr-4"
           style={{ borderRadius: '28px' }}
         >
-          <div className="flex-shrink-0 bg-grape-50 rounded-full p-1.5" style={{ borderRadius: '999px' }}>
+          <div className="shrink-0 bg-grape-50 rounded-full p-1.5" style={{ borderRadius: '999px' }}>
             <Podo size={36} decorative />
           </div>
           <div className="flex-1 min-w-0">
@@ -90,7 +90,7 @@ export default function InstallPrompt() {
               </p>
             )}
           </div>
-          <div className="flex items-center gap-1 flex-shrink-0">
+          <div className="flex items-center gap-1 shrink-0">
             {mode === 'ios' ? (
               <button
                 onClick={handleDismiss}
@@ -108,7 +108,7 @@ export default function InstallPrompt() {
                 </button>
                 <button
                   onClick={handleInstall}
-                  className="clay-button bg-gradient-to-br from-grape-500 to-lime-300 text-white px-4 py-2 rounded-2xl text-sm font-semibold border-transparent"
+                  className="clay-button bg-linear-to-br from-grape-500 to-lime-300 text-white px-4 py-2 rounded-2xl text-sm font-semibold border-transparent"
                 >
                   설치
                 </button>

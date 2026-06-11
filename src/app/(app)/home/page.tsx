@@ -478,7 +478,7 @@ export default function HomePage() {
           </p>
           {filter === 'all' && (
             <>
-              <p className="text-sm text-warm-sub mb-5 [text-wrap:balance]">한 알씩 채워볼 첫 판을 만들어 보세요</p>
+              <p className="text-sm text-warm-sub mb-5 text-balance">한 알씩 채워볼 첫 판을 만들어 보세요</p>
               <ClayButton variant="joyful" onClick={() => router.push('/board/create')}>
                 포도판 만들기
               </ClayButton>
@@ -511,7 +511,7 @@ export default function HomePage() {
               </li>
             ))}
           </ul>
-          <p className="text-center text-[11px] text-warm-sub mt-4 [text-wrap:balance]">
+          <p className="text-center text-[11px] text-warm-sub mt-4 text-balance">
             {canReorder ? '꾹 눌러 위아래로 정렬 · 옆으로 밀어 수확·삭제' : '카드를 옆으로 밀어 수확·삭제할 수 있어요'}
           </p>
         </>
@@ -553,7 +553,7 @@ export default function HomePage() {
         <div
           role="status"
           aria-live="polite"
-          className="fixed bottom-44 left-1/2 -translate-x-1/2 z-[80] max-w-[88%] px-4 py-2.5 rounded-2xl clay-float bg-warm-text text-white text-sm font-medium text-center animate-fade-in"
+          className="fixed bottom-44 left-1/2 -translate-x-1/2 z-80 max-w-[88%] px-4 py-2.5 rounded-2xl clay-float bg-warm-text text-white text-sm font-medium text-center animate-fade-in"
         >
           {toast}
         </div>

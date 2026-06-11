@@ -68,7 +68,7 @@ export default function WineBottle({ bottle, onClick, selected = false }: WineBo
 
         {/* Cork */}
         <div
-          className="bg-gradient-to-b from-[#A87C4B] via-[#8B5E2F] to-[#6F4824] relative z-10"
+          className="bg-linear-to-b from-[#A87C4B] via-[#8B5E2F] to-[#6F4824] relative z-10"
           style={{
             width: dim.neck * 0.62,
             height: 9,
@@ -79,7 +79,7 @@ export default function WineBottle({ bottle, onClick, selected = false }: WineBo
 
         {/* Foil capsule */}
         <div
-          className="bg-gradient-to-b from-lime-500 via-lime-600 to-[#B07F23] relative z-10"
+          className="bg-linear-to-b from-lime-500 via-lime-600 to-[#B07F23] relative z-10"
           style={{
             width: dim.neck * 0.92,
             height: 6,
@@ -90,7 +90,7 @@ export default function WineBottle({ bottle, onClick, selected = false }: WineBo
 
         {/* Neck */}
         <div
-          className={`bg-gradient-to-b ${gradient.body} relative z-10`}
+          className={`bg-linear-to-b ${gradient.body} relative z-10`}
           style={{
             width: dim.neck,
             height: dim.height * 0.22,
@@ -101,7 +101,7 @@ export default function WineBottle({ bottle, onClick, selected = false }: WineBo
 
         {/* Shoulder */}
         <div
-          className={`bg-gradient-to-b ${gradient.body} relative z-10`}
+          className={`bg-linear-to-b ${gradient.body} relative z-10`}
           style={{
             width: dim.width,
             height: dim.height * 0.08,
@@ -111,7 +111,7 @@ export default function WineBottle({ bottle, onClick, selected = false }: WineBo
 
         {/* Body */}
         <div
-          className={`bg-gradient-to-br ${gradient.body} relative z-10 overflow-hidden`}
+          className={`bg-linear-to-br ${gradient.body} relative z-10 overflow-hidden`}
           style={{
             width: dim.width,
             height: dim.height * 0.55,
@@ -128,8 +128,10 @@ export default function WineBottle({ bottle, onClick, selected = false }: WineBo
           <div className="absolute inset-0 opacity-0 group-hover:opacity-100 wine-bottle-shimmer pointer-events-none" />
 
           {/* Vintage label (paper texture, year-forward like a real wine label) */}
+          {/* v4 주의: -translate-x-1/2 유틸리티는 이제 별도 `translate` 속성이라 아래 인라인
+              transform과 합산된다(v3에선 인라인 transform이 덮어써 무해한 중복) — 클래스 제거 */}
           <div
-            className="texture-paper absolute left-1/2 -translate-x-1/2 bg-clay-cream rounded-sm flex items-center justify-center px-1"
+            className="texture-paper absolute left-1/2 bg-clay-cream rounded-xs flex items-center justify-center px-1"
             style={{
               width: dim.width - 8,
               height: dim.label,
@@ -149,7 +151,7 @@ export default function WineBottle({ bottle, onClick, selected = false }: WineBo
 
         {/* Base */}
         <div
-          className={`bg-gradient-to-b ${gradient.body} relative z-10`}
+          className={`bg-linear-to-b ${gradient.body} relative z-10`}
           style={{
             width: dim.width + 2,
             height: 3,
