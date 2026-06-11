@@ -6,6 +6,8 @@ import { useAppStore } from '@/lib/store';
 import Avatar from '@/components/Avatar';
 import Heatmap from '@/components/Heatmap';
 import EmojiIcon from '@/components/EmojiIcon';
+import ClayButton from '@/components/ClayButton';
+import WeeklyRecapModal from '@/components/WeeklyRecapModal';
 import type { EnhancedStats } from '@/types';
 import { feedbackTap } from '@/lib/feedback';
 
@@ -17,6 +19,7 @@ export default function StatsPage() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>('summary');
+  const [showRecap, setShowRecap] = useState(false);
 
   const loadStats = () => {
     setLoading(true);
@@ -151,6 +154,16 @@ export default function StatsPage() {
             </p>
           </div>
 
+          {/* Weekly recap share card */}
+          <ClayButton
+            variant="secondary"
+            fullWidth
+            className="mb-5"
+            onClick={() => { feedbackTap(); setShowRecap(true); }}
+          >
+            <EmojiIcon emoji="📤" size={16} className="mr-1" />주간 카드 만들기
+          </ClayButton>
+
           {/* Stats grid */}
           <div className="grid grid-cols-2 gap-3 mb-5">
             <StatCard icon={'🍇'} label="채운 포도알" value={stats.totalStickers} color="lavender" />
@@ -230,6 +243,14 @@ export default function StatsPage() {
             <CategoryBreakdown data={stats.categoryBreakdown} />
           </div>
         </>
+      )}
+
+      {showRecap && (
+        <WeeklyRecapModal
+          stats={stats}
+          userName={user?.name || '포도알 농부'}
+          onClose={() => setShowRecap(false)}
+        />
       )}
     </div>
   );
