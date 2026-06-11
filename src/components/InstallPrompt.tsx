@@ -80,13 +80,9 @@ export default function InstallPrompt() {
             <p className="font-display text-[14px] font-semibold text-warm-text leading-snug">
               홈 화면에 추가
             </p>
-            {mode === 'ios' ? (
+            {mode === 'ios' && (
               <p className="text-[11px] text-warm-sub leading-snug mt-0.5">
-                공유 <EmojiIcon emoji="📤" size={12} className="inline align-[-1px]" /> 누르고 ‘홈 화면에 추가’를 선택해요
-              </p>
-            ) : (
-              <p className="text-[11px] text-warm-sub leading-snug mt-0.5">
-                더 빠르고 편리하게 사용할 수 있어요
+                공유 <EmojiIcon emoji="📤" size={12} className="inline align-[-1px]" /> → 홈 화면에 추가
               </p>
             )}
           </div>
@@ -102,9 +98,12 @@ export default function InstallPrompt() {
               <>
                 <button
                   onClick={handleDismiss}
-                  className="text-xs text-warm-sub hover:text-warm-text px-2 py-1.5 rounded-xl"
+                  aria-label="닫기"
+                  className="w-8 h-8 rounded-full grid place-items-center text-warm-sub hover:text-warm-text active:scale-95 transition-transform"
                 >
-                  나중에
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M6 6l12 12M18 6 6 18" />
+                  </svg>
                 </button>
                 <button
                   onClick={handleInstall}
