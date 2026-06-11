@@ -478,6 +478,10 @@
    --font-sans = Noto Sans KR, --font-display = MaruBuri (woff2 in src/app/fonts). */
 
   :root {
+    /* 라이트 전용 앱 선언 — Android Chrome '웹사이트 어둡게'(자동 다크 테마)의 알고리즘 반전이
+       클레이 흰 inset 하이라이트·파스텔 그라데이션을 깨뜨리는 것을 opt-out.
+       layout.tsx viewport.colorScheme('only light') 메타와 쌍으로 유지할 것. */
+    color-scheme: only light;
     --grape-primary: #dcc4f2;
     --grape-light: #ebe0f6;
     --grape-mid: #c9a8e8;

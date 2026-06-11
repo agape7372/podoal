@@ -310,7 +310,7 @@ function AuthPageInner() {
                         : 'clay-button'
                       }
                     `}
-                    style={avatar === av ? { boxShadow: 'inset 0 2px 4px rgba(42,36,52,0.18), 0 0 0 2.5px #E55A4D' } : undefined}
+                    style={avatar === av ? { boxShadow: 'inset 0 2px 4px rgba(42,36,52,0.18), 0 0 0 2.5px var(--color-juice-500)' } : undefined}
                   >
                     <img src={`/avatars/${av}.svg`} alt="" width={30} height={30} draggable={false} />
                   </button>

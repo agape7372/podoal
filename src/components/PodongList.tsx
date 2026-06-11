@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppStore } from '@/lib/store';
 import { api } from '@/lib/api';
@@ -20,7 +20,8 @@ const MOVE_TOL = 10;
 
 export default function PodongList({ heading = true }: PodongListProps) {
   const router = useRouter();
-  const { relays, setRelays } = useAppStore();
+  const relays = useAppStore((s) => s.relays);
+  const setRelays = useAppStore((s) => s.setRelays);
   const user = useAppStore((s) => s.user);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
@@ -57,17 +58,23 @@ export default function PodongList({ heading = true }: PodongListProps) {
     } catch { /* noop */ }
   }, [orderKey]);
 
-  const completedRelays = relays.filter((r) => r.status === 'completed');
-  const activeRelays = relays
-    .filter((r) => r.status === 'active')
-    .sort((a, b) => {
-      const ai = personalOrder.indexOf(a.id);
-      const bi = personalOrder.indexOf(b.id);
-      const av = ai < 0 ? Number.MAX_SAFE_INTEGER : ai;
-      const bv = bi < 0 ? Number.MAX_SAFE_INTEGER : bi;
-      if (av !== bv) return av - bv;
-      return a.createdAt < b.createdAt ? 1 : -1;
-    });
+  const completedRelays = useMemo(
+    () => relays.filter((r) => r.status === 'completed'),
+    [relays],
+  );
+  const activeRelays = useMemo(
+    () => relays
+      .filter((r) => r.status === 'active')
+      .sort((a, b) => {
+        const ai = personalOrder.indexOf(a.id);
+        const bi = personalOrder.indexOf(b.id);
+        const av = ai < 0 ? Number.MAX_SAFE_INTEGER : ai;
+        const bv = bi < 0 ? Number.MAX_SAFE_INTEGER : bi;
+        if (av !== bv) return av - bv;
+        return a.createdAt < b.createdAt ? 1 : -1;
+      }),
+    [relays, personalOrder],
+  );
 
   const getActiveParticipant = (relay: RelayInfo) => relay.participants.find((p) => p.status === 'active');
   const getCompletedCount = (relay: RelayInfo) => relay.participants.filter((p) => p.status === 'completed').length;
