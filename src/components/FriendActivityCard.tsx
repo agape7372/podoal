@@ -15,7 +15,8 @@ interface FriendActivityCardProps {
   onCheer: () => void;
 }
 
-// 친구 소식 한 줄: 아바타 + '○○님이 「제목」을 완성했어요' + 상대시간 + 원탭 축하 버튼.
+// 친구 소식 한 줄: 아바타 + '○○님이 「제목」 포도판을 완성했어요' + 상대시간 + 원탭 축하 버튼.
+// 제목 뒤에 불변 명사 '포도판'을 붙여 조사 받침 문제를 회피 (vine 피드의 '○○ 포도판 완성!' 선례).
 export default function FriendActivityCard({
   activity,
   timeText,
@@ -32,7 +33,7 @@ export default function FriendActivityCard({
       <div className="flex-1 min-w-0">
         <p className="text-sm text-warm-text leading-snug">
           <span className="font-semibold">{activity.actor.name}</span>
-          님이 「{stripTitleEmoji(activity.title)}」을 완성했어요{' '}
+          님이 「{stripTitleEmoji(activity.title)}」 포도판을 완성했어요{' '}
           <EmojiIcon emoji="🎉" size={14} />
         </p>
         <p className="text-[11px] text-warm-sub mt-0.5">
