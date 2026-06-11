@@ -4,15 +4,18 @@ import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppStore } from '@/lib/store';
 import { api } from '@/lib/api';
-import SwipeableBoardCard from '@/components/SwipeableBoardCard';
+import SwipeableBoardCard, { SWIPE_TRANSITION } from '@/components/SwipeableBoardCard';
+import StreakCard, { type StreakInfo } from '@/components/StreakCard';
 import ClayButton from '@/components/ClayButton';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import OnboardingWelcome from '@/components/OnboardingWelcome';
 import Avatar from '@/components/Avatar';
 import NotificationBell from '@/components/NotificationBell';
+import FriendActivityCard, { type CheerState } from '@/components/FriendActivityCard';
 import Podo from '@/components/mascot/Podo';
 import type { BoardSummary } from '@/types';
-import { feedbackTap } from '@/lib/feedback';
+import { feedbackTap, feedbackCheer } from '@/lib/feedback';
+import { formatRelativeTime, type FriendActivity } from '@/lib/activity';
 
 function timeOfDayGreeting(): string {
   const h = new Date().getHours();
@@ -41,10 +44,12 @@ export default function HomePage() {
   const [filter, setFilter] = useState<Filter>('all');
   const greeting = useMemo(timeOfDayGreeting, []);
 
-  // 정렬(드래그 리프트) + 스와이프 액션 상태
+  // 정렬(드래그 리프트) + 스와이프 액션 상태.
+  // 상태는 '임계 전이'(리프트 시작/종료, 축 잠금, 트레이 열림/닫힘)만 표현한다 —
+  // 손가락을 따라가는 픽셀 오프셋은 setState가 아니라 ref + style.transform 직접
+  // 조작으로 처리해 pointermove마다 리스트 전체가 리렌더되지 않게 한다.
   const [liftedId, setLiftedId] = useState<string | null>(null);
   const [swipeDragId, setSwipeDragId] = useState<string | null>(null);
-  const [swipeDx, setSwipeDx] = useState(0);
   const [swipeOpenId, setSwipeOpenId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<BoardSummary | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -66,6 +71,7 @@ export default function HomePage() {
   }, []);
 
   const cardRefs = useRef<Map<string, HTMLElement>>(new Map());
+  const moveLayerRefs = useRef<Map<string, HTMLElement>>(new Map()); // 카드의 '움직이는 레이어'(transform 직접 조작 대상)
   const dragOrderRef = useRef<string[]>([]); // 드래그 중 보이는 카드 순서(클로저 staleness 회피)
 
   // 제스처 추적용 ref (렌더와 무관, 동기적 판정)
@@ -87,6 +93,22 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => { loadBoards(); }, [loadBoards]);
+
+  // 스트릭 카드 데이터 — 보드 fetch와 병렬(독립 effect, 직렬 워터폴 금지).
+  // mount 1회 + 유예 사용 직후만 재조회(stats API는 비용이 있어 잦은 refetch 금지).
+  // 실패 시 카드만 조용히 미렌더 — 홈 핵심 흐름(보드 목록)엔 영향 없음.
+  const [streakInfo, setStreakInfo] = useState<StreakInfo | null>(null);
+  const loadStreak = useCallback(() => {
+    api<{ stats: StreakInfo }>('/api/stats')
+      .then((d) => setStreakInfo({
+        currentStreak: d.stats.currentStreak,
+        longestStreak: d.stats.longestStreak,
+        freezeAvailable: d.stats.freezeAvailable,
+        freezeSuggestion: d.stats.freezeSuggestion,
+      }))
+      .catch(() => { /* 부가 정보 — 조용히 생략 */ });
+  }, []);
+  useEffect(() => { loadStreak(); }, [loadStreak]);
 
   // 첫 방문(보드 0개 + 미온보딩) 시 환영 온보딩 — "빈 홈에서 뭘 해야 하지?" 이탈 완화.
   useEffect(() => {
@@ -129,6 +151,15 @@ export default function HomePage() {
   const canReorder = filter === 'all'; // 정렬은 '전체'에서만(필터된 부분집합 정렬은 혼란)
 
   const clearLp = () => { if (gLpTimer.current) { window.clearTimeout(gLpTimer.current); gLpTimer.current = null; } };
+
+  // 스와이프 중 카드 이동은 React를 거치지 않고 DOM에 직접 쓴다(리스트 리렌더 0회).
+  // 제스처가 끝나면 같은 '정지 값'을 상태(swipeOpenId)로도 커밋해 선언적 스타일과 일치시킨다.
+  const setCardX = (id: string, x: number, animate: boolean) => {
+    const el = moveLayerRefs.current.get(id);
+    if (!el) return;
+    el.style.transition = animate ? SWIPE_TRANSITION : 'none';
+    el.style.transform = `translateX(${x}px) scale(1)`;
+  };
 
   // 보이는 카드만 재배열, 수확된 카드의 order는 보존. hit-test는 포인터 Y가 들어있는 행 1개를
   // 찾으므로 순서와 무관. 순서는 ref에 보관해 클로저 staleness를 피한다.
@@ -216,7 +247,8 @@ export default function HomePage() {
       const base = swipeOpenId === board.id ? -TRAY_W : 0;
       const next = Math.max(-TRAY_W, Math.min(0, base + dx));
       gSwipeDx.current = next;
-      setSwipeDx(next);
+      // pointermove마다 setState 금지 — transform 직접 조작(상태 전이는 onUp에서만).
+      setCardX(board.id, next, false);
     }
   };
 
@@ -237,9 +269,12 @@ export default function HomePage() {
     }
     if (gAxis.current === 'x') {
       const open = gSwipeDx.current <= -TRAY_W / 2;
+      // 손을 뗀 지점 → 확정 위치 스냅백도 직접 조작으로 애니메이션한다.
+      // (열림/닫힘이 기존 상태와 같으면 React가 transform을 다시 쓰지 않으므로
+      //  이 수동 쓰기가 없으면 카드가 드래그 위치에 멈춘 채 남는다.)
+      setCardX(board.id, open ? -TRAY_W : 0, true);
       setSwipeOpenId(open ? board.id : null);
       setSwipeDragId(null);
-      setSwipeDx(0);
       gSwipeDx.current = 0;
       releaseCapture(e);
       gStart.current = null;
@@ -260,15 +295,20 @@ export default function HomePage() {
   const onCancel = (e: React.PointerEvent, board: BoardSummary) => {
     clearLp();
     if (liftedId === board.id) { setLiftedId(null); dragOrderRef.current = []; }
-    if (swipeDragId === board.id) { setSwipeDragId(null); setSwipeDx(0); gSwipeDx.current = 0; }
+    // swipeDragId(state)는 축 잠금 직후 취소되면 아직 stale일 수 있어 ref로도 판정.
+    if (gAxis.current === 'x' || swipeDragId === board.id) {
+      setSwipeDragId(null);
+      setCardX(board.id, swipeOpenId === board.id ? -TRAY_W : 0, true); // 직전 정지 위치로 복귀
+      gSwipeDx.current = 0;
+    }
     releaseCapture(e);
     gStart.current = null;
     gAxis.current = null;
   };
 
+  // 카드의 '정지 상태' 오프셋만 상태로 표현한다(드래그 중 라이브 오프셋은 setCardX가 직접 씀).
   const offsetFor = (id: string) => {
     if (liftedId === id) return 0;
-    if (swipeDragId === id) return swipeDx;
     if (swipeOpenId === id) return -TRAY_W;
     return 0;
   };
@@ -303,6 +343,58 @@ export default function HomePage() {
     else cardRefs.current.delete(id);
   };
 
+  const setMoveLayerRef = (id: string) => (el: HTMLElement | null) => {
+    if (el) moveLayerRefs.current.set(id, el);
+    else moveLayerRefs.current.delete(id);
+  };
+
+  // ── 친구 소식 피드 (보드 목록 아래 독립 섹션) ──────────────────────────────
+  // 홈 mount 시 1회, 보드 fetch와 병렬. 폴링/SSE 없음. 활동 0건이면 섹션 미렌더.
+  const [friendActivities, setFriendActivities] = useState<FriendActivity[]>([]);
+  // 상대시간 기준 시각 — 렌더 중 현재시각 호출 금지(react-hooks/purity)라 fetch 시점에 고정.
+  const [activityFetchedAt, setActivityFetchedAt] = useState(0);
+  // 세션 내 동일 항목 재발송 차단(클라 상태) — 서버에는 레이트리밋이 별도로 있음.
+  const [cheerStates, setCheerStates] = useState<Record<string, CheerState>>({});
+
+  useEffect(() => {
+    let cancelled = false;
+    api<{ activities: FriendActivity[] }>('/api/activity/friends')
+      .then((data) => {
+        if (cancelled) return;
+        setFriendActivities(data.activities);
+        setActivityFetchedAt(new Date().getTime());
+      })
+      .catch(() => { /* 친구 소식은 보조 정보 — 실패 시 섹션을 조용히 숨김 */ });
+    return () => { cancelled = true; };
+  }, []);
+
+  const sendCelebration = useCallback(async (activity: FriendActivity) => {
+    feedbackTap();
+    setCheerStates((prev) => ({ ...prev, [activity.boardId]: 'sending' }));
+    try {
+      // CheerModal과 동일한 요청 형태(POST /api/messages) — type만 celebration.
+      await api('/api/messages', {
+        method: 'POST',
+        json: {
+          receiverId: activity.actor.id,
+          content: '포도판 완성 축하해요!',
+          type: 'celebration',
+          emoji: '🎉',
+          boardId: activity.boardId,
+        },
+      });
+      feedbackCheer();
+      setCheerStates((prev) => ({ ...prev, [activity.boardId]: 'sent' }));
+    } catch {
+      setCheerStates((prev) => {
+        const next = { ...prev };
+        delete next[activity.boardId];
+        return next;
+      });
+      showToast('축하를 보내지 못했어요. 잠시 후 다시 시도해주세요.');
+    }
+  }, [showToast]);
+
   return (
     <div className="pb-4">
       {/* Header — tap the avatar to open the profile sheet */}
@@ -315,15 +407,23 @@ export default function HomePage() {
           <Avatar avatar={user?.avatar || 'grape'} size="lg" />
         </button>
         <div className="min-w-0 flex-1">
-          <h1 className="font-display text-[26px] leading-tight font-bold tracking-tight text-warm-text truncate">
-            {user?.name}<span className="text-warm-sub font-normal text-[20px]">님</span>
-          </h1>
+          {/* 인증이 병렬화돼 user가 잠깐 없을 수 있다 — "님"만 덩그러니 뜨지 않게 스켈레톤 폴백 */}
+          {user ? (
+            <h1 className="font-display text-[26px] leading-tight font-bold tracking-tight text-warm-text truncate">
+              {user.name}<span className="text-warm-sub font-normal text-[20px]">님</span>
+            </h1>
+          ) : (
+            <div className="skeleton h-[30px] w-28 rounded-xl" aria-hidden="true" />
+          )}
           <p className="text-xs leading-normal tracking-wide text-warm-sub mt-0.5">
             {greeting}
           </p>
         </div>
         <NotificationBell />
       </div>
+
+      {/* 스트릭 카드 — 데이터 도착 전엔 미렌더(스켈레톤 없음), 필터 탭과 무관하게 항상 노출 */}
+      {streakInfo && <StreakCard streak={streakInfo} onRefresh={loadStreak} onError={showToast} />}
 
       {/* Filter tabs — 한 줄(아이콘 없음): 전체/진행/완료/수확 + 카운트 */}
       <div className="flex gap-2 mb-4 overflow-x-auto scrollbar-hide">
@@ -394,12 +494,13 @@ export default function HomePage() {
                   board={board}
                   offset={offsetFor(board.id)}
                   lifted={liftedId === board.id}
-                  animating={swipeDragId !== board.id}
+                  dragging={swipeDragId === board.id}
                   trayWidth={TRAY_W}
                   onHarvest={() => board.isCompleted ? harvestBoard(board) : showToast('포도판을 다 채우면 수확할 수 있어요')}
                   onDelete={() => { setSwipeOpenId(null); setDeleteTarget(board); }}
                   onOpen={() => { feedbackTap(); router.push(`/board/${board.id}`); }}
                   innerRef={setCardRef(board.id)}
+                  moveLayerRef={setMoveLayerRef(board.id)}
                   pointerHandlers={{
                     onPointerDown: (e) => onDown(e, board),
                     onPointerMove: (e) => onMove(e, board),
@@ -414,6 +515,25 @@ export default function HomePage() {
             {canReorder ? '꾹 눌러 위아래로 정렬 · 옆으로 밀어 수확·삭제' : '카드를 옆으로 밀어 수확·삭제할 수 있어요'}
           </p>
         </>
+      )}
+
+      {/* 친구 소식 — 최근 7일 내 친구가 완성한 포도판. 활동 0건/친구 0명이면 통째로 숨김. */}
+      {friendActivities.length > 0 && (
+        <section className="mt-8" aria-label="친구 소식">
+          <h2 className="font-display text-lg font-bold text-warm-text mb-3">친구 소식</h2>
+          <ul className="space-y-2.5">
+            {friendActivities.map((a) => (
+              <li key={a.boardId}>
+                <FriendActivityCard
+                  activity={a}
+                  timeText={formatRelativeTime(a.completedAt, activityFetchedAt)}
+                  cheerState={cheerStates[a.boardId] ?? 'idle'}
+                  onCheer={() => sendCelebration(a)}
+                />
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
 
       {/* FAB */}

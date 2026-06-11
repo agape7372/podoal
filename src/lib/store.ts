@@ -53,6 +53,12 @@ interface AppState {
   messages: MessageInfo[];
   relays: RelayInfo[];
   capsules: TimeCapsuleInfo[];
+  /**
+   * 통합 알림 피드(GET /api/notifications) 기준 미읽음 수 — 단일 계약.
+   * 종 배지·네비 '더보기' 탭·더보기 '소통' 항목이 전부 이 값 하나를 읽는다.
+   * 갱신은 src/lib/notifications.ts의 refreshUnreadCount()로 수렴시킨다
+   * (메시지만의 로컬 계산으로 덮어쓰지 말 것).
+   */
   unreadCount: number;
   popupMessage: MessageInfo | null;
   settings: AppSettings;
@@ -89,6 +95,8 @@ export const useAppStore = create<AppState>((set) => ({
   addMessage: (message) =>
     set((state) => ({
       messages: [message, ...state.messages],
+      // 낙관적 증가: SSE로 새 메시지를 받은 즉시 배지를 올리고,
+      // 다음 refreshUnreadCount()에서 서버값(/api/notifications)으로 수렴한다.
       unreadCount: state.unreadCount + 1,
     })),
   setRelays: (relays) => set({ relays }),

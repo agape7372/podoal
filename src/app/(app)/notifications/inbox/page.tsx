@@ -3,6 +3,8 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
+import { useAppStore } from '@/lib/store';
+import { countUnread } from '@/lib/notifications';
 import Avatar from '@/components/Avatar';
 import EmojiIcon from '@/components/EmojiIcon';
 import { feedbackTap } from '@/lib/feedback';
@@ -24,15 +26,21 @@ export default function NotificationInboxPage() {
   const [events, setEvents] = useState<NotificationEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
+  const setUnreadCount = useAppStore((s) => s.setUnreadCount);
 
   const load = useCallback(() => {
     setLoading(true);
     setLoadError(false);
     api<{ events: NotificationEvent[] }>('/api/notifications')
-      .then((d) => setEvents(d.events))
+      .then((d) => {
+        setEvents(d.events);
+        // 방금 받은 피드가 곧 배지의 단일 출처 — 추가 fetch 없이 store를 같은 값으로 동기화
+        // (인박스에 머무는 동안 네비 '더보기' 배지도 일치).
+        setUnreadCount(countUnread(d.events));
+      })
       .catch(() => setLoadError(true))
       .finally(() => setLoading(false));
-  }, []);
+  }, [setUnreadCount]);
 
   useEffect(() => { load(); }, [load]);
 

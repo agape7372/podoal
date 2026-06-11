@@ -45,7 +45,10 @@ interface GrapeCellProps {
 
 // One grape + its 🎁 marker. Extracted so `useLongPress` is called exactly once
 // per cell (Rules of Hooks) rather than inside a .map() callback.
-function GrapeCell({
+// memo: 한 알을 채우면 GrapeBoardInner의 로컬 상태(justFilled/fillingPos)가 여러 번
+// 바뀌는데, props가 그대로인 나머지 셀은 그 리렌더를 건너뛴다. (채움 직후 렌더는
+// handleFill 의존성(filledPositions 등)이 바뀌어 전 셀이 갱신된다 — 의도된 한계.)
+const GrapeCell = memo(function GrapeCell({
   position,
   filled,
   isNext,
@@ -100,7 +103,7 @@ function GrapeCell({
       )}
     </div>
   );
-}
+});
 
 // Hand-tuned bunch layouts for the common sizes (wider at top, tapering to a
 // point) — kept verbatim for the shapes people see most.

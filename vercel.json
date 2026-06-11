@@ -3,6 +3,6 @@
   "framework": "nextjs",
   "regions": ["icn1"],
   "buildCommand": "npm run build",
-  "installCommand": "npm install",
+  "installCommand": "npm ci",
   "outputDirectory": ".next"
 }

@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { getCurrentUserId, authResponse } from '@/lib/auth';
 import { sendPushToUser } from '@/lib/push';
-import { PUBLIC_USER_SELECT as userProfileSelect } from '@/lib/userSelect';
+import { giftBoardCopy, RegiftBlockedError } from '@/lib/giftBoard';
 
 export async function POST(request: Request, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
@@ -54,44 +54,18 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
     return authResponse('Friendship not found or not accepted', 403);
   }
 
-  // Create a copy of the board for the friend
-  const giftedBoard = await prisma.$transaction(async (tx) => {
-    const newBoard = await tx.board.create({
-      data: {
-        title: board.title,
-        description: board.description,
-        totalStickers: board.totalStickers,
-        ownerId: friendId,
-        giftedToId: friendId,
-        giftedFromId: userId,
-        giftMessage: giftNote,
-      },
-    });
-
-    // Copy all rewards
-    for (const reward of board.rewards) {
-      await tx.reward.create({
-        data: {
-          boardId: newBoard.id,
-          type: reward.type,
-          title: reward.title,
-          content: reward.content,
-          imageUrl: reward.imageUrl,
-          triggerAt: reward.triggerAt,
-        },
-      });
+  // Create a copy of the board for the friend — 복사+보상복사 트랜잭션은
+  // src/lib/giftBoard.ts(라우트·통합테스트 공유)로 추출됨.
+  let giftedBoard: Awaited<ReturnType<typeof giftBoardCopy>>;
+  try {
+    giftedBoard = await giftBoardCopy(prisma, board, userId, friendId, giftNote);
+  } catch (e) {
+    // 재선물 차단: 선물받은 복사본은 다시 선물할 수 없다.
+    if (e instanceof RegiftBlockedError) {
+      return authResponse('선물받은 포도판은 다시 선물할 수 없어요', 400);
     }
-
-    return tx.board.findUnique({
-      where: { id: newBoard.id },
-      include: {
-        owner: { select: userProfileSelect },
-        giftedTo: { select: userProfileSelect },
-        giftedFrom: { select: userProfileSelect },
-        _count: { select: { stickers: true, rewards: true } },
-      },
-    });
-  });
+    throw e;
+  }
 
   if (!giftedBoard) {
     return authResponse('Failed to gift board', 500);

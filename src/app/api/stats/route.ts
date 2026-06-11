@@ -1,20 +1,15 @@
 import { prisma } from '@/lib/prisma';
 import { getCurrentUserId, authResponse } from '@/lib/auth';
 import { TEMPLATE_CATEGORIES } from '@/lib/templates';
+import { KST_OFFSET_MS, kstDateKey, kstTodayKey, computeStreaks, canFreeze } from '@/lib/streak';
 
 const DAY_NAMES = ['일', '월', '화', '수', '목', '금', '토'];
 
 // KST timezone (Asia/Seoul, UTC+9, no DST). Stats are presented to a Korean
 // audience, so all date-key grouping happens in KST instead of UTC to avoid
 // off-by-day bugs (a sticker filled at 23:30 KST should land on that calendar
-// day, not the next one).
-const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
-
-function kstDateKey(d: Date): string {
-  // ISO date (YYYY-MM-DD) of the moment `d` as observed in KST.
-  const shifted = new Date(d.getTime() + KST_OFFSET_MS);
-  return shifted.toISOString().split('T')[0];
-}
+// day, not the next one). Date-key helpers live in src/lib/streak.ts so the
+// freeze route + unit tests share the exact same logic.
 
 function kstStartOfTodayUtc(): Date {
   // Returns the UTC instant corresponding to 00:00 KST today.
@@ -43,6 +38,8 @@ export async function GET() {
     friendsCount,
     boardsGifted,
     boardsReceived,
+    // 스트릭 유예(freeze) 상태 — streak 계산과 freezeAvailable/freezeSuggestion에 쓴다.
+    freezeUser,
   ] = await Promise.all([
     prisma.board.count({ where: { ownerId: userId } }),
     prisma.board.count({ where: { ownerId: userId, isCompleted: true } }),
@@ -57,6 +54,10 @@ export async function GET() {
     }),
     prisma.board.count({ where: { giftedFromId: userId } }),
     prisma.board.count({ where: { giftedToId: userId } }),
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: { streakFreezeDate: true, streakFreezeUsedAt: true },
+    }),
   ]);
 
   // Pull every sticker's filledAt once and bucket in-memory. This is one query
@@ -95,33 +96,23 @@ export async function GET() {
     heatmap.push({ date: k, count: countByDate.get(k) || 0 });
   }
 
-  // Streaks from KST-bucketed date set.
-  const allDatesSorted = Array.from(countByDate.keys()).sort();
-  let longestStreak = 0;
-  let tempStreak = 0;
-  for (let i = 0; i < allDatesSorted.length; i++) {
-    if (i === 0) {
-      tempStreak = 1;
-    } else {
-      const prev = Date.parse(allDatesSorted[i - 1] + 'T00:00:00Z');
-      const curr = Date.parse(allDatesSorted[i] + 'T00:00:00Z');
-      const diffDays = Math.round((curr - prev) / 86_400_000);
-      tempStreak = diffDays === 1 ? tempStreak + 1 : 1;
-    }
-    if (tempStreak > longestStreak) longestStreak = tempStreak;
-  }
-
-  // Current streak counting backwards from today (KST).
-  let currentStreak = 0;
-  const allDatesSet = new Set(allDatesSorted);
-  for (let i = 0; ; i++) {
-    const dayUtc = new Date(todayKstStart.getTime() - i * 86_400_000);
-    const k = kstDateKey(new Date(dayUtc.getTime() + 1));
-    if (allDatesSet.has(k)) currentStreak++;
-    else break;
-  }
+  // Streaks from KST-bucketed date set — src/lib/streak.ts 공유 로직 사용.
+  // 유예(freeze)로 메꾼 날짜는 채워진 날로 간주해 스트릭이 이어진다.
+  // (heatmap/dailyStickers에는 넣지 않는다 — 실제 채운 알이 아니므로.)
+  const todayKey = kstTodayKey();
+  const streakDates = new Set(countByDate.keys());
+  if (freezeUser?.streakFreezeDate) streakDates.add(freezeUser.streakFreezeDate);
+  const { currentStreak, longestStreak } = computeStreaks(streakDates, todayKey);
   // `streak` (legacy alias) kept for backwards compat with existing clients.
   const streak = currentStreak;
+
+  // 유예 보유 여부 + "어제만 메꾸면 이어붙는" 제안 상태(서버 단일 판정 — 클라 재계산 금지).
+  const freezeAvailable = !freezeUser?.streakFreezeUsedAt;
+  const freezeSuggestion = canFreeze(
+    streakDates,
+    freezeUser?.streakFreezeUsedAt ?? null,
+    todayKey,
+  ).eligible;
 
   // 30-day average.
   const thirtyDaysAgoUtc = new Date(todayKstStart.getTime() - 30 * 86_400_000);
@@ -198,6 +189,8 @@ export async function GET() {
       heatmap,
       longestStreak,
       currentStreak,
+      freezeAvailable,
+      freezeSuggestion,
       averageDaily,
       mostActiveDay,
       completionRate,
