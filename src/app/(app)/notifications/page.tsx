@@ -300,7 +300,7 @@ export default function NotificationsPage() {
             <EmojiIcon emoji="🍇" size={20} />
             <div className="min-w-0">
               <p className="text-sm font-medium text-warm-text">하루 한 번 부드러운 응원</p>
-              <p className="text-xs text-warm-sub">진행 중인 포도판이 있으면 하루 한 번만 살짝 알려드려요</p>
+              <p className="text-xs text-warm-sub">하루 한 번만 살짝 알려드려요</p>
             </div>
           </div>
           <Toggle
