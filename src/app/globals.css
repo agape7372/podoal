@@ -848,8 +848,10 @@ select:focus-visible {
   -webkit-touch-callout: none;
 }
 
-/* Loading shimmer */
-@keyframes shimmer {
+/* Loading shimmer — keyframes 이름은 @theme의 shimmer(translateX 스윕, 와이너리 광택용)와
+   절대 겹치면 안 된다. Tailwind 4의 레이어 배치에서 동명 keyframes는 @theme 쪽이 이겨서
+   스켈레톤 요소 전체가 화면을 가로질러 미끄러지는 회귀가 있었음(2026-06-11). */
+@keyframes skeletonSweep {
   0% { background-position: -200px 0; }
   100% { background-position: calc(200px + 100%) 0; }
 }
@@ -857,7 +859,7 @@ select:focus-visible {
 .skeleton {
   background: linear-gradient(90deg, #F2ECF8 0%, #E8E0F2 50%, #F2ECF8 100%);
   background-size: 200px 100%;
-  animation: shimmer 1.5s infinite;
+  animation: skeletonSweep 1.5s infinite;
   border-radius: 12px;
 }
 
@@ -910,24 +912,26 @@ select:focus-visible {
   animation: bottleShimmer 2.5s ease-in-out infinite;
 }
 
-/* Floating animation */
-@keyframes float {
+/* Floating animation — @theme의 float(-8px/3s)와 동명 충돌 방지를 위해 고유 이름 사용.
+   이 로컬 클래스 쌍(-6px/3.5s)이 v3 시절 실제로 적용되던 동작이다. */
+@keyframes floatSoft {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-6px); }
 }
 
 .animate-float {
-  animation: float 3.5s ease-in-out infinite;
+  animation: floatSoft 3.5s ease-in-out infinite;
 }
 
-/* Fade in */
-@keyframes fadeIn {
+/* Fade in — @theme의 fadeIn(opacity만)과 동명 충돌 방지. v3에서 적용되던 쪽은
+   translateY(8px) 슬라이드가 포함된 이 로컬 정의다. */
+@keyframes fadeInUp {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
 .animate-fade-in {
-  animation: fadeIn 0.3s ease-out;
+  animation: fadeInUp 0.3s ease-out;
 }
 
 /* Wiggle (used on just-filled grape) */

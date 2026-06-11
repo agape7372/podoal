@@ -25,7 +25,7 @@ const sections: MoreSection[] = [
     items: [
       { path: '/rewards', icon: '🍇', label: '포도밭', desc: '받은 보상·중간보상' },
       { path: '/stats', icon: '📊', label: '통계', desc: '달성률·히트맵' },
-      { path: '/vine', icon: '🌿', label: '포도덩쿨', desc: '활동 타임라인' },
+      { path: '/vine', icon: '🌿', label: '포도덩굴', desc: '활동 타임라인' },
     ],
   },
   {

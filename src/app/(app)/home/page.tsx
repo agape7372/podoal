@@ -96,8 +96,10 @@ export default function HomePage() {
 
   // 스트릭 카드 데이터 — 보드 fetch와 병렬(독립 effect, 직렬 워터폴 금지).
   // mount 1회 + 유예 사용 직후만 재조회(stats API는 비용이 있어 잦은 refetch 금지).
-  // 실패 시 카드만 조용히 미렌더 — 홈 핵심 흐름(보드 목록)엔 영향 없음.
+  // 로딩 중엔 같은 높이의 스켈레톤으로 자리를 예약(늦게 끼어들며 콘텐츠가 점프하던 시프트 방지),
+  // 실패 시에만 자리까지 조용히 접음 — 홈 핵심 흐름(보드 목록)엔 영향 없음.
   const [streakInfo, setStreakInfo] = useState<StreakInfo | null>(null);
+  const [streakFailed, setStreakFailed] = useState(false);
   const loadStreak = useCallback(() => {
     api<{ stats: StreakInfo }>('/api/stats')
       .then((d) => setStreakInfo({
@@ -106,7 +108,7 @@ export default function HomePage() {
         freezeAvailable: d.stats.freezeAvailable,
         freezeSuggestion: d.stats.freezeSuggestion,
       }))
-      .catch(() => { /* 부가 정보 — 조용히 생략 */ });
+      .catch(() => setStreakFailed(true));
   }, []);
   useEffect(() => { loadStreak(); }, [loadStreak]);
 
@@ -422,8 +424,10 @@ export default function HomePage() {
         <NotificationBell />
       </div>
 
-      {/* 스트릭 카드 — 데이터 도착 전엔 미렌더(스켈레톤 없음), 필터 탭과 무관하게 항상 노출 */}
-      {streakInfo && <StreakCard streak={streakInfo} onRefresh={loadStreak} onError={showToast} />}
+      {/* 스트릭 카드 — 로딩 중엔 동일 높이 스켈레톤으로 자리 예약(레이아웃 시프트 방지), 필터 탭과 무관하게 항상 노출 */}
+      {streakInfo
+        ? <StreakCard streak={streakInfo} onRefresh={loadStreak} onError={showToast} />
+        : !streakFailed && <div className="skeleton h-[62px] mb-4 rounded-[28px]" aria-hidden="true" />}
 
       {/* Filter tabs — 한 줄(아이콘 없음): 전체/진행/완료/수확 + 카운트 */}
       <div className="flex gap-2 mb-4 overflow-x-auto scrollbar-hide">
