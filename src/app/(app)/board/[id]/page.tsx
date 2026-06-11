@@ -35,9 +35,21 @@ export default function BoardDetailPage() {
   );
   const [loading, setLoading] = useState<boolean>(() => !readCachedApi(`/api/boards/${id}`));
   // 보드 상태 스냅샷을 캐시에 동기화 — 채움/보상 등 모든 로컬 변화가 다음 진입에도
-  // 보인다. temp-* 낙관 스티커가 섞여 저장돼도 재진입 시 무음 재검증이 즉시 reconcile.
+  // 보인다. 단 temp-* 낙관 스티커는 빼고 저장한다: POST 실패+페이지 이탈 조합에서
+  // 롤백이 aliveRef 가드로 스킵되는데, temp를 캐시에 남기면 재진입 시드 → fetchBoard
+  // 병합(서버에 없는 temp 보존, #66)이 그 유령을 영원히 못 지운다. 캐시는 '서버가
+  // 확인한 마지막 상태'만 — 진행 중 채움은 성공 시 재검증이 즉시 보여준다.
   useEffect(() => {
-    if (board) writeCachedApi(`/api/boards/${id}`, board);
+    if (!board) return;
+    const temps = board.stickers.filter((s) => s.id.startsWith('temp-'));
+    const snapshot = temps.length === 0
+      ? board
+      : {
+          ...board,
+          stickers: board.stickers.filter((s) => !s.id.startsWith('temp-')),
+          filledCount: Math.max(0, board.filledCount - temps.length),
+        };
+    writeCachedApi(`/api/boards/${id}`, snapshot);
   }, [board, id]);
   // 홈이 받아둔 /api/boards 캐시에서 이 보드의 요약을 꺼내 스켈레톤 동안 제목·진행
   // 숫자를 실값으로 선렌더 — '이미 아는 정보를 다시 기다리는' 체감 제거.
