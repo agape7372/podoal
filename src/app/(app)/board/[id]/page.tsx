@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { useAppStore } from '@/lib/store';
@@ -31,9 +31,11 @@ export default function BoardDetailPage() {
   const [loading, setLoading] = useState(true);
   // 홈이 받아둔 /api/boards 캐시에서 이 보드의 요약을 꺼내 스켈레톤 동안 제목·진행
   // 숫자를 실값으로 선렌더 — '이미 아는 정보를 다시 기다리는' 체감 제거.
-  // (mount 시점 1회 스냅샷이면 충분 — 상세 도착 후엔 쓰이지 않는다.)
-  const [summary] = useState<BoardSummary | undefined>(() =>
-    readCachedApi<{ boards: BoardSummary[] }>('/api/boards')?.boards.find((b) => b.id === id),
+  // id 키로 메모 — 같은 컴포넌트 인스턴스가 다른 보드로 재사용돼도 이전 보드의
+  // 요약이 남지 않는다. 상세 도착 후엔 쓰이지 않는다.
+  const summary = useMemo<BoardSummary | undefined>(
+    () => readCachedApi<{ boards: BoardSummary[] }>('/api/boards')?.boards.find((b) => b.id === id),
+    [id],
   );
   const [showGift, setShowGift] = useState(false);
   const [showShare, setShowShare] = useState(false);
