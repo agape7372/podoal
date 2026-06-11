@@ -8,15 +8,13 @@ CI integration 잡이 `prisma migrate deploy`로 스키마를 적용한다.
 
 - `prisma/migrations/0_init/migration.sql` — 도입 시점(2026-06-11, 13개 모델 + NotificationSetting
   넛지 컬럼 + User 스트릭 유예 컬럼 포함)의 전체 스키마 스냅샷.
-- **프로덕션(Neon)에는 이 스키마가 이미 db push로 적용돼 있으므로**, 전환 시 1회만
-  아래 명령으로 "이미 적용됨" 마킹이 필요하다 (비파괴 — `_prisma_migrations` 테이블에 행 1개 기록):
-
-  ```bash
-  DATABASE_URL=<프로덕션 Neon URL> npx prisma migrate resolve --applied 0_init
-  ```
-
-  ⚠️ 이 마킹 **전에** 이 변경이 배포되면 빌드의 `migrate deploy`가 0_init을 새로 적용하려다
-  "table already exists"로 실패한다. 반드시 resolve 먼저 → 머지 순서.
+- **프로덕션(Neon)에는 이 스키마가 이미 db push로 적용돼 있다.** 빌드가 사용하는
+  `scripts/migrate-deploy.mjs`가 이 1회 전환을 자동 처리한다:
+  `migrate deploy`가 **P3005**(이력 없는 비어있지 않은 DB)로 실패하는 그 경우에만
+  `migrate resolve --applied 0_init`(비파괴 — `_prisma_migrations`에 행 1개 기록) 후 재시도.
+  빈 새 DB(CI/로컬)는 P3005가 나지 않고 0_init이 정상 적용된다. 수동 개입 불필요.
+- 검증: db push로 만든 DB에서 P3005 → 자동 마킹 → 재시도 통과, `_prisma_migrations`에
+  `0_init` 기록 확인 (로컬 Postgres 16 실측).
 
 ## 스키마 변경 워크플로 (이후)
 
