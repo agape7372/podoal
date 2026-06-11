@@ -17,6 +17,10 @@ model User {
   providerId String?  // user id from the OAuth provider
   createdAt  DateTime @default(now())
 
+  // 스트릭 유예(freeze) 1회 — 계정당 한 번, 빈 어제(KST)를 메꿔 스트릭을 이어붙인다.
+  streakFreezeDate   String?   // 유예로 메꾼 KST 날짜 'YYYY-MM-DD' (streak 계산 시 채워진 날로 간주)
+  streakFreezeUsedAt DateTime? // 유예 소진 시각. null = 아직 보유
+
   boards              Board[]              @relation("BoardOwner")
   receivedBoards      Board[]              @relation("BoardReceiver")
   giftedBoards        Board[]              @relation("BoardGifter")
@@ -180,6 +184,10 @@ model NotificationSetting {
   rewardEnabled   Boolean @default(true)
   relayEnabled    Boolean @default(true)
   reminderEnabled Boolean @default(true)
+  // 데일리 넛지 opt-in — 기본 꺼짐(ADHD 가드레일: 알림은 적게). 기존 행에도 false 적용.
+  dailyNudgeEnabled Boolean   @default(false)
+  // 데일리 넛지 일일 중복발송 가드(KST 날짜 비교) — Reminder.lastSentAt 패턴 재사용
+  lastNudgeSentAt   DateTime?
 
   user User @relation(fields: [userId], references: [id])
 }

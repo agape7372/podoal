@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { getCurrentUserId, authResponse } from '@/lib/auth';
 import { isNonEmptyString, isOptString, isPlainObject } from '@/lib/validate';
+import { parseOpenAtKst } from '@/lib/capsuleTime';
 
 export async function GET(request: Request, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
@@ -77,18 +78,15 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
     return authResponse('개봉일을 선택해주세요', 400);
   }
 
-  // <input type=date>는 'YYYY-MM-DD'. 이를 그대로 new Date()하면 UTC 자정 = KST 09:00에
-  // 개봉되는 버그가 있었음. 선택한 날짜의 KST 자정(00:00 +09:00)으로 해석해 그 날 0시에 열리게 한다.
-  const dateOnly = typeof openAt === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(openAt);
-  const openAtDate = dateOnly ? new Date(`${openAt}T00:00:00+09:00`) : new Date(openAt);
-  if (isNaN(openAtDate.getTime())) {
-    return authResponse('Invalid openAt date', 400);
+  // 'YYYY-MM-DD' → KST 자정 해석 + 미래 검증. 규칙은 src/lib/capsuleTime.ts로
+  // 추출(클라 CapsuleModal과 공유). 에러 메시지/상태코드는 기존 동작 그대로 유지.
+  const parsed = parseOpenAtKst(openAt, Date.now());
+  if (!parsed.ok) {
+    return parsed.reason === 'invalid'
+      ? authResponse('Invalid openAt date', 400)
+      : authResponse('openAt must be a future date', 400);
   }
-
-  // 미래여야 함(이미 KST 자정 인스턴트라 오늘 선택 시 now보다 과거 → 거부, 내일+ 만 통과).
-  if (openAtDate.getTime() <= Date.now()) {
-    return authResponse('openAt must be a future date', 400);
-  }
+  const openAtDate = parsed.date;
 
   const capsule = await prisma.timeCapsule.create({
     data: {

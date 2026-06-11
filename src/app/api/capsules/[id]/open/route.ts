@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { getCurrentUserId, authResponse } from '@/lib/auth';
+import { isCapsuleOpenable } from '@/lib/capsuleTime';
 
 export async function POST(request: Request, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
@@ -27,8 +28,9 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
   }
 
   // Exact timestamp comparison (was previously date-only which let capsules
-  // open up to ~24h early depending on server/user timezones).
-  if (Date.now() < capsule.openAt.getTime()) {
+  // open up to ~24h early depending on server/user timezones). 판정 규칙은
+  // src/lib/capsuleTime.ts로 추출 — 클라(CapsuleModal)와 동일 함수를 공유.
+  if (!isCapsuleOpenable(capsule.openAt, Date.now())) {
     return authResponse('아직 캡슐을 열 수 없어요', 400);
   }
 

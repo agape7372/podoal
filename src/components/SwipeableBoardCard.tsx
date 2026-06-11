@@ -6,14 +6,23 @@ import BoardCard from './BoardCard';
 import BoardCardMenu from './BoardCardMenu';
 import EmojiIcon from './EmojiIcon';
 
+/** Spring-back easing for the swipe layer. The home gesture layer writes
+ *  transform/transition straight to the DOM during a drag — keep its writes and
+ *  the declarative style below using this exact same value. */
+export const SWIPE_TRANSITION = 'transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1)';
+
 interface SwipeableBoardCardProps {
   board: BoardSummary;
-  /** Horizontal offset of the card layer in px (≤ 0 reveals the right action tray). */
+  /** RESTING horizontal offset of the card layer in px (≤ 0 = tray open committed).
+   *  The live finger-following offset is NOT rendered through this prop — the
+   *  parent writes it directly to the DOM via `moveLayerRef` so pointermove
+   *  doesn't re-render the whole list. */
   offset: number;
   /** Visually lifted for drag-to-reorder (scale + glow + raised z). */
   lifted: boolean;
-  /** Animate the transform (off while the finger is actively dragging the swipe). */
-  animating: boolean;
+  /** The finger is actively swiping this card (axis locked to x). Turns the
+   *  declarative transition off and hides the ⋮ menu. */
+  dragging: boolean;
   /** Pixel width of the revealed action tray. */
   trayWidth: number;
   onHarvest: () => void;
@@ -22,6 +31,9 @@ interface SwipeableBoardCardProps {
   onOpen: () => void;
   /** Outer (non-translating) element ref — used by the parent for drag hit-testing. */
   innerRef: (el: HTMLElement | null) => void;
+  /** Translating card-layer ref — the parent drives transform/transition on it
+   *  directly during the swipe (perf: no per-pointermove setState). */
+  moveLayerRef: (el: HTMLElement | null) => void;
   pointerHandlers: {
     onPointerDown: PointerEventHandler;
     onPointerMove: PointerEventHandler;
@@ -34,12 +46,13 @@ export default function SwipeableBoardCard({
   board,
   offset,
   lifted,
-  animating,
+  dragging,
   trayWidth,
   onHarvest,
   onDelete,
   onOpen,
   innerRef,
+  moveLayerRef,
   pointerHandlers,
 }: SwipeableBoardCardProps) {
   const harvested = !!board.harvestedAt;
@@ -94,6 +107,7 @@ export default function SwipeableBoardCard({
             gestures are pointer-only); harvest/delete via keyboard is the ⋮ menu below. */}
         <div
           {...pointerHandlers}
+          ref={moveLayerRef}
           role="button"
           tabIndex={lifted ? -1 : 0}
           aria-label={`${board.title} 열기 · ${board.filledCount}/${board.totalStickers}알`}
@@ -106,7 +120,7 @@ export default function SwipeableBoardCard({
           className={`relative ${lifted ? 'shadow-grape-glow' : ''}`}
           style={{
             transform: `translateX(${offset}px) scale(${lifted ? 1.02 : 1})`,
-            transition: animating ? 'transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1)' : 'none',
+            transition: dragging ? 'none' : SWIPE_TRANSITION,
             touchAction: lifted ? 'none' : 'pan-y',
           }}
         >
@@ -115,8 +129,8 @@ export default function SwipeableBoardCard({
       </div>
 
       {/* ⋮ 메뉴 — overflow-hidden 클립 '바깥'(형제)이라 드롭다운이 잘리지 않고, 카드 포인터
-          핸들러로 이벤트가 새지 않는다. 스와이프 열림/정렬 리프트 중엔 제스처 UI에 양보해 숨김. */}
-      {!revealed && !lifted && (
+          핸들러로 이벤트가 새지 않는다. 스와이프 드래그/열림/정렬 리프트 중엔 제스처 UI에 양보해 숨김. */}
+      {!revealed && !lifted && !dragging && (
         <BoardCardMenu
           onOpen={onOpen}
           onHarvest={onHarvest}

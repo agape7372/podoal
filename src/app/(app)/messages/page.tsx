@@ -2,35 +2,31 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { api } from '@/lib/api';
-import { useAppStore } from '@/lib/store';
+import { refreshUnreadCount } from '@/lib/notifications';
 import Avatar from '@/components/Avatar';
 import EmojiIcon from '@/components/EmojiIcon';
 import ConfirmDialog from '@/components/ConfirmDialog';
-import RewardList from '@/components/RewardList';
 import type { MessageInfo } from '@/types';
-
-type Tab = 'messages' | 'rewards';
 
 export default function MessagesPage() {
   const [messages, setMessages] = useState<MessageInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
-  const [tab, setTab] = useState<Tab>('messages');
-  const setUnreadCount = useAppStore((s) => s.setUnreadCount);
 
   const fetchMessages = useCallback(async () => {
     setLoadError(false);
     try {
       const data = await api<MessageInfo[]>('/api/messages');
       setMessages(data);
-      const unread = data.filter((m: MessageInfo) => !m.isRead).length;
-      setUnreadCount(unread);
+      // 배지는 통합 알림 피드 기준 단일 계약 — 메시지만의 로컬 계산으로 덮지 않고
+      // 서버값으로 동기화한다(refreshUnreadCount가 store.unreadCount를 갱신).
+      refreshUnreadCount();
     } catch {
       setLoadError(true);
     }
     setLoading(false);
-  }, [setUnreadCount]);
+  }, []);
 
   useEffect(() => { fetchMessages(); }, [fetchMessages]);
 
@@ -43,14 +39,14 @@ export default function MessagesPage() {
     setMessages((prev) =>
       prev.map((m) => (m.id === id ? { ...m, isRead: true } : m))
     );
-    setUnreadCount(messages.filter((m) => !m.isRead && m.id !== id).length);
     try {
       await api(`/api/messages/${id}`, { method: 'PATCH', json: {} });
+      // 서버 반영이 끝난 뒤 배지를 피드 기준으로 동기화(force: 스로틀 우회).
+      refreshUnreadCount({ force: true });
     } catch {
       setMessages((prev) =>
         prev.map((m) => (m.id === id ? { ...m, isRead: false } : m))
       );
-      setUnreadCount(messages.filter((m) => !m.isRead).length);
     }
   };
 
@@ -60,17 +56,16 @@ export default function MessagesPage() {
     const removed = messages[idx];
     // Optimistic: remove immediately; restore at the original index on failure.
     setMessages((prev) => prev.filter((m) => m.id !== id));
-    // 안 읽은 메시지만 글로벌 배지(unreadCount)에서 차감. 최신값은 store에서 직접 읽어 stale 클로저 회피.
-    if (!removed.isRead) setUnreadCount(useAppStore.getState().unreadCount - 1);
     try {
       await api(`/api/messages/${id}`, { method: 'DELETE' });
+      // 서버 반영이 끝난 뒤 배지를 피드 기준으로 동기화(force: 스로틀 우회).
+      refreshUnreadCount({ force: true });
     } catch {
       setMessages((prev) => {
         const next = [...prev];
         next.splice(Math.min(idx, next.length), 0, removed);
         return next;
       });
-      if (!removed.isRead) setUnreadCount(useAppStore.getState().unreadCount + 1);
     }
   };
 
@@ -108,30 +103,10 @@ export default function MessagesPage() {
 
   return (
     <div className="pb-4">
+      {/* 받은 보상의 정식 진입점은 포도밭(/rewards, 더보기 > 나의 기록) — 이 페이지는 메시지만 담당한다. */}
       <h1 className="font-display text-2xl font-bold text-grape-700 mb-4 inline-flex items-center gap-1.5"><EmojiIcon emoji="💌" size={24} /> 소통</h1>
 
-      {/* 탭: 메시지 | 받은 보상 (REQ8) */}
-      <div className="flex gap-2 mb-5">
-        {([['messages', '메시지'], ['rewards', '받은 보상']] as const).map(([key, label]) => {
-          const isActive = tab === key;
-          return (
-            <button
-              key={key}
-              onClick={() => setTab(key)}
-              aria-pressed={isActive}
-              className={`px-4 py-2 rounded-2xl text-sm font-semibold transition-all ${
-                isActive ? 'clay-pressed text-grape-700' : 'clay-button text-warm-sub'
-              }`}
-            >
-              {label}
-            </button>
-          );
-        })}
-      </div>
-
-      {tab === 'rewards' ? (
-        <RewardList />
-      ) : loading ? (
+      {loading ? (
         <div className="space-y-3">
           {[1, 2, 3, 4].map((i) => <div key={i} className="skeleton h-20 w-full" />)}
         </div>

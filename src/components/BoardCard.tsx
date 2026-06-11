@@ -16,10 +16,10 @@ interface BoardCardProps {
   className?: string;
 }
 
-// 출처 코너 배지: 선물받음 → 💝, 포도동(group) → 🔗, 자작 → 없음. 텍스트 없이 아이콘만.
-function sourceBadge(board: BoardSummary): { emoji: string; label: string } | null {
-  if (board.giftedFrom) return { emoji: '💝', label: '선물받은 포도판' };
-  if (board.podong) return { emoji: '🔗', label: '포도동 포도판' };
+// 출처 코너 칩: 선물받음 → 💝 선물, 포도동(group) → 🔗 포도동, 자작 → 없음.
+function sourceBadge(board: BoardSummary): { emoji: string; text: string; label: string } | null {
+  if (board.giftedFrom) return { emoji: '💝', text: '선물', label: '선물받은 포도판' };
+  if (board.podong) return { emoji: '🔗', text: '포도동', label: '포도동 포도판' };
   return null;
 }
 
@@ -27,22 +27,28 @@ export default function BoardCard({ board, asStatic = false, reserveTopRight = f
   const router = useRouter();
   const progress = progressPercent(board.filledCount, board.totalStickers);
   const badge = sourceBadge(board);
+  const harvested = !!board.harvestedAt;
 
   const inner = (
     <>
-      {badge && (
-        <span
-          className={`absolute top-2.5 w-6 h-6 rounded-full bg-white/85 clay-sm grid place-items-center ${reserveTopRight ? 'right-11' : 'right-2.5'}`}
-          title={badge.label}
-          aria-label={badge.label}
-        >
-          <EmojiIcon emoji={badge.emoji} size={14} />
-        </span>
-      )}
       <div className="flex-1 min-w-0">
-        <div className={`flex items-center gap-1.5 mb-1 ${reserveTopRight ? 'pr-11' : 'pr-7'}`}>
-          {board.isCompleted && <EmojiIcon emoji="🎉" size={16} />}
-          <h3 className="font-display text-[17px] font-bold text-warm-text truncate">{stripTitleEmoji(board.title)}</h3>
+        {/* 코너 칩(수확·출처) — absolute 대신 제목 행 안 inline-flex로 두어, 칩 폭이 변해도
+            truncate 제목과 절대 겹치지 않는다(작은 화면 안전). reserveTopRight는 카드 '바깥'
+            형제인 ⋮ 메뉴(top-1.5 right-1.5, w-8 → 콘텐츠 박스로 22px 침범) 자리만 비운다. */}
+        <div className={`flex items-center gap-1.5 mb-1 ${reserveTopRight ? 'pr-7' : ''}`}>
+          {board.isCompleted && <EmojiIcon emoji="🎉" size={16} className="shrink-0" />}
+          <h3 className="flex-1 min-w-0 font-display text-[17px] font-bold text-warm-text truncate">{stripTitleEmoji(board.title)}</h3>
+          {harvested && (
+            <span className="shrink-0 w-6 h-6 rounded-full bg-white/85 clay-sm grid place-items-center" title="수확 완료">
+              <EmojiIcon emoji="🏆" size={14} label="수확 완료" />
+            </span>
+          )}
+          {badge && (
+            <span className="shrink-0 h-6 inline-flex items-center gap-1 pl-1.5 pr-2 rounded-full bg-white/85 clay-sm" title={badge.label}>
+              <EmojiIcon emoji={badge.emoji} size={13} />
+              <span className="text-[11px] font-semibold text-warm-sub leading-none">{badge.text}</span>
+            </span>
+          )}
         </div>
         {board.description && (
           <p className="text-xs text-warm-sub truncate mb-3">{board.description}</p>
