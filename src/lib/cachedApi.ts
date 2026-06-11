@@ -25,6 +25,12 @@ export function invalidateCachedApi(url: string) {
   cache.delete(url);
 }
 
+/** 훅 밖에서 캐시 스냅샷 읽기 — 다른 페이지가 받아둔 응답으로 선렌더할 때 사용
+ *  (예: board/[id]가 홈의 /api/boards 캐시에서 보드 요약을 꺼내 제목을 즉시 표시). */
+export function readCachedApi<T>(url: string): T | undefined {
+  return cache.get(url) as T | undefined;
+}
+
 export function useCachedApi<T>(url: string) {
   const [data, setData] = useState<T | undefined>(() => cache.get(url) as T | undefined);
   const [error, setError] = useState(false);

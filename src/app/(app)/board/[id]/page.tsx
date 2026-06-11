@@ -17,7 +17,8 @@ import CapsuleModal from '@/components/CapsuleModal';
 import Avatar from '@/components/Avatar';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import EmojiIcon from '@/components/EmojiIcon';
-import type { BoardDetail, PlantedGiftInfo, RewardInfo, TimeCapsuleInfo } from '@/types';
+import { readCachedApi } from '@/lib/cachedApi';
+import type { BoardDetail, BoardSummary, PlantedGiftInfo, RewardInfo, TimeCapsuleInfo } from '@/types';
 import { REWARD_TYPE_ICON, ICON } from '@/lib/icons';
 import { feedbackTap } from '@/lib/feedback';
 import { stripTitleEmoji } from '@/lib/title';
@@ -28,6 +29,12 @@ export default function BoardDetailPage() {
   const user = useAppStore((s) => s.user);
   const [board, setBoard] = useState<BoardDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  // 홈이 받아둔 /api/boards 캐시에서 이 보드의 요약을 꺼내 스켈레톤 동안 제목·진행
+  // 숫자를 실값으로 선렌더 — '이미 아는 정보를 다시 기다리는' 체감 제거.
+  // (mount 시점 1회 스냅샷이면 충분 — 상세 도착 후엔 쓰이지 않는다.)
+  const [summary] = useState<BoardSummary | undefined>(() =>
+    readCachedApi<{ boards: BoardSummary[] }>('/api/boards')?.boards.find((b) => b.id === id),
+  );
   const [showGift, setShowGift] = useState(false);
   const [showShare, setShowShare] = useState(false);
   const [showCapsule, setShowCapsule] = useState(false);
@@ -108,9 +115,16 @@ export default function BoardDetailPage() {
       .catch(() => {});
   }, [id]);
   const ownerViewing = !!board && !!user && user.id === board.owner.id;
+  // board 도착을 기다리지 않고 낙관 발사 — 상세 진입의 대부분은 소유자 본인이라
+  // board→capsules 2홉 직렬(상세가 '두 번 로딩되는' 체감)을 병렬로 푼다.
+  // 비소유자는 서버가 거부하고 catch가 무시. 확정 비소유자(board 도착 후)만 스킵.
+  const capsulesRequestedRef = useRef(false);
   useEffect(() => {
-    if (ownerViewing) loadCapsules();
-  }, [ownerViewing, loadCapsules]);
+    if (!user || capsulesRequestedRef.current) return;
+    if (board && user.id !== board.owner.id) return;
+    capsulesRequestedRef.current = true;
+    loadCapsules();
+  }, [user, board, loadCapsules]);
   // Date.now()는 render/useMemo가 아닌 effect에서만 사용(react-hooks/purity 회피).
   useEffect(() => {
     if (!capsules) { setCapsuleTeaser(null); return; }
@@ -337,13 +351,25 @@ export default function BoardDetailPage() {
         <div className="skeleton h-11 w-full rounded-clay mb-5" />
         {/* Plant-gift toggle */}
         <div className="skeleton h-[52px] w-full rounded-clay mb-5" />
-        {/* Title + description (centered) */}
-        <div className="skeleton h-7 w-40 mx-auto mb-2" />
+        {/* Title + description (centered) — 홈 캐시에 요약이 있으면 제목·진행을 실값으로 선렌더 */}
+        {summary ? (
+          <h1 className="font-display text-2xl font-bold text-grape-700 text-center mb-2">
+            {stripTitleEmoji(summary.title)}
+          </h1>
+        ) : (
+          <div className="skeleton h-7 w-40 mx-auto mb-2" />
+        )}
         <div className="skeleton h-4 w-28 mx-auto mb-6" />
         {/* Grape bunch: progress + teardrop silhouette */}
         <div className="clay-float p-6 mb-6 flex flex-col items-center">
           <div className="skeleton h-3 w-full mb-6" />
-          <div className="skeleton h-4 w-10 rounded-full mb-2" aria-hidden="true" />
+          {summary ? (
+            <p className="text-sm font-semibold text-warm-sub tabular-nums mb-2">
+              {summary.filledCount}/{summary.totalStickers}알
+            </p>
+          ) : (
+            <div className="skeleton h-4 w-10 rounded-full mb-2" aria-hidden="true" />
+          )}
           <div className="flex flex-col items-center gap-1.5" aria-hidden="true">
             {[3, 4, 3].map((n, ri) => (
               <div key={ri} className="flex gap-1.5">

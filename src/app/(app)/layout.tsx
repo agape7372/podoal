@@ -24,7 +24,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     fetchUser().then((u) => {
       if (!u) {
         router.replace('/');
-      } else {
+        return;
+      }
+      // 내용이 같으면 setUser 생략 — 무조건 새 객체로 갈아끼우면 user를 deps로 둔
+      // effect들(SSE 연결, 리마인더 페치)이 참조 변경만으로 전부 teardown+재실행되어
+      // 웰컴→홈 진입 시 SSE 이중 연결 + reminders/settings 중복 페치가 발생했다.
+      const cur = useAppStore.getState().user;
+      if (!cur || cur.id !== u.id || cur.name !== u.name || cur.email !== u.email || cur.avatar !== u.avatar) {
         setUser(u);
       }
     });

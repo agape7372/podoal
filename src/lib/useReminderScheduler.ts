@@ -59,10 +59,11 @@ function inDndWindow(hhmm: string, start: string, end: string): boolean {
 // — true server-side scheduling requires a cron + Web Push backend that isn't
 // implemented yet. The notifications page surfaces this constraint.
 export function useReminderScheduler() {
-  const user = useAppStore((s) => s.user);
+  // user 객체가 아닌 id 구독 — 동일 사용자 객체 교체로 인한 reminders/settings 중복 페치 방지.
+  const userId = useAppStore((s) => s.user?.id);
 
   useEffect(() => {
-    if (!user) return;
+    if (!userId) return;
     if (typeof window === 'undefined') return;
     if (!('Notification' in window)) return;
 
@@ -135,5 +136,5 @@ export function useReminderScheduler() {
       cancelled = true;
       clearInterval(id);
     };
-  }, [user]);
+  }, [userId]);
 }
