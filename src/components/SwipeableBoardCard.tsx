@@ -72,8 +72,12 @@ export default function SwipeableBoardCard({
         className="relative overflow-hidden touch-pan-y"
         style={{ borderRadius: 28 }}
       >
-        {/* Right-side action tray, revealed as the card slides left */}
+        {/* Right-side action tray, revealed as the card slides left.
+            data-tray: 부모 제스처 레이어가 여기서 시작한 누름엔 리프트(길게 누르기) 타이머를
+            무장하지 않는다 — 리프트가 포인터를 캡처하면 버튼 click이 삼켜져, 길게 누른
+            수확/삭제가 동작 대신 정렬 리프트로 빠진다. */}
         <div
+          data-tray
           className="absolute inset-y-0 right-0 flex items-stretch gap-1.5"
           style={{ width: trayWidth }}
           aria-hidden={!revealed}

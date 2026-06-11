@@ -267,7 +267,11 @@ export default function HomePage() {
     gPointerId.current = e.pointerId;
     gEl.current = e.currentTarget as HTMLElement;
     clearLp();
-    gLpTimer.current = window.setTimeout(() => doLift(board), LIFT_MS);
+    // 트레이(수확/삭제) 위에서 시작한 누름은 길이와 무관하게 버튼 동작이어야 한다 —
+    // 리프트 타이머만 무장하지 않는다(스와이프 추적은 유지: 트레이에서 드래그로 닫기 가능).
+    if (!(e.target as HTMLElement).closest('[data-tray]')) {
+      gLpTimer.current = window.setTimeout(() => doLift(board), LIFT_MS);
+    }
   };
 
   const onMove = (e: React.PointerEvent, board: BoardSummary) => {
