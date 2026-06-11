@@ -61,7 +61,25 @@ export default function BoardDetailPage() {
   const fetchBoard = useCallback(async () => {
     try {
       const data = await api<{ board: BoardDetail }>(`/api/boards/${id}`);
-      setBoard(data.board);
+      // 서버 스냅샷에 아직 없는 낙관(temp-*) 스티커는 보존하고 병합한다.
+      // 통째 교체하면 큐에 대기 중인 채움이 화면에서 사라졌다(진행바 역행) 하나씩
+      // 되살아나고, 그 사이 grape-next가 이미 전송한 칸을 가리켜 중복 POST→409가
+      // 났다(적대적 리뷰 B1, 2026-06-11). 실패한 temp는 해당 큐 항목의 롤백이
+      // tempId로 제거하므로 여기서 남겨도 정합이 깨지지 않는다.
+      setBoard((prev) => {
+        const server = data.board;
+        if (!prev) return server;
+        const serverPositions = new Set(server.stickers.map((s) => s.position));
+        const pendingTemps = prev.stickers.filter(
+          (s) => s.id.startsWith('temp-') && !serverPositions.has(s.position),
+        );
+        if (pendingTemps.length === 0) return server;
+        return {
+          ...server,
+          stickers: [...server.stickers, ...pendingTemps],
+          filledCount: server.filledCount + pendingTemps.length,
+        };
+      });
       setErrorMessage(null);
       initialLoadDoneRef.current = true;
     } catch {
