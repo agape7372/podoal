@@ -31,6 +31,12 @@ export function readCachedApi<T>(url: string): T | undefined {
   return cache.get(url) as T | undefined;
 }
 
+/** 훅 밖에서 캐시 적재 — 프리페치(홈이 상위 보드 상세를 미리 받아둠)나
+ *  페이지 로컬 상태의 스냅샷 동기화(보드 상세의 마지막 상태 보존)용. */
+export function writeCachedApi<T>(url: string, value: T) {
+  cache.set(url, value);
+}
+
 export function useCachedApi<T>(url: string) {
   const [data, setData] = useState<T | undefined>(() => cache.get(url) as T | undefined);
   const [error, setError] = useState(false);
