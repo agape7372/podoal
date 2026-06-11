@@ -23,7 +23,7 @@
 
 ## DB 마이그레이션
 신규 `PushSubscription` 테이블 + `Board.giftMessage/giftOpenedAt` + `Reminder.lastSentAt` 컬럼이 추가됩니다.
-`npm run build`가 `prisma db push`를 선행하므로 Vercel 배포 시 자동 반영됩니다. (모두 non-breaking 추가)
+`npm run build`가 `prisma migrate deploy`를 선행하므로 Vercel 배포 시 자동 반영됩니다. (모두 non-breaking 추가 — 스키마 변경 절차는 `docs/MIGRATIONS.md` 참고)
 
 ## 크론(서버측 리마인더)
 > ⚠️ `vercel.json`에는 **더 이상 cron이 등록돼 있지 않습니다.** 매분(`* * * * *`) 크론이 Vercel Hobby 한도(하루 1회)를 초과해 배포 자체가 거부됐기에 PR #20에서 제거했습니다. 라우트 `/api/cron/reminders` 자체는 존재하므로 외부에서 호출만 하면 동작합니다.

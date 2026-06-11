@@ -24,13 +24,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 npm run dev          # Start dev server (localhost:3000)
-npm run build        # Production build (runs `prisma db push --skip-generate --accept-data-loss` first, then `next build`)
-npm run lint         # ESLint
+npm run build        # Production build (runs `prisma migrate deploy` first, then `next build`)
+npm run lint         # ESLint + icon check
 npm run db:generate  # Regenerate Prisma client after schema changes
-npm run db:push      # Push schema changes to DB
+npm run db:push      # Push schema to DB — LOCAL EXPERIMENTS ONLY (no history; see docs/MIGRATIONS.md)
 npm run db:seed      # Seed with sample data (tsx prisma/seed.ts)
 npm run db:studio    # Open Prisma Studio GUI
 ```
+
+> **Schema changes use prisma migrate (2026-06-11~)** — `prisma/migrations/` is the source of truth
+> (baseline `0_init`). New schema change = `npx prisma migrate dev --name <summary>` against a local
+> Docker Postgres, commit the generated migration dir. Build/CI/prod apply via `migrate deploy`.
+> Full workflow: `docs/MIGRATIONS.md`.
 
 Dev login: use the "🛠 개발자 모드" button on the auth page, or credentials `dev@podoal.com` / `dev1234`. **Blocked in production by default** (security patch `72fb6f2`): `POST /api/auth/dev` returns 404 in prod unless `ENABLE_DEV_LOGIN=true`, and the welcome button is hidden in prod builds. Local `next dev` works (NODE_ENV=development).
 

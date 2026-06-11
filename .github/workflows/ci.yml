@@ -29,7 +29,7 @@ jobs:
       - run: npm test
       # next build (Turbopack, default in Next 16) catches App-Router server/client
       # boundary errors that tsc/lint miss. Runs next build directly, not the
-      # `build` npm script, to skip the `prisma db push` that needs a live DB.
+      # `build` npm script, to skip the `prisma migrate deploy` that needs a live DB.
       - run: npx next build
 
   # 동시성 통합테스트 — 실 Postgres가 필요해 별도 잡(서비스 컨테이너)으로 분리.
@@ -60,5 +60,6 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      - run: npx prisma db push --skip-generate
+      # 마이그레이션 이력대로 스키마를 구축 — db push와 달리 migrations/가 곧 진실.
+      - run: npx prisma migrate deploy
       - run: npm run test:integration
