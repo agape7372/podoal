@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppStore } from '@/lib/store';
 import { api } from '@/lib/api';
-import { useCachedApi } from '@/lib/cachedApi';
+import { useCachedApi, readCachedApi, writeCachedApi } from '@/lib/cachedApi';
 import SwipeableBoardCard, { SWIPE_TRANSITION } from '@/components/SwipeableBoardCard';
 import StreakCard, { type StreakInfo } from '@/components/StreakCard';
 import ClayButton from '@/components/ClayButton';
@@ -14,7 +14,7 @@ import Avatar from '@/components/Avatar';
 import NotificationBell from '@/components/NotificationBell';
 import FriendActivityCard, { type CheerState } from '@/components/FriendActivityCard';
 import Podo from '@/components/mascot/Podo';
-import type { BoardSummary } from '@/types';
+import type { BoardSummary, BoardDetail } from '@/types';
 import { feedbackTap, feedbackCheer } from '@/lib/feedback';
 import { formatRelativeTime, type FriendActivity } from '@/lib/activity';
 
@@ -98,6 +98,26 @@ export default function HomePage() {
   useEffect(() => {
     boards.slice(0, 8).forEach((b) => router.prefetch(`/board/${b.id}`));
   }, [boards, router]);
+
+  // 상세 '데이터'도 idle에 미리 받아 캐시 — 보드 카드 탭(이 앱의 최빈 전환)이
+  // 첫 진입부터 API 대기 없이 즉시 렌더된다. 첫 페인트 버스트와 경쟁하지 않게
+  // 1.5초 지연 + 순차 발사, 이미 캐시된 보드(직전에 봤던 것)는 건너뛴다.
+  useEffect(() => {
+    if (!boardsData) return;
+    const targets = boardsData.boards.filter((b) => !b.harvestedAt).slice(0, 3);
+    let cancelled = false;
+    const t = window.setTimeout(async () => {
+      for (const b of targets) {
+        if (cancelled) return;
+        if (readCachedApi(`/api/boards/${b.id}`)) continue;
+        try {
+          const d = await api<{ board: BoardDetail }>(`/api/boards/${b.id}`);
+          writeCachedApi(`/api/boards/${b.id}`, d.board);
+        } catch { /* 프리페치 실패는 조용히 무시 — 진입 시 정상 fetch가 커버 */ }
+      }
+    }, 1500);
+    return () => { cancelled = true; window.clearTimeout(t); };
+  }, [boardsData]);
 
   // 스트릭 카드 데이터 — 보드 fetch와 병렬(독립 effect, 직렬 워터폴 금지).
   // mount 1회 + 유예 사용 직후만 재조회(stats API는 비용이 있어 잦은 refetch 금지).

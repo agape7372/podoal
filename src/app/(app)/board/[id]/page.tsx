@@ -17,7 +17,7 @@ import CapsuleModal from '@/components/CapsuleModal';
 import Avatar from '@/components/Avatar';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import EmojiIcon from '@/components/EmojiIcon';
-import { readCachedApi } from '@/lib/cachedApi';
+import { readCachedApi, writeCachedApi } from '@/lib/cachedApi';
 import type { BoardDetail, BoardSummary, PlantedGiftInfo, RewardInfo, TimeCapsuleInfo } from '@/types';
 import { REWARD_TYPE_ICON, ICON } from '@/lib/icons';
 import { feedbackTap } from '@/lib/feedback';
@@ -27,8 +27,18 @@ export default function BoardDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const user = useAppStore((s) => s.user);
-  const [board, setBoard] = useState<BoardDetail | null>(null);
-  const [loading, setLoading] = useState(true);
+  // SWR: 마지막으로 본 보드 상태(또는 홈의 idle 프리페치 결과)가 캐시에 있으면
+  // 포도송이까지 즉시 렌더하고 무음 재검증한다 — 상세 진입이 이 앱의 최빈 전환인데
+  // 매번 API 왕복(웜 0.2~0.5s, 콜드 2s+) 동안 스켈레톤을 보던 것이 핵심 체감 병목.
+  const [board, setBoard] = useState<BoardDetail | null>(
+    () => readCachedApi<BoardDetail>(`/api/boards/${id}`) ?? null,
+  );
+  const [loading, setLoading] = useState<boolean>(() => !readCachedApi(`/api/boards/${id}`));
+  // 보드 상태 스냅샷을 캐시에 동기화 — 채움/보상 등 모든 로컬 변화가 다음 진입에도
+  // 보인다. temp-* 낙관 스티커가 섞여 저장돼도 재진입 시 무음 재검증이 즉시 reconcile.
+  useEffect(() => {
+    if (board) writeCachedApi(`/api/boards/${id}`, board);
+  }, [board, id]);
   // 홈이 받아둔 /api/boards 캐시에서 이 보드의 요약을 꺼내 스켈레톤 동안 제목·진행
   // 숫자를 실값으로 선렌더 — '이미 아는 정보를 다시 기다리는' 체감 제거.
   // id 키로 메모 — 같은 컴포넌트 인스턴스가 다른 보드로 재사용돼도 이전 보드의
@@ -54,7 +64,9 @@ export default function BoardDetailPage() {
   const [plantPos, setPlantPos] = useState<number | null>(null);
   // A mid reward just reached → opened immediately in a popup (instant "쾌감").
   const [rewardPopup, setRewardPopup] = useState<RewardInfo | null>(null);
-  const initialLoadDoneRef = useRef(false);
+  // 캐시로 시드됐다면 '첫 로드 완료'로 취급 — 재검증 실패 시 홈으로 튕기는 대신
+  // 기존 화면 + 동기화 실패 배너를 유지한다(fetchBoard catch 분기 참조).
+  const initialLoadDoneRef = useRef(board !== null);
   // 언마운트 가드 — 큐에서 늦게 도착한 reconcile/rollback이 떠난 화면을 만지지 않게.
   const aliveRef = useRef(true);
   useEffect(() => {
