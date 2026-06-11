@@ -210,6 +210,25 @@ export default function RelayDetailPage() {
     </span>
   );
 
+  // 탭 가능 멤버 카드의 우측 chevron — '눌러서 이동' 시각 단서(의미론은 button이 이미 제공).
+  // 세로 중앙이라 top-2.5의 수확 배지와 안 겹친다(수확 배지는 board가 있을 때만 → 카드가 충분히 큼).
+  const tapChevron = (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className="absolute right-3 top-1/2 -translate-y-1/2 text-warm-sub"
+    >
+      <path d="m9 18 6-6-6-6" />
+    </svg>
+  );
+
   return (
     <div className="pb-4">
       {/* Back */}
@@ -281,9 +300,10 @@ export default function RelayDetailPage() {
                   type="button"
                   disabled={!tappable}
                   onClick={() => { if (p.boardId) { feedbackTap(); router.push(`/board/${p.boardId}`); } }}
-                  className={`relative block w-full text-left p-4 rounded-2xl ${done ? 'clay bg-leaf-100/40' : 'clay-sm'} ${harvested ? 'opacity-75' : ''} ${tappable ? 'active:scale-[0.98] transition-transform' : 'cursor-default'}`}
+                  className={`relative block w-full text-left p-4 rounded-2xl ${done ? 'clay bg-leaf-100/40' : 'clay-sm'} ${harvested ? 'opacity-75' : ''} ${tappable ? 'pr-9 active:scale-[0.98] transition-transform' : 'cursor-default'}`}
                 >
                   {harvested && harvestBadge}
+                  {tappable && tapChevron}
                   <div className="flex items-center gap-3">
                     <Avatar avatar={p.user.avatar} size="md" />
                     <div className="min-w-0">
@@ -327,9 +347,10 @@ export default function RelayDetailPage() {
                     type="button"
                     disabled={!tappable}
                     onClick={() => { if (p.boardId) { feedbackTap(); router.push(`/board/${p.boardId}`); } }}
-                    className={`relative flex-1 mb-3 p-4 rounded-2xl text-left ${isActive ? 'clay bg-grape-50 ring-2 ring-grape-300' : 'clay-sm'} ${harvested ? 'opacity-75' : ''} ${tappable ? 'active:scale-[0.98] transition-transform' : 'cursor-default'}`}
+                    className={`relative flex-1 mb-3 p-4 rounded-2xl text-left ${isActive ? 'clay bg-grape-50 ring-2 ring-grape-300' : 'clay-sm'} ${harvested ? 'opacity-75' : ''} ${tappable ? 'pr-9 active:scale-[0.98] transition-transform' : 'cursor-default'}`}
                   >
                     {harvested && harvestBadge}
+                    {tappable && tapChevron}
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <Avatar avatar={p.user.avatar} size="md" />

@@ -200,6 +200,7 @@ export interface NotificationSettingInfo {
   rewardEnabled: boolean;
   relayEnabled: boolean;
   reminderEnabled: boolean;
+  dailyNudgeEnabled: boolean;
 }
 
 export interface ReminderInfo {
