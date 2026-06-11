@@ -1,11 +1,24 @@
+// v7: CLI처럼 seed도 .env를 스스로 읽어야 하고(자동 로딩 제거), 클라이언트는 어댑터 필수.
+import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
 import bcrypt from 'bcryptjs';
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({
+  adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
+});
 
 async function main() {
-  // Clean existing data
+  // Clean existing data — user를 참조하는 모든 테이블을 FK 의존 순서로 먼저 비운다.
+  // (seed 작성 이후 추가된 모델들이 빠져 있으면 user.deleteMany가 P2003으로 실패 — 멱등성 보장)
   await prisma.message.deleteMany();
+  await prisma.pushSubscription.deleteMany();
+  await prisma.reminder.deleteMany();
+  await prisma.notificationSetting.deleteMany();
+  await prisma.relayParticipant.deleteMany();
+  await prisma.relay.deleteMany();
+  await prisma.plantedGift.deleteMany();
+  await prisma.timeCapsule.deleteMany();
   await prisma.sticker.deleteMany();
   await prisma.reward.deleteMany();
   await prisma.board.deleteMany();

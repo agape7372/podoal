@@ -1,6 +1,7 @@
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
 import { giftBoardCopy, RegiftBlockedError } from '../../src/lib/giftBoard';
 
 // 실 Postgres 통합테스트 — 포도판 선물 복사 트랜잭션(src/lib/giftBoard.ts) 검증.
@@ -16,7 +17,7 @@ const createdBoardIds: string[] = [];
 
 before(async () => {
   if (skip) return;
-  prisma = new PrismaClient({ datasourceUrl: TEST_URL });
+  prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: TEST_URL }) });
   const stamp = Date.now();
   const sender = await prisma.user.create({
     data: { email: `gift-sender-${stamp}@test.local`, name: '선물보내미', avatar: 'grape' },

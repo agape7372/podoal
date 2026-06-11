@@ -4,6 +4,15 @@
 `prisma/migrations/` 디렉토리가 스키마 변경의 단일 진실이며, 빌드(`npm run build`)와
 CI integration 잡이 `prisma migrate deploy`로 스키마를 적용한다.
 
+## Prisma 7 체제 (2026-06-11~)
+
+- 연결 URL은 schema.prisma가 아니라 **`prisma.config.ts`의 `datasource.url`** 에서 읽는다.
+- v7 CLI는 `.env`를 자동 로딩하지 않는다 — `prisma.config.ts` 최상단의 `import 'dotenv/config'`가
+  로컬 .env를 대신 읽어준다. (Vercel/CI는 프로세스 env 주입이라 무관.)
+- `migrate dev`가 **client 재생성과 seed를 자동 실행하지 않는다** — 필요 시
+  `npx prisma generate` / `npx prisma db seed`(또는 `npm run db:seed`)를 명시 실행.
+- 런타임 클라이언트는 드라이버 어댑터(`@prisma/adapter-pg`) 필수 — `src/lib/prisma.ts` 참고.
+
 ## 베이스라인 (0_init)
 
 - `prisma/migrations/0_init/migration.sql` — 도입 시점(2026-06-11, 13개 모델 + NotificationSetting
@@ -20,7 +29,8 @@ CI integration 잡이 `prisma migrate deploy`로 스키마를 적용한다.
 
 1. `prisma/schema.prisma` 수정
 2. 로컬 Postgres(docker)를 띄우고: `npx prisma migrate dev --name <변경_요약>`
-   → `prisma/migrations/<timestamp>_<이름>/` 생성 + 로컬 적용 + client 재생성
+   → `prisma/migrations/<timestamp>_<이름>/` 생성 + 로컬 적용
+   (v7: client 재생성은 자동이 아님 — 이어서 `npx prisma generate`)
 3. 커밋에 마이그레이션 디렉토리 포함 → PR → CI integration 잡이 `migrate deploy`로 검증
 4. 머지 → Vercel 빌드의 `migrate deploy`가 프로덕션에 적용
 
