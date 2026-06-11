@@ -13,14 +13,16 @@ const MAX_BACKOFF_MS = 60_000;
 export function useSSE() {
   const addMessage = useAppStore((s) => s.addMessage);
   const showPopup = useAppStore((s) => s.showPopup);
-  const user = useAppStore((s) => s.user);
+  // user 객체가 아닌 id 구독 — setUser가 같은 사용자로 객체만 갈아끼워도
+  // 스트림이 teardown+재연결되지 않게 한다(4분짜리 함수 점유 이중화 방지).
+  const userId = useAppStore((s) => s.user?.id);
   const realtimeEnabled = useAppStore((s) => s.settings.realtimeNotifications);
   const eventSourceRef = useRef<EventSource | null>(null);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const backoffRef = useRef<number>(BASE_BACKOFF_MS);
 
   useEffect(() => {
-    if (!user || !realtimeEnabled) return;
+    if (!userId || !realtimeEnabled) return;
 
     let cancelled = false;
 
@@ -93,5 +95,5 @@ export function useSSE() {
       clearReconnect();
       closeConnection();
     };
-  }, [user, realtimeEnabled, addMessage, showPopup]);
+  }, [userId, realtimeEnabled, addMessage, showPopup]);
 }

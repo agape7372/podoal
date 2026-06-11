@@ -46,7 +46,7 @@ export default function RelayDetailPage() {
   const user = useAppStore((s) => s.user);
 
   // SWR 캐시(포도동별 키): 재방문 시 직전 상세로 즉시 렌더 + 무음 재검증.
-  const { data, loading, error, refresh } = useCachedApi<{ relay: RelayDetail }>(
+  const { data, loading, refreshFailed, refresh } = useCachedApi<{ relay: RelayDetail }>(
     `/api/relays/${relayId}`,
   );
   const relay = data?.relay ?? null;
@@ -63,10 +63,11 @@ export default function RelayDetailPage() {
 
   const fetchRelay = refresh;
 
-  // 상세 로드 실패(권한 없음/삭제됨)는 종전처럼 목록으로 복귀.
+  // 로드 실패(권한 없음/삭제됨)는 종전처럼 목록으로 복귀 — 캐시가 있어도
+  // 재검증이 실패했다면 이미 접근 불가한 포도동이므로 스테일 화면을 유지하지 않는다.
   useEffect(() => {
-    if (error) router.replace('/relay');
-  }, [error, router]);
+    if (refreshFailed) router.replace('/relay');
+  }, [refreshFailed, router]);
 
   const handleAccept = async () => {
     setResponding(true);

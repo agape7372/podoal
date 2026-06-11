@@ -25,6 +25,12 @@ export function invalidateCachedApi(url: string) {
   cache.delete(url);
 }
 
+/** 훅 밖에서 캐시 스냅샷 읽기 — 다른 페이지가 받아둔 응답으로 선렌더할 때 사용
+ *  (예: board/[id]가 홈의 /api/boards 캐시에서 보드 요약을 꺼내 제목을 즉시 표시). */
+export function readCachedApi<T>(url: string): T | undefined {
+  return cache.get(url) as T | undefined;
+}
+
 export function useCachedApi<T>(url: string) {
   const [data, setData] = useState<T | undefined>(() => cache.get(url) as T | undefined);
   const [error, setError] = useState(false);
@@ -69,6 +75,11 @@ export function useCachedApi<T>(url: string) {
     loading: data === undefined && !fetched,
     /** 에러 화면 게이트: 보여줄 데이터가 전혀 없을 때만 — 무음 재검증 실패는 기존 화면 유지 */
     error: error && data === undefined,
+    /** 무음 재검증 실패 포함 원시 에러 — 캐시가 있어도 '지금 접근 불가'에 반응해야 할 때
+     *  (예: relay 상세가 삭제/권한 상실 시 목록으로 복귀) 이쪽을 본다. */
+    refreshFailed: error,
+    /** 이번 mount의 재검증이 완료됐는가 — '서버 기준 확정값'이 필요한 분기(온보딩 등)용. */
+    validated: fetched,
     refresh,
     mutate,
   };

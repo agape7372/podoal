@@ -45,6 +45,7 @@ export default function HomePage() {
     data: boardsData,
     loading,
     error: loadError,
+    validated: boardsValidated,
     refresh: loadBoards,
     mutate: mutateBoards,
   } = useCachedApi<{ boards: BoardSummary[] }>('/api/boards');
@@ -117,12 +118,13 @@ export default function HomePage() {
     : null;
 
   // 첫 방문(보드 0개 + 미온보딩) 시 환영 온보딩 — "빈 홈에서 뭘 해야 하지?" 이탈 완화.
+  // boardsValidated: 캐시의 빈 배열만 보고 서버 재검증 전에 오발하지 않게 확정값을 기다린다.
   useEffect(() => {
-    if (loading || loadError || boards.length > 0) return;
+    if (loading || loadError || !boardsValidated || boards.length > 0) return;
     try {
       if (!localStorage.getItem(ONBOARDED_KEY)) setShowOnboarding(true);
     } catch { /* noop */ }
-  }, [loading, loadError, boards.length]);
+  }, [loading, loadError, boardsValidated, boards.length]);
 
   // 마지막으로 본 필터 탭 복원(재진입 시 항상 '전체'로 리셋되던 마찰 해소).
   useEffect(() => {

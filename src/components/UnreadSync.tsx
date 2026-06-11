@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect } from 'react';
-import { usePathname } from 'next/navigation';
 import { refreshUnreadCount } from '@/lib/notifications';
 
 /**
@@ -14,10 +13,11 @@ import { refreshUnreadCount } from '@/lib/notifications';
  * 트리거는 반드시 여기 한 곳에만 둔다(다른 컴포넌트에 복제하면 이중 fetch).
  */
 export default function UnreadSync() {
-  const pathname = usePathname();
-
-  // 라우트 전환마다 재조회(인박스에서 읽고 돌아오면 배지 갱신).
-  useEffect(() => { refreshUnreadCount(); }, [pathname]);
+  // 첫 마운트 1회만 — 예전엔 라우트 전환마다 재조회했는데, 모든 페이지 이동에
+  // 본 fetch와 무관한 5쿼리 집계 API가 1건씩 따라붙어 임계 경로와 경쟁했다.
+  // 전환 중 배지 갱신은 이미 다른 경로가 책임진다: SSE 수신(addMessage 낙관 증가),
+  // 인박스 진입(피드로 setUnreadCount), 메시지 읽음/삭제(force 동기화), 탭 복귀(아래).
+  useEffect(() => { refreshUnreadCount(); }, []);
 
   // 탭이 다시 보이거나 창에 포커스될 때 재조회 — 체류 중 도착한 응원·초대·보상을 즉시 반영.
   // visibilitychange와 focus가 동시에 발화해도 refreshUnreadCount 내부 1.5초 스로틀이
