@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAppStore } from '@/lib/store';
 import { api } from '@/lib/api';
@@ -562,16 +563,18 @@ export default function HomePage() {
         </section>
       )}
 
-      {/* FAB */}
+      {/* FAB — <Link>라 항상 뷰포트에 있어 /board/create가 상시 프리페치된다
+          (하단탭 '만들기' 제거로 사라진 탭 프리페치를 여기서 대신함). */}
       {boards.length > 0 && (
-        <button
-          onClick={() => { feedbackTap(); router.push('/board/create'); }}
+        <Link
+          href="/board/create"
+          onClick={feedbackTap}
           className="fixed bottom-28 right-6 w-14 h-14 rounded-full flex items-center justify-center text-3xl text-white bg-grape-600 border-[1.3px] border-warm-border active:translate-x-[1.5px] active:translate-y-[2px] transition-all z-40 safe-bottom"
           style={{ boxShadow: '2px 3px 0 rgba(73, 50, 100, 0.12)' }}
           aria-label="새 포도판 만들기"
         >
           +
-        </button>
+        </Link>
       )}
 
       {/* 가벼운 토스트 (정렬 저장 실패·미완성 수확 안내). 모달(z-90) 아래, 네비(z-50) 위. */}
