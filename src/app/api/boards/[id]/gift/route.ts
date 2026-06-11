@@ -39,6 +39,16 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
     return authResponse('Only the board owner can gift this board', 403);
   }
 
+  // 포도동(그룹·순차 양 모드) 참가자 보드는 선물 차단 — 선물 사본의 진행은
+  // 포도동 추적과 무관해져 참가자 현황을 오도한다. UI 비활성화의 서버측 짝.
+  const relayParticipant = await prisma.relayParticipant.findFirst({
+    where: { boardId },
+    select: { id: true },
+  });
+  if (relayParticipant) {
+    return authResponse('포도동에 연결된 포도판은 선물할 수 없어요', 400);
+  }
+
   // Verify friendship exists and is accepted
   const friendship = await prisma.friendship.findFirst({
     where: {

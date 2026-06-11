@@ -33,6 +33,8 @@ export async function GET(request: Request, props: { params: Promise<{ id: strin
       rewards: {
         orderBy: { triggerAt: 'asc' },
       },
+      // 포도동 연결 여부(inRelay) — 양 모드(그룹·순차) 공통으로 선물 차단에 쓰인다.
+      relayParticipants: { select: { relay: { select: { mode: true } } } },
     },
   });
 
@@ -110,6 +112,8 @@ export async function GET(request: Request, props: { params: Promise<{ id: strin
     // Gifter's private note → owner/recipient only, never a visiting friend.
     giftMessage: isViewerPrivileged ? board.giftMessage : '',
     giftOpenedAt: board.giftOpenedAt ? board.giftOpenedAt.toISOString() : null,
+    // 목록 API의 podong(그룹 전용 배지 의미)과 달리 순차 릴레이 보드도 포함한다.
+    inRelay: board.relayParticipants.length > 0,
     rewardCount: board.rewards.length,
     stickers: board.stickers,
     rewards,
