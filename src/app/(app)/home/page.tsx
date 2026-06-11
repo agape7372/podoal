@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAppStore } from '@/lib/store';
 import { api } from '@/lib/api';
 import SwipeableBoardCard from '@/components/SwipeableBoardCard';
+import StreakCard, { type StreakInfo } from '@/components/StreakCard';
 import ClayButton from '@/components/ClayButton';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import OnboardingWelcome from '@/components/OnboardingWelcome';
@@ -87,6 +88,22 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => { loadBoards(); }, [loadBoards]);
+
+  // 스트릭 카드 데이터 — 보드 fetch와 병렬(독립 effect, 직렬 워터폴 금지).
+  // mount 1회 + 유예 사용 직후만 재조회(stats API는 비용이 있어 잦은 refetch 금지).
+  // 실패 시 카드만 조용히 미렌더 — 홈 핵심 흐름(보드 목록)엔 영향 없음.
+  const [streakInfo, setStreakInfo] = useState<StreakInfo | null>(null);
+  const loadStreak = useCallback(() => {
+    api<{ stats: StreakInfo }>('/api/stats')
+      .then((d) => setStreakInfo({
+        currentStreak: d.stats.currentStreak,
+        longestStreak: d.stats.longestStreak,
+        freezeAvailable: d.stats.freezeAvailable,
+        freezeSuggestion: d.stats.freezeSuggestion,
+      }))
+      .catch(() => { /* 부가 정보 — 조용히 생략 */ });
+  }, []);
+  useEffect(() => { loadStreak(); }, [loadStreak]);
 
   // 첫 방문(보드 0개 + 미온보딩) 시 환영 온보딩 — "빈 홈에서 뭘 해야 하지?" 이탈 완화.
   useEffect(() => {
@@ -324,6 +341,9 @@ export default function HomePage() {
         </div>
         <NotificationBell />
       </div>
+
+      {/* 스트릭 카드 — 데이터 도착 전엔 미렌더(스켈레톤 없음), 필터 탭과 무관하게 항상 노출 */}
+      {streakInfo && <StreakCard streak={streakInfo} onRefresh={loadStreak} onError={showToast} />}
 
       {/* Filter tabs — 한 줄(아이콘 없음): 전체/진행/완료/수확 + 카운트 */}
       <div className="flex gap-2 mb-4 overflow-x-auto scrollbar-hide">
