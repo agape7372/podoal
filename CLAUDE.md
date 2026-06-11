@@ -36,6 +36,14 @@ npm run db:studio    # Open Prisma Studio GUI
 > (baseline `0_init`). New schema change = `npx prisma migrate dev --name <summary>` against a local
 > Docker Postgres, commit the generated migration dir. Build/CI/prod apply via `migrate deploy`.
 > Full workflow: `docs/MIGRATIONS.md`.
+>
+> **Prisma 7 (2026-06-11~)** — connection URL lives in `prisma.config.ts` (NOT schema.prisma; the v7
+> CLI doesn't auto-load `.env` — the config's `import 'dotenv/config'` does). Runtime client requires
+> the `@prisma/adapter-pg` driver adapter (see `src/lib/prisma.ts`). `migrate dev` no longer
+> auto-generates the client or auto-seeds — run `prisma generate` / `npm run db:seed` explicitly.
+> Serializable conflicts can surface WITHOUT code P2034 (commit-time `TransactionWriteConflict` in the
+> error's cause chain) — always detect via `isSerializationConflict()` from `src/lib/fillBoard.ts`,
+> never by checking `e.code === 'P2034'` alone.
 
 Dev login: use the "🛠 개발자 모드" button on the auth page, or credentials `dev@podoal.com` / `dev1234`. **Blocked in production by default** (security patch `72fb6f2`): `POST /api/auth/dev` returns 404 in prod unless `ENABLE_DEV_LOGIN=true`, and the welcome button is hidden in prod builds. Local `next dev` works (NODE_ENV=development).
 
@@ -107,7 +115,7 @@ API routes mirror the resource pattern under `src/app/api/` (auth, boards, capsu
 | `src/lib/templates.ts` | 38 Korean habit templates in 7 categories with helpers |
 | `src/lib/shareCard.ts` | Canvas API share card image generator (1080x1350 Instagram ratio) |
 | `src/lib/winery.ts` | 7-tier winery system, bottle size utilities |
-| `src/lib/prisma.ts` | Prisma client singleton (single instance, no /tmp bootstrap now that we're on Neon) |
+| `src/lib/prisma.ts` | Prisma client singleton — v7 Rust-free client + `@prisma/adapter-pg` driver adapter (connect timeout 5s) |
 | `src/lib/useSSE.ts` | SSE hook for real-time message delivery (server polls DB every 10s; stream is capped at 4 min then the client auto-reconnects with backoff) |
 | `src/types/index.ts` | All shared TypeScript interfaces and const arrays |
 

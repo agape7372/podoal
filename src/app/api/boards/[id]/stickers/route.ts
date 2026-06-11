@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { getCurrentUserId, authResponse } from '@/lib/auth';
-import { fillBoardGrape, PositionTakenError } from '@/lib/fillBoard';
+import { fillBoardGrape, isSerializationConflict, PositionTakenError } from '@/lib/fillBoard';
 
 export async function POST(request: Request, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
@@ -70,7 +70,7 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
     if (e instanceof PositionTakenError) return authResponse('이미 채워진 칸이에요', 409);
     // 재시도(백오프 포함) 소진 — 극단적 동시 채움. 일시 오류로 해요체 안내.
     // (클라 배너가 "— 잠시 후 다시 시도해주세요."를 덧붙이므로 여기선 원인만.)
-    if ((e as { code?: string }).code === 'P2034') {
+    if (isSerializationConflict(e)) {
       return authResponse('포도알 채우기가 한꺼번에 몰렸어요', 503);
     }
     throw e;

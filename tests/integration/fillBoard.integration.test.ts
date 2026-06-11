@@ -1,6 +1,7 @@
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
 import { fillBoardGrape, PositionTakenError } from '../../src/lib/fillBoard';
 
 // 실 Postgres 통합테스트 — 마지막 칸 동시 채움 race(Serializable+재시도) 검증.
@@ -8,7 +9,7 @@ import { fillBoardGrape, PositionTakenError } from '../../src/lib/fillBoard';
 //   docker run -d --name podoal-test-pg -e POSTGRES_PASSWORD=test -e POSTGRES_USER=test \
 //     -e POSTGRES_DB=podoal_test -p 55432:5432 postgres:16
 //   DATABASE_URL=postgresql://test:test@localhost:55432/podoal_test?schema=public \
-//     npx prisma db push --skip-generate
+//     npx prisma db push   # (v7: --skip-generate 플래그 제거됨)
 //   TEST_DATABASE_URL=postgresql://test:test@localhost:55432/podoal_test?schema=public npm run test:integration
 const TEST_URL = process.env.TEST_DATABASE_URL;
 const skip = TEST_URL ? false : 'TEST_DATABASE_URL 미설정 — 통합테스트 건너뜀';
@@ -19,7 +20,7 @@ const createdBoardIds: string[] = [];
 
 before(async () => {
   if (skip) return;
-  prisma = new PrismaClient({ datasourceUrl: TEST_URL });
+  prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: TEST_URL }) });
   const user = await prisma.user.create({
     data: { email: `race-${Date.now()}@test.local`, name: '레이스테스터', avatar: 'grape' },
   });

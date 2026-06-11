@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUserId, authResponse } from '@/lib/auth';
+import { isSerializationConflict } from '@/lib/fillBoard';
 
 // A friend hides a surprise gift on a specific (still-unfilled) grape of the
 // owner's board. Revealed when the owner fills that grape (see stickers route).
@@ -69,7 +70,7 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
     const status = (e as { status?: number }).status;
     if (typeof status === 'number') return authResponse((e as Error).message, status);
     // Serializable write conflict (concurrent plant on the same board) → dup.
-    if ((e as { code?: string }).code === 'P2034') return authResponse('그 칸엔 이미 선물을 심었어요', 409);
+    if (isSerializationConflict(e)) return authResponse('그 칸엔 이미 선물을 심었어요', 409);
     throw e;
   }
 

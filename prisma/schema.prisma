@@ -2,9 +2,9 @@ generator client {
   provider = "prisma-client-js"
 }
 
+// v7: 연결 URL은 schema가 아니라 prisma.config.ts(datasource.url)에서 읽는다.
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 model User {

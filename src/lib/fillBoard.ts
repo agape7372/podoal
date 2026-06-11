@@ -11,6 +11,31 @@ export class PositionTakenError extends Error {
   }
 }
 
+// Serializable 직렬화 충돌 식별 — Prisma 7(드라이버 어댑터)에서 두 형태로 갈라진다:
+// 쿼리 실행 중 충돌은 종전처럼 P2034로 매핑되지만, 커밋 시점 실패(read/write 의존
+// 사이클은 커밋에서야 발견되는 경우가 흔함)는 transaction-manager가 P2034 매핑 없이
+// cause 체인(kind=TransactionWriteConflict / SQLSTATE 40001)으로 던진다(7.8.0 실측).
+// 둘 다 잡아야 재시도가 동작하므로 cause/meta.driverAdapterError 체인을 걷는다.
+export function isSerializationConflict(e: unknown): boolean {
+  const seen = new Set<object>();
+  let cur: unknown = e;
+  while (cur && typeof cur === 'object' && !seen.has(cur as object)) {
+    seen.add(cur as object);
+    const c = cur as {
+      code?: string;
+      kind?: string;
+      originalCode?: string;
+      cause?: unknown;
+      meta?: { driverAdapterError?: unknown };
+    };
+    if (c.code === 'P2034' || c.kind === 'TransactionWriteConflict' || c.originalCode === '40001') {
+      return true;
+    }
+    cur = c.cause ?? c.meta?.driverAdapterError;
+  }
+  return false;
+}
+
 // 포도알 채우기의 핵심 트랜잭션. 라우트(boards/[id]/stickers)와 통합테스트가 동일 로직을
 // 공유하도록 추출 — 두 곳이 드리프트하지 않게 함.
 //
@@ -177,7 +202,7 @@ export async function fillBoardGrape(
       if (code === 'P2002') throw new PositionTakenError();
       // Serializable write conflict (concurrent fill on the same board) → retry
       // with exponential backoff + jitter (server code — Math.random OK here).
-      if (code === 'P2034' && attempt < P2034_MAX_RETRIES) {
+      if (isSerializationConflict(e) && attempt < P2034_MAX_RETRIES) {
         await sleep(BACKOFF_BASE_MS * 2 ** attempt * (0.5 + Math.random()));
         continue;
       }
