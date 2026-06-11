@@ -315,7 +315,7 @@ function CircularProgress({ value }: { value: number }) {
             cy={radius}
             r={normalizedRadius}
             fill="transparent"
-            stroke="#ECE0F3"
+            className="stroke-warm-border"
             strokeWidth={stroke}
           />
           {/* Progress circle */}
@@ -333,8 +333,9 @@ function CircularProgress({ value }: { value: number }) {
           />
           <defs>
             <linearGradient id="grapeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#c084fc" />
-              <stop offset="100%" stopColor="#7c3aed" />
+              {/* stop-color는 presentation attribute라 var()를 못 받음 — style로 @theme 토큰 참조 */}
+              <stop offset="0%" style={{ stopColor: 'var(--color-grape-400)' }} />
+              <stop offset="100%" style={{ stopColor: 'var(--color-grape-600)' }} />
             </linearGradient>
           </defs>
         </svg>

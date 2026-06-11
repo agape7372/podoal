@@ -45,6 +45,8 @@ export const viewport: Viewport = {
   maximumScale: 5,
   userScalable: true,
   themeColor: '#DCC4F2',
+  // 라이트 전용 PWA — 브라우저 강제 다크닝 opt-out (globals.css :root color-scheme와 쌍)
+  colorScheme: 'only light',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
