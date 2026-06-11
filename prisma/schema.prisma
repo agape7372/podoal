@@ -17,6 +17,10 @@ model User {
   providerId String?  // user id from the OAuth provider
   createdAt  DateTime @default(now())
 
+  // 스트릭 유예(freeze) 1회 — 계정당 한 번, 빈 어제(KST)를 메꿔 스트릭을 이어붙인다.
+  streakFreezeDate   String?   // 유예로 메꾼 KST 날짜 'YYYY-MM-DD' (streak 계산 시 채워진 날로 간주)
+  streakFreezeUsedAt DateTime? // 유예 소진 시각. null = 아직 보유
+
   boards              Board[]              @relation("BoardOwner")
   receivedBoards      Board[]              @relation("BoardReceiver")
   giftedBoards        Board[]              @relation("BoardGifter")
