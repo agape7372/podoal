@@ -2,11 +2,11 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-> **About this project (podoal)** — This is **podoal**, a habit-tracking PWA with a claymorphism visual redesign. Data layer (Prisma schema, all `/api/*` routes, `src/lib/auth.ts`, `src/lib/oauth.ts`, `src/lib/store.ts` keys, `src/lib/feedback.ts` function signatures, `prisma/seed.ts`, env var names) — **do not modify**. Visual layer (`tailwind.config.ts`, `src/app/globals.css`, all `src/components/**`, all page components, manifest brand strings) was redesigned.
+> **About this project (podoal)** — This is **podoal**, a habit-tracking PWA with a claymorphism visual redesign. Data layer (Prisma schema, all `/api/*` routes, `src/lib/auth.ts`, `src/lib/oauth.ts`, `src/lib/store.ts` keys, `src/lib/feedback.ts` function signatures, `prisma/seed.ts`, env var names) — **do not modify**. Visual layer (`src/app/globals.css`, all `src/components/**`, all page components, manifest brand strings) was redesigned.
 >
 > **podoal design tokens**
 > - Brand purple (ACTUAL values): `tailwind grape-500` = `#B28CDC`, `--grape-primary` = `#DCC4F2`. The `#9B7ED8` accent now lives **only** in the `grape-glow` shadow token — the winery Lv badge gradient was unified to `grape-700 → grape-800` utilities (for AA-contrast white text; the old inline `#9B7ED8 → #7B5FB8` hex is gone)
-> - Accent palettes (now defined in `tailwind.config.ts`): `juice-*` (warm pink, CTAs/celebrations), `leaf-*` (green, stem/vine/online/success), `sunshine-*` (yellow, sparkle/reward)
+> - Accent palettes (defined in the `@theme` block of `globals.css`): `juice-*` (warm pink, CTAs/celebrations), `leaf-*` (green, stem/vine/online/success), `sunshine-*` (yellow, sparkle/reward)
 > - All shadows use a single purple-warm tint `rgba(73, 50, 100, X)` instead of black — `--shadow-tint` (globals.css) and the tailwind `boxShadow` tokens are unified to this value. Filled/empty grapes use the same tint (not black)
 > - Display font: **Maru Buri** (Naver, free commercial, **self-hosted in `src/app/fonts/`**) for H1/H2/big numbers; body stays Noto Sans KR. Both load via **`next/font`** (see `layout.tsx`: `--font-display` / `--font-sans` vars) — the old jsdelivr `@font-face` CDN was dead (404). Use `font-display` class on headers only — never on paragraph text
 > - New `clay-puffy` shadow for floating elements (Navigation, InstallPrompt, joyful CTAs)
@@ -157,7 +157,13 @@ Bottom nav: 🏠 홈 | 🍇 만들기 | 🔗 릴레이 | 🍷 와이너리 | ☰
 
 ### Styling: Claymorphism Design System
 
-Custom Tailwind theme in `tailwind.config.ts` with `grape-*` (purple brand), `clay-*` (pastels), and `warm-*` (text) color palettes. `globals.css` defines claymorphic utility classes:
+**Tailwind CSS 4 (2026-06-11~).** `tailwind.config.ts` is GONE — the entire custom theme (`grape-*` purple brand, `clay-*` pastels, `warm-*` text palettes, clay `boxShadow` tokens, font vars) lives in the `@theme` block of `src/app/globals.css`. Do NOT recreate a tailwind.config file. v4 specifics encoded in globals.css — do not regress:
+- `@import "tailwindcss" source(none)` + explicit `@source` globs frozen to the old v3 `content` paths — `src/lib/**` is deliberately NOT scanned (winery.ts tier-gradient class strings were never generated in v3; widening `@source` would change the winery glow visuals — separate PR if ever desired).
+- `@custom-variant hover (&:hover);` restores v3 sticky-hover on touch devices (mobile-first UX). Removing it switches `hover:` utilities to hover-capable devices only.
+- Gradients are pinned to sRGB interpolation and `text-*` line-heights to v3 absolute rem values (v4 defaults changed both — caused real visual regressions during migration).
+- PostCSS plugin is `@tailwindcss/postcss` (not `tailwindcss`).
+
+`globals.css` also defines the claymorphic utility classes:
 
 - `.clay` / `.clay-sm` / `.clay-float` — card surfaces with soft 3D shadows
 - `.clay-pressed` — inset pressed state
