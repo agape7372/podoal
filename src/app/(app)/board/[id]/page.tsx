@@ -46,6 +46,17 @@ export default function BoardDetailPage() {
   // A mid reward just reached → opened immediately in a popup (instant "쾌감").
   const [rewardPopup, setRewardPopup] = useState<RewardInfo | null>(null);
   const initialLoadDoneRef = useRef(false);
+  // 언마운트 가드 — 큐에서 늦게 도착한 reconcile/rollback이 떠난 화면을 만지지 않게.
+  const aliveRef = useRef(true);
+  useEffect(() => {
+    aliveRef.current = true; // StrictMode 재마운트 대응
+    return () => { aliveRef.current = false; };
+  }, []);
+  // 채움 POST 직렬화 큐(보드 단위): 연타 시 낙관적 UI는 즉시 반영하되 서버 POST는
+  // 한 번에 1개씩 순차 발송한다. 동시 요청들끼리의 Serializable 자기 경합(P2034
+  // 재시도 소진 → 일부 채움 유실)을 원천 제거하고, 응답 도착 순서도 발사 순서와
+  // 같아져 reconcile의 filledCount/isCompleted가 역순으로 덮이지 않는다.
+  const fillQueueRef = useRef<Promise<void>>(Promise.resolve());
 
   const fetchBoard = useCallback(async () => {
     try {
@@ -97,25 +108,10 @@ export default function BoardDetailPage() {
     setCapsuleTeaser(text ? { text, glow: !!openable } : null);
   }, [capsules]);
 
-  const handleFillSticker = async (position: number) => {
-    if (!board || !user) return;
-
-    // Optimistic update: show the grape as filled immediately so the tap
-    // feels instant even when the round-trip to Neon (us-east) is ~400ms.
-    const tempId = `temp-${position}-${Date.now()}`;
-    const optimisticSticker = {
-      id: tempId,
-      position,
-      filledAt: new Date().toISOString(),
-      filledBy: { id: user.id, name: user.name, email: user.email, avatar: user.avatar },
-    } as BoardDetail['stickers'][number];
-
-    setBoard((prev) => prev ? {
-      ...prev,
-      stickers: [...prev.stickers, optimisticSticker],
-      filledCount: prev.filledCount + 1,
-    } : prev);
-
+  // 실제 서버 POST + reconcile/rollback. fillQueueRef 체인에서 한 번에 하나씩
+  // 실행된다. 에러는 내부에서 처리(롤백+배너)하고 reject하지 않으므로 한 요청이
+  // 실패해도 큐의 후속 요청은 계속 진행된다.
+  const postFillSticker = async (position: number, tempId: string, totalStickers: number) => {
     try {
       const result = await api<{
         sticker: BoardDetail['stickers'][number];
@@ -128,6 +124,7 @@ export default function BoardDetailPage() {
         method: 'POST',
         json: { position },
       });
+      if (!aliveRef.current) return;
       setErrorMessage(null);
 
       // Reconcile: replace the temp sticker with the server's authoritative one
@@ -149,7 +146,7 @@ export default function BoardDetailPage() {
         // 중간 보상: GrapeBoard가 컨페티와 같은 비트에 팝업을 이미 열었음
         // (onMidRewardReached). 여기선 reveal로 내용만 채워(공개 처리) 열려 있는
         // 팝업에 흘려보낸다. 최종 보상은 팝업 자동 오픈 없이 카드 탭으로 연다.
-        if (u.triggerAt < board.totalStickers) {
+        if (u.triggerAt < totalStickers) {
           try {
             const d = await api<{ reward: RewardInfo }>(
               `/api/boards/${id}/rewards/${u.id}/reveal`,
@@ -172,6 +169,7 @@ export default function BoardDetailPage() {
         setConfettiTrigger((t) => t + 1);
       }
     } catch (err) {
+      if (!aliveRef.current) return;
       // Rollback the optimistic sticker on failure.
       setBoard((prev) => prev ? {
         ...prev,
@@ -185,6 +183,34 @@ export default function BoardDetailPage() {
       // another lambda already created the sticker).
       fetchBoard().catch(() => {});
     }
+  };
+
+  const handleFillSticker = (position: number): Promise<void> => {
+    if (!board || !user) return Promise.resolve();
+
+    // Optimistic update: show the grape as filled immediately so the tap
+    // feels instant even when the round-trip to Neon (us-east) is ~400ms.
+    // (이벤트 핸들러라 Date.now() 사용 가능 — 렌더 중이 아님.)
+    const tempId = `temp-${position}-${Date.now()}`;
+    const optimisticSticker = {
+      id: tempId,
+      position,
+      filledAt: new Date().toISOString(),
+      filledBy: { id: user.id, name: user.name, email: user.email, avatar: user.avatar },
+    } as BoardDetail['stickers'][number];
+
+    setBoard((prev) => prev ? {
+      ...prev,
+      stickers: [...prev.stickers, optimisticSticker],
+      filledCount: prev.filledCount + 1,
+    } : prev);
+
+    // 서버 POST는 큐 체인에 연결 — 이전 요청 완료 후 발송. 페이지 이탈 시에도 이미
+    // 시작된 fetch는 계속 진행되고, reconcile/rollback만 aliveRef로 가드된다.
+    const totalStickers = board.totalStickers;
+    const queued = fillQueueRef.current.then(() => postFillSticker(position, tempId, totalStickers));
+    fillQueueRef.current = queued.catch(() => {}); // 방어: 예기치 못한 reject로 체인 단절 방지
+    return queued;
   };
 
   const handleToggleAllowPlant = async () => {
