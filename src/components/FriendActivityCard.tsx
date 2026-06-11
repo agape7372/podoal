@@ -15,8 +15,11 @@ interface FriendActivityCardProps {
   onCheer: () => void;
 }
 
-// 친구 소식: 아바타 + '○○님이 포도판을 완성했어요'(1줄) + 「제목」(1줄) + 상대시간 + 원탭 축하 버튼.
+// 친구 소식: 아바타 + '○○님이 포도판 완성!'(1줄) + 「제목」+🎉(1줄) + 상대시간 + 원탭 축하 버튼.
 // 불변 명사 '포도판'을 목적어로 써 조사 받침 문제를 회피 (vine 피드의 '○○ 포도판 완성!' 선례).
+// 1줄 고정문구는 짧게, 🎉는 제목 줄 끝으로 — 360px(가용폭 ~168px)에서 게스트 닉네임
+// ('달콤한 포도' 류, 5자+공백)까지 말줄임 없이 표시하기 위한 폭 예산 확보. 실측:
+// '홍길동님이 포도판을 완성했어요'는 360px에서 항상 잘렸음(2자 이름도 +7px 초과).
 export default function FriendActivityCard({
   activity,
   timeText,
@@ -33,10 +36,10 @@ export default function FriendActivityCard({
       <div className="flex-1 min-w-0">
         <p className="text-sm text-warm-text leading-snug truncate">
           <span className="font-semibold">{activity.actor.name}</span>
-          님이 포도판을 완성했어요 <EmojiIcon emoji="🎉" size={14} />
+          님이 포도판 완성!
         </p>
         <p className="text-sm text-warm-text leading-snug truncate">
-          「{stripTitleEmoji(activity.title)}」
+          「{stripTitleEmoji(activity.title)}」 <EmojiIcon emoji="🎉" size={14} />
         </p>
         <p className="text-[11px] text-warm-sub mt-0.5">
           포도알 <span className="tabular-nums">{activity.totalStickers}</span>알
