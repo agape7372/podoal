@@ -18,6 +18,13 @@ export class PositionTakenError extends Error {
 // 관측해 보드 완료·완성보상이 영구 누락될 수 있다(이후 모든 칸이 차 재시도도 409). Serializable
 // 에선 count() 읽기가 충돌(P2034)해 한쪽이 재시도하고, 상대 커밋을 본 뒤 정확히 완료 처리한다.
 // (plant-gift와 동일 격리 패턴.) 같은 칸 동시 채움(P2002)은 PositionTakenError로 변환.
+
+// P2034 재시도 정책: 8회 + 지수 백오프(25ms 기준 ×2) + ±50% 지터.
+// 즉시 재시도(백오프 0)는 동시 요청들이 같은 박자로 다시 충돌해 재시도를 소진시켰다
+// (프로덕션 연타 유실 + CI flake의 원인). 지터로 충돌 군집을 흩는다.
+const P2034_MAX_RETRIES = 8;
+const BACKOFF_BASE_MS = 25;
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 export async function fillBoardGrape(
   prisma: PrismaClient,
   board: { id: string; totalStickers: number },
@@ -168,8 +175,12 @@ export async function fillBoardGrape(
       const code = (e as { code?: string }).code;
       // Same-position race: the other request already created this sticker.
       if (code === 'P2002') throw new PositionTakenError();
-      // Serializable write conflict (concurrent fill on the same board) → retry.
-      if (code === 'P2034' && attempt < 4) continue;
+      // Serializable write conflict (concurrent fill on the same board) → retry
+      // with exponential backoff + jitter (server code — Math.random OK here).
+      if (code === 'P2034' && attempt < P2034_MAX_RETRIES) {
+        await sleep(BACKOFF_BASE_MS * 2 ** attempt * (0.5 + Math.random()));
+        continue;
+      }
       throw e;
     }
   }
