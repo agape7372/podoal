@@ -42,6 +42,24 @@ export default function PodongList({ heading = true }: PodongListProps) {
   const gEl = useRef<HTMLElement | null>(null);
   const gLpTimer = useRef<number | null>(null);
 
+  // 리프트 중 네이티브 스크롤 차단 — touch-action은 터치 '접촉 시점'에 고정되므로
+  // doLift의 늦은 'none' 설정은 진행 중인 터치에 무효. 유일한 수단은 non-passive
+  // touchmove의 preventDefault. 해제가 누수되면 페이지 스크롤 전체가 죽는다 —
+  // onUp·onCancel(release 경유)·effect cleanup 3중으로 해제를 보장한다.
+  const touchBlocker = useRef<((ev: TouchEvent) => void) | null>(null);
+  const unblockNativeScroll = useCallback(() => {
+    if (!touchBlocker.current) return;
+    document.removeEventListener('touchmove', touchBlocker.current);
+    touchBlocker.current = null;
+  }, []);
+  const blockNativeScroll = useCallback(() => {
+    if (touchBlocker.current) return;
+    const block = (ev: TouchEvent) => { if (ev.cancelable) ev.preventDefault(); };
+    document.addEventListener('touchmove', block, { passive: false });
+    touchBlocker.current = block;
+  }, []);
+  useEffect(() => unblockNativeScroll, [unblockNativeScroll]);
+
   const loadRelays = useCallback(() => {
     // setLoading(true) 금지 — 재검증 중에도 기존 목록을 계속 보여준다.
     setLoadError(false);
@@ -114,9 +132,10 @@ export default function PodongList({ heading = true }: PodongListProps) {
     feedbackTap();
     setLiftedId(relayId);
     dragOrderRef.current = activeRelays.map((r) => r.id);
+    blockNativeScroll(); // 진행 중 터치는 touch-action으로 못 막는다 — touchmove preventDefault만 유효
     const el = gEl.current;
     if (el && gPointerId.current != null) {
-      el.style.touchAction = 'none';
+      el.style.touchAction = 'none'; // 다음 터치 대비(이번 터치엔 무효 — 위 blocker가 담당)
       try { el.setPointerCapture(gPointerId.current); } catch { /* noop */ }
     }
   };
@@ -144,7 +163,8 @@ export default function PodongList({ heading = true }: PodongListProps) {
 
   const release = (e: React.PointerEvent) => {
     try { (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId); } catch { /* noop */ }
-    if (gEl.current) gEl.current.style.touchAction = '';
+    if (gEl.current) gEl.current.style.touchAction = ''; // 클래스(touch-pan-y) 값으로 복귀
+    unblockNativeScroll();
   };
 
   const onUp = (e: React.PointerEvent, relay: RelayInfo) => {
@@ -246,27 +266,30 @@ export default function PodongList({ heading = true }: PodongListProps) {
                   const isLifted = liftedId === relay.id;
                   return (
                     <li key={relay.id} ref={setCardRef(relay.id)}>
+                      {/* touch-action 기본값은 인라인이 아니라 클래스(touch-pan-y) —
+                          release()가 인라인 값을 ''로 비워도 클래스 값으로 자연 복귀한다.
+                          (인라인 상수는 React가 재기록하지 않아 한 번 비워지면 복구 불가) */}
                       <div
                         onPointerDown={(e) => onDown(e, relay.id)}
                         onPointerMove={(e) => onMove(e, relay.id)}
                         onPointerUp={(e) => onUp(e, relay)}
                         onPointerCancel={(e) => onCancel(e, relay.id)}
-                        style={{ touchAction: 'pan-y' }}
-                        className={`clay p-4 w-full text-left block transition-transform ${isLifted ? 'scale-[1.02] shadow-grape-glow relative z-10' : 'active:scale-[0.98]'}`}
+                        style={isLifted ? { touchAction: 'none' } : undefined}
+                        className={`clay p-4 w-full text-left block transition-transform touch-pan-y ${isLifted ? 'scale-[1.02] shadow-grape-glow relative z-10' : 'active:scale-[0.98]'}`}
                       >
-                        <div className="flex items-start justify-between mb-3">
-                          <div>
-                            <h3 className="font-bold text-warm-text">{relay.title}</h3>
+                        <div className="flex items-start justify-between gap-2 mb-3">
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-bold text-warm-text truncate">{relay.title}</h3>
                             <p className="text-xs text-warm-sub mt-0.5 tabular-nums">
                               {relay.totalStickers}알 | {total}명 참여
                             </p>
                           </div>
                           {invited ? (
-                            <span className="px-2 py-1 rounded-lg bg-juice-100 text-juice-700 text-xs font-semibold">초대됨</span>
+                            <span className="shrink-0 px-2 py-1 rounded-lg bg-juice-100 text-juice-700 text-xs font-semibold">초대됨</span>
                           ) : isGroup ? (
-                            <span className="px-2 py-1 rounded-lg bg-leaf-100 text-leaf-700 text-xs font-semibold">그룹</span>
+                            <span className="shrink-0 px-2 py-1 rounded-lg bg-leaf-100 text-leaf-700 text-xs font-semibold">그룹</span>
                           ) : isMyTurn ? (
-                            <span className="px-2 py-1 rounded-lg bg-grape-100 text-grape-600 text-xs font-semibold animate-pulse">내 차례!</span>
+                            <span className="shrink-0 px-2 py-1 rounded-lg bg-grape-100 text-grape-600 text-xs font-semibold animate-pulse">내 차례!</span>
                           ) : null}
                         </div>
 
@@ -313,14 +336,14 @@ export default function PodongList({ heading = true }: PodongListProps) {
                       onClick={() => router.push(`/relay/${relay.id}`)}
                       className="clay p-4 w-full text-left block bg-leaf-100/60 active:scale-[0.98] transition-transform opacity-80"
                     >
-                      <div className="flex items-start justify-between mb-3">
-                        <div>
-                          <h3 className="font-bold text-warm-text">{relay.title}</h3>
+                      <div className="flex items-start justify-between gap-2 mb-3">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-bold text-warm-text truncate">{relay.title}</h3>
                           <p className="text-xs text-warm-sub mt-0.5 tabular-nums">
                             {relay.totalStickers}알 | {relay.participants.length}명 참여
                           </p>
                         </div>
-                        <span className="px-2 py-1 rounded-lg bg-leaf-100 text-leaf-700 text-xs font-semibold">완료</span>
+                        <span className="shrink-0 px-2 py-1 rounded-lg bg-leaf-100 text-leaf-700 text-xs font-semibold">완료</span>
                       </div>
                       {renderChain(relay, true)}
                     </button>
