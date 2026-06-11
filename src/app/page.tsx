@@ -8,6 +8,7 @@ import Podo from '@/components/mascot/Podo';
 import EmojiIcon from '@/components/EmojiIcon';
 import { AVATAR_OPTIONS } from '@/types';
 import { api, fetchUser } from '@/lib/api';
+import { clearPageCache } from '@/lib/cachedApi';
 import { useAppStore } from '@/lib/store';
 
 type Mode = 'welcome' | 'login' | 'register';
@@ -120,6 +121,8 @@ function AuthPageInner() {
         });
         setUser(data.user);
       }
+      // 사용자 전환 가능 지점 — 이전 계정의 페이지 캐시가 새 계정 화면에 비치지 않게 비움.
+      clearPageCache();
       router.replace('/home');
     } catch (e) {
       setError(describeAuthError(e instanceof Error ? e.message : '오류가 발생했어요'));
@@ -230,6 +233,7 @@ function AuthPageInner() {
                   const data = await res.json();
                   if (data.user) {
                     setUser(data.user);
+                    clearPageCache(); // 사용자 전환 가능 지점
                     router.replace('/home');
                   }
                 } catch {

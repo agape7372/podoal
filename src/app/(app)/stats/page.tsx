@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
-import { api } from '@/lib/api';
+import { useState, useMemo } from 'react';
+import { useCachedApi } from '@/lib/cachedApi';
 import { useAppStore } from '@/lib/store';
 import Avatar from '@/components/Avatar';
 import Heatmap from '@/components/Heatmap';
@@ -15,24 +15,11 @@ type Tab = 'summary' | 'heatmap' | 'analysis';
 
 export default function StatsPage() {
   const user = useAppStore((s) => s.user);
-  const [stats, setStats] = useState<EnhancedStats | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState(false);
+  // SWR 캐시: 홈 스트릭 카드와 같은 '/api/stats' 키를 공유 — 홈을 거쳐 왔으면 즉시 렌더.
+  const { data, loading, error, refresh } = useCachedApi<{ stats: EnhancedStats }>('/api/stats');
+  const stats = data?.stats ?? null;
   const [activeTab, setActiveTab] = useState<Tab>('summary');
   const [showRecap, setShowRecap] = useState(false);
-
-  const loadStats = () => {
-    setLoading(true);
-    setLoadError(false);
-    api<{ stats: EnhancedStats }>('/api/stats')
-      .then((data) => setStats(data.stats))
-      .catch(() => setLoadError(true))
-      .finally(() => setLoading(false));
-  };
-
-  useEffect(() => {
-    loadStats();
-  }, []);
 
   const maxDaily = stats ? Math.max(...stats.dailyStickers.map((d) => d.count), 1) : 1;
 
@@ -79,14 +66,14 @@ export default function StatsPage() {
     );
   }
 
-  if (loadError || !stats) {
+  if (error || !stats) {
     return (
       <div className="pb-4">
         <h1 className="font-display text-2xl font-bold text-grape-700 mb-4">통계</h1>
         <div className="text-center py-12">
           <p className="font-display text-base text-warm-text mb-1.5">불러오지 못했어요</p>
           <p className="text-sm text-warm-sub mb-5">잠시 후 다시 시도해주세요</p>
-          <button onClick={loadStats} className="clay-button px-5 py-2.5 rounded-2xl text-sm font-semibold text-grape-700">다시 불러오기</button>
+          <button onClick={refresh} className="clay-button px-5 py-2.5 rounded-2xl text-sm font-semibold text-grape-700">다시 불러오기</button>
         </div>
       </div>
     );

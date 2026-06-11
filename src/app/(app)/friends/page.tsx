@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
+import { useCachedApi } from '@/lib/cachedApi';
 import FriendCard from '@/components/FriendCard';
 import CheerModal from '@/components/CheerModal';
 import ConfirmDialog from '@/components/ConfirmDialog';
@@ -16,10 +17,13 @@ import { DEV_TOOLS } from '@/lib/devtools';
 
 export default function FriendsPage() {
   const router = useRouter();
-  const [friends, setFriends] = useState<FriendInfo[]>([]);
-  const [pending, setPending] = useState<FriendInfo[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState(false);
+  // SWR 캐시: 재방문 시 직전 친구 목록으로 즉시 렌더 + 무음 재검증.
+  const { data, loading, error, refresh, mutate } = useCachedApi<{
+    friends: FriendInfo[];
+    pendingRequests: FriendInfo[];
+  }>('/api/friends');
+  const friends = data?.friends ?? [];
+  const pending = data?.pendingRequests ?? [];
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchedUser[]>([]);
   const [searching, setSearching] = useState(false);
@@ -34,19 +38,7 @@ export default function FriendsPage() {
   const [seeding, setSeeding] = useState(false);
   const [seedInfo, setSeedInfo] = useState('');
 
-  const fetchFriends = useCallback(async () => {
-    setLoadError(false);
-    try {
-      const data = await api<{ friends: FriendInfo[]; pendingRequests: FriendInfo[] }>('/api/friends');
-      setFriends(data.friends || []);
-      setPending(data.pendingRequests || []);
-    } catch {
-      setLoadError(true);
-    }
-    setLoading(false);
-  }, []);
-
-  useEffect(() => { fetchFriends(); }, [fetchFriends]);
+  const fetchFriends = refresh;
 
   // 디바운스 닉네임/이름 검색. 경합은 AbortController로 취소.
   useEffect(() => {
@@ -115,11 +107,13 @@ export default function FriendsPage() {
     // Optimistic: flip locally so the star reacts instantly. We deliberately do
     // NOT re-fetch — re-fetching was both slow and reordered the just-favorited
     // friend to the bottom (the list API has no stable order). Roll back on error.
-    setFriends((prev) => prev.map((f) => (f.id === id ? { ...f, isFavorite: !f.isFavorite } : f)));
+    const flip = (prev: typeof data) =>
+      prev && { ...prev, friends: prev.friends.map((f) => (f.id === id ? { ...f, isFavorite: !f.isFavorite } : f)) };
+    mutate(flip);
     try {
       await api(`/api/friends/${id}`, { method: 'PATCH', json: { action: 'favorite' } });
     } catch {
-      setFriends((prev) => prev.map((f) => (f.id === id ? { ...f, isFavorite: !f.isFavorite } : f)));
+      mutate(flip);
     }
   };
 
@@ -302,7 +296,7 @@ export default function FriendsPage() {
         <div className="space-y-3">
           {[1, 2, 3].map((i) => <div key={i} className="skeleton h-16 w-full" />)}
         </div>
-      ) : loadError ? (
+      ) : error ? (
         <div className="text-center py-12">
           <p className="font-display text-base text-warm-text mb-1.5">불러오지 못했어요</p>
           <p className="text-sm text-warm-sub mb-5">잠시 후 다시 시도해주세요</p>

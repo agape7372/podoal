@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { api } from '@/lib/api';
+import { useCachedApi } from '@/lib/cachedApi';
 import {
   WINERY_TIERS,
   BOTTLE_SIZE_LABELS,
@@ -21,24 +21,10 @@ interface WineryData {
 }
 
 export default function WineryPage() {
-  const [data, setData] = useState<WineryData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState(false);
+  // SWR 캐시: 재방문 시 직전 데이터로 즉시 렌더 + 무음 재검증.
+  const { data, loading, error, refresh } = useCachedApi<WineryData>('/api/winery');
   const [selectedBottle, setSelectedBottle] = useState<WineBottleType | null>(null);
   const detailRef = useRef<HTMLDivElement>(null);
-
-  const loadWinery = () => {
-    setLoading(true);
-    setLoadError(false);
-    api<WineryData>('/api/winery')
-      .then((res) => setData(res))
-      .catch(() => setLoadError(true))
-      .finally(() => setLoading(false));
-  };
-
-  useEffect(() => {
-    loadWinery();
-  }, []);
 
   // Bring the detail panel into view when a bottle is selected (it opens below
   // the cellar, which can sit off-screen in a tall cellar).
@@ -65,7 +51,7 @@ export default function WineryPage() {
     );
   }
 
-  if (loadError || !data) {
+  if (error || !data) {
     return (
       <div className="pb-4">
         <h1 className="font-display text-2xl font-bold text-grape-700 mb-6">
@@ -74,7 +60,7 @@ export default function WineryPage() {
         <div className="text-center py-12">
           <p className="font-display text-base text-warm-text mb-1.5">불러오지 못했어요</p>
           <p className="text-sm text-warm-sub mb-5">잠시 후 다시 시도해주세요</p>
-          <button onClick={loadWinery} className="clay-button px-5 py-2.5 rounded-2xl text-sm font-semibold text-grape-700">다시 불러오기</button>
+          <button onClick={refresh} className="clay-button px-5 py-2.5 rounded-2xl text-sm font-semibold text-grape-700">다시 불러오기</button>
         </div>
       </div>
     );

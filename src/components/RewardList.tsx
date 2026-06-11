@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useState } from 'react';
 import { api } from '@/lib/api';
+import { useCachedApi } from '@/lib/cachedApi';
 import EmojiIcon from './EmojiIcon';
 import RewardRevealModal from './RewardRevealModal';
 import { stripTitleEmoji } from '@/lib/title';
@@ -17,23 +18,12 @@ type Filter = 'all' | RewardType;
  * 자체적으로 /api/rewards를 불러오고 타입 필터·열람 모달까지 처리.
  */
 export default function RewardList() {
-  const [rewards, setRewards] = useState<CollectedReward[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState(false);
+  // SWR 캐시: 재방문 시 직전 보상 목록으로 즉시 렌더 + 무음 재검증.
+  const { data, loading, error, refresh, mutate } = useCachedApi<{ rewards: CollectedReward[] }>('/api/rewards');
+  const rewards = data?.rewards ?? [];
   const [filter, setFilter] = useState<Filter>('all');
   const [opened, setOpened] = useState<RewardInfo | null>(null);
   const [opening, setOpening] = useState<string | null>(null);
-
-  const load = useCallback(() => {
-    setLoading(true);
-    setLoadError(false);
-    api<{ rewards: CollectedReward[] }>('/api/rewards')
-      .then((data) => setRewards(data.rewards))
-      .catch(() => setLoadError(true))
-      .finally(() => setLoading(false));
-  }, []);
-
-  useEffect(() => { load(); }, [load]);
 
   const openReward = async (r: CollectedReward) => {
     feedbackTap();
@@ -48,7 +38,8 @@ export default function RewardList() {
         { method: 'POST' },
       );
       setOpened(data.reward);
-      setRewards((prev) => prev.map((x) => (x.id === r.id ? { ...x, ...data.reward } : x)));
+      mutate((prev) =>
+        prev && { ...prev, rewards: prev.rewards.map((x) => (x.id === r.id ? { ...x, ...data.reward } : x)) });
     } catch {
       setOpened(r);
     } finally {
@@ -85,11 +76,11 @@ export default function RewardList() {
         <div className="grid grid-cols-2 gap-3">
           {[1, 2, 3, 4].map((i) => <div key={i} className="skeleton h-28 w-full" />)}
         </div>
-      ) : loadError ? (
+      ) : error ? (
         <div className="text-center py-12">
           <p className="font-display text-base text-warm-text mb-1.5">불러오지 못했어요</p>
           <p className="text-sm text-warm-sub mb-5">잠시 후 다시 시도해주세요</p>
-          <button onClick={load} className="clay-button px-5 py-2.5 rounded-2xl text-sm font-semibold text-grape-700">다시 불러오기</button>
+          <button onClick={refresh} className="clay-button px-5 py-2.5 rounded-2xl text-sm font-semibold text-grape-700">다시 불러오기</button>
         </div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-12">

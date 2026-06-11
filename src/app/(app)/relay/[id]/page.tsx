@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { api } from '@/lib/api';
+import { useCachedApi } from '@/lib/cachedApi';
 import { useAppStore } from '@/lib/store';
 import ClayButton from '@/components/ClayButton';
 import ConfirmDialog from '@/components/ConfirmDialog';
@@ -44,8 +45,11 @@ export default function RelayDetailPage() {
   const relayId = params.id as string;
   const user = useAppStore((s) => s.user);
 
-  const [relay, setRelay] = useState<RelayDetail | null>(null);
-  const [loading, setLoading] = useState(true);
+  // SWR 캐시(포도동별 키): 재방문 시 직전 상세로 즉시 렌더 + 무음 재검증.
+  const { data, loading, error, refresh } = useCachedApi<{ relay: RelayDetail }>(
+    `/api/relays/${relayId}`,
+  );
+  const relay = data?.relay ?? null;
   const [passing, setPassing] = useState(false);
   const [joining, setJoining] = useState(false);
   const [responding, setResponding] = useState(false);
@@ -57,18 +61,12 @@ export default function RelayDetailPage() {
   const [myBoards, setMyBoards] = useState<BoardSummary[]>([]);
   const [loadingMyBoards, setLoadingMyBoards] = useState(false);
 
-  const fetchRelay = useCallback(async () => {
-    try {
-      const data = await api<{ relay: RelayDetail }>(`/api/relays/${relayId}`);
-      setRelay(data.relay);
-    } catch {
-      router.replace('/relay');
-    } finally {
-      setLoading(false);
-    }
-  }, [relayId, router]);
+  const fetchRelay = refresh;
 
-  useEffect(() => { fetchRelay(); }, [fetchRelay]);
+  // 상세 로드 실패(권한 없음/삭제됨)는 종전처럼 목록으로 복귀.
+  useEffect(() => {
+    if (error) router.replace('/relay');
+  }, [error, router]);
 
   const handleAccept = async () => {
     setResponding(true);
