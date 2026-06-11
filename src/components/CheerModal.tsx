@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { CHEER_EMOJIS } from '@/types';
 import { feedbackCheer } from '@/lib/feedback';
+import { ellipsizeName } from '@/lib/title';
 import Modal from './Modal';
 import ClayButton from './ClayButton';
 import EmojiIcon from './EmojiIcon';
@@ -58,7 +59,7 @@ export default function CheerModal({ recipientName, onSend, onClose }: CheerModa
           응원 보내기
         </h3>
         <p className="text-sm text-warm-sub text-center mb-5">
-          {recipientName}님에게 응원 메시지를 보내요
+          {ellipsizeName(recipientName)}님에게 응원을 보내요
         </p>
 
         {/* Emoji selector */}

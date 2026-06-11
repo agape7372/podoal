@@ -8,6 +8,7 @@ import ClayInput from '@/components/ClayInput';
 import NumberStepper from '@/components/NumberStepper';
 import TemplatePicker from '@/components/create/TemplatePicker';
 import RewardEditor from '@/components/create/RewardEditor';
+import StepProgress from '@/components/create/StepProgress';
 import Avatar from '@/components/Avatar';
 import EmojiIcon from '@/components/EmojiIcon';
 import { useAppStore } from '@/lib/store';
@@ -132,7 +133,8 @@ export default function CreatePodongPage() {
   ].filter(Boolean) as { id: string; name: string; avatar: string; isCreator: boolean }[];
 
   return (
-    <div className="pb-4">
+    // 240px 보정치 = 상단 헤더 + 하단 pb-[160px] 몫. 내비/배너 높이 변경 시 갱신.
+    <div className="pb-4 flex flex-col min-h-[calc(100dvh-240px)]">
       {/* 컴팩트 상단: 뒤로 + 제목 한 줄 → 슬림 진행 바 (상단 혼잡 해소) */}
       <div className="flex items-center gap-2 mb-3">
         <button
@@ -147,12 +149,8 @@ export default function CreatePodongPage() {
         </h1>
       </div>
 
-      {/* 슬림 6-세그먼트 진행 바 */}
-      <div className="flex gap-1 mb-6" aria-label={`${step + 1}/6 단계`}>
-        {[0, 1, 2, 3, 4, 5].map((s) => (
-          <div key={s} className={`h-1.5 flex-1 rounded-full transition-colors ${step >= s ? 'bg-grape-400' : 'bg-grape-100'}`} />
-        ))}
-      </div>
+      {/* 점프 시 이전 단계의 에러 문구가 따라오지 않게 비움 — 다음 진행 시 재검증됨 */}
+      <StepProgress total={6} current={step} onJump={(s) => { setError(''); setStep(s); }} />
 
       {/* Step 0: Mode select */}
       {step === 0 && (
@@ -177,17 +175,12 @@ export default function CreatePodongPage() {
 
       {/* Step 1: Template */}
       {step === 1 && (
-        <>
-          <TemplatePicker
-            selectedCategory={selectedCategory}
-            onSelectCategory={setSelectedCategory}
-            onSelectTemplate={handleSelectTemplate}
-            onSkip={handleSkipTemplate}
-          />
-          <div className="mt-4">
-            <ClayButton variant="ghost" onClick={() => setStep(0)} fullWidth>← 이전</ClayButton>
-          </div>
-        </>
+        <TemplatePicker
+          selectedCategory={selectedCategory}
+          onSelectCategory={setSelectedCategory}
+          onSelectTemplate={handleSelectTemplate}
+          onSkip={handleSkipTemplate}
+        />
       )}
 
       {/* Step 2: Title / description */}
@@ -206,16 +199,6 @@ export default function CreatePodongPage() {
             onChange={(e) => setDescription(e.target.value)}
           />
           {error && <p role="alert" className="text-grape-700 text-sm text-center">{error}</p>}
-          <div className="flex gap-3">
-            <ClayButton variant="ghost" onClick={() => setStep(1)} fullWidth>← 이전</ClayButton>
-            <ClayButton
-              fullWidth
-              size="lg"
-              onClick={() => { if (title.trim()) { setError(''); setStep(3); } else setError('제목을 입력해주세요'); }}
-            >
-              다음 →
-            </ClayButton>
-          </div>
         </div>
       )}
 
@@ -241,16 +224,6 @@ export default function CreatePodongPage() {
             <NumberStepper value={totalStickers} onChange={setTotalStickers} min={2} max={60} />
           </div>
           <p className="text-xs text-warm-sub text-center">2~60알까지 자유롭게 설정할 수 있어요</p>
-          <div className="flex gap-3 mt-4">
-            <ClayButton variant="ghost" onClick={() => setStep(2)} fullWidth>← 이전</ClayButton>
-            <ClayButton
-              fullWidth
-              onPointerDown={() => (document.activeElement as HTMLElement | null)?.blur?.()}
-              onClick={() => setStep(4)}
-            >
-              다음 →
-            </ClayButton>
-          </div>
         </div>
       )}
 
@@ -266,23 +239,10 @@ export default function CreatePodongPage() {
             setRewardContent={setRewardContent}
           />
           <p className="text-xs text-warm-sub">
-            <span className="text-grape-400 font-bold mr-0.5">*</span>각자의 포도판에 같은 보상이 들어가요. 포도알을 꾹 눌러 중간 보상도 추가할 수 있어요!
+            <span className="block"><span className="text-grape-400 font-bold mr-0.5">*</span>각자의 포도판에 같은 보상이 들어가요</span>
+            <span className="block">포도알을 꾹 눌러 중간 보상도 추가할 수 있어요!</span>
           </p>
           {error && <p role="alert" className="text-grape-700 text-sm text-center">{error}</p>}
-          <div className="flex gap-3">
-            <ClayButton variant="ghost" onClick={() => setStep(3)} fullWidth>← 이전</ClayButton>
-            <ClayButton
-              fullWidth
-              size="lg"
-              onClick={() => {
-                if (!rewardTitle.trim()) { setError('보상 제목을 입력해주세요'); return; }
-                if (!rewardContent.trim()) { setError('보상 내용을 입력해주세요'); return; }
-                setError(''); setStep(5);
-              }}
-            >
-              다음 →
-            </ClayButton>
-          </div>
         </div>
       )}
 
@@ -367,9 +327,46 @@ export default function CreatePodongPage() {
           )}
 
           {error && <p className="text-grape-700 text-sm text-center">{error}</p>}
+        </div>
+      )}
 
-          <div className="flex gap-3">
-            <ClayButton variant="ghost" onClick={() => setStep(4)} fullWidth>← 이전</ClayButton>
+      {/* 공용 하단 푸터 — step 0(모드 선택)은 카드 탭으로 진행하므로 미표시 */}
+      {step > 0 && (
+        <div className="mt-auto pt-5 flex gap-3">
+          <ClayButton variant="ghost" onClick={() => setStep(step - 1)} fullWidth>← 이전</ClayButton>
+          {step === 2 && (
+            <ClayButton
+              fullWidth
+              size="lg"
+              onClick={() => { if (title.trim()) { setError(''); setStep(3); } else setError('제목을 입력해주세요'); }}
+            >
+              다음 →
+            </ClayButton>
+          )}
+          {step === 3 && (
+            <ClayButton
+              fullWidth
+              // 숫자 직접입력 중 탭하면 input blur(commit)를 click보다 먼저 강제해 1탭으로 진행되게 한다.
+              onPointerDown={() => (document.activeElement as HTMLElement | null)?.blur?.()}
+              onClick={() => setStep(4)}
+            >
+              다음 →
+            </ClayButton>
+          )}
+          {step === 4 && (
+            <ClayButton
+              fullWidth
+              size="lg"
+              onClick={() => {
+                if (!rewardTitle.trim()) { setError('보상 제목을 입력해주세요'); return; }
+                if (!rewardContent.trim()) { setError('보상 내용을 입력해주세요'); return; }
+                setError(''); setStep(5);
+              }}
+            >
+              다음 →
+            </ClayButton>
+          )}
+          {step === 5 && (
             <ClayButton
               fullWidth
               size="lg"
@@ -379,7 +376,7 @@ export default function CreatePodongPage() {
             >
               포도동 시작!
             </ClayButton>
-          </div>
+          )}
         </div>
       )}
     </div>

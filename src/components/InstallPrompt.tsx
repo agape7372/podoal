@@ -70,23 +70,21 @@ export default function InstallPrompt() {
     <div className="fixed bottom-[88px] left-0 right-0 z-30 pl-4 pr-[88px] safe-bottom animate-slide-up pointer-events-none">
       <div className="max-w-md mx-auto pointer-events-auto">
         <div
-          className="clay-puffy bg-white/95 backdrop-blur-md flex items-center gap-3 p-3 pr-4"
+          className="clay-puffy bg-white/95 backdrop-blur-md flex items-center gap-2 p-2.5 pr-3"
           style={{ borderRadius: '28px' }}
         >
-          <div className="shrink-0 bg-grape-50 rounded-full p-1.5" style={{ borderRadius: '999px' }}>
+          <div className="shrink-0 bg-grape-50 rounded-full p-1" style={{ borderRadius: '999px' }}>
             <Podo size={36} decorative />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="font-display text-[14px] font-semibold text-warm-text leading-snug">
+            {/* prompt(안드로이드) 분기는 X+설치 버튼이 폭을 먹어 360dp에서 제목 가용폭이
+                ~84px — MaruBuri 600 실측 88px(14px)는 줄바꿈, 81.7px(13px)만 한 줄. */}
+            <p className={`font-display ${mode === 'prompt' ? 'text-[13px]' : 'text-[14px]'} font-semibold text-warm-text leading-snug`}>
               홈 화면에 추가
             </p>
-            {mode === 'ios' ? (
+            {mode === 'ios' && (
               <p className="text-[11px] text-warm-sub leading-snug mt-0.5">
-                공유 <EmojiIcon emoji="📤" size={12} className="inline align-[-1px]" /> 누르고 ‘홈 화면에 추가’를 선택해요
-              </p>
-            ) : (
-              <p className="text-[11px] text-warm-sub leading-snug mt-0.5">
-                더 빠르고 편리하게 사용할 수 있어요
+                공유 <EmojiIcon emoji="📤" size={12} className="inline align-[-1px]" /> → 홈 화면에 추가
               </p>
             )}
           </div>
@@ -102,13 +100,16 @@ export default function InstallPrompt() {
               <>
                 <button
                   onClick={handleDismiss}
-                  className="text-xs text-warm-sub hover:text-warm-text px-2 py-1.5 rounded-xl"
+                  aria-label="닫기"
+                  className="w-8 h-8 rounded-full grid place-items-center text-warm-sub hover:text-warm-text active:scale-95 transition-transform"
                 >
-                  나중에
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M6 6l12 12M18 6 6 18" />
+                  </svg>
                 </button>
                 <button
                   onClick={handleInstall}
-                  className="clay-button bg-linear-to-br from-grape-500 to-lime-300 text-white px-4 py-2 rounded-2xl text-sm font-semibold border-transparent"
+                  className="clay-button bg-linear-to-br from-grape-500 to-lime-300 text-white px-3 py-2 rounded-2xl text-sm font-semibold border-transparent"
                 >
                   설치
                 </button>

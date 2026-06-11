@@ -42,7 +42,7 @@ export default function TemplatePicker({
 
   return (
     <div className="space-y-5 animate-fade-in">
-      <p className="text-sm text-warm-sub">추천 템플릿으로 빠르게 시작하거나, 직접 만들어보세요!</p>
+      <p className="text-sm text-warm-sub">템플릿으로 시작하거나 직접 만들어보세요!</p>
 
       {/* Category tabs — scroll-aware edge fades hint "there's more". */}
       <div className="relative -mx-1">

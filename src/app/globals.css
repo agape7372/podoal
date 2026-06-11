@@ -522,6 +522,9 @@
     letter-spacing: -0.01em;
     word-break: keep-all;
     overflow-wrap: break-word;
+    /* 네이티브 pull-to-refresh 차단 — 뷰포트 overscroll은 html 값으로만 결정된다
+       (body의 overscroll-behavior 선언은 viewport에 무력) */
+    overscroll-behavior-y: none;
   }
 
   h1,

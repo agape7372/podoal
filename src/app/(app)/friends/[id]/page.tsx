@@ -125,7 +125,7 @@ export default function FriendDetailPage() {
               {isFavorite && <EmojiIcon emoji="⭐" size={18} />}
             </div>
             <p className="text-xs text-warm-sub mt-1 tabular-nums">
-              포도판 {boards.length}개 · 진행중 {activeBoards.length}개 · 완료 {completedBoards.length}개
+              포도판 {boards.length} · 진행 {activeBoards.length} · 완료 {completedBoards.length}
             </p>
           </div>
         </div>

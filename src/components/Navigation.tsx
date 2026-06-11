@@ -7,12 +7,12 @@ import { useAppStore } from '@/lib/store';
 import { feedbackTap } from '@/lib/feedback';
 
 // Color-illustration icons (Microsoft Fluent Emoji, MIT) — unified with the
-// profile grape (/avatars/grape.svg). 만들기 reuses the profile grape itself.
+// profile grape (/avatars/grape.svg, 아바타 공용이라 탭이 없어도 자산은 유지).
+// 만들기 진입은 홈 FAB(+) 전담 — 탭에서 제거해 4탭 구성.
 // `owns`: 각 탭이 소유하는 라우트 prefix 목록. 가장 긴(구체적) 매치가 활성탭이 되어
-// /board/create → 만들기, /board/<id> → 홈, 더보기 하위 7개 → 더보기로 귀속된다.
+// /board/* (create 포함) → 홈, 더보기 하위 7개 → 더보기로 귀속된다.
 const navItems = [
   { path: '/home', icon: '/icons/nav/home.svg', label: '홈', owns: ['/home', '/board', '/profile'] },
-  { path: '/board/create', icon: '/avatars/grape.svg', label: '만들기', owns: ['/board/create'] },
   { path: '/friends', icon: '/icons/nav/friends.svg', label: '친구', owns: ['/friends', '/relay'] },
   { path: '/winery', icon: '/icons/nav/winery.svg', label: '와이너리', owns: ['/winery'] },
   { path: '/more', icon: '/icons/nav/more.svg', label: '더보기', badge: 'unread', owns: ['/more', '/messages', '/stats', '/vine', '/rewards', '/settings', '/notifications', '/sound-test'] },
@@ -47,7 +47,7 @@ export default function Navigation() {
           {navItems.map((item) => {
             const isActive = item.path === activePath;
             return (
-              // <Link>: 하단 네비는 항상 뷰포트에 있어 5개 탭 라우트가 자동 프리페치된다
+              // <Link>: 하단 네비는 항상 뷰포트에 있어 4개 탭 라우트가 자동 프리페치된다
               // (button+router.push는 프리페치 0 — 탭 시점에야 RSC/청크 페치가 시작됐음).
               <Link
                 key={item.path}
