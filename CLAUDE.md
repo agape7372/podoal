@@ -18,7 +18,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 > - `src/components/illustrations/*.tsx` — 2 single-export SVG components (VineLeaf, Sparkle) + `GrapeStem.tsx` (used by GrapeBoard). Gradient/defs ids use `useId()` for instance-uniqueness (no cross-instance fill bleed). Unused `Star`/`Heart`/`CloudPuff`/`Ribbon`/`Sun`/`WaterDrop` were removed. Use sparingly: at most one illustration per page section.
 > - `GrapeStem.tsx` is now **two flat curved leaves, no stem/tendril** — a borderless sage-green (`#74A77E`) silhouette vectorized (pixel-traced + smoothed) from a reference, `viewBox="0 0 200 117"`. Props: `size` (= rendered width; height = `size*0.585`). `GrapeBoard` sizes it from `grapeSize` and keeps a gap above the bunch (see layout invariants 6–7). Do **not** ship the original watermarked stock image — keep the redrawn vector (license-safe).
 >
-> **Content untouched** — `src/lib/templates.ts` (7 categories, 38 templates), `src/lib/winery.ts` (포도알 새싹 → 포도 마스터 tier names), `src/lib/sounds.ts` (30 sounds), `src/types/index.ts` (3 reward types), nav labels (홈/만들기/릴레이/와이너리/더보기) all kept verbatim. The redesign deliberately does not touch copy/naming — design carries the change. (One later exception: `REWARD_TYPE_LABELS` had its **leading emoji stripped** so labels are name-only — 편지/기프티콘/소원권 — and the icon moved to `src/lib/icons.ts` `REWARD_TYPE_ICON`; the names themselves are unchanged. This was a deliberate copy change to stop raw-emoji leakage — see `scripts/check-icons.mjs`.)
+> **Content untouched** — `src/lib/templates.ts` (7 categories, 38 templates), `src/lib/winery.ts` (포도알 새싹 → 포도 마스터 tier names), `src/lib/sounds.ts` (30 sounds), `src/types/index.ts` (3 reward types), nav labels all kept verbatim at redesign time (the tab lineup itself has since changed: 릴레이 was folded into 친구, and the 만들기 tab was removed in favor of the home FAB — the current 4-tab set is the Navigation section below, which is authoritative). The redesign deliberately does not touch copy/naming — design carries the change. (One later exception: `REWARD_TYPE_LABELS` had its **leading emoji stripped** so labels are name-only — 편지/기프티콘/소원권 — and the icon moved to `src/lib/icons.ts` `REWARD_TYPE_ICON`; the names themselves are unchanged. This was a deliberate copy change to stop raw-emoji leakage — see `scripts/check-icons.mjs`.)
 
 ## Commands
 
@@ -161,7 +161,7 @@ The app is a Progressive Web App with `public/manifest.json`, `public/sw.js`, an
 
 ### Navigation
 
-Bottom nav: 🏠 홈 | 🍇 만들기 | 👥 친구 | 🍷 와이너리 | ☰ 더보기 — the 친구 tab owns both `/friends` and `/relay` (the old standalone 릴레이 tab was folded into it; see `Navigation.tsx` `owns`). The "더보기" page provides grid access to 알림함(inbox), messages, stats, vine, settings, notifications, and sound test.
+Bottom nav is **4 tabs**: 홈 | 친구 | 와이너리 | 더보기 — there is **no 만들기 tab**; board creation is entered solely via the home FAB (`+`), which is a `<Link href="/board/create">` so the route stays prefetched (do not convert it back to `button`+`router.push`). Tab ownership (`Navigation.tsx` `owns`, longest-prefix wins): the 홈 tab owns `/home`, `/board/*` (create included), and `/profile`; the 친구 tab owns both `/friends` and `/relay` (the old standalone 릴레이 tab was folded into it). The "더보기" page provides grid access to 알림함(inbox), messages, stats, vine, settings, notifications, and sound test.
 
 ### Styling: Claymorphism Design System
 
