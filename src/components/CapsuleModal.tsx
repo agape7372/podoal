@@ -8,6 +8,7 @@ import EmojiIcon from './EmojiIcon';
 import type { TimeCapsuleInfo } from '@/types';
 import { feedbackCapsuleOpen, feedbackSuccess, feedbackTap } from '@/lib/feedback';
 import { DEV_TOOLS } from '@/lib/devtools';
+import { isCapsuleOpenable } from '@/lib/capsuleTime';
 
 interface CapsuleModalProps {
   boardId: string;
@@ -100,11 +101,12 @@ export default function CapsuleModal({ boardId, isOwner, onClose }: CapsuleModal
 
   const isOpenable = (capsule: TimeCapsuleInfo) => {
     if (capsule.isOpened) return false;
-    // Match the server's precise timestamp check in /api/capsules/[id]/open.
-    // (Previously this used date-only local comparison, so on the open date
-    // between 00:00 and 09:00 KST the button showed but the server rejected
-    // it, because a date-only `openAt` is stored as UTC midnight = 09:00 KST.)
-    return new Date().getTime() >= new Date(capsule.openAt).getTime();
+    // 서버 /api/capsules/[id]/open과 동일한 정밀 타임스탬프 판정 — 규칙을
+    // src/lib/capsuleTime.ts로 추출해 양쪽이 같은 함수를 공유한다.
+    // (과거엔 날짜단위 로컬 비교라 개봉일 00:00~09:00 KST에 버튼은 보이는데
+    // 서버가 거부하는 불일치가 있었음.)
+    // react-hooks/purity가 렌더 중 Date.now()를 막으므로 new Date() 사용.
+    return isCapsuleOpenable(capsule.openAt, new Date().getTime());
   };
 
   // DEV-ONLY: backdate this capsule so it becomes openable right now.
