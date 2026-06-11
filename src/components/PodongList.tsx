@@ -23,7 +23,9 @@ export default function PodongList({ heading = true }: PodongListProps) {
   const relays = useAppStore((s) => s.relays);
   const setRelays = useAppStore((s) => s.setRelays);
   const user = useAppStore((s) => s.user);
-  const [loading, setLoading] = useState(true);
+  // 스토어에 직전 방문의 relays가 살아 있으면 즉시 그리고 조용히 재검증 —
+  // 스켈레톤은 캐시가 비어 있는 진짜 첫 로드에만 보여준다(stale-while-revalidate).
+  const [loading, setLoading] = useState(relays.length === 0);
   const [loadError, setLoadError] = useState(false);
   const [showCompleted, setShowCompleted] = useState(false);
 
@@ -41,7 +43,7 @@ export default function PodongList({ heading = true }: PodongListProps) {
   const gLpTimer = useRef<number | null>(null);
 
   const loadRelays = useCallback(() => {
-    setLoading(true);
+    // setLoading(true) 금지 — 재검증 중에도 기존 목록을 계속 보여준다.
     setLoadError(false);
     api<{ relays: RelayInfo[] }>('/api/relays')
       .then((data) => setRelays(data.relays))
@@ -215,7 +217,7 @@ export default function PodongList({ heading = true }: PodongListProps) {
         <div className="space-y-3">
           {[1, 2, 3].map((i) => <div key={i} className="skeleton h-32 w-full" />)}
         </div>
-      ) : loadError ? (
+      ) : loadError && relays.length === 0 ? (
         <div className="text-center py-12">
           <p className="font-display text-base text-warm-text mb-1.5">불러오지 못했어요</p>
           <p className="text-sm text-warm-sub mb-5">잠시 후 다시 시도해주세요</p>
