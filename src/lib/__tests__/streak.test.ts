@@ -1,7 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  canFreeze,
   computeStreaks,
   kstDateKey,
   kstDayRangeUtc,
@@ -35,38 +34,11 @@ test('kstDayRangeUtc: KST 하루가 덮는 UTC 구간 [전날 15:00, 당일 15:0
   assert.equal(end.toISOString(), '2026-06-10T15:00:00.000Z');
 });
 
-// ─── canFreeze: 유예 1회 자격 판정 ──────────────────────────────────────────
+// ─── computeStreaks: 현재/최장 스트릭 ───────────────────────────────────────
 
 const TODAY = '2026-06-11';
 const YESTERDAY = '2026-06-10';
 const DAY_BEFORE = '2026-06-09';
-
-test('canFreeze: 어제 빔 + 그제 채움 + 미사용 → 자격 있음', () => {
-  const v = canFreeze(new Set([DAY_BEFORE]), null, TODAY);
-  assert.deepEqual(v, { eligible: true, reason: 'ok' });
-});
-
-test('canFreeze: 이미 사용했으면 다른 조건과 무관하게 불가', () => {
-  const v = canFreeze(new Set([DAY_BEFORE]), new Date('2026-06-01T00:00:00Z'), TODAY);
-  assert.deepEqual(v, { eligible: false, reason: 'already-used' });
-});
-
-test('canFreeze: 어제 이미 채웠으면 유예 불필요', () => {
-  const v = canFreeze(new Set([YESTERDAY, DAY_BEFORE]), null, TODAY);
-  assert.deepEqual(v, { eligible: false, reason: 'yesterday-filled' });
-});
-
-test('canFreeze: 그제도 비었으면 이어붙일 앵커가 없음', () => {
-  const v = canFreeze(new Set(['2026-06-05']), null, TODAY);
-  assert.deepEqual(v, { eligible: false, reason: 'no-anchor' });
-});
-
-test('canFreeze: 빈 기록(신규 사용자) → 앵커 없음', () => {
-  const v = canFreeze(new Set(), null, TODAY);
-  assert.deepEqual(v, { eligible: false, reason: 'no-anchor' });
-});
-
-// ─── computeStreaks: 현재/최장 스트릭 ───────────────────────────────────────
 
 test('computeStreaks: 오늘 포함 정상 진행', () => {
   const r = computeStreaks([DAY_BEFORE, YESTERDAY, TODAY], TODAY);
@@ -89,7 +61,9 @@ test('computeStreaks: 어제도 오늘도 빔 → 0 (끊김)', () => {
   assert.equal(r.currentStreak, 0);
 });
 
-test('computeStreaks: 유예 날짜를 셋에 더하면 끊긴 스트릭이 이어붙음', () => {
+test('computeStreaks: 유예 날짜를 셋에 더하면 끊긴 스트릭이 이어붙음 (폐지된 유예 기능의 레거시 보존 경로)', () => {
+  // 유예 기능 자체는 폐지됐지만, 과거에 사용한 계정의 streakFreezeDate 주입(/api/stats)은
+  // 유지된다 — 제거 시 해당 계정 스트릭이 소급 감소하기 때문. 그 경로를 검증한다.
   // 그제 채움 + 어제 빔 + 오늘 채움 = 1 → 어제를 유예로 메꾸면 3
   const without = computeStreaks([DAY_BEFORE, TODAY], TODAY);
   assert.equal(without.currentStreak, 1);
