@@ -1,0 +1,18 @@
+name: Weekly Recap
+
+# 최근 7일 포도알을 채운 사용자에게 일요일 저녁 1회 "이번 주 포도 농사 결산" 푸시.
+# Hobby 플랜은 Vercel Cron이 일 1회만 가능하므로 reminders.yml과 동일하게 GitHub Actions로 호출.
+# 11:00 UTC 일요일 = 일요일 20:00 KST. 활성화: repo Secrets에 CRON_SECRET(Vercel env와 동일 값) 설정 + VAPID env.
+on:
+  schedule:
+    - cron: '0 11 * * 0'
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger weekly recap
+        run: |
+          curl -fsS -X GET "https://podoal-rouge.vercel.app/api/cron/weekly-recap" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
