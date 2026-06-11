@@ -58,7 +58,7 @@ export default function VinePage() {
       <div className="pb-4">
         <div className="text-center mb-8">
           <h1 className="font-display text-2xl font-bold text-grape-700 mb-1">
-            <span className="inline-flex items-center gap-1.5"><EmojiIcon emoji="🌿" size={22} /> 포도덩쿨</span>
+            <span className="inline-flex items-center gap-1.5"><EmojiIcon emoji="🌿" size={22} /> 포도덩굴</span>
           </h1>
           <p className="text-sm text-warm-sub">나의 성장 기록</p>
         </div>
@@ -79,7 +79,7 @@ export default function VinePage() {
       <div className="pb-4">
         <div className="text-center mb-8">
           <h1 className="font-display text-2xl font-bold text-grape-700 mb-1">
-            <span className="inline-flex items-center gap-1.5"><EmojiIcon emoji="🌿" size={22} /> 포도덩쿨</span>
+            <span className="inline-flex items-center gap-1.5"><EmojiIcon emoji="🌿" size={22} /> 포도덩굴</span>
           </h1>
           <p className="text-sm text-warm-sub">나의 성장 기록</p>
         </div>
@@ -98,7 +98,7 @@ export default function VinePage() {
       <div className="pb-4">
         <div className="text-center mb-8">
           <h1 className="font-display text-2xl font-bold text-grape-700 mb-1">
-            <span className="inline-flex items-center gap-1.5"><EmojiIcon emoji="🌿" size={22} /> 포도덩쿨</span>
+            <span className="inline-flex items-center gap-1.5"><EmojiIcon emoji="🌿" size={22} /> 포도덩굴</span>
           </h1>
           <p className="text-sm text-warm-sub">나의 성장 기록</p>
         </div>
@@ -120,7 +120,7 @@ export default function VinePage() {
       {/* Header */}
       <div className="text-center mb-8">
         <h1 className="font-display text-2xl font-bold text-grape-700 mb-1">
-          <span className="inline-flex items-center gap-1.5"><EmojiIcon emoji="🌿" size={22} /> 포도덩쿨</span>
+          <span className="inline-flex items-center gap-1.5"><EmojiIcon emoji="🌿" size={22} /> 포도덩굴</span>
         </h1>
         <p className="text-sm text-warm-sub">나의 성장 기록</p>
       </div>

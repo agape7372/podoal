@@ -260,9 +260,10 @@ function GrapeBoardInner({ board, onFill, canFill, onCelebrate, isOwner, onPlant
         style={{ WebkitOverflowScrolling: 'touch' }}
       >
         <div className="flex flex-col items-center snap-center min-w-fit mx-auto relative">
-          {/* Completion sparkle: top-right */}
+          {/* Completion sparkle: 송이 우상단에 바짝 붙임 — 멀리 띄우면(-right-4) 카드 가장자리에
+              떠 있는 '잘린 파편'처럼 읽힌다(2026-06-11 녹화 진단). */}
           {board.isCompleted && (
-            <div className="absolute -top-2 -right-4 z-20 animate-fade-in">
+            <div className="absolute -top-1 right-0 z-20 animate-fade-in">
               <Sparkle size={28} color="#CFDC78" />
             </div>
           )}

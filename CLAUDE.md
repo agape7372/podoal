@@ -153,7 +153,7 @@ The app is a Progressive Web App with `public/manifest.json`, `public/sw.js`, an
 
 ### Navigation
 
-Bottom nav: 🏠 홈 | 🍇 만들기 | 🔗 릴레이 | 🍷 와이너리 | ☰ 더보기. The "더보기" page provides grid access to friends, messages, stats, vine, settings, notifications, and sound test.
+Bottom nav: 🏠 홈 | 🍇 만들기 | 👥 친구 | 🍷 와이너리 | ☰ 더보기 — the 친구 tab owns both `/friends` and `/relay` (the old standalone 릴레이 tab was folded into it; see `Navigation.tsx` `owns`). The "더보기" page provides grid access to 알림함(inbox), messages, stats, vine, settings, notifications, and sound test.
 
 ### Styling: Claymorphism Design System
 

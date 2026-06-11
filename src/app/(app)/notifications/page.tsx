@@ -40,7 +40,7 @@ function Toggle({
       aria-label={ariaLabel}
       onClick={onToggle}
       className={`
-        ${isLarge ? 'w-14 h-8' : 'w-12 h-7'} rounded-full transition-all duration-200 relative
+        ${isLarge ? 'w-14 h-8' : 'w-12 h-7'} shrink-0 rounded-full transition-all duration-200 relative
         ${enabled
           ? 'bg-linear-to-r from-grape-400 to-grape-500'
           : 'bg-warm-border'
@@ -295,10 +295,10 @@ export default function NotificationsPage() {
       {/* Daily nudge — opt-in, 하루 1회 (기본 꺼짐) */}
       <section className={`clay p-5 mb-4 transition-opacity ${!settings.globalEnabled ? 'opacity-50 pointer-events-none' : ''}`}>
         <h2 className="text-sm font-semibold text-warm-sub mb-4">데일리 넛지</h2>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
             <EmojiIcon emoji="🍇" size={20} />
-            <div>
+            <div className="min-w-0">
               <p className="text-sm font-medium text-warm-text">하루 한 번 부드러운 응원</p>
               <p className="text-xs text-warm-sub">진행 중인 포도판이 있으면 하루 한 번만 살짝 알려드려요</p>
             </div>
