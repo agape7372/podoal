@@ -23,18 +23,24 @@ const AVATAR_LABEL: Record<string, string> = {
 // <g data-centered> wrapper.
 
 export default function ProfilePage() {
-  const router = useRouter();
   const user = useAppStore((s) => s.user);
+  // 인증이 자식 렌더와 병렬로 진행되므로(레이아웃이 user 로딩을 기다리지 않음)
+  // user가 아직 없을 때 폼이 마운트되면 useState 초기값이 빈값으로 굳는다 →
+  // user가 준비된 뒤에 폼 컴포넌트를 마운트해 초기값을 보장한다.
+  if (!user) return null;
+  return <ProfileView user={user} />;
+}
+
+function ProfileView({ user }: { user: UserProfile }) {
+  const router = useRouter();
   const setUser = useAppStore((s) => s.setUser);
 
-  const [editName, setEditName] = useState(user?.name ?? '');
-  const [editAvatar, setEditAvatar] = useState(user?.avatar ?? 'grape');
+  const [editName, setEditName] = useState(user.name);
+  const [editAvatar, setEditAvatar] = useState(user.avatar);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
   const [saved, setSaved] = useState(false);
   const [confirmLogout, setConfirmLogout] = useState(false);
-
-  if (!user) return null;
 
   const dirty = editName.trim() !== user.name || editAvatar !== user.avatar;
   const canSave = dirty && editName.trim().length > 0 && !saving;

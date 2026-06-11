@@ -4,6 +4,9 @@ import { useEffect, useRef } from 'react';
 import { useAppStore } from './store';
 import type { MessageInfo } from '@/types';
 
+// 서버(/api/messages/sse)는 DB 폴링 10초 · 스트림 수명 4분으로 운영된다.
+// 4분마다 서버가 스트림을 정상 종료하면 EventSource가 onerror로 떨어지고,
+// 아래 백오프(기본 2초, onopen 시 리셋)로 자동 재연결한다.
 const BASE_BACKOFF_MS = 2_000;
 const MAX_BACKOFF_MS = 60_000;
 
