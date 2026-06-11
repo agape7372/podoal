@@ -270,7 +270,7 @@ export default function PodongList({ heading = true }: PodongListProps) {
                           </div>
                           <div className="w-full h-2 bg-grape-100 rounded-full overflow-hidden">
                             <div
-                              className="h-full bg-gradient-to-r from-grape-400 to-grape-500 rounded-full transition-all duration-500"
+                              className="h-full bg-linear-to-r from-grape-400 to-grape-500 rounded-full transition-all duration-500"
                               style={{ width: `${total ? (completed / total) * 100 : 0}%` }}
                             />
                           </div>

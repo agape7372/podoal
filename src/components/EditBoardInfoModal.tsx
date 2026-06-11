@@ -46,8 +46,8 @@ export default function EditBoardInfoModal({ initialTitle, initialDescription, o
       onClose={onClose}
       dismissable={!busy}
       label="포도판 수정"
-      backdropClassName="z-[90] bg-black/30 backdrop-blur-sm"
-      sheetClassName="w-full max-w-lg bg-clay-bg rounded-t-[32px] clay-float p-6 pb-8 safe-bottom animate-slide-up"
+      backdropClassName="z-90 bg-black/30 backdrop-blur-xs"
+      sheetClassName="w-full max-w-lg bg-clay-bg rounded-t-clay-lg clay-float p-6 pb-8 safe-bottom animate-slide-up"
     >
       <div className="w-12 h-1.5 bg-warm-border rounded-full mx-auto mb-5" />
       <h3 className="font-display text-xl font-bold text-grape-700 text-center mb-5">

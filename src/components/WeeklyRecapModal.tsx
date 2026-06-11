@@ -97,8 +97,8 @@ export default function WeeklyRecapModal({ stats, userName, onClose }: WeeklyRec
     <Modal
       onClose={onClose}
       label="주간 회고 카드"
-      backdropClassName="z-[90] bg-black/30 backdrop-blur-sm"
-      sheetClassName="w-full max-w-lg bg-clay-bg rounded-t-[32px] clay-float p-6 pb-8 safe-bottom animate-slide-up"
+      backdropClassName="z-90 bg-black/30 backdrop-blur-xs"
+      sheetClassName="w-full max-w-lg bg-clay-bg rounded-t-clay-lg clay-float p-6 pb-8 safe-bottom animate-slide-up"
     >
       <div className="w-12 h-1.5 bg-warm-border rounded-full mx-auto mb-5" />
 

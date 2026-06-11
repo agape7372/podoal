@@ -109,7 +109,7 @@ export default function Heatmap({ data }: HeatmapProps) {
         <div className="flex">
           {/* Day labels */}
           <div
-            className="grid gap-[2px] mr-1 flex-shrink-0"
+            className="grid gap-[2px] mr-1 shrink-0"
             style={{
               gridTemplateRows: `repeat(7, 12px)`,
             }}
@@ -149,7 +149,7 @@ export default function Heatmap({ data }: HeatmapProps) {
               return (
                 <div
                   key={idx}
-                  className={`w-3 h-3 rounded-sm ${getColorClass(cell.count)}${
+                  className={`w-3 h-3 rounded-xs ${getColorClass(cell.count)}${
                     cell.count > 0 ? ' ring-1 ring-inset ring-grape-900/10' : ''
                   } transition-colors`}
                   title={`${formatDate(cell.date)}: ${cell.count}개`}
@@ -162,11 +162,11 @@ export default function Heatmap({ data }: HeatmapProps) {
         {/* Legend */}
         <div className="flex items-center justify-end gap-1.5 mt-2" aria-hidden="true">
           <span className="text-[9px] text-warm-sub">적음</span>
-          <div className="w-3 h-3 rounded-sm bg-warm-border/40" />
-          <div className="w-3 h-3 rounded-sm bg-grape-300 ring-1 ring-inset ring-grape-900/10" />
-          <div className="w-3 h-3 rounded-sm bg-grape-400 ring-1 ring-inset ring-grape-900/10" />
-          <div className="w-3 h-3 rounded-sm bg-grape-500 ring-1 ring-inset ring-grape-900/10" />
-          <div className="w-3 h-3 rounded-sm bg-grape-700 ring-1 ring-inset ring-grape-900/10" />
+          <div className="w-3 h-3 rounded-xs bg-warm-border/40" />
+          <div className="w-3 h-3 rounded-xs bg-grape-300 ring-1 ring-inset ring-grape-900/10" />
+          <div className="w-3 h-3 rounded-xs bg-grape-400 ring-1 ring-inset ring-grape-900/10" />
+          <div className="w-3 h-3 rounded-xs bg-grape-500 ring-1 ring-inset ring-grape-900/10" />
+          <div className="w-3 h-3 rounded-xs bg-grape-700 ring-1 ring-inset ring-grape-900/10" />
           <span className="text-[9px] text-warm-sub">많음</span>
         </div>
       </div>

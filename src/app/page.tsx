@@ -147,7 +147,7 @@ function AuthPageInner() {
             podoal
           </h1>
           <p className="font-display text-warm-sub mb-1 text-[15px]">한 알씩, 매일의 기록</p>
-          <p className="text-sm text-warm-sub mb-8 leading-relaxed [text-wrap:balance]">
+          <p className="text-sm text-warm-sub mb-8 leading-relaxed text-balance">
             포도알을 한 알씩 채우며 목표를 달성하고, 소중한 사람에게 응원과 보상을 주고받아요
           </p>
 

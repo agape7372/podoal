@@ -34,10 +34,10 @@ export default function SoundTestPage() {
             <button
               onClick={() => play(s.id)}
               className={`
-                clay-button flex-shrink-0 w-16 h-16 rounded-2xl text-2xl
+                clay-button shrink-0 w-16 h-16 rounded-2xl text-2xl
                 flex items-center justify-center transition-all
                 ${playing === s.id ? 'scale-90 clay-pressed' : 'active:scale-90'}
-                ${settings.fillSoundId === s.id ? 'ring-2 ring-grape-400 bg-gradient-to-br from-grape-100 to-grape-50' : ''}
+                ${settings.fillSoundId === s.id ? 'ring-2 ring-grape-400 bg-linear-to-br from-grape-100 to-grape-50' : ''}
               `}
             >
               <EmojiIcon emoji={s.emoji} size={26} />
@@ -54,9 +54,9 @@ export default function SoundTestPage() {
             <button
               onClick={() => select(s.id)}
               className={`
-                flex-shrink-0 px-3 py-2 rounded-xl text-sm font-medium transition-all
+                shrink-0 px-3 py-2 rounded-xl text-sm font-medium transition-all
                 ${settings.fillSoundId === s.id
-                  ? 'bg-gradient-to-br from-grape-400 to-grape-500 text-white'
+                  ? 'bg-linear-to-br from-grape-400 to-grape-500 text-white'
                   : 'clay-button text-warm-sub'
                 }
               `}

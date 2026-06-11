@@ -128,8 +128,8 @@ export default function CapsuleModal({ boardId, isOwner, onClose }: CapsuleModal
     <Modal
       onClose={onClose}
       label="동결건조 — 미래의 나에게 보내는 메시지"
-      backdropClassName="z-[90] bg-black/30 backdrop-blur-sm"
-      sheetClassName="w-full max-w-lg bg-clay-bg rounded-t-[32px] clay-float p-6 pb-8 safe-bottom animate-slide-up max-h-[85vh] flex flex-col"
+      backdropClassName="z-90 bg-black/30 backdrop-blur-xs"
+      sheetClassName="w-full max-w-lg bg-clay-bg rounded-t-clay-lg clay-float p-6 pb-8 safe-bottom animate-slide-up max-h-[85vh] flex flex-col"
     >
       <div className="w-12 h-1.5 bg-warm-border rounded-full mx-auto mb-5" />
 
@@ -301,9 +301,9 @@ export default function CapsuleModal({ boardId, isOwner, onClose }: CapsuleModal
                           `}
                         >
                           <div className="flex items-start gap-3">
-                            <EmojiIcon emoji={capsule.emoji} size={26} className="flex-shrink-0" />
+                            <EmojiIcon emoji={capsule.emoji} size={26} className="shrink-0" />
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm text-warm-text whitespace-pre-wrap break-words">
+                              <p className="text-sm text-warm-text whitespace-pre-wrap wrap-break-word">
                                 {capsule.message}
                               </p>
                               <p className="text-xs text-warm-sub mt-2 tabular-nums">
@@ -320,7 +320,7 @@ export default function CapsuleModal({ boardId, isOwner, onClose }: CapsuleModal
                       return (
                         <div
                           key={capsule.id}
-                          className="clay-sm p-4 bg-gradient-to-br from-yellow-50 to-orange-50 ring-2 ring-yellow-200"
+                          className="clay-sm p-4 bg-linear-to-br from-yellow-50 to-orange-50 ring-2 ring-yellow-200"
                         >
                           <div className="flex items-center gap-3">
                             <EmojiIcon emoji={capsule.emoji} size={26} className="animate-float" />
@@ -337,7 +337,7 @@ export default function CapsuleModal({ boardId, isOwner, onClose }: CapsuleModal
                               disabled={isCurrentlyOpening}
                               className={`
                                 clay-button px-4 py-2 rounded-xl text-sm font-semibold
-                                bg-gradient-to-br from-grape-400 to-grape-500 text-white
+                                bg-linear-to-br from-grape-400 to-grape-500 text-white
                                 transition-all
                                 ${isCurrentlyOpening ? 'opacity-50 cursor-not-allowed' : 'animate-pulse'}
                               `}
@@ -357,7 +357,7 @@ export default function CapsuleModal({ boardId, isOwner, onClose }: CapsuleModal
                         className="clay-sm p-4 bg-grape-50 opacity-80"
                       >
                         <div className="flex items-center gap-3">
-                          <EmojiIcon emoji={capsule.emoji} size={26} className="grayscale-[30%]" />
+                          <EmojiIcon emoji={capsule.emoji} size={26} className="grayscale-30" />
                           <div className="flex-1">
                             <p className="text-sm font-medium text-grape-600">
                               <EmojiIcon emoji="🔒" size={13} className="mr-0.5" /> D-{dleft} · {formatDate(capsule.openAt)} 개봉
@@ -369,7 +369,7 @@ export default function CapsuleModal({ boardId, isOwner, onClose }: CapsuleModal
                           {DEV_TOOLS ? (
                             <button
                               onClick={() => handleDevUnlock(capsule.id)}
-                              className="clay-button px-2.5 py-1.5 rounded-lg text-xs font-semibold text-grape-600 flex-shrink-0"
+                              className="clay-button px-2.5 py-1.5 rounded-lg text-xs font-semibold text-grape-600 shrink-0"
                               title="개발용: openAt을 과거로 바꿔 즉시 개봉 가능하게 만듭니다"
                             >
                               <EmojiIcon emoji="🔧" size={13} className="mr-0.5" />즉시개봉

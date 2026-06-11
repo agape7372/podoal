@@ -21,7 +21,7 @@ const variantStyles: Record<NonNullable<ClayButtonProps['variant']>, string> = {
     'bg-grape-700 hover:bg-grape-800 text-white border-warm-border',
   joyful:
     'text-warm-text border-warm-border ' +
-    'bg-gradient-to-br from-grape-300 via-grape-400 to-lime-300 ' +
+    'bg-linear-to-br from-grape-300 via-grape-400 to-lime-300 ' +
     'hover:from-grape-400 hover:via-grape-500 hover:to-lime-400 hover:text-white',
 };
 

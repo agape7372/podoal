@@ -25,17 +25,17 @@ export default function RewardRevealModal({ reward, onClose }: RewardRevealModal
       variant="center"
       onClose={onClose}
       label={`보상 개봉 — ${reward.title}`}
-      backdropClassName="z-[95] bg-black/40 backdrop-blur-sm p-6"
+      backdropClassName="z-95 bg-black/40 backdrop-blur-xs p-6"
       overlay={<Confetti trigger={1} />}
       sheetClassName="w-full max-w-sm bg-clay-bg rounded-[28px] clay-float p-6 text-center animate-bounce-in"
     >
       <p className="text-sm text-warm-sub mb-2">보상 개봉!</p>
         <EmojiIcon emoji={REWARD_TYPE_ICON[reward.type]} size={56} className="block mx-auto mb-2" />
         <div className="text-xs font-medium text-grape-600 mb-1">{REWARD_TYPE_LABELS[reward.type]}</div>
-        <h3 className="font-display text-xl font-bold text-grape-700 mb-3 break-words">{reward.title}</h3>
+        <h3 className="font-display text-xl font-bold text-grape-700 mb-3 wrap-break-word">{reward.title}</h3>
         {reward.content ? (
           <div className="clay-sm bg-white p-4 mb-5 text-center">
-            <p className="text-sm text-warm-text whitespace-pre-wrap leading-relaxed break-words">
+            <p className="text-sm text-warm-text whitespace-pre-wrap leading-relaxed wrap-break-word">
               {reward.content}
             </p>
           </div>

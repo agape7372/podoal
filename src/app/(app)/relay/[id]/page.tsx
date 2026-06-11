@@ -264,7 +264,7 @@ export default function RelayDetailPage() {
         <div className="clay p-5 mb-6 bg-grape-50 text-center">
           <EmojiIcon emoji="🔗" size={32} className="block mx-auto mb-2" />
           <p className="font-bold text-grape-700 mb-1">포도동에 초대받았어요</p>
-          <p className="text-sm text-warm-sub mb-4 [text-wrap:balance]">{relay.creator.name}님이 함께 습관을 채우자고 초대했어요</p>
+          <p className="text-sm text-warm-sub mb-4 text-balance">{relay.creator.name}님이 함께 습관을 채우자고 초대했어요</p>
           <div className="flex gap-3">
             <ClayButton variant="ghost" fullWidth onClick={() => setConfirmDecline(true)} disabled={responding}>거절</ClayButton>
             <ClayButton fullWidth size="lg" onClick={handleAccept} loading={responding}>수락하기</ClayButton>
@@ -340,7 +340,7 @@ export default function RelayDetailPage() {
               return (
                 <div key={p.id} className="flex items-start gap-4">
                   <div className="flex flex-col items-center">
-                    <div className={`w-3 h-3 rounded-full flex-shrink-0 ${isCompleted ? 'bg-grape-500' : isActive ? 'bg-grape-400 ring-4 ring-grape-200 animate-pulse' : 'bg-warm-border'}`} />
+                    <div className={`w-3 h-3 rounded-full shrink-0 ${isCompleted ? 'bg-grape-500' : isActive ? 'bg-grape-400 ring-4 ring-grape-200 animate-pulse' : 'bg-warm-border'}`} />
                     {!isLast && <div className={`w-0.5 h-16 ${isCompleted ? 'bg-grape-400' : 'bg-warm-border'}`} />}
                   </div>
                   <button
@@ -407,7 +407,7 @@ export default function RelayDetailPage() {
       {/* 릴레이: 내 차례이고 아직 미완성 — 완성 시 자동 진행 안내 */}
       {!isGroup && isMyTurn && hasBoard && !myBoardCompleted && (
         <div className="clay-sm p-4 text-center bg-grape-50">
-          <p className="text-sm text-warm-sub [text-wrap:balance]">완성하면 다음 주자에게 자동으로 넘어가요</p>
+          <p className="text-sm text-warm-sub text-balance">완성하면 다음 주자에게 자동으로 넘어가요</p>
         </div>
       )}
 
@@ -416,7 +416,7 @@ export default function RelayDetailPage() {
         <Modal
           onClose={() => setAttachOpen(false)}
           label="기존 포도판 불러오기"
-          backdropClassName="z-[90] bg-black/40 backdrop-blur-sm"
+          backdropClassName="z-90 bg-black/40 backdrop-blur-xs"
           sheetClassName="w-full max-w-lg bg-clay-bg rounded-t-[28px] clay-float p-5 pb-8 safe-bottom max-h-[75vh] flex flex-col"
         >
           <div className="flex items-center justify-between mb-4">

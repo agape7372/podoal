@@ -34,7 +34,7 @@ export default function OnboardingWelcome({ onClose }: OnboardingWelcomeProps) {
       variant="center"
       onClose={onClose}
       label="포도알 시작하기"
-      backdropClassName="z-[92] bg-black/40 backdrop-blur-sm p-6"
+      backdropClassName="z-92 bg-black/40 backdrop-blur-xs p-6"
       sheetClassName="w-full max-w-sm bg-clay-bg rounded-[28px] clay-float p-6 text-center animate-bounce-in"
     >
       <div className="flex justify-center mb-3">
@@ -43,14 +43,14 @@ export default function OnboardingWelcome({ onClose }: OnboardingWelcomeProps) {
       <h2 className="font-display text-xl font-bold text-grape-700 mb-1">
         포도알에 오신 걸 환영해요
       </h2>
-      <p className="text-sm text-warm-sub mb-5 [text-wrap:balance]">
+      <p className="text-sm text-warm-sub mb-5 text-balance">
         한 알씩 채우며 목표를 이루는 습관 앱이에요
       </p>
 
       <ol className="text-left space-y-3 mb-6">
         {STEPS.map((s, i) => (
           <li key={s.title} className="flex items-center gap-3">
-            <span className="flex-shrink-0 w-9 h-9 rounded-full clay-sm grid place-items-center">
+            <span className="shrink-0 w-9 h-9 rounded-full clay-sm grid place-items-center">
               <EmojiIcon emoji={s.emoji} size={20} />
             </span>
             <span className="min-w-0">

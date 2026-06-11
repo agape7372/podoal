@@ -106,7 +106,7 @@ export default function StatsPage() {
             onClick={() => { feedbackTap(); setActiveTab(tab.key); }}
             className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
               activeTab === tab.key
-                ? 'clay-button bg-white text-grape-700 shadow-sm'
+                ? 'clay-button bg-white text-grape-700 shadow-xs'
                 : 'text-warm-sub hover:text-warm-text'
             }`}
           >
@@ -139,7 +139,7 @@ export default function StatsPage() {
                 <div key={day.date} className="flex flex-col items-center gap-1 flex-1">
                   <span className="text-[10px] text-warm-sub tabular-nums">{day.count}</span>
                   <div
-                    className="w-full rounded-t-lg bg-gradient-to-t from-grape-400 to-grape-300 transition-all duration-500"
+                    className="w-full rounded-t-lg bg-linear-to-t from-grape-400 to-grape-300 transition-all duration-500"
                     style={{
                       height: `${Math.max((day.count / maxDaily) * 80, 4)}px`,
                       minHeight: '4px',
@@ -284,14 +284,14 @@ function DayOfWeekChart({ data }: { data: { day: string; count: number }[] }) {
     <div className="space-y-2">
       {data.map((d) => (
         <div key={d.day} className="flex items-center gap-2">
-          <span className="text-xs text-warm-sub w-5 text-right flex-shrink-0">{d.day}</span>
+          <span className="text-xs text-warm-sub w-5 text-right shrink-0">{d.day}</span>
           <div className="flex-1 h-5 bg-warm-border/40 rounded-full overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-grape-300 to-grape-500 rounded-full transition-all duration-500"
+              className="h-full bg-linear-to-r from-grape-300 to-grape-500 rounded-full transition-all duration-500"
               style={{ width: `${Math.max((d.count / maxCount) * 100, d.count > 0 ? 8 : 0)}%` }}
             />
           </div>
-          <span className="text-xs text-warm-sub w-7 text-right flex-shrink-0 tabular-nums">{d.count}</span>
+          <span className="text-xs text-warm-sub w-7 text-right shrink-0 tabular-nums">{d.count}</span>
         </div>
       ))}
     </div>
@@ -360,7 +360,7 @@ function MonthlyChart({ data }: { data: { month: string; count: number }[] }) {
         <div key={d.month} className="flex flex-col items-center gap-1 flex-1">
           <span className="text-[10px] text-warm-sub tabular-nums">{d.count}</span>
           <div
-            className="w-full rounded-t-lg bg-gradient-to-t from-grape-500 to-grape-300 transition-all duration-500"
+            className="w-full rounded-t-lg bg-linear-to-t from-grape-500 to-grape-300 transition-all duration-500"
             style={{
               height: `${Math.max((d.count / maxCount) * 96, 4)}px`,
               minHeight: '4px',
@@ -407,7 +407,7 @@ function CategoryBreakdown({ data }: { data: { category: string; count: number }
           </div>
           <div className="h-3 bg-warm-border/40 rounded-full overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-grape-300 to-grape-500 rounded-full transition-all duration-500"
+              className="h-full bg-linear-to-r from-grape-300 to-grape-500 rounded-full transition-all duration-500"
               style={{ width: `${(d.count / maxCount) * 100}%` }}
             />
           </div>

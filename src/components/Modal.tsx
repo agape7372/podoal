@@ -12,7 +12,7 @@ interface ModalProps {
   /** 접근성 이름(보통 모달 제목 텍스트). labelledBy가 있으면 그쪽 우선. */
   label?: string;
   labelledBy?: string;
-  /** 백드롭 오버라이드(z-index·배경·블러). 기본 z-[90] 반투명+블러. */
+  /** 백드롭 오버라이드(z-index·배경·블러). 기본 z-90 반투명+블러. */
   backdropClassName?: string;
   /** false면 백드롭/Escape 닫기 비활성(비동기 동작 중 등). 기본 true. */
   dismissable?: boolean;
@@ -42,7 +42,7 @@ export default function Modal({
   sheetClassName = '',
   label,
   labelledBy,
-  backdropClassName = 'z-[90] bg-black/40 backdrop-blur-sm',
+  backdropClassName = 'z-90 bg-black/40 backdrop-blur-xs',
   dismissable = true,
   overlay,
 }: ModalProps) {
@@ -122,7 +122,7 @@ export default function Modal({
         aria-label={labelledBy ? undefined : label}
         aria-labelledby={labelledBy}
         tabIndex={-1}
-        className={`${sheetClassName} focus:outline-none`}
+        className={`${sheetClassName} focus:outline-hidden`}
       >
         {children}
       </div>

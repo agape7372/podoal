@@ -81,8 +81,8 @@ export default function ReminderModal({ reminder, boards, onSave, onClose }: Rem
     <Modal
       onClose={onClose}
       label={reminder ? '리마인더 수정' : '리마인더 추가'}
-      backdropClassName="z-[90] bg-black/30 backdrop-blur-sm"
-      sheetClassName="w-full max-w-lg bg-clay-bg rounded-t-[32px] clay-float p-6 pb-8 safe-bottom animate-slide-up max-h-[85vh] flex flex-col"
+      backdropClassName="z-90 bg-black/30 backdrop-blur-xs"
+      sheetClassName="w-full max-w-lg bg-clay-bg rounded-t-clay-lg clay-float p-6 pb-8 safe-bottom animate-slide-up max-h-[85vh] flex flex-col"
     >
       <div className="w-12 h-1.5 bg-warm-border rounded-full mx-auto mb-5" />
 
@@ -119,7 +119,7 @@ export default function ReminderModal({ reminder, boards, onSave, onClose }: Rem
                   className={`
                     flex-1 py-2.5 rounded-xl text-sm font-medium transition-all
                     ${selectedDays.includes(day)
-                      ? 'bg-gradient-to-br from-grape-400 to-grape-500 text-white shadow-clay-sm'
+                      ? 'bg-linear-to-br from-grape-400 to-grape-500 text-white shadow-clay-sm'
                       : 'clay-button text-warm-sub'
                     }
                   `}
@@ -184,7 +184,7 @@ export default function ReminderModal({ reminder, boards, onSave, onClose }: Rem
               disabled={submitting}
               className={`
                 flex-1 clay-button py-3 rounded-2xl text-sm font-bold text-white
-                bg-gradient-to-r from-grape-400 to-grape-500
+                bg-linear-to-r from-grape-400 to-grape-500
                 ${submitting ? 'opacity-50 cursor-not-allowed' : ''}
               `}
             >

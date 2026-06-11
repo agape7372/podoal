@@ -12,7 +12,7 @@ function Toggle({ enabled, onToggle, ariaLabel }: { enabled: boolean; onToggle: 
       aria-label={ariaLabel}
       onClick={onToggle}
       className={`w-12 h-7 rounded-full transition-all duration-200 relative ${
-        enabled ? 'bg-gradient-to-r from-grape-400 to-grape-500' : 'bg-warm-border'
+        enabled ? 'bg-linear-to-r from-grape-400 to-grape-500' : 'bg-warm-border'
       }`}
     >
       <div className={`w-5 h-5 rounded-full bg-white shadow-md absolute top-1 transition-all duration-200 ${enabled ? 'left-6' : 'left-1'}`} />
