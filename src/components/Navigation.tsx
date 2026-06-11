@@ -1,6 +1,7 @@
 'use client';
 
-import { usePathname, useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useMemo } from 'react';
 import { useAppStore } from '@/lib/store';
 import { feedbackTap } from '@/lib/feedback';
@@ -19,7 +20,6 @@ const navItems = [
 
 export default function Navigation() {
   const pathname = usePathname();
-  const router = useRouter();
   const unreadCount = useAppStore((s) => s.unreadCount);
 
   // 세그먼트 경계를 지키며(p===pre || p.startsWith(pre+'/')) owns 중 최장 prefix를 가진 탭을 활성화.
@@ -47,12 +47,12 @@ export default function Navigation() {
           {navItems.map((item) => {
             const isActive = item.path === activePath;
             return (
-              <button
+              // <Link>: 하단 네비는 항상 뷰포트에 있어 5개 탭 라우트가 자동 프리페치된다
+              // (button+router.push는 프리페치 0 — 탭 시점에야 RSC/청크 페치가 시작됐음).
+              <Link
                 key={item.path}
-                onClick={() => {
-                  feedbackTap();
-                  router.push(item.path);
-                }}
+                href={item.path}
+                onClick={feedbackTap}
                 className={`
                   relative flex flex-col items-center gap-0.5 py-1.5 px-3 rounded-2xl no-select
                   transition-all duration-200
@@ -86,7 +86,7 @@ export default function Navigation() {
                 <span className={`text-[10.5px] ${isActive ? 'font-bold' : 'font-medium'}`}>
                   {item.label}
                 </span>
-              </button>
+              </Link>
             );
           })}
         </div>

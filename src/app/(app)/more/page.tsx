@@ -1,6 +1,6 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useAppStore } from '@/lib/store';
 import { feedbackTap } from '@/lib/feedback';
 import EmojiIcon from '@/components/EmojiIcon';
@@ -59,13 +59,7 @@ function Chevron() {
 }
 
 export default function MorePage() {
-  const router = useRouter();
   const unreadCount = useAppStore((s) => s.unreadCount);
-
-  const go = (path: string) => {
-    feedbackTap();
-    router.push(path);
-  };
 
   return (
     <div className="pb-4">
@@ -78,9 +72,11 @@ export default function MorePage() {
 
             <div className="clay overflow-hidden">
               {section.items.map((item, i) => (
-                <button
+                // <Link>: 메뉴 항목이 뷰포트에 들어오는 순간 하위 7개 라우트가 프리페치됨
+                <Link
                   key={item.path}
-                  onClick={() => go(item.path)}
+                  href={item.path}
+                  onClick={feedbackTap}
                   className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-transform active:scale-[0.98] ${
                     i > 0 ? 'border-t border-warm-border/55' : ''
                   }`}
@@ -105,7 +101,7 @@ export default function MorePage() {
                   )}
 
                   <Chevron />
-                </button>
+                </Link>
               ))}
             </div>
           </section>

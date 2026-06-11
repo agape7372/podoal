@@ -94,6 +94,13 @@ export default function HomePage() {
 
   useEffect(() => { loadBoards(); }, [loadBoards]);
 
+  // 보이는 보드의 상세 라우트를 미리 받아둔다 — board/[id]는 동적 라우트라
+  // <Link> 없이는 카드 탭 시점에야 RSC 왕복이 시작돼 무반응 구간이 생긴다.
+  // (카드 자체는 스와이프 제스처와 얽혀 있어 Link화 대신 명령형 프리페치를 쓴다.)
+  useEffect(() => {
+    boards.slice(0, 8).forEach((b) => router.prefetch(`/board/${b.id}`));
+  }, [boards, router]);
+
   // 스트릭 카드 데이터 — 보드 fetch와 병렬(독립 effect, 직렬 워터폴 금지).
   // mount 1회 + 유예 사용 직후만 재조회(stats API는 비용이 있어 잦은 refetch 금지).
   // 로딩 중엔 같은 높이의 스켈레톤으로 자리를 예약(늦게 끼어들며 콘텐츠가 점프하던 시프트 방지),

@@ -1,7 +1,7 @@
 // IMPORTANT: bump CACHE_VERSION whenever you change which assets you want to
 // invalidate on the next deploy. The activate handler deletes every cache
 // whose name doesn't match the current value, so users get a fresh shell.
-const CACHE_VERSION = '2026-06-08-push-tag';
+const CACHE_VERSION = '2026-06-11-rsc-guard';
 const CACHE_NAME = `podoal-${CACHE_VERSION}`;
 const APP_SHELL = ['/', '/home', '/manifest.json'];
 
@@ -81,19 +81,35 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Other static assets (icons, manifest, images): Cache First with background fill.
-  event.respondWith(
-    caches.match(request).then((cached) => {
-      if (cached) return cached;
-      return fetch(request).then((response) => {
-        if (response.ok) {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
-        }
-        return response;
-      });
-    })
-  );
+  // App Router 클라이언트 네비게이션의 RSC 페치(?_rsc=… / RSC: 1 헤더)는 문서와 같은
+  // URL 공간을 쓰는 '데이터'다 — cache-first로 재서빙하면 stale payload가 라우터
+  // 전환을 영구 미커밋 상태로 만들고(탭 눌러도 화면 무반응), 배포 후엔 죽은 해시
+  // 청크를 참조해 하드 리로드 폴백을 유발한다. SW가 개입하지 않고 통과시킨다.
+  // (navigate 문서를 network-first로 고친 위 수정과 같은 버그 클래스 — RSC 누락분.)
+  if (url.searchParams.has('_rsc') || request.headers.get('RSC') === '1') {
+    return;
+  }
+
+  // 진짜 정적 자산만 Cache First (화이트리스트 — 예전 catch-all이 RSC까지 삼키던
+  // 버그의 재발 방지: 목록 밖의 GET은 SW 미개입으로 브라우저 기본 동작을 탄다).
+  const isCacheableAsset =
+    /^\/(icons|avatars)\//.test(url.pathname) ||
+    /\.(svg|png|jpg|jpeg|webp|ico|woff2?)$/.test(url.pathname) ||
+    url.pathname === '/manifest.json';
+  if (url.origin === self.location.origin && isCacheableAsset) {
+    event.respondWith(
+      caches.match(request).then((cached) => {
+        if (cached) return cached;
+        return fetch(request).then((response) => {
+          if (response.ok) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          }
+          return response;
+        });
+      })
+    );
+  }
 });
 
 // Push notification handler
