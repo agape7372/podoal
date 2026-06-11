@@ -10,10 +10,14 @@
 //
 // 의도적으로 localStorage persist 하지 않음 — 세션 간 신선도/프라이버시 단순화.
 // (PWA 재시작 첫 화면은 어차피 콜드 API 1회가 필요하다.)
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '@/lib/api';
 
 const cache = new Map<string, unknown>();
+
+// 백그라운드 복귀(visibilitychange/focus) 재검증의 최소 간격 — mount 직후 재검증과의
+// 중복 호출, 그리고 visibilitychange와 focus가 연달아 발화하는 이중 발사를 막는다.
+const FOCUS_REVALIDATE_THROTTLE_MS = 5000;
 
 /** 로그인(사용자 전환) 시 호출 — 이전 계정의 데이터가 새 계정 화면에 비치는 것 방지. */
 export function clearPageCache() {
@@ -23,6 +27,14 @@ export function clearPageCache() {
 /** 특정 키만 무효화 (다음 mount에서 스켈레톤부터 시작하게 하고 싶을 때). */
 export function invalidateCachedApi(url: string) {
   cache.delete(url);
+}
+
+/** 접두 일치 키 일괄 무효화 — 파라미터화된 상세 캐시 일족(예: '/api/relays')을
+ *  키를 모르는 채로 비울 때. 다음 진입은 캐시 없이 서버 기준으로 시작한다. */
+export function invalidateCachedApiPrefix(prefix: string) {
+  for (const key of cache.keys()) {
+    if (key.startsWith(prefix)) cache.delete(key);
+  }
 }
 
 /** 훅 밖에서 캐시 스냅샷 읽기 — 다른 페이지가 받아둔 응답으로 선렌더할 때 사용
@@ -43,7 +55,11 @@ export function useCachedApi<T>(url: string) {
   // fetched: 이번 mount의 재검증이 완료됐는가 (성공/실패 불문)
   const [fetched, setFetched] = useState(false);
 
+  // 마지막 재검증 발사 시각 — 복귀 재검증 스로틀의 기준점 (mount/수동 refresh 포함).
+  const lastRefreshAtRef = useRef(0);
+
   const refresh = useCallback(async () => {
+    lastRefreshAtRef.current = Date.now();
     setError(false);
     try {
       const fresh = await api<T>(url);
@@ -58,6 +74,22 @@ export function useCachedApi<T>(url: string) {
 
   useEffect(() => {
     refresh();
+  }, [refresh]);
+
+  // 백그라운드 복귀 재검증 — PWA/탭이 visible로 돌아오면 조용히 다시 받아온다.
+  // 라우트 전환 없이 오래 떠 있던 화면(예: relay 상세)이 스테일로 고착되는 것 방지.
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState !== 'visible') return;
+      if (Date.now() - lastRefreshAtRef.current < FOCUS_REVALIDATE_THROTTLE_MS) return;
+      refresh();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('focus', onVisible);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('focus', onVisible);
+    };
   }, [refresh]);
 
   // 낙관적/로컬 갱신용 — 캐시와 화면을 함께 갱신해 다음 방문에도 일관되게 보인다.
