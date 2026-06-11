@@ -17,7 +17,7 @@ import CapsuleModal from '@/components/CapsuleModal';
 import Avatar from '@/components/Avatar';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import EmojiIcon from '@/components/EmojiIcon';
-import { readCachedApi, writeCachedApi } from '@/lib/cachedApi';
+import { invalidateCachedApiPrefix, readCachedApi, writeCachedApi } from '@/lib/cachedApi';
 import type { BoardDetail, BoardSummary, PlantedGiftInfo, RewardInfo, TimeCapsuleInfo } from '@/types';
 import { REWARD_TYPE_ICON, ICON } from '@/lib/icons';
 import { feedbackTap } from '@/lib/feedback';
@@ -50,6 +50,25 @@ export default function BoardDetailPage() {
           filledCount: Math.max(0, board.filledCount - temps.length),
         };
     writeCachedApi(`/api/boards/${id}`, snapshot);
+    // 홈 리스트 write-through: 홈의 /api/boards 캐시에 이 보드가 있으면 진행 3필드만
+    // 병합 — 홈 재진입의 캐시 첫 페인트가 방금 본 상세와 일치한다. temp 제외 스냅샷
+    // 기준이라 유령 카운트가 홈으로 번지지 않고(#74), order 등 다른 필드는 불가침.
+    const home = readCachedApi<{ boards: BoardSummary[] }>('/api/boards');
+    if (home?.boards.some((b) => b.id === id)) {
+      writeCachedApi('/api/boards', {
+        ...home,
+        boards: home.boards.map((b) =>
+          b.id === id
+            ? {
+                ...b,
+                filledCount: snapshot.filledCount,
+                isCompleted: snapshot.isCompleted,
+                completedAt: snapshot.completedAt,
+              }
+            : b,
+        ),
+      });
+    }
   }, [board, id]);
   // 홈이 받아둔 /api/boards 캐시에서 이 보드의 요약을 꺼내 스켈레톤 동안 제목·진행
   // 숫자를 실값으로 선렌더 — '이미 아는 정보를 다시 기다리는' 체감 제거.
@@ -178,10 +197,20 @@ export default function BoardDetailPage() {
         unlockedReward: { id: string; type: string; title: string; triggerAt: number } | null;
         plantedGift: PlantedGiftInfo | null;
         plantedGifts?: PlantedGiftInfo[];
+        relayAdvanced?: boolean;
       }>(`/api/boards/${id}/stickers`, {
         method: 'POST',
         json: { position },
       });
+      // 보드 완성/포도동 자동 진행 시 relay 상세 캐시 일괄 무효화 — 연타 채움의
+      // 직렬화 큐가 in-flight인 사이 relay 페이지가 재검증을 끝내면 미완성 카운트가
+      // 캐시에 남는데, 완료 응답 시점에 비워두면 다음 진입이 서버 기준으로 시작한다.
+      // aliveRef 가드보다 먼저 실행: 핵심 경합이 '채우고 곧장 포도동 진입'이라 완료
+      // 응답은 대개 이 페이지가 떠난 뒤 도착한다(화면 상태가 아닌 모듈 캐시 조작).
+      if (result.isCompleted || result.relayAdvanced) {
+        invalidateCachedApiPrefix('/api/relays');
+      }
+
       if (!aliveRef.current) return;
       setErrorMessage(null);
 
@@ -418,6 +447,9 @@ export default function BoardDetailPage() {
 
   const isOwner = user?.id === board.owner.id;
   const allowPlant = board.allowFriendPlant ?? true;
+  // 포도동 연결 보드는 선물 불가(서버도 gift POST에서 차단). inRelay가 없는 구버전
+  // 캐시 응답은 홈 요약의 podong(그룹 전용)으로 폴백.
+  const noGift = board.inRelay ?? summary?.podong ?? false;
   const filledCount = board.stickers.length;
   // 중간 보상(아이콘 슬라이더) vs 완성 보상(카드) 분리.
   const midRewards = board.rewards
@@ -457,7 +489,10 @@ export default function BoardDetailPage() {
           </button>
           <button
             onClick={() => { feedbackTap(); setShowGift(true); }}
-            className="py-2.5 text-sm text-grape-700 active:bg-grape-50 transition-colors"
+            disabled={noGift}
+            aria-label={noGift ? '포도동 포도판은 선물할 수 없어요' : undefined}
+            title={noGift ? '포도동 포도판은 선물할 수 없어요' : undefined}
+            className="py-2.5 text-sm text-grape-700 active:bg-grape-50 transition-colors disabled:opacity-40"
           >
             선물
           </button>

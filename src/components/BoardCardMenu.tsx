@@ -63,7 +63,7 @@ export default function BoardCardMenu({ onOpen, onHarvest, onDelete, canHarvest,
         onPointerDown={stop}
         onPointerUp={stop}
         onClick={(e) => { e.stopPropagation(); feedbackTap(); setOpen((v) => !v); }}
-        className="w-8 h-8 rounded-full grid place-items-center bg-white/85 clay-sm text-warm-sub active:scale-95 transition-transform"
+        className="w-8 h-8 rounded-full grid place-items-center text-warm-sub active:scale-95 transition-transform"
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
           <circle cx="12" cy="5" r="1.8" />

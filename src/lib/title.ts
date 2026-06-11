@@ -16,3 +16,11 @@ export function stripTitleEmoji(title: string): string {
   const stripped = title.replace(LEADING_EMOJI, '').trimStart();
   return stripped.length > 0 ? stripped : title;
 }
+
+// 표시 전용: 긴 이름이 모달 부제 등 한 줄 레이아웃을 깨지 않도록 max 글자 초과 시 '…'로 자른다.
+// Array.from으로 코드포인트 단위 분할 — 서로게이트 쌍(이모지 등)을 반 토막 내지 않는다.
+export function ellipsizeName(name: string, max = 12): string {
+  if (!name) return name;
+  const chars = Array.from(name);
+  return chars.length > max ? `${chars.slice(0, max).join('')}…` : name;
+}

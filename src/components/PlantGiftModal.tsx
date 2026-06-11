@@ -49,8 +49,11 @@ export default function PlantGiftModal({ board, onClose, onPlanted }: PlantGiftM
       <h3 className="font-display text-xl font-bold text-grape-700 text-center mb-1">
           <EmojiIcon emoji="🎁" size={22} className="mr-1" />깜짝 선물 심기
         </h3>
+        <p className="text-sm text-warm-sub text-center truncate">
+          &ldquo;{stripTitleEmoji(board.title)}&rdquo;
+        </p>
         <p className="text-sm text-warm-sub text-center mb-5">
-          &ldquo;{stripTitleEmoji(board.title)}&rdquo;의 한 칸에 숨겨둘게요. 그 포도알을 채우면 짠!
+          빈 한 칸에 선물을 숨겨둘게요. 채우면 짠!
         </p>
 
         {positions.length === 0 ? (

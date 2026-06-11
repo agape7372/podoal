@@ -40,6 +40,8 @@ export interface BoardDetail extends BoardSummary {
   rewards: RewardInfo[];
   giftMessage?: string;
   giftOpenedAt?: string | null;
+  /** True when this board is linked to any 포도동 (both modes) — gifting is blocked. `podong` stays group-only. */
+  inRelay?: boolean;
 }
 
 export interface PlantedGiftInfo {

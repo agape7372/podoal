@@ -53,7 +53,7 @@ export default function StreakCard({ streak }: StreakCardProps) {
             <span className="font-display text-xl font-extrabold text-grape-600 tabular-nums align-[-1px]">
               {currentStreak}
             </span>
-            일째 포도알을 모으고 있어요
+            일째 모으고 있어요
           </p>
         ) : (
           // 스트릭 0 — 협박/경고색 없이 다시 시작을 권하는 톤.

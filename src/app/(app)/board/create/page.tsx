@@ -7,6 +7,7 @@ import ClayInput from '@/components/ClayInput';
 import NumberStepper from '@/components/NumberStepper';
 import TemplatePicker from '@/components/create/TemplatePicker';
 import RewardEditor from '@/components/create/RewardEditor';
+import StepProgress from '@/components/create/StepProgress';
 import { api } from '@/lib/api';
 import type { RewardType } from '@/types';
 import type { HabitTemplate } from '@/lib/templates';
@@ -109,8 +110,21 @@ function CreateBoardInner() {
   };
 
   return (
-    <div className="pb-4">
-      <h1 className="font-display text-2xl font-bold text-grape-700 mb-6 inline-flex items-center gap-1.5"><EmojiIcon emoji={giftTo ? '🎁' : '🍇'} size={24} /> {giftTo ? '선물할 포도판 만들기' : '새 포도판 만들기'}</h1>
+    // 240px 보정치 = 상단 헤더 + 하단 pb-[160px] 몫. 내비/배너 높이 변경 시 갱신.
+    <div className="pb-4 flex flex-col min-h-[calc(100dvh-240px)]">
+      {/* 컴팩트 상단: 뒤로 + 제목 한 줄 (하단탭 '만들기' 제거 후 이탈 경로) */}
+      <div className="flex items-center gap-2 mb-3">
+        <button
+          onClick={() => { feedbackTap(); router.push(giftTo ? `/friends/${giftTo}` : '/home'); }}
+          aria-label={giftTo ? '친구 페이지로 돌아가기' : '홈으로 돌아가기'}
+          className="clay-button w-9 h-9 rounded-full flex items-center justify-center text-warm-sub shrink-0"
+        >
+          ←
+        </button>
+        <h1 className="font-display text-lg font-bold text-grape-700 inline-flex items-center gap-1.5">
+          <EmojiIcon emoji={giftTo ? '🎁' : '🍇'} size={18} /> {giftTo ? '선물할 포도판 만들기' : '새 포도판 만들기'}
+        </h1>
+      </div>
 
       {giftTo && (
         <div className="clay-sm p-3 mb-5 bg-grape-50/70 flex items-center gap-2">
@@ -119,25 +133,8 @@ function CreateBoardInner() {
         </div>
       )}
 
-      {/* Step indicator */}
-      <div className="flex items-center justify-center gap-2 mb-6">
-        {[0, 1, 2, 3].map((s) => (
-          <div key={s} className="flex items-center gap-2">
-            <div
-              className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold tabular-nums transition-all ${
-                step >= s
-                  ? 'bg-linear-to-br from-grape-400 to-grape-500 text-white'
-                  : 'bg-grape-100 text-warm-light'
-              }`}
-            >
-              {s}
-            </div>
-            {s < 3 && (
-              <div className={`w-8 h-0.5 ${step > s ? 'bg-grape-400' : 'bg-grape-100'}`} />
-            )}
-          </div>
-        ))}
-      </div>
+      {/* 점프 시 이전 단계의 에러 문구가 따라오지 않게 비움 — 다음 진행 시 재검증됨 */}
+      <StepProgress total={4} current={step} onJump={(s) => { setError(''); setStep(s); }} />
 
       {/* Step 0: Template selection */}
       {step === 0 && (
@@ -167,19 +164,6 @@ function CreateBoardInner() {
           />
 
           {error && <p role="alert" className="text-grape-700 text-sm text-center">{error}</p>}
-
-          <div className="flex gap-3">
-            <ClayButton variant="ghost" onClick={() => setStep(0)} fullWidth>
-              ← 이전
-            </ClayButton>
-            <ClayButton
-              fullWidth
-              size="lg"
-              onClick={() => { if (title.trim()) { setError(''); setStep(2); } else setError('제목을 입력해주세요'); }}
-            >
-              다음 →
-            </ClayButton>
-          </div>
         </div>
       )}
 
@@ -206,20 +190,6 @@ function CreateBoardInner() {
             <NumberStepper value={totalStickers} onChange={setTotalStickers} min={2} max={60} />
           </div>
           <p className="text-xs text-warm-sub text-center text-balance">2~60알까지 자유롭게 설정할 수 있어요</p>
-
-          <div className="flex gap-3 mt-4">
-            <ClayButton variant="ghost" onClick={() => setStep(1)} fullWidth>
-              ← 이전
-            </ClayButton>
-            <ClayButton
-              fullWidth
-              // 숫자 직접입력 중 탭하면 input blur(commit)를 click보다 먼저 강제해 1탭으로 진행되게 한다.
-              onPointerDown={() => (document.activeElement as HTMLElement | null)?.blur?.()}
-              onClick={() => setStep(3)}
-            >
-              다음 →
-            </ClayButton>
-          </div>
         </div>
       )}
 
@@ -236,19 +206,43 @@ function CreateBoardInner() {
           />
 
           <p className="text-xs text-warm-sub">
-            <span className="text-grape-400 font-bold mr-0.5">*</span>만들어진 포도알을 꾹 눌러 중간 보상을 설정할 수 있어요!
+            <span className="text-grape-400 font-bold mr-0.5">*</span>포도알을 꾹 눌러 중간 보상을 심을 수 있어요!
           </p>
 
           {error && <p role="alert" className="text-grape-700 text-sm text-center">{error}</p>}
+        </div>
+      )}
 
-          <div className="flex gap-3">
-            <ClayButton variant="ghost" onClick={() => setStep(2)} fullWidth>
-              ← 이전
+      {/* 공용 하단 푸터 — step 0(템플릿)은 자체 '직접 입력' CTA가 있어 미표시 */}
+      {step > 0 && (
+        <div className="mt-auto pt-5 flex gap-3">
+          <ClayButton variant="ghost" onClick={() => setStep(step - 1)} fullWidth>
+            ← 이전
+          </ClayButton>
+          {step === 1 && (
+            <ClayButton
+              fullWidth
+              size="lg"
+              onClick={() => { if (title.trim()) { setError(''); setStep(2); } else setError('제목을 입력해주세요'); }}
+            >
+              다음 →
             </ClayButton>
+          )}
+          {step === 2 && (
+            <ClayButton
+              fullWidth
+              // 숫자 직접입력 중 탭하면 input blur(commit)를 click보다 먼저 강제해 1탭으로 진행되게 한다.
+              onPointerDown={() => (document.activeElement as HTMLElement | null)?.blur?.()}
+              onClick={() => setStep(3)}
+            >
+              다음 →
+            </ClayButton>
+          )}
+          {step === 3 && (
             <ClayButton fullWidth onClick={handleCreate} loading={loading}>
               <EmojiIcon emoji={giftTo ? '🎁' : '🍇'} size={16} className="mr-1" />{giftTo ? '선물하기' : '만들기'}
             </ClayButton>
-          </div>
+          )}
         </div>
       )}
     </div>

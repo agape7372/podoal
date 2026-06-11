@@ -46,7 +46,7 @@ export default function RelayDetailPage() {
   const user = useAppStore((s) => s.user);
 
   // SWR 캐시(포도동별 키): 재방문 시 직전 상세로 즉시 렌더 + 무음 재검증.
-  const { data, loading, refreshFailed, refresh } = useCachedApi<{ relay: RelayDetail }>(
+  const { data, loading, error, refreshFailedStatus, refresh } = useCachedApi<{ relay: RelayDetail }>(
     `/api/relays/${relayId}`,
   );
   const relay = data?.relay ?? null;
@@ -63,11 +63,16 @@ export default function RelayDetailPage() {
 
   const fetchRelay = refresh;
 
-  // 로드 실패(권한 없음/삭제됨)는 종전처럼 목록으로 복귀 — 캐시가 있어도
-  // 재검증이 실패했다면 이미 접근 불가한 포도동이므로 스테일 화면을 유지하지 않는다.
+  // 목록 복귀 조건: ① 접근 상실(403 권한 없음/404 삭제) — 캐시가 있어도 이미 접근
+  // 불가한 포도동이라 스테일 화면을 유지하지 않는다. ② 보여줄 캐시조차 없는 실패
+  // (첫 방문 오프라인 등) — null 렌더로 빈 화면이 고착되는 것 방지.
+  // 캐시가 있는 일시 장애(네트워크 단절·오프라인 SW 503·5xx)는 복귀 재검증에서도
+  // 발생하므로 화면을 유지한다 — 실패 일괄 복귀였다면 오프라인 복귀만으로 튕겨났다.
   useEffect(() => {
-    if (refreshFailed) router.replace('/relay');
-  }, [refreshFailed, router]);
+    if (error || refreshFailedStatus === 403 || refreshFailedStatus === 404) {
+      router.replace('/relay');
+    }
+  }, [error, refreshFailedStatus, router]);
 
   const handleAccept = async () => {
     setResponding(true);
@@ -203,6 +208,8 @@ export default function RelayDetailPage() {
   );
 
   // 수확 완료 멤버 코너 배지(REQ13) — '완료'와 구분되는 와인색 표식.
+  // 그룹 카드 전용(코너가 비어 있음). 순차 타임라인은 상태 배지 자리가 같은 코너라
+  // 겹치므로 in-flow 분기로 렌더한다(아래 타임라인 분기 참조).
   const harvestBadge = (
     <span className="absolute top-2.5 right-2.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-juice-100 text-juice-700 text-[10px] font-semibold">
       <EmojiIcon emoji="🍷" size={12} /> 수확 완료
@@ -239,9 +246,9 @@ export default function RelayDetailPage() {
       </button>
 
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="font-display text-2xl font-bold text-grape-700">{relay.title}</h1>
-        <span className={`px-3 py-1 rounded-lg text-xs font-semibold ${statusBadge.color}`}>{statusBadge.text}</span>
+      <div className="flex items-center justify-between gap-2 mb-6">
+        <h1 className="flex-1 min-w-0 truncate font-display text-2xl font-bold text-grape-700">{stripTitleEmoji(relay.title)}</h1>
+        <span className={`shrink-0 px-3 py-1 rounded-lg text-xs font-semibold ${statusBadge.color}`}>{statusBadge.text}</span>
       </div>
 
       {/* Info */}
@@ -263,7 +270,9 @@ export default function RelayDetailPage() {
         <div className="clay p-5 mb-6 bg-grape-50 text-center">
           <EmojiIcon emoji="🔗" size={32} className="block mx-auto mb-2" />
           <p className="font-bold text-grape-700 mb-1">포도동에 초대받았어요</p>
-          <p className="text-sm text-warm-sub mb-4 text-balance">{relay.creator.name}님이 함께 습관을 채우자고 초대했어요</p>
+          <p className="text-sm text-warm-sub mb-4 text-balance">
+            {relay.creator.name.length > 12 ? `${relay.creator.name.slice(0, 12)}…` : relay.creator.name}님이 함께 습관을 채우자고 초대했어요
+          </p>
           <div className="flex gap-3">
             <ClayButton variant="ghost" fullWidth onClick={() => setConfirmDecline(true)} disabled={responding}>거절</ClayButton>
             <ClayButton fullWidth size="lg" onClick={handleAccept} loading={responding}>수락하기</ClayButton>
@@ -276,9 +285,7 @@ export default function RelayDetailPage() {
         <div className="clay p-6 mb-6 bg-amber-50/60 text-center">
           <EmojiIcon emoji={'🎉'} size={40} className="block mx-auto mb-2" />
           <p className="font-bold text-grape-700 text-lg mb-1">포도동 완료!</p>
-          <p className="text-sm text-warm-sub">
-            {isGroup ? '모두가 포도판을 완성했어요. 수고했어요!' : '모든 참가자가 포도판을 완성했어요. 모두 수고했어요!'}
-          </p>
+          <p className="text-sm text-warm-sub">모두가 포도판을 완성했어요!</p>
         </div>
       )}
 
@@ -299,14 +306,16 @@ export default function RelayDetailPage() {
                   type="button"
                   disabled={!tappable}
                   onClick={() => { if (p.boardId) { feedbackTap(); router.push(`/board/${p.boardId}`); } }}
-                  className={`relative block w-full text-left p-4 rounded-2xl ${done ? 'clay bg-leaf-100/40' : 'clay-sm'} ${harvested ? 'opacity-75' : ''} ${tappable ? 'pr-9 active:scale-[0.98] transition-transform' : 'cursor-default'}`}
+                  className={`relative block w-full text-left p-4 rounded-2xl ${done ? 'clay bg-leaf-100/40' : 'clay-sm'} ${tappable ? 'pr-9 active:scale-[0.98] transition-transform' : 'cursor-default'}`}
                 >
                   {harvested && harvestBadge}
                   {tappable && tapChevron}
                   <div className="flex items-center gap-3">
                     <Avatar avatar={p.user.avatar} size="md" />
                     <div className="min-w-0">
-                      <p className="font-semibold text-warm-text">
+                      {/* 수확 카드: 카드 전체 dim 대신 헤더 텍스트만 톤다운 — 미니 포도알
+                          트레이는 원색 유지('수확 완료' 칩이 상태를 전달). */}
+                      <p className={`font-semibold truncate ${harvested ? 'text-warm-sub' : 'text-warm-text'}`}>
                         {p.user.name}
                         {p.userId === user?.id && <span className="text-xs text-grape-400 ml-1">(나)</span>}
                       </p>
@@ -346,22 +355,29 @@ export default function RelayDetailPage() {
                     type="button"
                     disabled={!tappable}
                     onClick={() => { if (p.boardId) { feedbackTap(); router.push(`/board/${p.boardId}`); } }}
-                    className={`relative flex-1 mb-3 p-4 rounded-2xl text-left ${isActive ? 'clay bg-grape-50 ring-2 ring-grape-300' : 'clay-sm'} ${harvested ? 'opacity-75' : ''} ${tappable ? 'pr-9 active:scale-[0.98] transition-transform' : 'cursor-default'}`}
+                    className={`relative flex-1 mb-3 p-4 rounded-2xl text-left ${isActive ? 'clay bg-grape-50 ring-2 ring-grape-300' : 'clay-sm'} ${tappable ? 'pr-9 active:scale-[0.98] transition-transform' : 'cursor-default'}`}
                   >
-                    {harvested && harvestBadge}
                     {tappable && tapChevron}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-3 min-w-0">
                         <Avatar avatar={p.user.avatar} size="md" />
-                        <div>
-                          <p className="font-semibold text-warm-text">
+                        <div className="min-w-0">
+                          <p className={`font-semibold truncate ${harvested ? 'text-warm-sub' : 'text-warm-text'}`}>
                             {p.user.name}
                             {p.userId === user?.id && <span className="text-xs text-grape-400 ml-1">(나)</span>}
                           </p>
                           <p className="text-xs text-warm-sub">{p.order === 0 ? '첫 번째' : `${p.order + 1}번째`} 주자</p>
                         </div>
                       </div>
-                      <span className={`px-2 py-1 rounded-lg text-xs font-semibold ${statusInfo.color}`}>{statusInfo.text}</span>
+                      {/* 수확 시 상태 배지 '자리'를 와인색 칩이 대체 — 코너 absolute 배지와
+                          같은 위치에서 겹치던 충돌(완료+수확 일상 케이스)의 수정. */}
+                      {harvested ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-juice-100 text-juice-700 text-xs font-semibold shrink-0">
+                          <EmojiIcon emoji="🍷" size={12} /> 수확 완료
+                        </span>
+                      ) : (
+                        <span className={`px-2 py-1 rounded-lg text-xs font-semibold shrink-0 ${statusInfo.color}`}>{statusInfo.text}</span>
+                      )}
                     </div>
                     {p.board && miniGrapes(p.board)}
                   </button>

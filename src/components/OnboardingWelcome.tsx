@@ -13,7 +13,7 @@ interface OnboardingWelcomeProps {
 }
 
 const STEPS: { emoji: string; title: string; desc: string }[] = [
-  { emoji: '🍇', title: '포도판 만들기', desc: '이루고 싶은 습관·목표로 빈 포도판을 만들어요' },
+  { emoji: '🍇', title: '포도판 만들기', desc: '습관·목표로 빈 포도판을 만들어요' },
   { emoji: '✅', title: '매일 한 알씩', desc: '실천한 날마다 포도알을 톡 채워요' },
   { emoji: '🎁', title: '보상 개봉', desc: '다 채우면 숨겨둔 보상이 열려요' },
 ];
