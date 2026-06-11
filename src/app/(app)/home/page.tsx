@@ -92,6 +92,25 @@ export default function HomePage() {
   const gLpTimer = useRef<number | null>(null);
   const gSwipeDx = useRef(0); // 라이브 스와이프 오프셋(리렌더 타이밍과 무관하게 onUp이 판정)
 
+  // 리프트 중 네이티브 스크롤 차단 — touch-action은 터치 '접촉 시점'에 고정되므로
+  // doLift의 늦은 'none' 설정은 진행 중인 터치에 무효. 유일한 수단은 non-passive
+  // touchmove의 preventDefault(리프트 시점엔 손가락이 슬롭 안이라 네이티브 팬 시작 전).
+  // 해제가 누수되면 페이지 스크롤 전체가 죽는다 — onUp·onCancel(releaseCapture 경유)·
+  // effect cleanup 3중으로 해제를 보장한다.
+  const touchBlocker = useRef<((ev: TouchEvent) => void) | null>(null);
+  const unblockNativeScroll = useCallback(() => {
+    if (!touchBlocker.current) return;
+    document.removeEventListener('touchmove', touchBlocker.current);
+    touchBlocker.current = null;
+  }, []);
+  const blockNativeScroll = useCallback(() => {
+    if (touchBlocker.current) return;
+    const block = (ev: TouchEvent) => { if (ev.cancelable) ev.preventDefault(); };
+    document.addEventListener('touchmove', block, { passive: false });
+    touchBlocker.current = block;
+  }, []);
+  useEffect(() => unblockNativeScroll, [unblockNativeScroll]);
+
   // 보이는 보드의 상세 라우트를 미리 받아둔다 — board/[id]는 동적 라우트라
   // <Link> 없이는 카드 탭 시점에야 RSC 왕복이 시작돼 무반응 구간이 생긴다.
   // (카드 자체는 스와이프 제스처와 얽혀 있어 Link화 대신 명령형 프리페치를 쓴다.)
@@ -231,9 +250,10 @@ export default function HomePage() {
     feedbackTap();
     setLiftedId(board.id);
     dragOrderRef.current = displayBoards.map((b) => b.id);
+    blockNativeScroll(); // 진행 중 터치는 touch-action으로 못 막는다 — touchmove preventDefault만 유효
     const el = gEl.current;
     if (el && gPointerId.current != null) {
-      el.style.touchAction = 'none'; // 즉시 스크롤 차단(리렌더 전)
+      el.style.touchAction = 'none'; // 다음 터치 대비(이번 터치엔 무효 — 위 blocker가 담당)
       try { el.setPointerCapture(gPointerId.current); } catch { /* noop */ }
     }
   };
@@ -283,7 +303,8 @@ export default function HomePage() {
 
   const releaseCapture = (e: React.PointerEvent) => {
     try { (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId); } catch { /* noop */ }
-    if (gEl.current) gEl.current.style.touchAction = '';
+    if (gEl.current) gEl.current.style.touchAction = ''; // 클래스(touch-pan-y) 값으로 복귀
+    unblockNativeScroll();
   };
 
   const onUp = (e: React.PointerEvent, board: BoardSummary) => {
