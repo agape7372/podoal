@@ -59,8 +59,11 @@ export default function GiftBoardModal({ boardTitle, onGift, onClose }: GiftBoar
       <h3 className="font-display text-xl font-bold text-grape-700 text-center mb-1">
           <EmojiIcon emoji="🎁" size={22} className="mr-1" />포도판 선물하기
         </h3>
+        <p className="text-sm text-warm-sub text-center truncate">
+          &ldquo;{boardTitle}&rdquo;
+        </p>
         <p className="text-sm text-warm-sub text-center mb-5">
-          &ldquo;{boardTitle}&rdquo;을 누구에게 선물할까요?
+          이 포도판을 누구에게 선물할까요?
         </p>
 
         {loading ? (
