@@ -79,7 +79,7 @@ test('rollback — 해당 temp만 회수', () => {
   assert.equal(next.filledCount, 2);
 });
 
-test('rollback — 같은 position의 재주입(reseed) temp도 함께 회수 (좀비 롤백 ↔ 재진입 temp)', () => {
+test('rollback — 같은 position의 재주입(reseed) temp도 함께 회수 (좀비 롤백 vs 재진입 temp)', () => {
   // 좀비 항목(temp-2-zombie) 실패 시점에 재진입 인스턴스가 같은 칸을
   // temp-2-reseed로 재주입한 상태 — id가 달라도 position 매칭으로 유령이 안 남는다.
   const prev = board([sticker(0), sticker(2, 'temp-2-reseed')]);
