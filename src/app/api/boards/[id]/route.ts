@@ -77,13 +77,17 @@ export async function GET(request: Request, props: { params: Promise<{ id: strin
 
   // Process rewards:
   // - title is always visible (for the locked preview)
-  // - content/imageUrl are revealed ONLY after the user has opened the reward
-  //   (revealedAt is set) AND only to the owner / gift recipient. A visiting
-  //   friend never receives the private body (letter text, giftcard image),
-  //   even for rewards the owner already opened.
+  // - content/imageUrl masking은 '잠김(미도달)' 보상의 지연 공개 서스펜스용 —
+  //   owner/gift recipient에겐 **unlocked(도달)부터** 공개한다. 도달 시점에
+  //   팝업이 자동으로 내용을 보여주므로 unlocked-미공개 구간을 가려봐야
+  //   서스펜스 이득은 없고, 칩 재탭이 reveal 왕복을 기다리는 동안 스켈레톤만
+  //   보였다(보상 무한로딩 체감, 2026-06-13). 방문 친구는 공개 여부와 무관하게
+  //   본문을 절대 받지 않는다(편지 본문·기프티콘 이미지 프라이버시).
+  //   unlocked 판정은 unlockedAt 또는 현재 채움 수(구보드 백필 — reveal 라우트와
+  //   동일 기준)로 한다.
   const rewards = board.rewards.map((reward) => {
-    const isRevealed = reward.revealedAt !== null;
-    const canSeeBody = isRevealed && isViewerPrivileged;
+    const unlocked = reward.unlockedAt !== null || filledCount >= reward.triggerAt;
+    const canSeeBody = unlocked && isViewerPrivileged;
     return {
       id: reward.id,
       type: reward.type,
