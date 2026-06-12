@@ -69,15 +69,15 @@ export default function BoardCardMenu({ onDelete }: BoardCardMenuProps) {
           role="menu"
           aria-label="포도판 동작"
           onPointerDown={stop}
-          className="absolute top-9 right-0 min-w-[148px] py-1.5 clay-float bg-clay-bg overflow-hidden"
-          style={{ borderRadius: 16 }}
+          className="absolute top-9 right-0 min-w-[84px] py-1 clay-float bg-clay-bg overflow-hidden"
+          style={{ borderRadius: 14 }}
         >
           <button
             ref={firstItemRef}
             type="button"
             role="menuitem"
             onClick={run(onDelete)}
-            className="w-full text-left px-3.5 py-2.5 text-sm flex items-center gap-2.5 transition-colors text-red-600 hover:bg-red-50 focus-visible:bg-red-50"
+            className="w-full text-center px-4 py-2 text-[13px] font-medium transition-colors text-red-600 hover:bg-red-50 focus-visible:bg-red-50"
           >
             삭제
           </button>
