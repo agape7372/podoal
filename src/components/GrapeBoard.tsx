@@ -172,9 +172,9 @@ const waveBackground = (color: string) =>
     `<svg xmlns="http://www.w3.org/2000/svg" width="46" height="14" viewBox="0 0 46 14"><path d="M0 7 q11.5 -8 23 0 t23 0 V14 H0 Z" fill="${color}"/></svg>`,
   )}")`;
 
-/** 4꼭지 별 스파클 (시안 STAR와 동일 path) */
+/** 4꼭지 별 스파클 (시안 STAR path; 흰 코어는 라임 액체 위 대비를 위해 시안보다 강화) */
 const starSvg = (color: string) =>
-  `<svg width="100%" height="100%" viewBox="0 0 20 20" aria-hidden="true"><path d="M 10 1 Q 11 8 19 10 Q 11 12 10 19 Q 9 12 1 10 Q 9 8 10 1 Z" fill="${color}"/><circle cx="10" cy="10" r="1.4" fill="rgba(255,255,255,0.85)"/></svg>`;
+  `<svg width="100%" height="100%" viewBox="0 0 20 20" aria-hidden="true"><path d="M 10 1 Q 11 8 19 10 Q 11 12 10 19 Q 9 12 1 10 Q 9 8 10 1 Z" fill="${color}"/><circle cx="10" cy="10" r="2.2" fill="rgba(255,255,255,0.9)"/></svg>`;
 
 interface LiquidParts {
   layer: HTMLDivElement;
@@ -290,12 +290,16 @@ const SPARKLE_POINTS: ReadonlyArray<readonly [number, number]> = [
   [0.74, 0.46],
   [0.4, 0.72],
   [0.66, 0.7],
+  [0.5, 0.52],
 ];
 
 function burstSparkles(container: HTMLElement): HTMLElement[] {
   const rect = container.getBoundingClientRect();
   return SPARKLE_POINTS.map(([fx, fy], i) => {
-    const size = 12 + (i % 3) * 4; // 12~20px 결정적 변주(랜덤 대신)
+    // 프레임 진단(2026-06-12): 시안 크기(12~20px)를 그대로 쓰면 시안 카드(200px)보다
+    // 큰 실제 클러스터에서 비례가 절반이라 sunshine/lime 별이 라임 액체 위에서
+    // 톤온톤으로 묻힌다 — 크기 상향 + 시작 지연(아래 delay)으로 대비를 회복.
+    const size = 20 + (i % 3) * 6; // 20~32px 결정적 변주(랜덤 대신)
     const sparkle = document.createElement('div');
     sparkle.setAttribute('aria-hidden', 'true');
     Object.assign(sparkle.style, {
@@ -317,7 +321,10 @@ function burstSparkles(container: HTMLElement): HTMLElement[] {
         { opacity: 1, transform: 'scale(1.1) rotate(-5deg)', offset: 0.4 },
         { opacity: 0, transform: 'scale(0.9) rotate(20deg)' },
       ],
-      { duration: 700, delay: i * 45, easing: 'ease-out', fill: 'backwards' },
+      // delay 220+: 별이 액체 페이드아웃(550ms)의 중반 — 보라 알이 돌아온 배경 —
+      // 위에서 터지게 한 박자 늦춘다. 피크 직후엔 송이 전체가 라임+샤인으로
+      // 환해서 같은 계열 별이 보이지 않는다(프레임 진단으로 확인).
+      { duration: 900, delay: 220 + i * 70, easing: 'ease-out', fill: 'backwards' },
     );
     return sparkle;
   });
@@ -403,8 +410,8 @@ function GrapeBoardInner({ board, onFill, canFill, onCelebrate, isOwner, onPlant
         if (liquid) {
           liquid.fill.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 550, fill: 'forwards' });
         }
-        // 페이드(550ms)·glow(1000ms)·스파클(~880ms) 종료 후 일괄 제거
-        timeouts.push(setTimeout(cleanup, 1100));
+        // 페이드(550ms)·glow(1000ms)·스파클(지연 220+350 + 900 = ~1470ms) 종료 후 일괄 제거
+        timeouts.push(setTimeout(cleanup, 1550));
       }, 1500));
     }, 420));
   }, [onCelebrate]);
