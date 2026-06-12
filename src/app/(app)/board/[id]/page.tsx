@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
+import { useEffect, useMemo, useState, useCallback, useRef, type Dispatch, type SetStateAction } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { api, ApiError } from '@/lib/api';
 import { useAppStore } from '@/lib/store';
@@ -17,7 +17,7 @@ import CapsuleModal from '@/components/CapsuleModal';
 import Avatar from '@/components/Avatar';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import EmojiIcon from '@/components/EmojiIcon';
-import { invalidateCachedApiPrefix, readCachedApi, writeCachedApi } from '@/lib/cachedApi';
+import { invalidateCachedApi, invalidateCachedApiPrefix, readCachedApi, writeCachedApi } from '@/lib/cachedApi';
 import {
   applyOptimisticFill,
   applyFillResult,
@@ -39,14 +39,48 @@ import { stripTitleEmoji } from '@/lib/title';
 // 이탈 후에도 잔여 POST가 계속 도는데(좀비 큐), 재진입한 새 인스턴스가 새 큐로
 // 같은 보드에 병렬 POST를 쏴 직렬화 전제가 인스턴스 경계에서 무너졌다(P2034 부활,
 // 같은 칸 중복 POST→409). 모듈 큐는 재진입 탭을 좀비 잔여분 *뒤에* 이어 붙인다.
+// (직렬화 범위는 JS 컨텍스트 = 단일 탭 한정 — 두 탭 동시 연타는 서버 재시도와
+//  클라 409 처리가 수습한다.)
 //
-// epoch: 항목이 실패하면 올린다 — 이미 큐에 대기 중이던 후속 항목은 발사 전에
-// 폐기(낙관 스티커만 회수)된다. 실패 칸을 건너뛴 후속 성공이 서버에 비연속 구멍
-// (영구 미완성 보드)을 만들기 때문. 서버는 position 연속성을 검증하지 않는다
-// (서로 다른 칸 동시 채움 허용 계약 — fillBoard.integration.test 참조).
+// fillResumeAt: 항목이 (409 외로) 실패하면 그 position을 기록한다 — 그보다 높은
+// position의 항목은 발사 *직전에* 폐기(낙관 스티커만 회수)된다. 실패 칸을 건너뛴
+// 후속 성공이 서버에 비연속 구멍(영구 미완성 보드)을 만들기 때문이며, 서버는
+// position 연속성을 검증하지 않는다(서로 다른 칸 동시 채움 허용 계약 —
+// fillBoard.integration.test 참조). '카운터(epoch)'가 아닌 '재개 지점(position)'인
+// 이유: 실패 직후 롤백이 화면에 그려지기 전(stale 렌더 창)에 들어온 탭은 어떤
+// 카운터를 캡처해도 통과하지만, position 비교는 발사 시점 큐 이력만으로 차단된다.
+// 기록은 실패 지점 이하를 다시 채우는 발사가 나타날 때 해제된다.
 const fillQueues = new Map<string, Promise<void>>();
-const fillEpochs = new Map<string, number>();
+const fillResumeAt = new Map<string, number>();
 const fillPendingCounts = new Map<string, number>();
+// 큐에 들어갔지만 아직 확정(reconcile/rollback)되지 않은 position들 — 재진입한
+// 인스턴스가 이 칸들을 낙관 temp로 재주입해 '비어 보이는 in-flight 칸'을 재탭
+// (→확정 409)하지 않게 한다.
+const fillPendingPositions = new Map<string, Set<number>>();
+
+interface LiveBoardHandle {
+  setBoard: Dispatch<SetStateAction<BoardDetail | null>>;
+  /** 채움 실패를 살아있는 화면에 표면화 — msg가 null이면 조용한 재동기화만(409). */
+  onFillFailure: (msg: string | null) => void;
+}
+// '지금 이 보드를 보고 있는' 인스턴스 — 큐는 인스턴스보다 오래 살므로(좀비),
+// reconcile/rollback/실패 통지는 항목을 만든 인스턴스가 아니라 현재 화면으로
+// 흐른다. 재진입 화면이 드레인 진행을 실시간으로 따라가고, 좀비 항목의 실패가
+// 새 인스턴스의 탭을 '무음으로' 폐기하는 일이 없어진다.
+const liveBoards = new Map<string, LiveBoardHandle>();
+
+/** 채움 상태 전이를 현재 살아있는 인스턴스의 상태에, 없으면 캐시에 적용한다.
+ *  캐시 경로는 temp를 벗겨 '서버 확인 상태'만 남긴다(라이브 경로는 컴포넌트의
+ *  캐시 동기화 effect가 같은 일을 한다 — 캐시 기록자는 항상 하나). */
+function applyBoardUpdate(id: string, updater: (prev: BoardDetail) => BoardDetail) {
+  const live = liveBoards.get(id);
+  if (live) {
+    live.setBoard((prev) => (prev ? updater(prev) : prev));
+    return;
+  }
+  const cached = readCachedApi<BoardDetail>(`/api/boards/${id}`);
+  if (cached) syncBoardCaches(id, stripTempsForCache(updater(cached)));
+}
 
 /** 보드 상세 캐시 + 홈 /api/boards write-through. snapshot은 temp 없는(서버 확인)
  *  상태여야 한다. 라이브 캐시 effect와 좀비 reconcile(언마운트 후) 양쪽이 같은
@@ -93,7 +127,10 @@ export default function BoardDetailPage() {
   // (카운트 산식·홈 write-through는 stripTempsForCache/syncBoardCaches로 추출 —
   //  이중 차감 회귀는 boardFillState.test가 고정한다.)
   useEffect(() => {
-    if (!board) return;
+    // id 가드: App Router가 /board/A → /board/B 전환에서 인스턴스를 재사용하면
+    // 새 id의 캐시에 이전 보드 스냅샷이 적힐 수 있다(현행 내비게이션엔 그 경로가
+    // 없지만 비용 0의 방어 — summary useMemo의 id 키 메모와 같은 철학).
+    if (!board || board.id !== id) return;
     syncBoardCaches(id, stripTempsForCache(board));
   }, [board, id]);
   // 홈이 받아둔 /api/boards 캐시에서 이 보드의 요약을 꺼내 스켈레톤 동안 제목·진행
@@ -145,10 +182,15 @@ export default function BoardDetailPage() {
       setBoard((prev) => mergeServerBoard(prev, data.board));
       setErrorMessage(null);
       initialLoadDoneRef.current = true;
-    } catch {
+    } catch (err) {
       // First load failure → board genuinely missing or no permission, bail home.
       // Later failures → keep the UI mounted; surface a banner so the user can retry.
+      // 단 접근 상실(404 삭제/403 권한 해제)은 예외 — 복귀 재검증 리스너가 닫은
+      // 배너를 5초마다 되살리며 영구 stale 화면에 머무르게 하므로 홈으로 나간다.
       if (!initialLoadDoneRef.current) {
+        router.replace('/home');
+      } else if (err instanceof ApiError && (err.status === 404 || err.status === 403)) {
+        invalidateCachedApi(`/api/boards/${id}`);
         router.replace('/home');
       } else {
         setErrorMessage('일시적으로 동기화에 실패했어요. 잠시 후 다시 시도해주세요.');
@@ -169,6 +211,44 @@ export default function BoardDetailPage() {
       });
     }
   }, [fetchBoard, id]);
+
+  // 라이브 핸들 등록 — 좀비 큐의 reconcile/rollback/실패 통지가 이 인스턴스로 흐른다.
+  const onFillFailure = useCallback((msg: string | null) => {
+    if (msg) setErrorMessage(`${msg} — 잠시 후 다시 시도해주세요.`);
+    // 실패 원인이 드리프트(이미 채워짐 등)일 수 있으니 서버 기준 재동기화.
+    fetchBoard().catch(() => {});
+  }, [fetchBoard]);
+  useEffect(() => {
+    const handle = { setBoard, onFillFailure };
+    liveBoards.set(id, handle);
+    return () => {
+      if (liveBoards.get(id) === handle) liveBoards.delete(id);
+    };
+  }, [id, onFillFailure]);
+
+  // 재진입 시 이전 인스턴스 큐가 아직 확정 못 한 칸(in-flight/대기)을 낙관 temp로
+  // 재주입 — 캐시 시드(temp 제외)만 보면 그 칸이 비어 보여 grape-next가 가리키고,
+  // 탭하면 좀비 항목과 같은 칸을 두 번 POST(직렬화 탓에 확정 409)하게 된다.
+  // reconcile/rollback은 position 기준으로 이 temp를 교체/회수한다.
+  useEffect(() => {
+    const pending = fillPendingPositions.get(id);
+    if (!pending || pending.size === 0) return;
+    const positions = [...pending];
+    setBoard((prev) => {
+      if (!prev) return prev;
+      let next = prev;
+      for (const p of positions) {
+        if (next.stickers.some((s) => s.position === p)) continue;
+        next = applyOptimisticFill(next, {
+          id: `temp-${p}-reseed`,
+          position: p,
+          filledAt: new Date().toISOString(),
+          filledBy: prev.owner,
+        });
+      }
+      return next;
+    });
+  }, [id]);
 
   // 백그라운드 복귀 재검증 — useCachedApi 훅과 동일 패턴(보드 상세는 자체 fetch라
   // 훅 미사용 → 이 리스너가 없던 게 좀비 큐/다른 기기 진행과의 괴리 고착 원인 중
@@ -226,20 +306,25 @@ export default function BoardDetailPage() {
 
   // 실제 서버 POST + reconcile/rollback. 보드 단위 모듈 큐 체인에서 한 번에
   // 하나씩 실행된다. 에러는 내부에서 처리(롤백+배너)하고 reject하지 않되, 실패
-  // 시 epoch을 올려 이미 대기 중이던 후속 항목은 발사 전에 폐기된다(모듈 큐 주석
-  // 참조 — 비연속 구멍 방지).
+  // 시 그 position을 재개 지점으로 기록해 더 높은 position의 항목은 발사 전에
+  // 폐기된다(모듈 큐 주석 참조 — 비연속 구멍 방지).
   const postFillSticker = useCallback(async (
     position: number,
     tempId: string,
     totalStickers: number,
-    epoch: number,
   ) => {
     try {
-      if ((fillEpochs.get(id) ?? 0) !== epoch) {
-        // 내 앞 항목이 실패했다 — 발사를 포기하고 낙관 스티커만 회수한다(배너는
-        // 실패 본인이 이미 띄움). 서버에 비연속 구멍을 만들지 않는 핵심 가드.
-        if (aliveRef.current) setBoard((prev) => (prev ? rollbackFill(prev, tempId) : prev));
-        return;
+      const resume = fillResumeAt.get(id);
+      if (resume !== undefined) {
+        if (position > resume) {
+          // 더 낮은 칸의 실패가 기록돼 있다 — 여기서 발사하면 서버에 비연속 구멍이
+          // 생긴다. 발사를 포기하고 낙관 스티커만 회수(배너·재동기화는 실패 시점에
+          // onFillFailure가 이미 처리).
+          applyBoardUpdate(id, (prev) => rollbackFill(prev, tempId, position));
+          return;
+        }
+        // 실패 지점(이하)을 다시 채우러 온 발사 — 재개.
+        fillResumeAt.delete(id);
       }
       const result = await api<{
         sticker: BoardDetail['stickers'][number];
@@ -266,18 +351,14 @@ export default function BoardDetailPage() {
         invalidateCachedApiPrefix('/api/relays');
       }
 
-      if (!aliveRef.current) {
-        // 좀비 reconcile: 화면(상태)은 못 만져도 캐시는 서버 진실로 갱신한다 —
-        // 이탈 후 도착한 채움/완성이 재진입·홈 첫 페인트에서 후퇴해 보이지 않게.
-        const cached = readCachedApi<BoardDetail>(`/api/boards/${id}`);
-        if (cached) syncBoardCaches(id, applyFillResult(cached, tempId, result));
-        return;
-      }
-      setErrorMessage(null);
-
       // Reconcile: temp를 서버 확정 스티커로 교체. 카운트는 길이 유도, 완성은
       // 단조, 같은 position 중복 삽입 방지 — 산식은 applyFillResult 참조.
-      setBoard((prev) => (prev ? applyFillResult(prev, tempId, result) : prev));
+      // 살아있는 화면(자신 또는 재진입한 새 인스턴스)에, 없으면 캐시에 적용 —
+      // 이탈 후 도착한 채움/완성이 재진입·홈 첫 페인트에서 후퇴해 보이지 않는다.
+      applyBoardUpdate(id, (prev) => applyFillResult(prev, tempId, result));
+
+      if (!aliveRef.current) return;
+      setErrorMessage(null);
 
       // Reward unlocks are rare; only re-fetch when one fires so the
       // reward card can update from "locked" to "tap to reveal".
@@ -309,27 +390,47 @@ export default function BoardDetailPage() {
         setConfettiTrigger((t) => t + 1);
       }
     } catch (err) {
-      // 후속 대기 항목 폐기 신호 — 화면 생존 여부와 무관하게(좀비 큐의 실패도
-      // 후속을 멈춰야 구멍이 안 생긴다) 가장 먼저 올린다.
-      fillEpochs.set(id, (fillEpochs.get(id) ?? 0) + 1);
-      if (!aliveRef.current) return;
+      const status = err instanceof ApiError ? err.status : undefined;
+      if (status === 409) {
+        // '이미 채워진 칸' — 그 칸이 서버에 *있다*는 뜻이라 비연속 구멍 위험이
+        // 없는 유일한 실패다. 후속 항목은 계속 진행하고(재개 지점 기록 없음),
+        // 배너 없이 조용한 재동기화로 수렴한다(더블탭 레이스·타임아웃 뒤 늦은
+        // 커밋 재탭 모두 여기로 합류 — 사실상 성공이므로 에러 연출이 과잉).
+        applyBoardUpdate(id, (prev) => rollbackFill(prev, tempId, position));
+        liveBoards.get(id)?.onFillFailure(null);
+        return;
+      }
+      // 재개 지점 기록 — 화면 생존 여부와 무관하게(좀비 큐의 실패도 후속을 멈춰야
+      // 구멍이 안 생긴다) 가장 먼저. 더 낮은 실패가 이미 있으면 그쪽 유지.
+      fillResumeAt.set(id, Math.min(fillResumeAt.get(id) ?? Infinity, position));
       // Rollback the optimistic sticker on failure.
-      setBoard((prev) => (prev ? rollbackFill(prev, tempId) : prev));
-      setRewardPopup(null); // close any popup opened optimistically for this fill
+      applyBoardUpdate(id, (prev) => rollbackFill(prev, tempId, position));
+      if (aliveRef.current) setRewardPopup(null); // close any popup opened optimistically for this fill
       // ApiError(서버의 해요체 메시지)만 본문 그대로 — 네트워크/타임아웃 예외의
-      // 영문 메시지가 배너에 새지 않게 한다.
+      // 영문 메시지가 배너에 새지 않게 한다. 배너+재동기화는 살아있는 화면으로
+      // 라우팅 — 좀비 항목의 실패가 재진입 인스턴스의 탭을 무음 폐기하지 않게.
       const msg = err instanceof ApiError ? err.message : '포도알을 채우지 못했어요';
-      setErrorMessage(`${msg} — 잠시 후 다시 시도해주세요.`);
-      // Best-effort full resync in case the failure was due to drift (e.g.
-      // another lambda already created the sticker).
-      fetchBoard().catch(() => {});
+      liveBoards.get(id)?.onFillFailure(msg);
     } finally {
-      fillPendingCounts.set(id, Math.max(0, (fillPendingCounts.get(id) ?? 1) - 1));
+      fillPendingPositions.get(id)?.delete(position);
+      const remaining = Math.max(0, (fillPendingCounts.get(id) ?? 1) - 1);
+      if (remaining === 0) {
+        // 드레인 종료 — 세션 내 키 성장 방지. fillResumeAt만 보존: 실패 직후
+        // stale 렌더 창에서 들어온 탭이 새 체인으로 발사돼 구멍을 만드는 것을
+        // 다음 재채움(재개 지점 이하 발사)까지 계속 막아야 한다.
+        fillQueues.delete(id);
+        fillPendingCounts.delete(id);
+        fillPendingPositions.delete(id);
+      } else {
+        fillPendingCounts.set(id, remaining);
+      }
     }
   }, [id, fetchBoard]);
 
   const handleFillSticker = useCallback((position: number): Promise<void> => {
     if (!board || !user) return Promise.resolve();
+    // 더블탭 레이스 등 같은 칸 중복 발사 가드(temp·실 스티커 불문 점유 시 no-op).
+    if (board.stickers.some((s) => s.position === position)) return Promise.resolve();
 
     // Optimistic update: show the grape as filled immediately so the tap
     // feels instant even when the round-trip to Neon (us-east) is ~400ms.
@@ -345,13 +446,18 @@ export default function BoardDetailPage() {
     setBoard((prev) => (prev ? applyOptimisticFill(prev, optimisticSticker) : prev));
 
     // 서버 POST는 보드 단위 모듈 큐 체인에 연결 — 이전 요청 완료 후 발송. 페이지
-    // 이탈 시에도 이미 시작된 체인은 계속 진행되고(좀비 큐), reconcile은 캐시로,
-    // 화면 갱신만 aliveRef로 가드된다. 재진입 인스턴스의 탭은 같은 체인 뒤에 선다.
+    // 이탈 시에도 이미 시작된 체인은 계속 진행되고(좀비 큐), 그 결과는 liveBoards/
+    // 캐시로 흐른다. 재진입 인스턴스의 탭은 같은 체인 뒤에 선다.
     const totalStickers = board.totalStickers;
-    const epoch = fillEpochs.get(id) ?? 0;
+    let pendingSet = fillPendingPositions.get(id);
+    if (!pendingSet) {
+      pendingSet = new Set<number>();
+      fillPendingPositions.set(id, pendingSet);
+    }
+    pendingSet.add(position);
     fillPendingCounts.set(id, (fillPendingCounts.get(id) ?? 0) + 1);
     const queued = (fillQueues.get(id) ?? Promise.resolve()).then(
-      () => postFillSticker(position, tempId, totalStickers, epoch),
+      () => postFillSticker(position, tempId, totalStickers),
     );
     fillQueues.set(id, queued.catch(() => {})); // 방어: 예기치 못한 reject로 체인 단절 방지
     return queued;
@@ -386,7 +492,7 @@ export default function BoardDetailPage() {
       setErrorMessage(null);
     } catch (err) {
       setBoard(prev); // 전체 스냅샷 롤백
-      const msg = err instanceof Error ? err.message : '수정에 실패했어요';
+      const msg = err instanceof ApiError ? err.message : '수정에 실패했어요';
       setErrorMessage(`${msg} — 잠시 후 다시 시도해주세요.`);
       throw err; // 모달이 열린 채 자체 에러를 표시하도록 재던짐
     }
@@ -400,7 +506,7 @@ export default function BoardDetailPage() {
       });
       setErrorMessage(null);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : '선물 전송에 실패했어요';
+      const msg = err instanceof ApiError ? err.message : '선물 전송에 실패했어요';
       setErrorMessage(`${msg} — 잠시 후 다시 시도해주세요.`);
     }
   };
@@ -452,7 +558,7 @@ export default function BoardDetailPage() {
       await api(`/api/boards/${id}`, { method: 'DELETE' });
       router.replace('/home');
     } catch (err) {
-      const msg = err instanceof Error ? err.message : '삭제에 실패했어요';
+      const msg = err instanceof ApiError ? err.message : '삭제에 실패했어요';
       setErrorMessage(`${msg} — 잠시 후 다시 시도해주세요.`);
       setDeleting(false);
     }

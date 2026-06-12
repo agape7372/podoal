@@ -40,9 +40,15 @@ export function applyFillResult(
   };
 }
 
-/** POST 실패(또는 선행 실패로 인한 발사 포기) — 해당 낙관 스티커만 회수. */
-export function rollbackFill(prev: BoardDetail, tempId: string): BoardDetail {
-  const stickers = prev.stickers.filter((s) => s.id !== tempId);
+/** POST 실패(또는 선행 실패로 인한 발사 포기) — 해당 낙관 스티커만 회수.
+ *  id뿐 아니라 같은 position의 temp도 함께 제거한다: 재진입 인스턴스가 좀비 큐의
+ *  in-flight 칸을 다른 id(`temp-N-reseed`)로 재주입하므로, 좀비 항목의 롤백이
+ *  자기 tempId만 지우면 재주입 temp가 유령으로 남는다. 같은 position의 *실*
+ *  스티커는 보존(409 후 재동기화로 먼저 병합된 서버 확정분을 지우면 안 됨). */
+export function rollbackFill(prev: BoardDetail, tempId: string, position?: number): BoardDetail {
+  const stickers = prev.stickers.filter(
+    (s) => s.id !== tempId && !(position !== undefined && s.position === position && isTempSticker(s)),
+  );
   return { ...prev, stickers, filledCount: stickers.length };
 }
 
@@ -57,7 +63,10 @@ export function rollbackFill(prev: BoardDetail, tempId: string): BoardDetail {
  *  isCompleted/completedAt도 단조 병합 — stale GET의 false가 reconcile로 이미
  *  확정된 완성을 덮지 않는다. (채움 취소 기능이 없는 현 스키마에서 안전.) */
 export function mergeServerBoard(prev: BoardDetail | null, server: BoardDetail): BoardDetail {
-  if (!prev) return server;
+  // 교차 보드 가드 — App Router는 /board/A → /board/B 전환에서 인스턴스를 재사용할
+  // 수 있어(page.tsx summary 메모와 같은 방어 철학), 다른 보드의 잔여 상태에 병합하면
+  // A의 스티커가 B에 영구 보존된다. id가 다르면 서버 스냅샷 그대로.
+  if (!prev || prev.id !== server.id) return server;
   const serverPositions = new Set(server.stickers.map((s) => s.position));
   const localExtras = prev.stickers.filter((s) => !serverPositions.has(s.position));
   if (localExtras.length === 0 && !prev.isCompleted) return server;
