@@ -416,6 +416,19 @@ function GrapeBoardInner({ board, onFill, canFill, onCelebrate, isOwner, onPlant
   const filledCount = filledPositions.size;
   const progress = progressPercent(filledCount, board.totalStickers);
 
+  // 마지막 알 POST 실패 시 완성 시퀀스 취소. 부모(board 페이지 postFillSticker)는
+  // 에러를 내부 처리(낙관 스티커 롤백 + 배너)하고 reject하지 않으므로 handleFill의
+  // catch엔 실패가 도달하지 않는다 — 실패의 유일한 관측 신호는 롤백으로
+  // filledCount가 총알 수 아래로 떨어지는 것. 빠른 실패(비트 1920ms 전)는 여기서
+  // 타이머·노드가 즉시 정리돼 액체·팡파르가 재생되지 않고, 비트가 이미 지난 늦은
+  // 실패는 '재생 후 롤백'으로 수용한다(연출은 일시적이고 보드 상태는 미완성+에러
+  // 배너가 정본 — 재시도로 재완성하면 시퀀스가 자연 재생되므로 무해). 정상 완성
+  // 경로에선 filledCount가 떨어질 일이 없어 절대 발화하지 않고, 향후 '되돌리기'
+  // 류의 경로도 자동 커버된다.
+  useEffect(() => {
+    if (filledCount < board.totalStickers) celebrationCleanupRef.current?.();
+  }, [filledCount, board.totalStickers]);
+
   // Sequential fill: only the lowest unfilled position is tappable.
   const nextPosition = useMemo(() => {
     for (let i = 0; i < board.totalStickers; i++) {
