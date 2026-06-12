@@ -4,7 +4,6 @@ import type { PointerEventHandler } from 'react';
 import type { BoardSummary } from '@/types';
 import BoardCard from './BoardCard';
 import BoardCardMenu from './BoardCardMenu';
-import EmojiIcon from './EmojiIcon';
 
 /** Spring-back easing for the swipe layer. The home gesture layer writes
  *  transform/transition straight to the DOM during a drag — keep its writes and
@@ -102,7 +101,14 @@ export default function SwipeableBoardCard({
                   : 'text-warm-light cursor-not-allowed'
             }`}
           >
-            <EmojiIcon emoji="🍇" size={16} />
+            {/* 시안 v2 1번의 단색 포도(currentColor) — 컬러 fluent 이모지는 고스트 톤을 깸 */}
+            <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 2.6c1.7 0 3.2.9 4 2.3" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+              <circle cx="12" cy="8.2" r="3.1" fill="currentColor" />
+              <circle cx="8.5" cy="13.5" r="3.1" fill="currentColor" />
+              <circle cx="15.5" cy="13.5" r="3.1" fill="currentColor" />
+              <circle cx="12" cy="18.7" r="3.1" fill="currentColor" />
+            </svg>
             {harvested ? '되돌리기' : '수확'}
           </button>
         </div>

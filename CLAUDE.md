@@ -150,7 +150,7 @@ The app is a Progressive Web App with `public/manifest.json`, `public/sw.js`, an
 
 **`sw.js` fetch strategy** (bump `CACHE_VERSION` on any caching change): hash-named `/_next/static/*` → always network; `/api/*` → network-first; **HTML navigations (`request.mode === 'navigate'`) → network-first** (so a previously-visited page like an old board URL never gets stuck on a stale cached document referencing old chunks — this was why UI updates appeared only on newly-created boards); other static (icons/manifest/images) → cache-first. A new SW must activate (reopen the app / refresh) before the fix takes effect.
 
-**Standalone static pages in `public/`** (not Next routes): `anim-pick.html` (final grape-fill animation candidates 40·49·17, particle-free). The leaf candidate galleries (`leaf-options.html`, `leaf-options-v2.html`) were removed once the grape leaf was finalized (current trace shape, sage `#74A77E`). The earlier `anim-lab.html` (68 candidates) and the `(app)/animation-test` route were also removed.
+**Standalone static pages in `public/`** (not Next routes): `anim-pick.html` (final grape-fill animation candidates 40·49·17, particle-free). The leaf candidate galleries (`leaf-options.html`, `leaf-options-v2.html`) were removed once the grape leaf was finalized (current trace shape, sage `#74A77E`). The earlier `anim-lab.html` (68 candidates) and the `(app)/animation-test` route were also removed — `anim-lab.html` was then **temporarily restored (2026-06-12)** so the user can re-pick a ripple-family fill animation ("물결"); remove it again once the pick lands.
 
 ### Habit Templates
 
