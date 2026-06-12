@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAppStore } from '@/lib/store';
 import { feedbackTap } from '@/lib/feedback';
 import EmojiIcon from '@/components/EmojiIcon';
+import Chevron from '@/components/Chevron';
 
 function Toggle({ enabled, onToggle, ariaLabel }: { enabled: boolean; onToggle: () => void; ariaLabel: string }) {
   return (
@@ -99,7 +100,7 @@ export default function SoundSettingsPage() {
                 <span className="block text-xs text-warm-sub">포도알 채울 때 나는 효과음 선택</span>
               </span>
             </span>
-            <span className="text-warm-sub text-sm" aria-hidden="true">{'>'}</span>
+            <Chevron />
           </Link>
         </div>
       </section>

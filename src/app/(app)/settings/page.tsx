@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { feedbackTap } from '@/lib/feedback';
 import EmojiIcon from '@/components/EmojiIcon';
+import Chevron from '@/components/Chevron';
 
 // 설정 허브 — 컨트롤은 하위 페이지가 갖는다. 사운드·진동 토글은 /settings/sound,
 // 알림 관련 컨트롤은 전부 알림 설정 탭으로 통합(REQ7).
@@ -32,7 +33,7 @@ export default function SettingsPage() {
               <span className="block text-sm font-medium text-warm-text">{item.label}</span>
               <span className="block text-xs text-warm-sub mt-0.5 truncate">{item.desc}</span>
             </span>
-            <span className="text-warm-sub text-sm" aria-hidden="true">{'>'}</span>
+            <Chevron />
           </Link>
         ))}
       </section>
