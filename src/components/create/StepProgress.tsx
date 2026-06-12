@@ -19,7 +19,8 @@ export default function StepProgress({ total, current, onJump }: StepProgressPro
   return (
     // tabIndex=-1: 점프 직후 방금 누른 버튼이 disabled로 바뀌며 포커스가 body로
     // 떨어지므로 컨테이너로 회수한다 — aria-label('N/M 단계')이 재낭독되고 Tab이
-    // 인디케이터부터 재개. 프로그래매틱 포커스는 :focus-visible 미발동(링 없음).
+    // 인디케이터부터 재개. 마우스 탭 후엔 링 없음; 키보드(Enter/Space) 조작 후엔
+    // 전역 [tabindex]:focus-visible 규칙이 그룹에 링을 그림(의도된 피드백).
     <div ref={groupRef} tabIndex={-1} role="group" aria-label={`${current + 1}/${total} 단계`} className="flex gap-1 mb-6">
       {Array.from({ length: total }, (_, s) => (
         <button
