@@ -290,6 +290,7 @@ const SPARKLE_POINTS: ReadonlyArray<readonly [number, number]> = [
   [0.74, 0.46],
   [0.4, 0.72],
   [0.66, 0.7],
+  [0.5, 0.52],
 ];
 
 function burstSparkles(container: HTMLElement): HTMLElement[] {
@@ -298,7 +299,7 @@ function burstSparkles(container: HTMLElement): HTMLElement[] {
     // 프레임 진단(2026-06-12): 시안 크기(12~20px)를 그대로 쓰면 시안 카드(200px)보다
     // 큰 실제 클러스터에서 비례가 절반이라 sunshine/lime 별이 라임 액체 위에서
     // 톤온톤으로 묻힌다 — 크기 상향 + 시작 지연(아래 delay)으로 대비를 회복.
-    const size = 16 + (i % 3) * 5; // 16~26px 결정적 변주(랜덤 대신)
+    const size = 20 + (i % 3) * 6; // 20~32px 결정적 변주(랜덤 대신)
     const sparkle = document.createElement('div');
     sparkle.setAttribute('aria-hidden', 'true');
     Object.assign(sparkle.style, {
@@ -323,7 +324,7 @@ function burstSparkles(container: HTMLElement): HTMLElement[] {
       // delay 220+: 별이 액체 페이드아웃(550ms)의 중반 — 보라 알이 돌아온 배경 —
       // 위에서 터지게 한 박자 늦춘다. 피크 직후엔 송이 전체가 라임+샤인으로
       // 환해서 같은 계열 별이 보이지 않는다(프레임 진단으로 확인).
-      { duration: 700, delay: 220 + i * 55, easing: 'ease-out', fill: 'backwards' },
+      { duration: 900, delay: 220 + i * 70, easing: 'ease-out', fill: 'backwards' },
     );
     return sparkle;
   });
@@ -409,8 +410,8 @@ function GrapeBoardInner({ board, onFill, canFill, onCelebrate, isOwner, onPlant
         if (liquid) {
           liquid.fill.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 550, fill: 'forwards' });
         }
-        // 페이드(550ms)·glow(1000ms)·스파클(지연 220+220 + 700 = ~1140ms) 종료 후 일괄 제거
-        timeouts.push(setTimeout(cleanup, 1250));
+        // 페이드(550ms)·glow(1000ms)·스파클(지연 220+350 + 900 = ~1470ms) 종료 후 일괄 제거
+        timeouts.push(setTimeout(cleanup, 1550));
       }, 1500));
     }, 420));
   }, [onCelebrate]);
