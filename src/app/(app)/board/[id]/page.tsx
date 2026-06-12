@@ -158,6 +158,9 @@ export default function BoardDetailPage() {
   const [plantPos, setPlantPos] = useState<number | null>(null);
   // A mid reward just reached → opened immediately in a popup (instant "쾌감").
   const [rewardPopup, setRewardPopup] = useState<RewardInfo | null>(null);
+  // 팝업 본문 로딩 표시 — content의 truthiness로 분기하면 '내용 없는 보상'(빈
+  // 문자열 허용)이 영구 스켈레톤에 갇힌다. 로딩은 명시적 상태로만 표현한다.
+  const [rewardPopupLoading, setRewardPopupLoading] = useState(false);
   // 캐시로 시드됐다면 '첫 로드 완료'로 취급 — 재검증 실패 시 홈으로 튕기는 대신
   // 기존 화면 + 동기화 실패 배너를 유지한다(fetchBoard catch 분기 참조).
   const initialLoadDoneRef = useRef(board !== null);
@@ -330,7 +333,14 @@ export default function BoardDetailPage() {
         sticker: BoardDetail['stickers'][number];
         filledCount: number;
         isCompleted: boolean;
-        unlockedReward: { id: string; type: string; title: string; triggerAt: number } | null;
+        unlockedReward: {
+          id: string;
+          type: string;
+          title: string;
+          triggerAt: number;
+          content?: string;
+          imageUrl?: string;
+        } | null;
         plantedGift: PlantedGiftInfo | null;
         plantedGifts?: PlantedGiftInfo[];
         relayAdvanced?: boolean;
@@ -365,20 +375,24 @@ export default function BoardDetailPage() {
       if (result.unlockedReward) {
         const u = result.unlockedReward;
         // 중간 보상: GrapeBoard가 컨페티와 같은 비트에 팝업을 이미 열었음
-        // (onMidRewardReached). 여기선 reveal로 내용만 채워(공개 처리) 열려 있는
-        // 팝업에 흘려보낸다. 최종 보상은 팝업 자동 오픈 없이 카드 탭으로 연다.
+        // (onMidRewardReached). unlock 응답에 실려 온 내용으로 **즉시** 채운다 —
+        // 예전엔 reveal 왕복을 한 번 더 기다렸고(직렬 큐를 그만큼 또 막음),
+        // reveal이 실패하면 스켈레톤에 갇혔다. reveal은 이제 '열어봤다' 영속화
+        // 전용으로 비차단 발사한다(멱등 — 실패해도 다음 열람이 재시도).
+        // 최종 보상은 팝업 자동 오픈 없이 카드 탭으로 연다.
         if (u.triggerAt < totalStickers) {
-          try {
-            const d = await api<{ reward: RewardInfo }>(
-              `/api/boards/${id}/rewards/${u.id}/reveal`,
-              { method: 'POST' },
-            );
-            setRewardPopup((prev) => (prev && prev.id === d.reward.id ? d.reward : prev));
-          } catch {
-            // reveal 실패해도 목록 칩 탭으로 열 수 있음
-          }
+          setRewardPopup((prev) =>
+            prev && prev.id === u.id
+              ? { ...prev, content: u.content ?? prev.content, imageUrl: u.imageUrl ?? prev.imageUrl }
+              : prev,
+          );
+          setRewardPopupLoading(false);
+          api(`/api/boards/${id}/rewards/${u.id}/reveal`, { method: 'POST' })
+            .catch(() => {})
+            .then(() => fetchBoard());
+        } else {
+          fetchBoard();
         }
-        fetchBoard();
       }
 
       // Friends' hidden surprises on this grape — queue them for sequential
@@ -405,7 +419,10 @@ export default function BoardDetailPage() {
       fillResumeAt.set(id, Math.min(fillResumeAt.get(id) ?? Infinity, position));
       // Rollback the optimistic sticker on failure.
       applyBoardUpdate(id, (prev) => rollbackFill(prev, tempId, position));
-      if (aliveRef.current) setRewardPopup(null); // close any popup opened optimistically for this fill
+      if (aliveRef.current) {
+        setRewardPopup(null); // close any popup opened optimistically for this fill
+        setRewardPopupLoading(false);
+      }
       // ApiError(서버의 해요체 메시지)만 본문 그대로 — 네트워크/타임아웃 예외의
       // 영문 메시지가 배너에 새지 않게 한다. 배너+재동기화는 살아있는 화면으로
       // 라우팅 — 좀비 항목의 실패가 재진입 인스턴스의 탭을 무음 폐기하지 않게.
@@ -471,7 +488,52 @@ export default function BoardDetailPage() {
     feedbackTap();
     setPlantPos(pos);
   }, []);
-  const handleMidRewardReached = useCallback((r: RewardInfo) => setRewardPopup(r), []);
+  const handleMidRewardReached = useCallback((r: RewardInfo) => {
+    setRewardPopup(r);
+    // 비트에 열리는 시점엔 내용이 보통 마스킹 상태('') — unlock 응답이 채울
+    // 때까지만 스켈레톤. 이미 내용이 있으면(드문 재진입 경로) 즉시 본문.
+    setRewardPopupLoading(!r.content && !r.imageUrl);
+  }, []);
+
+  // 무한로딩 안전망: 비트에 열린 팝업이 5초 넘게 내용을 못 받으면(unlock 응답
+  // 누락 — 다른 기기/좀비 큐가 먼저 클레임한 희귀 경합 등) 멱등 reveal로 직접
+  // 채운다. '아직 열 수 없어요'(직렬 큐 드레인 중 서버 카운트 미달)는 재시도,
+  // 3회 실패면 닫고 배너 — 어떤 경로로도 스켈레톤에 갇히지 않는다.
+  useEffect(() => {
+    if (!rewardPopup || !rewardPopupLoading) return;
+    const rewardId = rewardPopup.id;
+    let cancelled = false;
+    let attempts = 0;
+    let timer: ReturnType<typeof setTimeout>;
+    const tryReveal = async () => {
+      if (cancelled) return;
+      attempts += 1;
+      try {
+        const d = await api<{ reward: RewardInfo }>(
+          `/api/boards/${id}/rewards/${rewardId}/reveal`,
+          { method: 'POST' },
+        );
+        if (cancelled) return;
+        setRewardPopup((prev) => (prev && prev.id === d.reward.id ? d.reward : prev));
+        setRewardPopupLoading(false);
+        fetchBoard();
+      } catch {
+        if (cancelled) return;
+        if (attempts < 3) {
+          timer = setTimeout(tryReveal, 4000);
+        } else {
+          setRewardPopup((prev) => (prev && prev.id === rewardId ? null : prev));
+          setRewardPopupLoading(false);
+          setErrorMessage('보상을 여는 데 실패했어요. 잠시 후 다시 시도해주세요.');
+        }
+      }
+    };
+    timer = setTimeout(tryReveal, 5000);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [rewardPopup, rewardPopupLoading, id, fetchBoard]);
 
   const handleToggleAllowPlant = async () => {
     if (!board) return;
@@ -531,23 +593,33 @@ export default function BoardDetailPage() {
     router.push('/home');
   };
 
-  // Open a reward in the popup (mid chip / final card tap). Opens INSTANTLY; if
-  // the content isn't loaded yet (unrevealed → board GET hides it) fetch it via
-  // reveal (which also marks it revealed). Revealed rewards already carry content.
-  const openReward = async (reward: RewardInfo) => {
+  // Open a reward in the popup (mid chip / final card tap). 내용은 unlocked
+  // 시점부터 board GET에 실려 있어 보통 즉시 보인다. reveal은 '열어봤다' 영속화
+  // 전용(멱등)으로 비차단 발사. 스켈레톤은 '구캐시 등으로 내용이 아직 없고
+  // 미공개'인 경우에만 — 응답이 채우거나, 실패 시 닫고 배너(영구 스켈레톤 금지).
+  const openReward = (reward: RewardInfo) => {
     setRewardPopup(reward);
+    setRewardPopupLoading(!reward.revealedAt && !reward.content && !reward.imageUrl);
     setConfettiTrigger((t) => t + 1);
-    if (!reward.content) {
-      try {
-        const d = await api<{ reward: RewardInfo }>(
-          `/api/boards/${id}/rewards/${reward.id}/reveal`,
-          { method: 'POST' },
-        );
-        setRewardPopup((prev) => (prev && prev.id === d.reward.id ? d.reward : prev));
-        fetchBoard();
-      } catch {
-        setErrorMessage('보상을 여는 데 실패했어요. 잠시 후 다시 시도해주세요.');
-      }
+    if (!reward.revealedAt) {
+      api<{ reward: RewardInfo }>(
+        `/api/boards/${id}/rewards/${reward.id}/reveal`,
+        { method: 'POST' },
+      )
+        .then((d) => {
+          setRewardPopup((prev) => (prev && prev.id === d.reward.id ? d.reward : prev));
+          setRewardPopupLoading(false);
+          fetchBoard();
+        })
+        .catch(() => {
+          setRewardPopupLoading(false);
+          // 보여줄 내용이 전혀 없으면 빈 팝업 대신 닫고 배너로 안내(모달 뒤에
+          // 가려진 배너 + 영구 스켈레톤이 기존 '무한로딩'의 한 갈래였다).
+          if (!reward.content && !reward.imageUrl) {
+            setRewardPopup((prev) => (prev && prev.id === reward.id ? null : prev));
+            setErrorMessage('보상을 여는 데 실패했어요. 잠시 후 다시 시도해주세요.');
+          }
+        });
     }
   };
 
@@ -915,7 +987,14 @@ export default function BoardDetailPage() {
 
       {/* Mid reward reached → instant popup reveal */}
       {rewardPopup && (
-        <RewardRevealModal reward={rewardPopup} onClose={() => setRewardPopup(null)} />
+        <RewardRevealModal
+          reward={rewardPopup}
+          loading={rewardPopupLoading}
+          onClose={() => {
+            setRewardPopup(null);
+            setRewardPopupLoading(false);
+          }}
+        />
       )}
 
       {/* Plant / edit a 중간 보상 (long-press a grape, or the "+ 중간 보상" button) */}

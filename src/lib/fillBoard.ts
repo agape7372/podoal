@@ -127,11 +127,17 @@ export async function fillBoardGrape(
           type: string;
           title: string;
           triggerAt: number;
+          content: string;
+          imageUrl: string;
         } | null = null;
         if (claim.count > 0) {
           // Surface the highest triggerAt reward we just unlocked (typically the
-          // one matching this fill). Content/imageUrl stay hidden until the user
-          // taps to reveal — see /reveal route.
+          // one matching this fill). content/imageUrl도 함께 싣는다 — 중간 보상
+          // 팝업이 비트에 맞춰 이미 열려 있는데, 이 응답이 서버가 내용을 아는
+          // 가장 이른 순간이라 여기 안 실으면 클라가 reveal 왕복을 한 번 더
+          // 기다려야 하고(무한로딩 체감의 주범), reveal 실패 시 스켈레톤에
+          // 갇혔다. 이 라우트는 owner/giftedTo 전용이라 프라이버시 문제 없음.
+          // revealedAt 영속화는 여전히 /reveal 라우트 몫(비차단 백그라운드).
           const justUnlocked = await tx.reward.findFirst({
             where: {
               boardId,
@@ -147,6 +153,8 @@ export async function fillBoardGrape(
               type: justUnlocked.type,
               title: justUnlocked.title,
               triggerAt: justUnlocked.triggerAt,
+              content: justUnlocked.content,
+              imageUrl: justUnlocked.imageUrl,
             };
           }
         }
