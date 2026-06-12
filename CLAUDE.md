@@ -150,7 +150,7 @@ The app is a Progressive Web App with `public/manifest.json`, `public/sw.js`, an
 
 **`sw.js` fetch strategy** (bump `CACHE_VERSION` on any caching change): hash-named `/_next/static/*` → always network; `/api/*` → network-first; **HTML navigations (`request.mode === 'navigate'`) → network-first** (so a previously-visited page like an old board URL never gets stuck on a stale cached document referencing old chunks — this was why UI updates appeared only on newly-created boards); other static (icons/manifest/images) → cache-first. A new SW must activate (reopen the app / refresh) before the fix takes effect.
 
-**Standalone static pages in `public/`** (not Next routes): `anim-pick.html` (final grape-fill animation candidates 40·49·17, particle-free). The leaf candidate galleries (`leaf-options.html`, `leaf-options-v2.html`) were removed once the grape leaf was finalized (current trace shape, sage `#74A77E`). The earlier `anim-lab.html` (68 candidates) and the `(app)/animation-test` route were also removed — `anim-lab.html` was then **temporarily restored (2026-06-12)** so the user can re-pick a ripple-family fill animation ("물결"); remove it again once the pick lands.
+**Standalone static pages in `public/`** (not Next routes): `anim-pick.html` (final grape-fill animation candidates 40·49·17, particle-free). The leaf candidate galleries (`leaf-options.html`, `leaf-options-v2.html`) were removed once the grape leaf was finalized (current trace shape, sage `#74A77E`). The earlier `anim-lab.html` (68 candidates) and the `(app)/animation-test` route were also removed.
 
 ### Habit Templates
 
@@ -180,6 +180,7 @@ Bottom nav is **4 tabs**: 홈 | 친구 | 와이너리 | 더보기 — there is *
 - `.grape-filled` / `.grape-empty` — individual grape sticker states. `.grape-empty:hover` has `scale(1.08)`, `:active` `scale(0.93)`.
 - Grape fill motion is **"히트스톱 임팩트 프리즈"** (final pick from `public/anim-pick.html`, candidate 40): `.grape-hit` (`grapeHit` keyframe — fast squash that HOLDs on the contact frame, then snaps back) + `.grape-flash` (`grapeImpactFlash` ring synced to the freeze). The old juice-fill / jelly-pop / particle-burst are **removed**. Durations are `0.6s` to match the 600ms `isJustFilled` window in `GrapeBoard`.
 - `.grape-empty.grape-next` (next tappable grape) idles with `grapeNextTension` (micro 1.018↔1.015 pulse); it's paused on `:hover`/`:active` so the hover/active scale still shows.
+- **Board-completion celebration is "액체 차오름 v2 (출렁)"** (user-picked, podoal-grape-anim gallery #10): an imperative WAAPI sequence in `GrapeBoard` — bunch-silhouette liquid rise (overshoot slosh) with the sound/confetti/shine beat at impact+1920ms; mask geometry in `src/lib/liquidMask.ts`, colors = `lime-600/500/200` + `sunshine-300` tokens, and it carries its own `prefers-reduced-motion` guard (WAAPI is outside the global CSS backstop).
 - `.clay-input` — form input styling
 - `.vine-line` — vertical timeline line for grape vine
 - `.capsule-open` — capsule opening animation
