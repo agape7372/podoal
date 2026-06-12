@@ -63,7 +63,7 @@ export default function SwipeableBoardCard({
   return (
     <div ref={innerRef} className={`relative ${lifted ? 'z-20' : ''}`}>
       {/* 클립 반경은 카드(.clay-float = 28px)와 반드시 일치시켜야 한다. 더 작으면(예: 20px)
-          카드의 둥근 모서리 바깥·클립 안쪽 틈으로 뒤의 빨간 삭제 트레이가 비친다.
+          카드의 둥근 모서리 바깥·클립 안쪽 틈으로 트레이(틴트 워시·포커스 배경)가 비친다.
           포인터 제스처는 이 래퍼가 소유한다(트레이 포함) — 열린 트레이 위에서 시작한
           드래그로도 카드를 닫을 수 있다. 트레이 버튼 탭은 부모의 슬롭(gMoved) 판정으로
           드래그와 구분되고, 축 잠금 시 부모가 포인터를 캡처해 click이 버튼에 닿지 않는다. */}
@@ -72,13 +72,15 @@ export default function SwipeableBoardCard({
         className="relative overflow-hidden touch-pan-y"
         style={{ borderRadius: 28 }}
       >
-        {/* Right-side action tray, revealed as the card slides left.
+        {/* Right-side action tray — 고스트 '수확' 단일 버튼(시안 v2 1번 계열). 삭제는
+            ⋮ 메뉴로 일원화(제품 결정 2026-06-12: 스와이프는 수확 손맛 전용, 카드 탭=열기).
+            평소엔 배경 없는 색 글자, hover/탭에만 미세 틴트 워시가 떠오른다.
             data-tray: 부모 제스처 레이어가 여기서 시작한 누름엔 리프트(길게 누르기) 타이머를
             무장하지 않는다 — 리프트가 포인터를 캡처하면 버튼 click이 삼켜져, 길게 누른
-            수확/삭제가 동작 대신 정렬 리프트로 빠진다. */}
+            수확이 동작 대신 정렬 리프트로 빠진다. */}
         <div
           data-tray
-          className="absolute inset-y-0 right-0 flex items-stretch gap-1.5"
+          className="absolute inset-y-0 right-0 flex items-stretch"
           style={{ width: trayWidth }}
           aria-hidden={!revealed}
         >
@@ -90,32 +92,21 @@ export default function SwipeableBoardCard({
             tabIndex={revealed ? 0 : -1}
             className={`flex-1 rounded-2xl text-xs font-semibold flex flex-col items-center justify-center gap-0.5 transition-colors ${
               harvested
-                ? 'bg-leaf-100 text-leaf-700'
+                ? 'text-leaf-700 hover:bg-leaf-100/50 active:bg-leaf-100/60'
                 : canHarvest
-                  ? 'bg-grape-100 text-grape-700'
-                  : 'bg-warm-border/40 text-warm-light cursor-not-allowed'
+                  ? 'text-grape-700 hover:bg-grape-100/50 active:bg-grape-100/60'
+                  : 'text-warm-light cursor-not-allowed'
             }`}
           >
             <EmojiIcon emoji="🍇" size={16} />
             {harvested ? '되돌리기' : '수확'}
           </button>
-          <button
-            type="button"
-            onClick={onDelete}
-            tabIndex={revealed ? 0 : -1}
-            className="flex-1 rounded-2xl text-xs font-semibold flex flex-col items-center justify-center gap-0.5 bg-red-500 text-white"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6" />
-              <path d="M10 11v6M14 11v6" />
-            </svg>
-            삭제
-          </button>
         </div>
 
         {/* Moving card layer — role/tabIndex/onKeyDown give keyboard + screen-reader
             users a way to OPEN the board (the swipe/longpress gestures are pointer-only,
-            owned by the wrapper above); harvest/delete via keyboard is the ⋮ menu below.
+            owned by the wrapper above); 삭제 via keyboard is the ⋮ menu below. 수확은
+            스와이프 전용(포인터) — 제품 결정. 키보드 수확 경로 부재는 알려진 트레이드오프.
             touch-action 기본값은 인라인이 아니라 클래스(touch-pan-y)여야 한다 — 제스처
             레이어가 인라인 값을 ''로 비워도 클래스 값으로 자연 복귀한다. (React는 vdom
             prev/next가 같은 인라인 값을 재기록하지 않아, 인라인 기본값은 한 번 비워지면
@@ -144,15 +135,7 @@ export default function SwipeableBoardCard({
 
       {/* ⋮ 메뉴 — overflow-hidden 클립 '바깥'(형제)이라 드롭다운이 잘리지 않고, 카드 포인터
           핸들러로 이벤트가 새지 않는다. 스와이프 드래그/열림/정렬 리프트 중엔 제스처 UI에 양보해 숨김. */}
-      {!revealed && !lifted && !dragging && (
-        <BoardCardMenu
-          onOpen={onOpen}
-          onHarvest={onHarvest}
-          onDelete={onDelete}
-          canHarvest={canHarvest}
-          harvested={harvested}
-        />
-      )}
+      {!revealed && !lifted && !dragging && <BoardCardMenu onDelete={onDelete} />}
     </div>
   );
 }
