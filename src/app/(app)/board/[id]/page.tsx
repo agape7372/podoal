@@ -63,7 +63,10 @@ export default function BoardDetailPage() {
                 ...b,
                 filledCount: snapshot.filledCount,
                 isCompleted: snapshot.isCompleted,
-                completedAt: snapshot.completedAt,
+                // 마지막 칸 채움의 reconcile은 completedAt을 안 채운다(POST 응답에 없음).
+                // null로 덮으면 isCompleted:true·completedAt:null 조합이 캐시에 들어가므로
+                // 스냅샷이 실값일 때만 병합한다.
+                completedAt: snapshot.completedAt ?? b.completedAt,
               }
             : b,
         ),
@@ -762,7 +765,8 @@ export default function BoardDetailPage() {
 
       {showGift && (
         <GiftBoardModal
-          boardTitle={stripTitleEmoji(board.title)}
+          // strip은 모달 내부에서(표시 전용 — PlantGiftModal과 동일 패턴) 처리한다.
+          boardTitle={board.title}
           onGift={handleGift}
           onClose={() => setShowGift(false)}
         />

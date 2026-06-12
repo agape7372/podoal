@@ -7,6 +7,7 @@ import ClayButton from './ClayButton';
 import EmojiIcon from './EmojiIcon';
 import type { FriendInfo } from '@/types';
 import { feedbackSuccess, feedbackTap } from '@/lib/feedback';
+import { stripTitleEmoji } from '@/lib/title';
 
 interface GiftBoardModalProps {
   boardTitle: string;
@@ -59,8 +60,9 @@ export default function GiftBoardModal({ boardTitle, onGift, onClose }: GiftBoar
       <h3 className="font-display text-xl font-bold text-grape-700 text-center mb-1">
           <EmojiIcon emoji="🎁" size={22} className="mr-1" />포도판 선물하기
         </h3>
+        {/* 표시 시점 strip — 이모지 시작 제목의 런타임 생이모지 방지(PlantGiftModal과 통일). */}
         <p className="text-sm text-warm-sub text-center truncate">
-          &ldquo;{boardTitle}&rdquo;
+          &ldquo;{stripTitleEmoji(boardTitle)}&rdquo;
         </p>
         <p className="text-sm text-warm-sub text-center mb-5">
           이 포도판을 누구에게 선물할까요?
