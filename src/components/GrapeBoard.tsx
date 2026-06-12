@@ -345,10 +345,12 @@ function GrapeBoardInner({ board, onFill, canFill, onCelebrate, isOwner, onPlant
   // 이미 완성된 보드에서는 재생되지 않고, '되돌리기 후 재완성'에선 자연 재생된다.
   // 타임라인(임팩트 t=0 기준):
   //   0ms     마지막 알 grape-hit(0.6s) + feedbackFill (handleFill에서 이미 발생)
-  //   420ms   송이 마스크 측정 → 액체 레이어 부착, 물결 루프 + 상승(1500ms) 시작
-  //   1920ms  상승 피크 정착 = 박자: feedbackComplete + onCelebrate(컨페티)
+  //   150ms   송이 마스크 측정 → 액체 레이어 부착, 물결 루프 + 상승(1500ms) 시작
+  //           (시안은 420ms였으나 '누르자마자 재생' 피드백으로 단축 — 2026-06-12.
+  //            셀 측정은 transform 없는 wrapper 기준이라 grape-hit 중에도 안전)
+  //   1650ms  상승 피크 정착 = 박자: feedbackComplete + onCelebrate(컨페티)
   //           + shineAll + glow + 스파클, 액체는 550ms 페이드아웃 시작
-  //   3020ms  cleanup(레이어·glow·스파클 제거)
+  //   3200ms  cleanup(레이어·glow·스파클 제거)
   const playCompletionSequence = useCallback(() => {
     // 이전 시퀀스 잔존물 제거(되돌리기 후 빠른 재완성 등 재트리거 대비)
     celebrationCleanupRef.current?.();
@@ -373,7 +375,7 @@ function GrapeBoardInner({ board, onFill, canFill, onCelebrate, isOwner, onPlant
     };
     celebrationCleanupRef.current = cleanup;
 
-    // t=420ms — 임팩트 프리즈가 정착한 직후 액체 상승 시작
+    // t=150ms — 임팩트 직후 곧바로 액체 상승 시작 (체감 즉시성 우선)
     timeouts.push(setTimeout(() => {
       const container = clusterRef.current;
       const liquid = container ? buildLiquidLayer(container) : null;
@@ -397,7 +399,7 @@ function GrapeBoardInner({ board, onFill, canFill, onCelebrate, isOwner, onPlant
         );
       }
 
-      // t=1920ms — 상승 피크: 소리·컨페티·샤인·스파클이 한 박자(비트 싱크 철학 유지)
+      // t=1650ms — 상승 피크: 소리·컨페티·샤인·스파클이 한 박자(비트 싱크 철학 유지)
       timeouts.push(setTimeout(() => {
         feedbackComplete();
         onCelebrate?.();
@@ -413,7 +415,7 @@ function GrapeBoardInner({ board, onFill, canFill, onCelebrate, isOwner, onPlant
         // 페이드(550ms)·glow(1000ms)·스파클(지연 220+350 + 900 = ~1470ms) 종료 후 일괄 제거
         timeouts.push(setTimeout(cleanup, 1550));
       }, 1500));
-    }, 420));
+    }, 150));
   }, [onCelebrate]);
 
   const filledPositions = useMemo(
@@ -426,7 +428,7 @@ function GrapeBoardInner({ board, onFill, canFill, onCelebrate, isOwner, onPlant
   // 마지막 알 POST 실패 시 완성 시퀀스 취소. 부모(board 페이지 postFillSticker)는
   // 에러를 내부 처리(낙관 스티커 롤백 + 배너)하고 reject하지 않으므로 handleFill의
   // catch엔 실패가 도달하지 않는다 — 실패의 유일한 관측 신호는 롤백으로
-  // filledCount가 총알 수 아래로 떨어지는 것. 빠른 실패(비트 1920ms 전)는 여기서
+  // filledCount가 총알 수 아래로 떨어지는 것. 빠른 실패(비트 1650ms 전)는 여기서
   // 타이머·노드가 즉시 정리돼 액체·팡파르가 재생되지 않고, 비트가 이미 지난 늦은
   // 실패는 '재생 후 롤백'으로 수용한다(연출은 일시적이고 보드 상태는 미완성+에러
   // 배너가 정본 — 재시도로 재완성하면 시퀀스가 자연 재생되므로 무해). 정상 완성
@@ -463,7 +465,7 @@ function GrapeBoardInner({ board, onFill, canFill, onCelebrate, isOwner, onPlant
     feedbackFill();
     const newFilledCount = filledCount + 1;
     // '소리·컨페티가 한 박자' 원칙: 중간 보상은 임팩트 직후 300ms 비트,
-    // 완성은 액체 차오름 시퀀스의 상승 피크(임팩트 +1920ms) 비트에 맞춘다.
+    // 완성은 액체 차오름 시퀀스의 상승 피크(임팩트 +1650ms) 비트에 맞춘다.
     if (newFilledCount >= board.totalStickers) {
       playCompletionSequence();
     } else {
