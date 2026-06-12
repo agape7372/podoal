@@ -529,7 +529,8 @@ export default function HomePage() {
           {filter === 'all' && (
             <>
               <p className="text-sm text-warm-sub mb-5 text-balance">한 알씩 채워볼 첫 판을 만들어 보세요</p>
-              <ClayButton variant="joyful" onClick={() => router.push('/board/create')}>
+              {/* href(<Link>): 보드 0개 신규 사용자 경로도 /board/create 프리페치를 받는다(FAB와 동일). */}
+              <ClayButton variant="joyful" href="/board/create" onClick={feedbackTap}>
                 포도판 만들기
               </ClayButton>
             </>

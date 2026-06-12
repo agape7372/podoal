@@ -1,14 +1,26 @@
 'use client';
 
-import { ButtonHTMLAttributes, ReactNode } from 'react';
+import Link from 'next/link';
+import { ButtonHTMLAttributes, MouseEventHandler, ReactNode } from 'react';
 
-interface ClayButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+type CommonProps = {
   children: ReactNode;
   variant?: 'primary' | 'secondary' | 'ghost' | 'danger' | 'joyful';
   size?: 'sm' | 'md' | 'lg';
   fullWidth?: boolean;
   loading?: boolean;
-}
+};
+
+// href가 있으면 <button> 대신 <Link>로 렌더 — 클레이 비주얼은 동일하게 유지하면서
+// 라우트 프리페치를 얻는다(navigation 전용 CTA용, FAB 전환과 같은 이유).
+// disabled/loading 게이트와 버튼 고유 속성(type/onPointerDown 등)은 버튼 분기 전용.
+type ClayButtonProps =
+  | ({ href?: undefined } & CommonProps & ButtonHTMLAttributes<HTMLButtonElement>)
+  | ({ href: string } & CommonProps & {
+      onClick?: MouseEventHandler<HTMLAnchorElement>;
+      className?: string;
+      'aria-label'?: string;
+    });
 
 const variantStyles: Record<NonNullable<ClayButtonProps['variant']>, string> = {
   primary:
@@ -31,41 +43,65 @@ const sizeStyles = {
   lg: 'px-8 py-4 text-lg rounded-[28px]',
 };
 
-export default function ClayButton({
-  children,
-  variant = 'primary',
-  size = 'md',
-  fullWidth = false,
-  loading = false,
-  disabled,
-  className = '',
-  ...props
-}: ClayButtonProps) {
+export default function ClayButton(props: ClayButtonProps) {
+  const { children, variant = 'primary', size = 'md', fullWidth = false, loading = false, className = '' } = props;
+
+  const visual = `
+    clay-button font-bold no-select
+    ${variantStyles[variant]}
+    ${sizeStyles[size]}
+    ${fullWidth ? 'w-full' : ''}
+  `;
+
+  const content = loading ? (
+    <span className="flex items-center justify-center gap-2">
+      <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+      <span>잠시만요…</span>
+    </span>
+  ) : (
+    // Wrap children in a flex row so an inline <EmojiIcon> img sits centered
+    // beside its label instead of breaking baseline/clipping — this is the
+    // 🎁 "T" tofu on 포도판 선물하기 / 선물 심기 buttons.
+    <span className="inline-flex items-center justify-center gap-1.5">{children}</span>
+  );
+
+  if (props.href !== undefined) {
+    return (
+      <Link
+        href={props.href}
+        onClick={props.onClick}
+        aria-label={props['aria-label']}
+        // 버튼은 기본 inline-block + 가운데 정렬이지만 앵커는 아니라서 명시한다.
+        className={`inline-block text-center ${visual} ${className}`}
+      >
+        {content}
+      </Link>
+    );
+  }
+
+  const {
+    href: _href,
+    children: _children,
+    variant: _variant,
+    size: _size,
+    fullWidth: _fullWidth,
+    loading: _loading,
+    className: _className,
+    disabled,
+    ...buttonProps
+  } = props;
   return (
     <button
       disabled={disabled || loading}
       className={`
-        clay-button font-bold no-select
-        ${variantStyles[variant]}
-        ${sizeStyles[size]}
-        ${fullWidth ? 'w-full' : ''}
+        ${visual}
         ${loading ? 'cursor-wait' : ''}
         ${disabled && !loading ? 'opacity-50 cursor-not-allowed' : ''}
         ${className}
       `}
-      {...props}
+      {...buttonProps}
     >
-      {loading ? (
-        <span className="flex items-center justify-center gap-2">
-          <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-          <span>잠시만요…</span>
-        </span>
-      ) : (
-        // Wrap children in a flex row so an inline <EmojiIcon> img sits centered
-        // beside its label instead of breaking baseline/clipping — this is the
-        // 🎁 "T" tofu on 포도판 선물하기 / 선물 심기 buttons.
-        <span className="inline-flex items-center justify-center gap-1.5">{children}</span>
-      )}
+      {content}
     </button>
   );
 }

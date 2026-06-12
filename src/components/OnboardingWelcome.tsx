@@ -1,6 +1,5 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import Modal from './Modal';
 import ClayButton from './ClayButton';
 import EmojiIcon from './EmojiIcon';
@@ -21,12 +20,11 @@ const STEPS: { emoji: string; title: string; desc: string }[] = [
 // 첫 방문(보드 0개 + 미온보딩) 시 핵심 루프를 한 번에 알려주는 환영 모달.
 // "빈 홈에서 뭘 해야 하지?" 이탈을 줄이는 목적 — 만들기로 바로 보낸다.
 export default function OnboardingWelcome({ onClose }: OnboardingWelcomeProps) {
-  const router = useRouter();
-
+  // 내비게이션은 CTA의 href(<Link>)가 담당 — 모달이 떠 있는 동안 /board/create가
+  // 프리페치된다(router.push는 프리페치 0). 닫기 기록(onClose)은 클릭 시점에 처리.
   const start = () => {
     feedbackTap();
     onClose();
-    router.push('/board/create');
   };
 
   return (
@@ -63,7 +61,7 @@ export default function OnboardingWelcome({ onClose }: OnboardingWelcomeProps) {
         ))}
       </ol>
 
-      <ClayButton variant="joyful" fullWidth onClick={start}>
+      <ClayButton variant="joyful" fullWidth href="/board/create" onClick={start}>
         <EmojiIcon emoji="🍇" size={16} className="mr-1" />첫 포도판 만들기
       </ClayButton>
       <button
