@@ -29,11 +29,23 @@ export async function GET(request: Request, props: { params: Promise<{ id: strin
       );
     }
 
-    // Fetch friend's user profile
-    const friendUser = await prisma.user.findUnique({
-      where: { id: friendUserId },
-      select: userProfileSelect,
-    });
+    // 친구 프로필 + 보드 목록을 병렬로 — 둘은 서로 의존이 없는데 예전엔 직렬이라
+    // 친구 상세 진입에 불필요한 1홉(50~100ms)이 더 붙었다. friendship 게이트만 선행.
+    // 친구가 '소유한' 보드만 노출(선물받은 보드로 제3자 이름/아바타·제목이 새지 않게 — 기존 계약 유지).
+    const [friendUser, boards] = await Promise.all([
+      prisma.user.findUnique({
+        where: { id: friendUserId },
+        select: userProfileSelect,
+      }),
+      prisma.board.findMany({
+        where: { ownerId: friendUserId },
+        include: {
+          owner: { select: userProfileSelect },
+          _count: { select: { stickers: true, rewards: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+      }),
+    ]);
 
     if (!friendUser) {
       return NextResponse.json(
@@ -41,17 +53,6 @@ export async function GET(request: Request, props: { params: Promise<{ id: strin
         { status: 404 }
       );
     }
-
-    // 친구가 '소유한' 보드만 노출. 이전엔 `giftedToId` OR + giftedFrom/giftedTo 프로필까지
-    // 포함해, 친구가 제3자에게서 선물받은 보드를 통해 무관한 제3자 이름/아바타·제목이 새어나갔음.
-    const boards = await prisma.board.findMany({
-      where: { ownerId: friendUserId },
-      include: {
-        owner: { select: userProfileSelect },
-        _count: { select: { stickers: true, rewards: true } },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
 
     const result = boards.map((board) => ({
       id: board.id,

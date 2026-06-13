@@ -19,6 +19,15 @@ import type { BoardSummary, BoardDetail } from '@/types';
 import { feedbackTap, feedbackCheer } from '@/lib/feedback';
 import { formatRelativeTime, type FriendActivity } from '@/lib/activity';
 
+// order 우선, 없으면 createdAt 내림차순 폴백. 외부 클로저 의존이 없어 모듈 레벨에
+// 둔다 — 컴포넌트 내 함수면 매 렌더 새 참조라 displayBoards useMemo를 매번 무효화한다.
+function sortByOrder(a: BoardSummary, b: BoardSummary): number {
+  const ao = a.order ?? Number.MAX_SAFE_INTEGER;
+  const bo = b.order ?? Number.MAX_SAFE_INTEGER;
+  if (ao !== bo) return ao - bo;
+  return a.createdAt < b.createdAt ? 1 : -1;
+}
+
 function timeOfDayGreeting(): string {
   const h = new Date().getHours();
   if (h < 5) return '편안한 밤 보내세요';
@@ -50,7 +59,9 @@ export default function HomePage() {
     refresh: loadBoards,
     mutate: mutateBoards,
   } = useCachedApi<{ boards: BoardSummary[] }>('/api/boards');
-  const boards = boardsData?.boards ?? [];
+  // 참조 안정화: `?? []`가 매 렌더 새 빈 배열을 만들면 boards에 의존하는 memo/effect가
+  // 전부 무효화된다. 데이터가 같으면 같은 배열을 유지한다.
+  const boards = useMemo(() => boardsData?.boards ?? [], [boardsData?.boards]);
   const [filter, setFilter] = useState<Filter>('all');
   const greeting = useMemo(timeOfDayGreeting, []);
 
@@ -172,27 +183,29 @@ export default function HomePage() {
     } catch { /* localStorage 불가 환경 무시 */ }
   }, []);
 
-  // order 우선, 없으면 createdAt 내림차순 폴백.
-  const sortByOrder = (a: BoardSummary, b: BoardSummary) => {
-    const ao = a.order ?? Number.MAX_SAFE_INTEGER;
-    const bo = b.order ?? Number.MAX_SAFE_INTEGER;
-    if (ao !== bo) return ao - bo;
-    return a.createdAt < b.createdAt ? 1 : -1;
-  };
 
-  const visible = boards.filter((b) => {
-    if (filter === 'harvested') return !!b.harvestedAt;
-    if (b.harvestedAt) return false; // 수확한 판은 다른 탭에서 숨김
-    if (filter === 'active') return !b.isCompleted;
-    if (filter === 'completed') return b.isCompleted;
-    return true;
-  });
-  const displayBoards = [...visible].sort(sortByOrder);
+  // 필터·정렬·카운트는 boards/filter에만 의존 — 홈은 제스처/토스트/모달 등 보드와
+  // 무관한 로컬 state 변화가 잦아, memo 없으면 매 렌더에서 5회 filter+sort를 다시 돈다.
+  const displayBoards = useMemo(() => {
+    const visible = boards.filter((b) => {
+      if (filter === 'harvested') return !!b.harvestedAt;
+      if (b.harvestedAt) return false; // 수확한 판은 다른 탭에서 숨김
+      if (filter === 'active') return !b.isCompleted;
+      if (filter === 'completed') return b.isCompleted;
+      return true;
+    });
+    return [...visible].sort(sortByOrder);
+  }, [boards, filter]);
 
-  const allCount = boards.filter((b) => !b.harvestedAt).length;
-  const activeCount = boards.filter((b) => !b.harvestedAt && !b.isCompleted).length;
-  const completedCount = boards.filter((b) => !b.harvestedAt && b.isCompleted).length;
-  const harvestedCount = boards.filter((b) => !!b.harvestedAt).length;
+  const { allCount, activeCount, completedCount, harvestedCount } = useMemo(() => {
+    let all = 0, active = 0, completed = 0, harvested = 0;
+    for (const b of boards) {
+      if (b.harvestedAt) { harvested++; continue; }
+      all++;
+      if (b.isCompleted) completed++; else active++;
+    }
+    return { allCount: all, activeCount: active, completedCount: completed, harvestedCount: harvested };
+  }, [boards]);
 
   const canReorder = filter === 'all'; // 정렬은 '전체'에서만(필터된 부분집합 정렬은 혼란)
 

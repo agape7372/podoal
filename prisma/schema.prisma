@@ -84,7 +84,10 @@ model Sticker {
   filler User  @relation(fields: [filledBy], references: [id])
 
   @@unique([boardId, position])
-  @@index([filledBy]) // stats·winery·vine의 사용자별 스티커 집계
+  // 복합 인덱스(filledBy, filledAt): stats·winery·vine의 사용자별 집계가 날짜순으로
+  // 인덱스만 훑어 끝낸다(헤비유저 전체 이력 풀스캔 제거). 선두 컬럼이 filledBy라
+  // 기존 filledBy 단독 조회도 그대로 커버.
+  @@index([filledBy, filledAt])
 }
 
 model Reward {
@@ -115,7 +118,10 @@ model Friendship {
   receiver  User @relation("FriendReceiver", fields: [receiverId], references: [id])
 
   @@unique([requesterId, receiverId])
-  @@index([receiverId]) // 받은 친구신청 조회 (unique는 requesterId 접두라 커버 안 됨)
+  // (receiverId, status): 받은 친구신청 + pending 필터를 한 인덱스로 — receiverId
+  // 파티션 내에서 status='pending'으로 바로 점프(2차 필터 제거). 선두가 receiverId라
+  // 기존 receiverId 단독 조회도 커버.
+  @@index([receiverId, status])
 }
 
 model Message {
@@ -182,6 +188,9 @@ model RelayParticipant {
   @@unique([relayId, userId])
   @@unique([relayId, order])
   @@index([userId]) // 내 포도동/초대 조회 (unique 2개 모두 relayId 접두라 커버 안 됨)
+  // boards/[id] GET의 포도동 동료 열람 권한 체크가 boardId로 조회 — 인덱스 없으면
+  // 테이블 풀스캔(친구 아닌 릴레이 참가자의 보드 진입마다). 보드 상세는 최빈 전환.
+  @@index([boardId])
 }
 
 model NotificationSetting {
