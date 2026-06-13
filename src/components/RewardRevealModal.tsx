@@ -14,6 +14,9 @@ interface RewardRevealModalProps {
    *  truthiness로 분기하면 '내용 없는 보상'(빈 문자열 허용)이 영구 스켈레톤에
    *  갇힌다(2026-06-13 무한로딩 수정). */
   loading?: boolean;
+  /** 스켈레톤이 왜 길어지는지 설명하는 한 줄(예: 연타 직후 채움 저장 대기).
+   *  말 없는 스켈레톤은 몇 초만 지나도 '안 나온다'로 읽힌다(2026-06-13 영상). */
+  loadingNote?: string;
   onClose: () => void;
 }
 
@@ -23,7 +26,7 @@ interface RewardRevealModalProps {
  * Opens INSTANTLY; while `loading` it shows a shimmer placeholder. 내용이 없는
  * 보상(빈 content·imageUrl)은 본문 박스를 생략하고 제목만 보여준다.
  */
-export default function RewardRevealModal({ reward, loading = false, onClose }: RewardRevealModalProps) {
+export default function RewardRevealModal({ reward, loading = false, loadingNote, onClose }: RewardRevealModalProps) {
   return (
     <Modal
       variant="center"
@@ -41,6 +44,7 @@ export default function RewardRevealModal({ reward, loading = false, onClose }: 
           <div className="clay-sm bg-white p-4 mb-5 text-center space-y-2" aria-label="내용 불러오는 중">
             <div className="skeleton h-4 w-full" />
             <div className="skeleton h-4 w-2/3" />
+            {loadingNote && <p className="text-xs text-warm-sub pt-1">{loadingNote}</p>}
           </div>
         ) : reward.content ? (
           <div className="clay-sm bg-white p-4 mb-5 text-center">
