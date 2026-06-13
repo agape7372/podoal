@@ -18,12 +18,6 @@ function kstStartOfTodayUtc(): Date {
   return new Date(startKstMs - KST_OFFSET_MS);
 }
 
-function kstDayBucket(d: Date): number {
-  // 0=Sun..6=Sat per KST.
-  const shifted = new Date(d.getTime() + KST_OFFSET_MS);
-  return shifted.getUTCDay();
-}
-
 export async function GET() {
   const userId = await getCurrentUserId();
   if (!userId) return authResponse('Unauthorized');
@@ -60,22 +54,28 @@ export async function GET() {
     }),
   ]);
 
-  // Pull every sticker's filledAt once and bucket in-memory. This is one query
-  // instead of the previous 365+ count() round-trips, and the JS bucket loop is
-  // O(n) over the user's sticker history.
-  const allStickers = await prisma.sticker.findMany({
-    where: { filledBy: userId },
-    select: { filledAt: true },
-    orderBy: { filledAt: 'asc' },
-  });
+  // 날짜별 집계를 **DB에서** 한다 — 예전엔 사용자의 모든 sticker 행(헤비유저면 1만+)을
+  // 메모리로 끌어와 JS로 버킷팅했다(확장성 한계). 고유 날짜 수(최대 ~수백)만 돌려받아
+  // 같은 파생값(heatmap·요일·월별·streak·평균)을 전부 계산한다.
+  // KST 날짜 키 = (filledAt + 9h)의 달력 날짜 — kstDateKey(JS)와 동치: filledAt는 UTC
+  // timestamp(no tz)라 9시간 더한 뒤 to_char가 같은 'YYYY-MM-DD'를 준다.
+  // (filledBy, filledAt) 복합 인덱스가 이 GROUP BY를 인덱스만으로 처리한다.
+  const dateCounts = await prisma.$queryRaw<{ day: string; cnt: bigint }[]>`
+    SELECT to_char("filledAt" + interval '9 hours', 'YYYY-MM-DD') AS day,
+           COUNT(*) AS cnt
+    FROM "Sticker"
+    WHERE "filledBy" = ${userId}
+    GROUP BY day
+  `;
 
-  // Bucket every fill into a KST date key.
+  // KST 날짜 키 → 카운트. 요일 집계는 날짜 키의 요일에서 직접 유도
+  // (키 자정 UTC의 getUTCDay = 그 KST 달력일의 요일, 0=일).
   const countByDate = new Map<string, number>();
   const dayOfWeekCounts = [0, 0, 0, 0, 0, 0, 0];
-  for (const s of allStickers) {
-    const k = kstDateKey(s.filledAt);
-    countByDate.set(k, (countByDate.get(k) || 0) + 1);
-    dayOfWeekCounts[kstDayBucket(s.filledAt)]++;
+  for (const row of dateCounts) {
+    const c = Number(row.cnt);
+    countByDate.set(row.day, c);
+    dayOfWeekCounts[new Date(`${row.day}T00:00:00Z`).getUTCDay()] += c;
   }
 
   // Build last-7-days series (KST).
@@ -107,9 +107,12 @@ export async function GET() {
   // `streak` (legacy alias) kept for backwards compat with existing clients.
   const streak = currentStreak;
 
-  // 30-day average.
-  const thirtyDaysAgoUtc = new Date(todayKstStart.getTime() - 30 * 86_400_000);
-  const last30Count = allStickers.filter((s) => s.filledAt >= thirtyDaysAgoUtc).length;
+  // 30-day average — 날짜 키 집계에서 최근 30일 분 합산(KST 경계).
+  const cutoffKey = kstDateKey(new Date(todayKstStart.getTime() - 30 * 86_400_000 + 1));
+  let last30Count = 0;
+  for (const [key, count] of countByDate) {
+    if (key >= cutoffKey) last30Count += count;
+  }
   const averageDaily = Math.round((last30Count / 30) * 10) / 10;
 
   const maxDayIndex = dayOfWeekCounts.indexOf(Math.max(...dayOfWeekCounts));
@@ -119,7 +122,13 @@ export async function GET() {
     ? Math.round((completedBoards / totalBoards) * 1000) / 10
     : 0;
 
-  // Monthly trend (last 6 months, KST month boundaries).
+  // Monthly trend (last 6 months, KST month boundaries) — 날짜 키의 'YYYY-MM'
+  // 접두로 월별 합산(키가 이미 KST 달력일이라 월 경계도 KST 기준).
+  const monthSums = new Map<string, number>();
+  for (const [key, count] of countByDate) {
+    const ym = key.slice(0, 7);
+    monthSums.set(ym, (monthSums.get(ym) || 0) + count);
+  }
   const monthlyTrend: { month: string; count: number }[] = [];
   const nowKst = new Date(Date.now() + KST_OFFSET_MS);
   const nowKstYear = nowKst.getUTCFullYear();
@@ -128,15 +137,8 @@ export async function GET() {
     const targetMonth = nowKstMonth - i;
     const year = nowKstYear + Math.floor(targetMonth / 12);
     const month = ((targetMonth % 12) + 12) % 12;
-    const monthStart = Date.UTC(year, month, 1) - KST_OFFSET_MS;
-    const monthEnd = Date.UTC(year, month + 1, 1) - KST_OFFSET_MS;
-    const count = allStickers.filter(
-      (s) => s.filledAt.getTime() >= monthStart && s.filledAt.getTime() < monthEnd,
-    ).length;
-    monthlyTrend.push({
-      month: `${year}-${String(month + 1).padStart(2, '0')}`,
-      count,
-    });
+    const ym = `${year}-${String(month + 1).padStart(2, '0')}`;
+    monthlyTrend.push({ month: ym, count: monthSums.get(ym) || 0 });
   }
 
   // Category breakdown by board templateId prefix.
