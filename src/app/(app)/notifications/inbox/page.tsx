@@ -1,10 +1,12 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { api } from '@/lib/api';
+import { invalidateCachedApi } from '@/lib/cachedApi';
 import { useCachedApi } from '@/lib/cachedApi';
 import { useAppStore } from '@/lib/store';
-import { countUnread } from '@/lib/notifications';
+import { countUnread, refreshUnreadCount } from '@/lib/notifications';
 import Avatar from '@/components/Avatar';
 import EmojiIcon from '@/components/EmojiIcon';
 import { feedbackTap } from '@/lib/feedback';
@@ -33,6 +35,22 @@ export default function NotificationInboxPage() {
   useEffect(() => {
     if (data) setUnreadCount(countUnread(data.events));
   }, [data, setUnreadCount]);
+
+  // 알림함을 '열어서 봤으면' 응원·축하·선물 메시지는 읽음으로 간주 — 메시지함에서
+  // 카드를 또 일일이 탭해야 배지가 안 빠지던 불일치를 해소한다(보상/친구요청/초대는
+  // 수락·개봉 등 별도 처리가 필요하므로 그대로 둔다). 마운트당 1회만 발사.
+  const markedRef = useRef(false);
+  useEffect(() => {
+    if (markedRef.current) return;
+    markedRef.current = true;
+    api('/api/messages/read-all', { method: 'POST' })
+      .then(() => {
+        invalidateCachedApi('/api/messages'); // 메시지함 재진입 시 읽음 상태 반영
+        refresh(); // 알림함 피드 자체도 메시지 read 반영
+        refreshUnreadCount({ force: true }); // 배지 즉시 갱신
+      })
+      .catch(() => {}); // 실패해도 다음 진입에서 재시도(멱등)
+  }, [refresh]);
 
   const open = (e: NotificationEvent) => {
     feedbackTap();
