@@ -161,7 +161,9 @@ export default function BoardDetailPage() {
   // '다른 보상' 팝업의 스켈레톤을 오소거하는 동기화 구멍이 생긴다. content의
   // truthiness로 로딩을 판정하지 않는 이유: content는 빈 문자열이 허용되어(내용
   // 없는 보상) 영구 스켈레톤에 갇힌다.
-  const [rewardPopup, setRewardPopup] = useState<{ reward: RewardInfo; loading: boolean } | null>(null);
+  // savingFills: 직렬 큐가 드레인 중인 동안 열린 스켈레톤 — 모달이 '저장 중'을
+  // 말하게 한다(말 없는 스켈레톤은 몇 초만에 '편지가 안 나온다'로 읽힘, 2026-06-13).
+  const [rewardPopup, setRewardPopup] = useState<{ reward: RewardInfo; loading: boolean; savingFills?: boolean } | null>(null);
   // 빠른 응답(웜 네트워크 + 빈 큐 단발 탭)은 unlock 응답이 +300ms 비트보다 먼저
   // 도착한다 — 그 시점엔 팝업이 아직 없어 내용이 버려지고 스켈레톤으로 열렸다
   // (적대적 리뷰 must-fix: '빠를수록 깨지는' 레이스). 보상 id 키로 보관했다가
@@ -405,6 +407,17 @@ export default function BoardDetailPage() {
               if (aliveRef.current) fetchBoard();
             });
         } else {
+          // 완성 보상도 같은 즉시-채움 경로를 탄다 — 마지막 채움이 느린 사이 사용자가
+          // 카드를 먼저 탭해 스켈레톤 팝업을 열어둔 경우(2026-06-13 영상: 편지 무소식),
+          // 이 unlock 응답이 서버가 내용을 아는 가장 이른 순간이다. 팝업이 없으면
+          // 버퍼만 남고(안전망 tryReveal이 왕복 없이 소비), 자동 오픈은 여전히 안 한다.
+          const body = { title: u.title, content: u.content ?? '', imageUrl: u.imageUrl ?? '' };
+          pendingUnlockContentRef.current.set(u.id, body);
+          setRewardPopup((prev) =>
+            prev && prev.reward.id === u.id
+              ? { reward: { ...prev.reward, ...body }, loading: false }
+              : prev,
+          );
           fetchBoard();
         }
       }
@@ -554,8 +567,10 @@ export default function BoardDetailPage() {
       } catch (err) {
         if (cancelled) return;
         const waiting = err instanceof ApiError && err.status === 400;
-        if (waiting) waits += 1;
-        else failures += 1;
+        // 큐가 아직 드레인 중인 400은 대기 예산도 소진하지 않는다 — 채움이 정말
+        // 실패하면 postFillSticker의 catch가 이 loading 팝업을 직접 닫는다(롤백+배너).
+        if (waiting && (fillPendingCounts.get(id) ?? 0) === 0) waits += 1;
+        else if (!waiting) failures += 1;
         if ((waiting && waits < 12) || (!waiting && failures < 3)) {
           timer = setTimeout(tryReveal, waiting ? 2000 : 4000);
         } else {
@@ -564,7 +579,25 @@ export default function BoardDetailPage() {
         }
       }
     };
-    timer = setTimeout(tryReveal, 5000);
+    // 직렬 큐가 드레인 중이면 고정 타이머가 아니라 드레인 완료에 reveal을 건다 —
+    // 마지막 채움이 커밋되는 그 순간이 내용을 받을 수 있는 가장 이른 시점이고,
+    // 맹목 폴링(5s+2s 간격)은 그만큼 스켈레톤을 더 보여줬다(2026-06-13 영상).
+    // cancelled로 수명을 팝업에 묶는다 — 닫은 뒤 도착한 드레인이 '본 적 없는'
+    // 보상의 revealedAt을 영속화해 카드를 '다시 보기'로 오표시하지 않게.
+    // 백스톱 타이머는 큐 행(항목별 20s 타임아웃) 대비로만 길게 둔다.
+    if ((fillPendingCounts.get(id) ?? 0) > 0) {
+      // savingFills 노트는 여기서 굳이 끄지 않는다 — tryReveal 성공이 팝업 객체를
+      // 통째로 교체해 함께 사라지고, 중간에 끄면 rewardPopup 의존 effect가 재실행돼
+      // cancelled 가드가 진행 중인 reveal을 끊는다(재진입 자기 취소).
+      fillQueues.get(id)?.then(() => {
+        if (cancelled) return;
+        clearTimeout(timer); // 백스톱과의 이중 발사 방지 — reveal은 멱등이지만 왕복 낭비
+        tryReveal();
+      });
+      timer = setTimeout(tryReveal, 25000);
+    } else {
+      timer = setTimeout(tryReveal, 5000);
+    }
     return () => {
       cancelled = true;
       clearTimeout(timer);
@@ -634,7 +667,10 @@ export default function BoardDetailPage() {
   // 전용(멱등)으로 비차단 발사. 스켈레톤은 '구캐시 등으로 내용이 아직 없고
   // 미공개'인 경우에만 — 응답이 채우거나, 실패 시 닫고 배너(영구 스켈레톤 금지).
   const openReward = (reward: RewardInfo) => {
-    setRewardPopup({ reward, loading: !reward.revealedAt && !reward.content && !reward.imageUrl });
+    const loading = !reward.revealedAt && !reward.content && !reward.imageUrl;
+    // 연타 직후 카드 탭: 낙관 카운트로 카드가 먼저 '달성'이 되지만 서버 커밋(직렬
+    // 큐)은 뒤따라온다 — 그 사이의 스켈레톤은 '저장 중'임을 모달이 직접 말한다.
+    setRewardPopup({ reward, loading, savingFills: loading && (fillPendingCounts.get(id) ?? 0) > 0 });
     setConfettiTrigger((t) => t + 1);
     if (!reward.revealedAt) {
       api<{ reward: RewardInfo }>(
@@ -1032,6 +1068,7 @@ export default function BoardDetailPage() {
         <RewardRevealModal
           reward={rewardPopup.reward}
           loading={rewardPopup.loading}
+          loadingNote={rewardPopup.savingFills ? '포도알을 저장하고 있어요…' : undefined}
           onClose={() => setRewardPopup(null)}
         />
       )}
