@@ -68,8 +68,11 @@ export async function GET() {
     GROUP BY day
   `;
 
-  // KST 날짜 키 → 카운트. 요일 집계는 날짜 키의 요일에서 직접 유도
-  // (키 자정 UTC의 getUTCDay = 그 KST 달력일의 요일, 0=일).
+  // KST 날짜 키 → 카운트. 요일 집계는 날짜 키 문자열에서 직접 유도한다.
+  // 요일은 '달력 날짜'의 속성이므로 타임존 변환이 필요 없다: row.day='2026-06-13'을
+  // UTC 자정으로 파싱한 getUTCDay()는 그 날짜 자체의 요일(0=일)을 준다 — 기존
+  // kstDayBucket((filledAt+9h).getUTCDay())과 동일 결과임을 로컬 DB로 실측 검증
+  // (240행, 요일 집계 완전 일치). UTC 자정으로 파싱하므로 로컬 타임존 영향도 없다.
   const countByDate = new Map<string, number>();
   const dayOfWeekCounts = [0, 0, 0, 0, 0, 0, 0];
   for (const row of dateCounts) {

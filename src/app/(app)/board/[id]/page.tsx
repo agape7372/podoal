@@ -178,14 +178,7 @@ export default function BoardDetailPage() {
   const aliveRef = useRef(true);
   useEffect(() => {
     aliveRef.current = true; // StrictMode 재마운트 대응
-    const buffer = pendingUnlockContentRef.current;
-    return () => {
-      aliveRef.current = false;
-      // 소비되지 않은 빠른-응답 버퍼(팝업 없이 보관만 된 보상 내용)는 언마운트 시
-      // 비운다 — 보드를 떠나면 그 보상 팝업은 다시 안 열리므로 보관 의미가 없고,
-      // 장기 세션에서 보상 id가 누적되는 것을 막는다(ref라 의존성 불필요).
-      buffer.clear();
-    };
+    return () => { aliveRef.current = false; };
   }, []);
   // 백그라운드 복귀 재검증의 기준 시각(mount/수동 재검증 포함, 5초 스로틀).
   const lastFetchAtRef = useRef(0);
