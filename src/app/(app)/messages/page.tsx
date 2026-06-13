@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { useCachedApi } from '@/lib/cachedApi';
+import { useAppStore } from '@/lib/store';
 import { refreshUnreadCount } from '@/lib/notifications';
 import Avatar from '@/components/Avatar';
 import EmojiIcon from '@/components/EmojiIcon';
@@ -20,6 +21,20 @@ export default function MessagesPage() {
   useEffect(() => {
     if (data) refreshUnreadCount();
   }, [data]);
+
+  // 실시간 반영: 메시지함에 머무는 중 SSE로 새 메시지가 도착하면 store.messages에
+  // prepend된다(useSSE의 addMessage). 그 분을 캐시 목록에 병합해, 나갔다 들어오거나
+  // 포커스를 줄 필요 없이 즉시 보이게 한다. id 기준 dedup(이미 있으면 무시).
+  const liveMessages = useAppStore((s) => s.messages);
+  useEffect(() => {
+    if (liveMessages.length === 0) return;
+    mutate((prev) => {
+      if (!prev) return prev;
+      const have = new Set(prev.map((m) => m.id));
+      const fresh = liveMessages.filter((m) => !have.has(m.id));
+      return fresh.length === 0 ? prev : [...fresh, ...prev];
+    });
+  }, [liveMessages, mutate]);
 
   const handleMarkRead = async (id: string) => {
     const target = messages.find((m) => m.id === id);
