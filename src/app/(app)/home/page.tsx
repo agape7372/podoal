@@ -43,7 +43,8 @@ type Filter = 'all' | 'active' | 'completed' | 'harvested';
 const FILTERS: Filter[] = ['all', 'active', 'completed', 'harvested'];
 const FILTER_KEY = 'podoal-home-filter'; // 마지막으로 본 필터 탭 기억(기기별)
 
-const LIFT_MS = 450;   // 정지 후 이 시간 유지하면 카드를 들어 정렬 모드로
+const LIFT_MS = 250;   // 정지 후 이 시간 유지하면 카드를 들어 정렬 모드로(450ms는 너무 길어 '꾹'이
+                       //   타이머를 못 채우고 탭=상세열기로 빠지던 문제 — 짧은 롱프레스로 단축)
 const MOVE_TOL = 10;   // 이만큼 움직이면 제스처 방향(스크롤/스와이프)을 확정
 const TRAY_W = 120;    // 스와이프 슬라이드 거리(px) — 버튼은 88px 고정, 나머지는 여백(손맛)
 const REORDER_TRANSITION = 'transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1)'; // 이웃 비켜주기·드롭 정착(FLIP) 공통 이징
