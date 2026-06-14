@@ -17,7 +17,8 @@ interface SwipeableBoardCardProps {
    *  parent writes it directly to the DOM via `moveLayerRef` so pointermove
    *  doesn't re-render the whole list. */
   offset: number;
-  /** Visually lifted for drag-to-reorder (scale + glow + raised z). */
+  /** Visually lifted for drag-to-reorder (grape-glow ring + raised z; the wrapper's
+   *  clip is also released while lifted so the ring isn't shaved off). */
   lifted: boolean;
   /** The finger is actively swiping this card (axis locked to x). Turns the
    *  declarative transition off and hides the ⋮ menu. */
@@ -65,10 +66,13 @@ export default function SwipeableBoardCard({
           카드의 둥근 모서리 바깥·클립 안쪽 틈으로 트레이(틴트 워시·포커스 배경)가 비친다.
           포인터 제스처는 이 래퍼가 소유한다(트레이 포함) — 열린 트레이 위에서 시작한
           드래그로도 카드를 닫을 수 있다. 트레이 버튼 탭은 부모의 슬롭(gMoved) 판정으로
-          드래그와 구분되고, 축 잠금 시 부모가 포인터를 캡처해 click이 버튼에 닿지 않는다. */}
+          드래그와 구분되고, 축 잠금 시 부모가 포인터를 캡처해 click이 버튼에 닿지 않는다.
+          단, overflow-hidden은 '옆으로 밀 때'(트레이 가두기)에만 필요하다 — 정렬 리프트
+          중엔 스와이프가 없고, 클립을 켜두면 리프트의 grape-glow 링이 잘려 '집은 카드의
+          테두리가 사라지는' 시각 버그가 된다. 그래서 lifted 동안만 클립을 푼다. */}
       <div
         {...pointerHandlers}
-        className="relative overflow-hidden touch-pan-y"
+        className={`relative touch-pan-y ${lifted ? '' : 'overflow-hidden'}`}
         style={{ borderRadius: 28 }}
       >
         {/* Right-side action tray — 고스트 '수확' 단일 버튼(시안 v2 1번 계열). 삭제는
@@ -134,7 +138,10 @@ export default function SwipeableBoardCard({
           }}
           className={`relative touch-pan-y ${lifted ? 'shadow-grape-glow' : ''}`}
           style={{
-            transform: `translateX(${offset}px) scale(${lifted ? 1.02 : 1})`,
+            // 리프트 어포던스는 grape-glow 링으로 충분하다. scale(1.02)는 빼는 게 맞다 —
+            // 클립 안쪽 레이어라 켜두면 (a)리프트 시 가장자리가 깎이고 (b)드롭 시 1.0으로
+            // 줄며 착지 중 미세 깜빡임이 남는다. 글로우 링은 scale과 무관하게 잘 보인다.
+            transform: `translateX(${offset}px)`,
             transition: dragging ? 'none' : SWIPE_TRANSITION,
             ...(lifted ? { touchAction: 'none' as const } : null),
           }}
