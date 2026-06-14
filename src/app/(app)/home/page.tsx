@@ -332,10 +332,12 @@ export default function HomePage() {
 
   const onMove = (e: React.PointerEvent, board: BoardSummary) => {
     gLastY.current = e.clientY;
-    if (liftedId === board.id) {
+    // 리프트 판정은 liftedId(상태)가 아니라 liftRef(동기 ref)로 한다 — setLiftedId가 리렌더되기
+    // 전 한 프레임 동안 liftedId가 비어, 그 사이 onMove/onUp/onCancel이 stale null을 읽으면
+    // endLift를 못 불러 liftRef가 안 풀리는 wedge(이후 onDown 가드가 모든 제스처를 영구 차단)가 난다.
+    const L = liftRef.current;
+    if (L && L.id === board.id) {
       e.preventDefault();
-      const L = liftRef.current;
-      if (!L) return;
       const dy = e.clientY - L.startY;
       // 손가락 추적 — 드래그 행 outer에 직접 기록(리렌더 없음).
       const draggedEl = cardRefs.current.get(L.id);
@@ -392,7 +394,9 @@ export default function HomePage() {
 
   const onUp = (e: React.PointerEvent, board: BoardSummary) => {
     clearLp();
-    if (liftedId === board.id) {
+    // liftRef(동기 ref)로 판정 — 어떤 포인터업이든 리프트가 살아 있으면 반드시 endLift로
+    // 마감해 liftRef가 새지 않게 한다(위 onMove 주석의 wedge 방지).
+    if (liftRef.current) {
       releaseCapture(e);
       endLift(true);
       gStart.current = null;
@@ -425,7 +429,9 @@ export default function HomePage() {
 
   const onCancel = (e: React.PointerEvent, board: BoardSummary) => {
     clearLp();
-    if (liftedId === board.id) { endLift(false); }
+    // liftRef(동기 ref)로 판정 — pointercancel(모바일에서 리프트 직후 빈번)이 stale liftedId를
+    // 읽어 endLift를 건너뛰면 liftRef가 새어 모든 제스처가 먹통이 된다.
+    if (liftRef.current) { endLift(false); }
     // swipeDragId(state)는 축 잠금 직후 취소되면 아직 stale일 수 있어 ref로도 판정.
     if (gAxis.current === 'x' || swipeDragId === board.id) {
       setSwipeDragId(null);
