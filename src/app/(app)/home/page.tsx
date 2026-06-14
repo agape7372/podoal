@@ -43,8 +43,7 @@ type Filter = 'all' | 'active' | 'completed' | 'harvested';
 const FILTERS: Filter[] = ['all', 'active', 'completed', 'harvested'];
 const FILTER_KEY = 'podoal-home-filter'; // 마지막으로 본 필터 탭 기억(기기별)
 
-const LIFT_MS = 250;   // 정지 후 이 시간 유지하면 카드를 들어 정렬 모드로(450ms는 너무 길어 '꾹'이
-                       //   타이머를 못 채우고 탭=상세열기로 빠지던 문제 — 짧은 롱프레스로 단축)
+const LIFT_MS = 450;   // 정지 후 이 시간 유지하면 카드를 들어 정렬 모드로
 const MOVE_TOL = 10;   // 이만큼 움직이면 제스처 방향(스크롤/스와이프)을 확정
 const TRAY_W = 120;    // 스와이프 슬라이드 거리(px) — 버튼은 88px 고정, 나머지는 여백(손맛)
 const REORDER_TRANSITION = 'transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1)'; // 이웃 비켜주기·드롭 정착(FLIP) 공통 이징
@@ -333,12 +332,10 @@ export default function HomePage() {
 
   const onMove = (e: React.PointerEvent, board: BoardSummary) => {
     gLastY.current = e.clientY;
-    // 리프트 판정은 liftedId(상태)가 아니라 liftRef(동기 ref)로 한다 — setLiftedId가 리렌더되기
-    // 전 한 프레임 동안 liftedId가 비어, 그 사이 onMove/onUp/onCancel이 stale null을 읽으면
-    // endLift를 못 불러 liftRef가 안 풀리는 wedge(이후 onDown 가드가 모든 제스처를 영구 차단)가 난다.
-    const L = liftRef.current;
-    if (L && L.id === board.id) {
+    if (liftedId === board.id) {
       e.preventDefault();
+      const L = liftRef.current;
+      if (!L) return;
       const dy = e.clientY - L.startY;
       // 손가락 추적 — 드래그 행 outer에 직접 기록(리렌더 없음).
       const draggedEl = cardRefs.current.get(L.id);
@@ -395,9 +392,7 @@ export default function HomePage() {
 
   const onUp = (e: React.PointerEvent, board: BoardSummary) => {
     clearLp();
-    // liftRef(동기 ref)로 판정 — 어떤 포인터업이든 리프트가 살아 있으면 반드시 endLift로
-    // 마감해 liftRef가 새지 않게 한다(위 onMove 주석의 wedge 방지).
-    if (liftRef.current) {
+    if (liftedId === board.id) {
       releaseCapture(e);
       endLift(true);
       gStart.current = null;
@@ -430,9 +425,7 @@ export default function HomePage() {
 
   const onCancel = (e: React.PointerEvent, board: BoardSummary) => {
     clearLp();
-    // liftRef(동기 ref)로 판정 — pointercancel(모바일에서 리프트 직후 빈번)이 stale liftedId를
-    // 읽어 endLift를 건너뛰면 liftRef가 새어 모든 제스처가 먹통이 된다.
-    if (liftRef.current) { endLift(false); }
+    if (liftedId === board.id) { endLift(false); }
     // swipeDragId(state)는 축 잠금 직후 취소되면 아직 stale일 수 있어 ref로도 판정.
     if (gAxis.current === 'x' || swipeDragId === board.id) {
       setSwipeDragId(null);
