@@ -1,6 +1,6 @@
 import { test, mock } from 'node:test';
 import assert from 'node:assert/strict';
-import { advanceRelayOnBoardComplete } from '../relay';
+import { advanceRelayOnBoardComplete, participantStatusForMode } from '../relay';
 
 // advanceRelayOnBoardComplete는 포도동 진행의 단일 진실원(자동=stickers, 수동=/pass).
 // 실제 버그였던 부분 2가지를 mock tx로 고정한다(DB 불필요):
@@ -182,4 +182,11 @@ test('group 모드: 본인만 완료, 전원 완료 시에만 릴레이 완료 (
   );
   assert.deepEqual(done.calls.relayUpdate[0].args[0], { where: { id: 'r1' }, data: { status: 'completed' } });
   assert.deepEqual(res2, { relayCompleted: true, nextActivated: false });
+});
+
+// participantStatusForMode — accept 라우트와 join의 'invited' 잔류 방어 가드가 공유하는
+// 모드→상태 매핑(단일 진실원). join 가드는 accept 응답 전에 join이 도달한 경쟁에서만 발동한다.
+test('participantStatusForMode: group=active, relay=pending', () => {
+  assert.equal(participantStatusForMode('group'), 'active', 'group(동시)은 바통 없이 즉시 active');
+  assert.equal(participantStatusForMode('relay'), 'pending', 'relay(순차)는 바통 대기열의 pending');
 });

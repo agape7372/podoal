@@ -17,15 +17,13 @@ export async function GET() {
   const userId = await getCurrentUserId();
   if (!userId) return authResponse('Unauthorized');
 
-  let settings = await prisma.notificationSetting.findUnique({
+  // upsert로 get-or-create — 신규 사용자의 동시 GET 2건이 각각 create를 시도해
+  // P2002(unique userId)로 500 나던 경쟁을 제거한다. update:{}는 무변경(기존 행 반환).
+  const settings = await prisma.notificationSetting.upsert({
     where: { userId },
+    update: {},
+    create: { userId, ...defaultSettings },
   });
-
-  if (!settings) {
-    settings = await prisma.notificationSetting.create({
-      data: { userId, ...defaultSettings },
-    });
-  }
 
   return Response.json({
     settings: {
