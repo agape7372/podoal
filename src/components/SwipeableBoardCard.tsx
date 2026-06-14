@@ -72,7 +72,9 @@ export default function SwipeableBoardCard({
           테두리가 사라지는' 시각 버그가 된다. 그래서 lifted 동안만 클립을 푼다. */}
       <div
         {...pointerHandlers}
-        className={`relative touch-pan-y ${lifted ? '' : 'overflow-hidden'}`}
+        // no-select: 모바일에서 '꾹 누르기'가 네이티브 텍스트선택·콜아웃(이미지 저장 등)에
+        // 가로채여 정렬 리프트가 안 걸리는 것을 막는다(user-select·touch-callout none).
+        className={`relative touch-pan-y no-select ${lifted ? '' : 'overflow-hidden'}`}
         style={{ borderRadius: 28 }}
       >
         {/* Right-side action tray — 고스트 '수확' 단일 버튼(시안 v2 1번 계열). 삭제는
