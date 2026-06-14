@@ -63,7 +63,8 @@ export default function HomePage() {
   // 전부 무효화된다. 데이터가 같으면 같은 배열을 유지한다.
   const boards = useMemo(() => boardsData?.boards ?? [], [boardsData?.boards]);
   const [filter, setFilter] = useState<Filter>('all');
-  const greeting = useMemo(timeOfDayGreeting, []);
+  // 렌더마다 계산(매우 저렴) — 앱을 오래 켜둬도 시간대가 바뀌면 인사말이 따라간다.
+  const greeting = timeOfDayGreeting();
 
   // 정렬(드래그 리프트) + 스와이프 액션 상태.
   // 상태는 '임계 전이'(리프트 시작/종료, 축 잠금, 트레이 열림/닫힘)만 표현한다 —
