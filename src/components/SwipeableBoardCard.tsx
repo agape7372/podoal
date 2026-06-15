@@ -62,8 +62,10 @@ export default function SwipeableBoardCard({
   const canHarvest = board.isCompleted;
   const revealed = offset <= -1;
 
+  // outer에 rounded-[28px]: 리프트 시 grape-glow 링(box-shadow)이 카드와 같은 둥근 모양을 따르게
+  // 한다(radius 없으면 글로우가 직각 = '카드는 둥근데 글로우는 네모'). overflow가 없어 클립은 안 됨.
   return (
-    <div ref={innerRef} className={`relative ${lifted ? 'z-20 shadow-grape-glow' : ''}`}>
+    <div ref={innerRef} className={`relative rounded-[28px] ${lifted ? 'z-20 shadow-grape-glow' : ''}`}>
       {/* 클립 반경은 카드(.clay-float = 28px)와 반드시 일치시켜야 한다. 더 작으면(예: 20px)
           카드의 둥근 모서리 바깥·클립 안쪽 틈으로 트레이(틴트 워시·포커스 배경)가 비친다.
           포인터 제스처는 이 래퍼가 소유한다(트레이 포함) — 열린 트레이 위에서 시작한
