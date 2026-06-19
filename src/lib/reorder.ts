@@ -69,6 +69,30 @@ export function computeTargetIndex(
 }
 
 /**
+ * 들린 카드가 목록(첫 행~마지막 행) 밖으로 날아가지 않도록 드래그 Δy를 제한한다.
+ * 손가락이 헤더/하단 여백으로 가도 카드가 끝없이 따라가 큰 빈 공간을 만들던 문제를 막는다.
+ *
+ * 드래그 행의 '중앙'이 [첫 행 중앙, 마지막 행 중앙] 안에 머물게 클램프한다 — 이 범위는
+ * computeTargetIndex가 0..n-1 모든 삽입 인덱스를 고르는 데 필요한 정확한 범위라, 카드를
+ * 목록 밖으로 escape시키지 않으면서도 맨 위·맨 아래 드롭이 항상 가능하다. (박스 전체를
+ * 가두면 행 높이가 제각각일 때 끝자리 드롭이 막힐 수 있어 '중앙' 기준을 쓴다.)
+ */
+export function clampLiftDy(
+  snap: SlotSnapshot,
+  sourceIndex: number,
+  rawDy: number,
+): number {
+  const { tops, heights } = snap;
+  const n = tops.length;
+  if (sourceIndex < 0 || sourceIndex >= n) return rawDy;
+  const center = (i: number) => tops[i] + heights[i] / 2;
+  const src = center(sourceIndex);
+  const dyMin = center(0) - src;       // 위로: 드래그 중앙이 첫 행 중앙에 닿으면 멈춤(target 0 도달)
+  const dyMax = center(n - 1) - src;   // 아래로: 마지막 행 중앙에 닿으면 멈춤(target n-1 도달)
+  return Math.max(dyMin, Math.min(dyMax, rawDy));
+}
+
+/**
  * 드래그가 `targetIndex`에 열려 있을 때 행 `index`가 받을 세로 transform(px).
  * 드래그 행은 0(손가락이 직접 구동). source와 target 사이 행은 ±`footprint`만큼
  * 미끄러져 드래그 행의 빈자리를 연다. 그 외는 0.
