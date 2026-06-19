@@ -6,6 +6,7 @@ import {
   shiftFor,
   rowFootprint,
   inferRowGap,
+  edgeScrollVelocity,
   type SlotSnapshot,
 } from '../reorder';
 
@@ -131,4 +132,41 @@ test('inferRowGap: 비정상 간격(겹침/과대)은 건너뛰고 fallback', ()
   // 첫 간격 음수(겹침) → 건너뜀, 두 번째도 과대 → fallback
   const snap: SlotSnapshot = { tops: [0, 50, 9999], heights: [100, 100, 100] };
   assert.equal(inferRowGap(snap, 12), 12);
+});
+
+// ─── edgeScrollVelocity ──────────────────────────────────────────────────────
+// 곡선(선형/ease-in)은 자유 — 여기선 '방향·단조·클램프·엣지존' 불변식만 검증한다.
+// (구현 전 placeholder는 항상 0을 반환하므로 이 블록이 RED. 곡선을 채우면 GREEN.)
+
+const VH = 800; // 가상 뷰포트 높이, 기본 zone=96 / maxSpeed=16
+
+test('edgeScrollVelocity: 한가운데(엣지존 밖)는 0', () => {
+  assert.equal(edgeScrollVelocity(400, VH), 0);
+  assert.equal(edgeScrollVelocity(96, VH), 0);        // 위 엣지존 경계 바로 밖
+  assert.equal(edgeScrollVelocity(VH - 96, VH), 0);   // 아래 엣지존 경계 바로 밖
+});
+
+test('edgeScrollVelocity: 위 엣지존은 음수(위로), 아래 엣지존은 양수(아래로)', () => {
+  assert.ok(edgeScrollVelocity(10, VH) < 0);
+  assert.ok(edgeScrollVelocity(VH - 10, VH) > 0);
+});
+
+test('edgeScrollVelocity: 가장자리에 가까울수록 |속도|가 (단조) 커진다', () => {
+  assert.ok(Math.abs(edgeScrollVelocity(5, VH)) >= Math.abs(edgeScrollVelocity(80, VH)));
+  assert.ok(Math.abs(edgeScrollVelocity(VH - 5, VH)) >= Math.abs(edgeScrollVelocity(VH - 80, VH)));
+});
+
+test('edgeScrollVelocity: maxSpeed로 클램프된다', () => {
+  assert.ok(Math.abs(edgeScrollVelocity(0, VH, 96, 16)) <= 16);
+  assert.ok(Math.abs(edgeScrollVelocity(VH, VH, 96, 16)) <= 16);
+});
+
+test('edgeScrollVelocity: 엣지 너머(clientY<0 또는 viewport 초과)에서도 maxSpeed를 넘지 않는다', () => {
+  // 화면 위로 한참 벗어남(드래그 캡처로 clientY가 음수가 될 수 있음)
+  assert.ok(Math.abs(edgeScrollVelocity(-200, VH, 96, 16)) <= 16);
+  // 아래로 한참 벗어남
+  assert.ok(Math.abs(edgeScrollVelocity(VH + 200, VH, 96, 16)) <= 16);
+  // 실사용 경로: viewportHeight=innerHeight-NAV_INSET로 줄여 넘기는데 손가락은 하단 네비
+  // 영역(줄인 높이 초과)에 닿는다 — 여기서도 속도가 maxSpeed를 넘으면 안 된다.
+  assert.ok(Math.abs(edgeScrollVelocity(800, 720, 96, 16)) <= 16);
 });

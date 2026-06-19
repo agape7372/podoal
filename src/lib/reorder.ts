@@ -111,3 +111,36 @@ export function inferRowGap(snap: SlotSnapshot, fallback = 12): number {
   }
   return fallback;
 }
+
+/**
+ * 리프트 드래그 중 손가락이 화면 위/아래 가장자리에 닿았을 때의 자동 스크롤 속도(px/frame).
+ *
+ * @param clientY        현재 포인터의 뷰포트 기준 Y
+ * @param viewportHeight 자동 스크롤 판정에 쓰는 높이. 하단 고정 네비가 가리는 만큼 줄여
+ *                       전달하면(예: innerHeight - NAV_INSET) 하단 트리거가 네비 위로 올라온다.
+ * @param zone           위/아래 가장자리에서 스크롤이 시작되는 영역 두께(px)
+ * @param maxSpeed       가장자리 최내곽에서의 최대 속도(px/frame)
+ * @returns 위쪽 엣지존이면 음수(위로 스크롤), 아래쪽이면 양수(아래로), 엣지존 밖이면 0
+ */
+export function edgeScrollVelocity(
+  clientY: number,
+  viewportHeight: number,
+  zone = 96,
+  maxSpeed = 16,
+): number {
+  // 가장자리 침투 비율(0=경계, 1=맨 끝)을 제곱한 ease-in 곡선: 살짝 닿으면 느릿느릿
+  // (정밀 제어), 끝으로 갈수록 maxSpeed까지 급가속. 부호로 스크롤 방향을 준다.
+  // ratio는 1로 클램프 — 손가락이 엣지 '너머'(clientY<0, 또는 viewportHeight 초과:
+  // 하단 NAV_INSET 영역은 정상 사용 중에도 닿는다)로 가도 maxSpeed를 넘지 않게 한다.
+  const fromTop = clientY;
+  const fromBottom = viewportHeight - clientY;
+  if (fromTop < zone) {
+    const ratio = Math.min(1, (zone - fromTop) / zone);
+    return -maxSpeed * ratio * ratio; // 위 엣지존 → 위로(음수)
+  }
+  if (fromBottom < zone) {
+    const ratio = Math.min(1, (zone - fromBottom) / zone);
+    return maxSpeed * ratio * ratio;  // 아래 엣지존 → 아래로(양수)
+  }
+  return 0;
+}
