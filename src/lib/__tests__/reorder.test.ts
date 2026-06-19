@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   arrayMove,
   computeTargetIndex,
+  clampLiftDy,
   shiftFor,
   rowFootprint,
   inferRowGap,
@@ -86,6 +87,39 @@ test('computeTargetIndex: 가변 높이 중앙선 기준', () => {
   assert.equal(computeTargetIndex(variable, 0, 130), 1);
   // idx2 중앙선 310 → dy>=260
   assert.equal(computeTargetIndex(variable, 0, 260), 2);
+});
+
+// ─── clampLiftDy ─────────────────────────────────────────────────────────────
+// uniform centers 50/150/250/350/450 — source=2 → center 250, dyMin=-200, dyMax=200
+
+test('clampLiftDy: 범위 안이면 그대로', () => {
+  assert.equal(clampLiftDy(uniform, 2, 0), 0);
+  assert.equal(clampLiftDy(uniform, 2, 120), 120);
+  assert.equal(clampLiftDy(uniform, 2, -120), -120);
+});
+
+test('clampLiftDy: 위/아래로 과하게 끌면 목록 끝 중앙에서 멈춤', () => {
+  assert.equal(clampLiftDy(uniform, 2, 9999), 200);   // 마지막 행 중앙(450)까지만
+  assert.equal(clampLiftDy(uniform, 2, -9999), -200); // 첫 행 중앙(50)까지만
+});
+
+test('clampLiftDy: 첫 카드는 위로 0, 마지막 카드는 아래로 0', () => {
+  assert.equal(clampLiftDy(uniform, 0, -300), 0); // source=0 → dyMin=0
+  assert.equal(clampLiftDy(uniform, 4, 300), 0);  // source=last → dyMax=0
+});
+
+test('clampLiftDy: source 범위 밖이면 원본 반환', () => {
+  assert.equal(clampLiftDy(uniform, -1, 999), 999);
+  assert.equal(clampLiftDy(uniform, 9, 999), 999);
+});
+
+test('clampLiftDy: 클램프 경계에서도 양 끝 인덱스 드롭이 가능하다(가변 높이 포함)', () => {
+  // 클램프한 dy를 computeTargetIndex에 넣어도 0/n-1에 정확히 도달해야 한다.
+  assert.equal(computeTargetIndex(uniform, 2, clampLiftDy(uniform, 2, -9999)), 0);
+  assert.equal(computeTargetIndex(uniform, 2, clampLiftDy(uniform, 2, 9999)), 4);
+  // 가변 높이(160px 행 포함)에서도 끝 도달 보장
+  assert.equal(computeTargetIndex(variable, 1, clampLiftDy(variable, 1, -9999)), 0);
+  assert.equal(computeTargetIndex(variable, 1, clampLiftDy(variable, 1, 9999)), 2);
 });
 
 // ─── shiftFor ───────────────────────────────────────────────────────────────

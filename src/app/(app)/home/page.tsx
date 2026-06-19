@@ -18,7 +18,7 @@ import Podo from '@/components/mascot/Podo';
 import type { BoardSummary, BoardDetail } from '@/types';
 import { feedbackTap, feedbackCheer } from '@/lib/feedback';
 import { formatRelativeTime, type FriendActivity } from '@/lib/activity';
-import { arrayMove, computeTargetIndex, shiftFor, rowFootprint, inferRowGap, edgeScrollVelocity, type SlotSnapshot } from '@/lib/reorder';
+import { arrayMove, computeTargetIndex, clampLiftDy, shiftFor, rowFootprint, inferRowGap, edgeScrollVelocity, type SlotSnapshot } from '@/lib/reorder';
 
 // order 우선, 없으면 createdAt 내림차순 폴백. 외부 클로저 의존이 없어 모듈 레벨에
 // 둔다 — 컴포넌트 내 함수면 매 렌더 새 참조라 displayBoards useMemo를 매번 무효화한다.
@@ -253,7 +253,9 @@ export default function HomePage() {
   const applyLiftMove = useCallback((clientY: number) => {
     const L = liftRef.current;
     if (!L) return;
-    const dy = (clientY - L.startY) + (window.scrollY - L.scrollY0);
+    // 손가락 추적값(스크롤 보정 포함)을 목록 범위로 클램프 — 카드가 헤더/여백으로 날아가
+    // 큰 빈 공간을 만들지 않게(드롭 가능 범위는 첫~마지막 슬롯까지다).
+    const dy = clampLiftDy(L.snap, L.source, (clientY - L.startY) + (window.scrollY - L.scrollY0));
     const draggedEl = cardRefs.current.get(L.id);
     if (draggedEl) {
       draggedEl.style.transition = 'none';
