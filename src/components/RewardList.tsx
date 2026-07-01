@@ -29,7 +29,7 @@ export default function RewardList() {
   const openReward = async (r: CollectedReward) => {
     feedbackTap();
     setOpenError('');
-    if (r.revealedAt && r.content) {
+    if (r.revealedAt && (r.content || r.imageUrl)) {
       setOpened(r);
       return;
     }
@@ -44,9 +44,10 @@ export default function RewardList() {
         prev && { ...prev, rewards: prev.rewards.map((x) => (x.id === r.id ? { ...x, ...data.reward } : x)) });
     } catch {
       // /api/rewards가 본문을 동봉하므로(마스킹 정렬) 내용이 있으면 그대로 연다 —
-      // reveal(열람 기록)만 다음 탭으로 미뤄진다. 본문마저 없으면 빈 편지를 여는
-      // 대신 실패를 말한다(말 없는 빈 모달은 '보상이 사라졌다'로 읽힘).
-      if (r.content) {
+      // reveal(열람 기록)만 다음 탭으로 미뤄진다. imageUrl 전용 보상(내용 없는
+      // 기프티콘 이미지)도 열 수 있게 양쪽을 본다(보드 페이지 openReward와 동일
+      // 기준). 둘 다 없으면 빈 편지 대신 실패를 말한다.
+      if (r.content || r.imageUrl) {
         setOpened(r);
       } else {
         feedbackError();
