@@ -42,6 +42,8 @@ export interface BoardDetail extends BoardSummary {
   giftOpenedAt?: string | null;
   /** True when this board is linked to any 포도동 (both modes) — gifting is blocked. `podong` stays group-only. */
   inRelay?: boolean;
+  /** 보상 심기/편집(작성자 행위) 가능 여부 — 선물 복사본·비창시자 포도동 보드는 false (서버 판정, rewardAccess.ts). */
+  canManageRewards?: boolean;
 }
 
 export interface PlantedGiftInfo {

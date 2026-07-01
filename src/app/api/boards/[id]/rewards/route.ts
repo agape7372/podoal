@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { getCurrentUserId, authResponse } from '@/lib/auth';
+import { checkRewardAuthorship } from '@/lib/rewardAccess';
 
 const VALID_REWARD_TYPES = new Set(['letter', 'giftcard', 'wish']);
 
@@ -34,11 +35,27 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
       ownerId: true,
       totalStickers: true,
       isCompleted: true,
+      giftedFromId: true,
+      relayParticipants: { select: { relay: { select: { creatorId: true } } } },
       _count: { select: { stickers: true, rewards: true } },
     },
   });
   if (!board) return authResponse('Board not found', 404);
-  if (board.ownerId !== userId) return authResponse('내 포도판에만 보상을 심을 수 있어요', 403);
+  // 출처 게이트(rewardAccess.ts) — 편집용 로더가 자기 출처 보드로 제한되므로,
+  // 심기도 같은 기준으로 막아 "심었는데 수정/삭제 불가" 상태를 만들지 않는다.
+  const verdict = checkRewardAuthorship(
+    { ownerId: board.ownerId, giftedFromId: board.giftedFromId, relayLinks: board.relayParticipants },
+    userId,
+  );
+  if (!verdict.allowed) {
+    if (verdict.reason === 'gifted') {
+      return authResponse('선물받은 포도판에는 보상을 심을 수 없어요', 400);
+    }
+    if (verdict.reason === 'relay') {
+      return authResponse('포도동 포도판에는 보상을 심을 수 없어요', 400);
+    }
+    return authResponse('내 포도판에만 보상을 심을 수 있어요', 403);
+  }
   if (board.isCompleted) return authResponse('이미 완성된 포도판이에요', 400);
 
   const filledCount = board._count.stickers;

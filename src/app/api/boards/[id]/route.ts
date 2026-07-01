@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { getCurrentUserId, authResponse } from '@/lib/auth';
+import { checkRewardAuthorship } from '@/lib/rewardAccess';
 
 // Board detail never renders email — and this board GET is now reachable by an
 // accepted friend (read-only), so DON'T expose other users' email to them.
@@ -34,7 +35,8 @@ export async function GET(request: Request, props: { params: Promise<{ id: strin
         orderBy: { triggerAt: 'asc' },
       },
       // 포도동 연결 여부(inRelay) — 양 모드(그룹·순차) 공통으로 선물 차단에 쓰인다.
-      relayParticipants: { select: { relay: { select: { mode: true } } } },
+      // creatorId는 canManageRewards(보상 심기/편집 가능 여부) 판정용.
+      relayParticipants: { select: { relay: { select: { mode: true, creatorId: true } } } },
     },
   });
 
@@ -118,6 +120,12 @@ export async function GET(request: Request, props: { params: Promise<{ id: strin
     giftOpenedAt: board.giftOpenedAt ? board.giftOpenedAt.toISOString() : null,
     // 목록 API의 podong(그룹 전용 배지 의미)과 달리 순차 릴레이 보드도 포함한다.
     inRelay: board.relayParticipants.length > 0,
+    // 보상 심기/편집(작성자 행위) 가능 여부 — 선물 복사본·비창시자 포도동 보드는
+    // 보상이 타인 작성이라 차단(rewardAccess.ts와 동일 판정, 정책은 서버 한 곳).
+    canManageRewards: checkRewardAuthorship(
+      { ownerId: board.ownerId, giftedFromId: board.giftedFromId, relayLinks: board.relayParticipants },
+      userId,
+    ).allowed,
     rewardCount: board.rewards.length,
     stickers: board.stickers,
     rewards,

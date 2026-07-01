@@ -9,7 +9,7 @@ import { stripTitleEmoji } from '@/lib/title';
 import { REWARD_TYPE_ICON } from '@/lib/icons';
 import { REWARD_TYPE_LABELS } from '@/types';
 import type { CollectedReward, RewardType, RewardInfo } from '@/types';
-import { feedbackTap } from '@/lib/feedback';
+import { feedbackTap, feedbackError } from '@/lib/feedback';
 
 type Filter = 'all' | RewardType;
 
@@ -24,9 +24,11 @@ export default function RewardList() {
   const [filter, setFilter] = useState<Filter>('all');
   const [opened, setOpened] = useState<RewardInfo | null>(null);
   const [opening, setOpening] = useState<string | null>(null);
+  const [openError, setOpenError] = useState('');
 
   const openReward = async (r: CollectedReward) => {
     feedbackTap();
+    setOpenError('');
     if (r.revealedAt && r.content) {
       setOpened(r);
       return;
@@ -41,7 +43,15 @@ export default function RewardList() {
       mutate((prev) =>
         prev && { ...prev, rewards: prev.rewards.map((x) => (x.id === r.id ? { ...x, ...data.reward } : x)) });
     } catch {
-      setOpened(r);
+      // /api/rewards가 본문을 동봉하므로(마스킹 정렬) 내용이 있으면 그대로 연다 —
+      // reveal(열람 기록)만 다음 탭으로 미뤄진다. 본문마저 없으면 빈 편지를 여는
+      // 대신 실패를 말한다(말 없는 빈 모달은 '보상이 사라졌다'로 읽힘).
+      if (r.content) {
+        setOpened(r);
+      } else {
+        feedbackError();
+        setOpenError('보상을 여는 데 실패했어요. 잠시 후 다시 시도해주세요.');
+      }
     } finally {
       setOpening(null);
     }
@@ -71,6 +81,8 @@ export default function RewardList() {
           );
         })}
       </div>
+
+      {openError && <p role="alert" className="text-rose-700 text-xs text-center mb-3">{openError}</p>}
 
       {loading ? (
         <div className="grid grid-cols-2 gap-3">

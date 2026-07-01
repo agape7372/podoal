@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { getCurrentUserId, authResponse } from '@/lib/auth';
+import { checkRewardAuthorship } from '@/lib/rewardAccess';
 
 const VALID_REWARD_TYPES = new Set(['letter', 'giftcard', 'wish']);
 
@@ -29,17 +30,43 @@ function serialize(r: LoadedReward) {
   };
 }
 
-// Owner-only loader, scoped to MID-rewards (triggerAt < totalStickers) so the
-// completion reward can never be edited/deleted through here.
+// Author-only loader, scoped to MID-rewards (triggerAt < totalStickers) so the
+// completion reward can never be edited/deleted through here. "Author" = owner
+// of a self-origin board — on gift copies / joined-podong boards the rewards
+// were written by someone else, so the (new) owner must NOT pre-read them
+// through this loader while they're still locked (출처 게이트, rewardAccess.ts).
 async function loadOwnedMidReward(boardId: string, rewardId: string, userId: string) {
   const reward = await prisma.reward.findUnique({
     where: { id: rewardId },
-    include: { board: { select: { ownerId: true, totalStickers: true } } },
+    include: {
+      board: {
+        select: {
+          ownerId: true,
+          totalStickers: true,
+          giftedFromId: true,
+          relayParticipants: { select: { relay: { select: { creatorId: true } } } },
+        },
+      },
+    },
   });
   if (!reward || reward.boardId !== boardId || !reward.board) {
     return { error: authResponse('Reward not found', 404) };
   }
-  if (reward.board.ownerId !== userId) {
+  const verdict = checkRewardAuthorship(
+    {
+      ownerId: reward.board.ownerId,
+      giftedFromId: reward.board.giftedFromId,
+      relayLinks: reward.board.relayParticipants,
+    },
+    userId,
+  );
+  if (!verdict.allowed) {
+    if (verdict.reason === 'gifted') {
+      return { error: authResponse('선물받은 보상은 열기 전까지 볼 수 없어요', 403) };
+    }
+    if (verdict.reason === 'relay') {
+      return { error: authResponse('포도동 보상은 열기 전까지 볼 수 없어요', 403) };
+    }
     return { error: authResponse('Forbidden', 403) };
   }
   if (reward.triggerAt >= reward.board.totalStickers) {
