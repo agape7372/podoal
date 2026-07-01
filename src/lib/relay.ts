@@ -10,6 +10,15 @@ export interface RelayAdvanceResult {
 }
 
 /**
+ * 초대 수락(accept) 또는 보드 연결(join) 시 'invited' 참가자에게 부여할 참가 상태.
+ * group(동시) 모드는 바통이 없어 즉시 active, relay(순차) 모드는 바통 대기열의 pending.
+ * accept 라우트와 join 가드가 같은 매핑을 쓰도록 단일 진실원으로 둔다.
+ */
+export function participantStatusForMode(mode: string): 'active' | 'pending' {
+  return mode === 'group' ? 'active' : 'pending';
+}
+
+/**
  * Single source of truth for advancing a relay (포도동) when a participant
  * finishes their board. Used by both the automatic path (filling the last
  * grape — see boards/[id]/stickers) and the manual /pass button so the two

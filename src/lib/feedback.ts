@@ -224,8 +224,8 @@ export function playComplete(): void {
   }
 }
 
-/** Subtle UI click for buttons */
-export function playClick(): void {
+/** Subtle UI click for buttons (internal — composed into feedback* helpers) */
+function playClick(): void {
   const settings = getSettings();
   if (!settings.soundEnabled) return;
 
@@ -254,8 +254,8 @@ export function playClick(): void {
   }
 }
 
-/** Success feedback - 2-note positive */
-export function playSuccess(): void {
+/** Success feedback - 2-note positive (internal — composed into feedback* helpers) */
+function playSuccess(): void {
   const settings = getSettings();
   if (!settings.soundEnabled) return;
 
@@ -270,8 +270,8 @@ export function playSuccess(): void {
   }
 }
 
-/** Gentle error tone - descending */
-export function playError(): void {
+/** Gentle error tone - descending (internal — composed into feedback* helpers) */
+function playError(): void {
   const settings = getSettings();
   if (!settings.soundEnabled) return;
 
@@ -301,8 +301,8 @@ function vibrate(pattern: number | number[]): void {
   }
 }
 
-/** Short 10ms vibration */
-export function hapticTap(): void {
+/** Short 10ms vibration (internal — composed into feedback* helpers) */
+function hapticTap(): void {
   vibrate(10);
 }
 
@@ -311,8 +311,8 @@ export function hapticFill(): void {
   vibrate([30, 50, 30]);
 }
 
-/** Success pattern [50, 30, 100] */
-export function hapticSuccess(): void {
+/** Success pattern [50, 30, 100] (internal — composed into feedback* helpers) */
+function hapticSuccess(): void {
   vibrate([50, 30, 100]);
 }
 

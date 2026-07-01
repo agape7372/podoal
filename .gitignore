@@ -19,3 +19,6 @@ Thumbs.db
 *.png
 !public/**/*.png
 take-screenshot*.mjs
+# Local-only review/screenshot artifacts (never ship/track)
+.shots/
+taste-review/

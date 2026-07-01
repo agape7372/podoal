@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { getCurrentUserId, authResponse } from '@/lib/auth';
+import { participantStatusForMode } from '@/lib/relay';
 
 export async function POST(request: Request, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
@@ -81,10 +82,15 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
       boardId = board.id;
     }
 
-    // boardId만 연결 — status는 건드리지 않는다(릴레이 바통 불변식 유지, 그룹은 이미 active).
+    // boardId 연결. 정상 흐름은 accept가 이미 invited→active/pending으로 올려둬 status를
+    // 건드리지 않는다(바통 불변식 유지). 단 accept 응답 전에 join이 도달한 경쟁에서 status가
+    // 'invited'로 남으면 참가자 현황이 '미수락'으로 오도되므로, 그 잔류분만 방어적으로 끌어올린다.
     const updated = await tx.relayParticipant.update({
       where: { id: participant.id },
-      data: { boardId },
+      data: {
+        boardId,
+        ...(fresh.status === 'invited' ? { status: participantStatusForMode(relay.mode) } : {}),
+      },
     });
     return { participantId: updated.id, boardId };
   }).catch((err: Error) => err.message);

@@ -2,21 +2,25 @@
 
 import { useEffect, useMemo, useState, useCallback, useRef, type Dispatch, type SetStateAction } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import { api, ApiError } from '@/lib/api';
 import { useAppStore } from '@/lib/store';
 import GrapeBoard from '@/components/GrapeBoard';
 import Confetti from '@/components/Confetti';
-import GiftBoardModal from '@/components/GiftBoardModal';
 import GiftUnboxModal from '@/components/GiftUnboxModal';
 import SurpriseRevealModal from '@/components/SurpriseRevealModal';
 import MidRewardModal from '@/components/MidRewardModal';
-import EditBoardInfoModal from '@/components/EditBoardInfoModal';
 import RewardRevealModal from '@/components/RewardRevealModal';
-import ShareCardModal from '@/components/ShareCardModal';
-import CapsuleModal from '@/components/CapsuleModal';
 import Avatar from '@/components/Avatar';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import EmojiIcon from '@/components/EmojiIcon';
+// 무거운/메뉴로 여는 모달은 상호작용 시점에만 청크를 받도록 지연로딩(초기 First Load JS 축소).
+// ShareCardModal은 Canvas+cardEngine으로 가장 무겁다. 즉시성이 중요한 보상 경로
+// (RewardRevealModal·SurpriseRevealModal·GiftUnboxModal)는 청크 fetch 지연을 피해 정적 유지(#89).
+const ShareCardModal = dynamic(() => import('@/components/ShareCardModal'), { ssr: false });
+const CapsuleModal = dynamic(() => import('@/components/CapsuleModal'), { ssr: false });
+const GiftBoardModal = dynamic(() => import('@/components/GiftBoardModal'), { ssr: false });
+const EditBoardInfoModal = dynamic(() => import('@/components/EditBoardInfoModal'), { ssr: false });
 import { invalidateCachedApi, invalidateCachedApiPrefix, readCachedApi, writeCachedApi } from '@/lib/cachedApi';
 import {
   applyOptimisticFill,
