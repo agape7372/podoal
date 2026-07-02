@@ -1,7 +1,7 @@
 'use client';
 
 import { memo, useEffect, useRef } from 'react';
-import type { WineBottle as WineBottleType } from '@/lib/winery';
+import type { BottleSize, WineBottle as WineBottleType } from '@/lib/winery';
 import { stripTitleEmoji } from '@/lib/title';
 
 interface WineBottleProps {
@@ -27,10 +27,59 @@ const TITLE_H = 16; // fixed title row so the cell height is deterministic
 export const BOTTLE_BASELINE_H = STAGE_H; // bottle bases sit here from the cell top
 export const BOTTLE_ROW_H = STAGE_H + 8 + TITLE_H; // stage + gap-2 + title row
 
+// ─── 병 등급(만듦새) ────────────────────────────────────────
+// 4등급이 크기 스케일만 다르던 것을 실제 와인 등급처럼 마감 품질로 차별화.
+//   piccolo(캐주얼):   코르크+포일, 민무늬 라벨 — 기존 그대로
+//   standard(클래식):  + 라벨 키라인, 보조 유리 광택
+//   magnum(리저브):    밀랍 실링(코르크·포일 대체, 버건디) + 라벨 이중선
+//   jeroboam(그랑 크뤼): 밀랍 실링(딥 그레이프) + 금박 라벨 프레임 + 어깨
+//                       금띠 + 사선 유리 sheen
+// 전부 흐름/경계 안 요소만 — SIZE_MAP·선반 기하(BOTTLE_ROW_H) 불변, 장식은
+// stage 안(paint containment이 셀 밖을 자름). 색은 인라인 hex(@source 무관).
+type LabelFrame = 'plain' | 'line' | 'double' | 'gold';
+type BottleGrade = {
+  /** 밀랍 실링 — 있으면 코르크 대신 밀랍 캡+드립 렌더(품종 포일은 전 등급 유지) */
+  wax?: { cap: string; drip: string };
+  labelFrame: LabelFrame;
+  /** 어깨 아래 금띠(그랑 크뤼) */
+  goldBand?: boolean;
+  /** 우측 보조 유리 광택 */
+  secondHighlight?: boolean;
+  /** 정적 사선 sheen(그랑 크뤼) — 애니 아님, 상시 1레이어 */
+  sheen?: boolean;
+};
+
+const BOTTLE_GRADES: Record<BottleSize, BottleGrade> = {
+  piccolo: { labelFrame: 'plain' },
+  standard: { labelFrame: 'line', secondHighlight: true },
+  magnum: {
+    wax: { cap: 'linear-gradient(to bottom, #a34d6f, #8e3b5c)', drip: '#7a2f4e' },
+    labelFrame: 'double',
+    secondHighlight: true,
+  },
+  jeroboam: {
+    wax: { cap: 'linear-gradient(to bottom, #7d58a8, #5e3f80)', drip: '#4d3269' },
+    labelFrame: 'gold',
+    goldBand: true,
+    secondHighlight: true,
+    sheen: true,
+  },
+};
+
+// 라벨 프레임 — 등급이 오를수록 마감(키라인→이중선→금박)이 깊어진다.
+const LABEL_FRAME_SHADOW: Record<LabelFrame, string> = {
+  plain: '0 1px 2px rgba(0,0,0,0.18), inset 0 0 0 0.5px rgba(0,0,0,0.05)',
+  line: '0 1px 2px rgba(0,0,0,0.18), inset 0 0 0 1px rgba(94,63,128,0.22)',
+  double:
+    '0 1px 2px rgba(0,0,0,0.18), inset 0 0 0 1px rgba(94,63,128,0.3), inset 0 0 0 2.5px rgba(255,255,255,0.9), inset 0 0 0 3.5px rgba(94,63,128,0.18)',
+  gold:
+    '0 1.5px 3px rgba(0,0,0,0.22), inset 0 0 0 1.2px rgba(200,158,58,0.95), inset 0 0 0 2.8px rgba(255,255,255,0.85), inset 0 0 0 4px rgba(200,158,58,0.45)',
+};
+
 // 품종(카테고리) 포일 캡슐 색 — templateId 접두(stats route와 동일 규칙:
 // split('-')[0])로 7품종. 인라인 hex 그라디언트라 @source 스캔과 무관(현행
 // 포일도 #B07F23 arbitrary hex 선례). 접두 미상·무템플릿 보드는 기존 라임
-// 포일 폴백 → 구보드 외형 불변.
+// 포일 폴백 → 구보드 외형 불변. 밀랍 등급에서도 포일은 그대로 남는다.
 const VARIETAL_FOIL: Record<string, string> = {
   health: 'linear-gradient(to bottom, #8fc972, #6fb050, #3e7a38)', // 건강 — leaf
   growth: 'linear-gradient(to bottom, #f2c94c, #e0ae2c, #b98a1c)', // 자기계발 — sunshine
@@ -64,6 +113,7 @@ function getBottleGradient(daysToComplete: number): { body: string; highlight: s
 function WineBottleInner({ bottle, onSelect, selected = false }: WineBottleProps) {
   const dim = SIZE_MAP[bottle.bottleSize];
   const gradient = getBottleGradient(bottle.daysToComplete);
+  const grade = BOTTLE_GRADES[bottle.bottleSize];
   const rootRef = useRef<HTMLButtonElement>(null);
   // 품종 포일(templateId 접두) — 미상은 undefined = 기존 라임 포일 폴백.
   const varietalFoil = bottle.templateId
@@ -115,16 +165,44 @@ function WineBottleInner({ bottle, onSelect, selected = false }: WineBottleProps
           />
         )}
 
-        {/* Cork */}
-        <div
-          className="bg-linear-to-b from-[#A87C4B] via-[#8B5E2F] to-[#6F4824] relative z-10"
-          style={{
-            width: dim.neck * 0.62,
-            height: 9,
-            borderRadius: '3px 3px 1.5px 1.5px',
-            boxShadow: 'inset 0 -1px 1px rgba(0,0,0,0.25)',
-          }}
-        />
+        {grade.wax ? (
+          <>
+            {/* 밀랍 캡 — 리저브·그랑 크뤼의 실링(코르크 대체). 흐름 요소지만
+                bottom-anchored라 병 상단만 1px 이동, 선반 기하 불변. */}
+            <div
+              className="relative z-10"
+              style={{
+                width: dim.neck * 0.95,
+                height: 8,
+                borderRadius: '4px 4px 2px 2px',
+                background: grade.wax.cap,
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.35), inset 0 -1px 1px rgba(0,0,0,0.25)',
+              }}
+            />
+            {/* 밀랍 드립 — 병목으로 흘러내린 자국 */}
+            <div
+              className="relative z-10"
+              style={{
+                width: dim.neck * 1.3,
+                height: 5,
+                borderRadius: '0 0 6px 6px',
+                background: grade.wax.drip,
+                boxShadow: 'inset 0 1px 1px rgba(255,255,255,0.15)',
+              }}
+            />
+          </>
+        ) : (
+          /* Cork */
+          <div
+            className="bg-linear-to-b from-[#A87C4B] via-[#8B5E2F] to-[#6F4824] relative z-10"
+            style={{
+              width: dim.neck * 0.62,
+              height: 9,
+              borderRadius: '3px 3px 1.5px 1.5px',
+              boxShadow: 'inset 0 -1px 1px rgba(0,0,0,0.25)',
+            }}
+          />
+        )}
 
         {/* Foil capsule — 품종(카테고리)별 색, 무품종은 기존 라임 유지 */}
         <div
@@ -173,6 +251,18 @@ function WineBottleInner({ bottle, onSelect, selected = false }: WineBottleProps
           }}
         />
 
+        {/* 어깨 금띠 — 그랑 크뤼 전용 마감 */}
+        {grade.goldBand && (
+          <div
+            className="relative z-10"
+            style={{
+              width: dim.width,
+              height: 2,
+              background: 'linear-gradient(to right, #b8923f, #ecd188, #b8923f)',
+            }}
+          />
+        )}
+
         {/* Body */}
         <div
           className={`bg-linear-to-br ${gradient.body} relative z-10 overflow-hidden`}
@@ -188,6 +278,22 @@ function WineBottleInner({ bottle, onSelect, selected = false }: WineBottleProps
             className={`absolute top-0 left-[15%] w-[20%] h-full ${gradient.highlight} rounded-full blur-[2px]`}
           />
 
+          {/* 보조 유리 광택 — 클래식 이상 등급의 유리 품질 */}
+          {grade.secondHighlight && (
+            <div className="absolute top-[6%] right-[16%] w-[9%] h-[68%] bg-white/15 rounded-full blur-[1.5px]" />
+          )}
+
+          {/* 정적 사선 sheen — 그랑 크뤼 유리 마감(애니 아님, 1레이어) */}
+          {grade.sheen && (
+            <div
+              className="absolute inset-0 pointer-events-none"
+              style={{
+                background:
+                  'linear-gradient(115deg, transparent 32%, rgba(255,255,255,0.09) 44%, rgba(255,255,255,0.16) 50%, rgba(255,255,255,0.05) 57%, transparent 68%)',
+              }}
+            />
+          )}
+
           {/* Hover-only glass shimmer sweep (clipped by body overflow-hidden) */}
           <div className="absolute inset-0 opacity-0 group-hover:opacity-100 wine-bottle-shimmer pointer-events-none" />
 
@@ -201,7 +307,8 @@ function WineBottleInner({ bottle, onSelect, selected = false }: WineBottleProps
               height: dim.label,
               top: '50%',
               transform: 'translate(-50%, -50%)',
-              boxShadow: '0 1px 2px rgba(0,0,0,0.18), inset 0 0 0 0.5px rgba(0,0,0,0.05)',
+              // 등급별 라벨 마감: 민무늬 → 키라인 → 이중선 → 금박 프레임
+              boxShadow: LABEL_FRAME_SHADOW[grade.labelFrame],
             }}
           >
             <span
