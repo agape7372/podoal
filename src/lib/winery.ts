@@ -94,4 +94,8 @@ export interface WineBottle {
   createdAt: string;
   daysToComplete: number;
   vintage: string;
+  /** 수확(홈에서 셀러로 입고) 시각. null = 미수확(NEW 병). 구캐시엔 undefined 가능. */
+  harvestedAt: string | null;
+  /** 보드 템플릿 id — 접두(카테고리)로 품종 포일 색을 유도(stats와 동일 규칙). */
+  templateId: string | null;
 }

@@ -14,7 +14,8 @@ import EmojiIcon from '@/components/EmojiIcon';
 import Chevron from '@/components/Chevron';
 import Confetti from '@/components/Confetti';
 import { stripTitleEmoji } from '@/lib/title';
-import { feedbackBottle, feedbackTap } from '@/lib/feedback';
+import { api } from '@/lib/api';
+import { feedbackBottle, feedbackError, feedbackTap } from '@/lib/feedback';
 
 // 마지막으로 본 티어 레벨(기기별) — 승급 감지용. zustand store 키는 동결
 // 대상(podoal-app-settings)이라 스토어 밖 독립 키로 둔다.
@@ -71,6 +72,29 @@ export default function WineryPage() {
   }, []);
   // 연도 선반 펼침 상태 — null = 기본(최신 연도만 펼침).
   const [openYears, setOpenYears] = useState<string[] | null>(null);
+
+  // ─── 수확(셀러 입고) 의식 ───────────────────────────────
+  // 홈의 수확 스와이프와 동일한 서버 상태(PATCH {harvested}) — 신규 쓰기 API 0.
+  // 성공 시 feedbackBottle(승급과 함께 이 사운드의 전용 용도) + 재검증으로
+  // NEW 스탬프 소거. 홈 목록에서도 수확 탭으로 이동(기존 의미 그대로).
+  const [harvesting, setHarvesting] = useState(false);
+  const [harvestError, setHarvestError] = useState('');
+  const handleHarvest = async (boardId: string) => {
+    if (harvesting) return;
+    feedbackTap();
+    setHarvesting(true);
+    setHarvestError('');
+    try {
+      await api(`/api/boards/${boardId}`, { method: 'PATCH', json: { harvested: true } });
+      feedbackBottle();
+      refresh();
+    } catch {
+      feedbackError();
+      setHarvestError('수확에 실패했어요. 잠시 후 다시 시도해주세요.');
+    } finally {
+      setHarvesting(false);
+    }
+  };
 
   // ─── 티어 승급 셀레브레이션 ─────────────────────────────
   // localStorage의 마지막 본 티어와 비교해 올라갔을 때만 1회 발화.
@@ -512,13 +536,28 @@ export default function WineryPage() {
                       />
                     </div>
 
-                    {/* 회고 출구 — 완성 보드 상세(보상·캡슐·공유 카드)로 */}
-                    <Link
-                      href={`/board/${selectedBottle.boardId}`}
-                      className="clay-button inline-block mt-4 px-4 py-2 rounded-2xl text-sm font-semibold text-grape-700"
-                    >
-                      포도판 다시 보기
-                    </Link>
+                    {harvestError && (
+                      <p role="alert" className="text-rose-700 text-xs mt-3">{harvestError}</p>
+                    )}
+
+                    {/* 회고 출구 + 수확(입고) 의식 — 미수확 병만 수확 버튼 노출 */}
+                    <div className="flex flex-wrap gap-2 mt-4">
+                      <Link
+                        href={`/board/${selectedBottle.boardId}`}
+                        className="clay-button inline-block px-4 py-2 rounded-2xl text-sm font-semibold text-grape-700"
+                      >
+                        포도판 다시 보기
+                      </Link>
+                      {selectedBottle.harvestedAt === null && (
+                        <button
+                          onClick={() => handleHarvest(selectedBottle.boardId)}
+                          disabled={harvesting}
+                          className="clay-button px-4 py-2 rounded-2xl text-sm font-semibold text-leaf-700 disabled:opacity-60"
+                        >
+                          {harvesting ? '수확하는 중…' : '수확하기'}
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>

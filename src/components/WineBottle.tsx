@@ -27,6 +27,20 @@ const TITLE_H = 16; // fixed title row so the cell height is deterministic
 export const BOTTLE_BASELINE_H = STAGE_H; // bottle bases sit here from the cell top
 export const BOTTLE_ROW_H = STAGE_H + 8 + TITLE_H; // stage + gap-2 + title row
 
+// 품종(카테고리) 포일 캡슐 색 — templateId 접두(stats route와 동일 규칙:
+// split('-')[0])로 7품종. 인라인 hex 그라디언트라 @source 스캔과 무관(현행
+// 포일도 #B07F23 arbitrary hex 선례). 접두 미상·무템플릿 보드는 기존 라임
+// 포일 폴백 → 구보드 외형 불변.
+const VARIETAL_FOIL: Record<string, string> = {
+  health: 'linear-gradient(to bottom, #8fc972, #6fb050, #3e7a38)', // 건강 — leaf
+  growth: 'linear-gradient(to bottom, #f2c94c, #e0ae2c, #b98a1c)', // 자기계발 — sunshine
+  lifestyle: 'linear-gradient(to bottom, #cfdc78, #a8b85a, #7e8a3e)', // 생활습관 — lime deep
+  work: 'linear-gradient(to bottom, #b28cdc, #9970c8, #7d58a8)', // 직장/학업 — grape
+  social: 'linear-gradient(to bottom, #f58bae, #e86a92, #c24a72)', // 관계 — juice
+  hobby: 'linear-gradient(to bottom, #f2a25c, #e08536, #b5651d)', // 취미 — warm orange
+  mental: 'linear-gradient(to bottom, #9fbfe8, #7a9fd4, #5b7fb0)', // 마음건강 — calm blue
+};
+
 /**
  * Returns a darker grape gradient for bottles that took longer to complete,
  * and a lighter one for quick completions.
@@ -51,6 +65,12 @@ function WineBottleInner({ bottle, onSelect, selected = false }: WineBottleProps
   const dim = SIZE_MAP[bottle.bottleSize];
   const gradient = getBottleGradient(bottle.daysToComplete);
   const rootRef = useRef<HTMLButtonElement>(null);
+  // 품종 포일(templateId 접두) — 미상은 undefined = 기존 라임 포일 폴백.
+  const varietalFoil = bottle.templateId
+    ? VARIETAL_FOIL[bottle.templateId.split('-')[0]]
+    : undefined;
+  // 미수확 완성 병 = 셀러 정식 입고 전(NEW). 구캐시(undefined)는 스탬프 없음.
+  const isNew = bottle.harvestedAt === null;
 
   // 선택 시 짧은 wobble — WAAPI(rotate, transform만). 전역 reduced-motion
   // 백스톱은 CSS 애니 전용이라 WAAPI는 직접 가드. cleanup으로 선제 정리.
@@ -75,7 +95,7 @@ function WineBottleInner({ bottle, onSelect, selected = false }: WineBottleProps
       onClick={() => onSelect?.(bottle.boardId)}
       aria-pressed={selected}
       className="group flex flex-col items-center gap-2 transition-all duration-300 hover:scale-105 hover:-rotate-1 active:scale-95"
-      aria-label={`${bottle.title} - ${bottle.vintage}년 빈티지`}
+      aria-label={`${bottle.title} - ${bottle.vintage}년 빈티지${isNew ? ' (새 와인)' : ''}`}
       style={{
         // 구동 다이어트: 뷰포트 밖 병(노드 12개+blur 2개)의 paint를 통째 스킵.
         // 셀 높이가 BOTTLE_ROW_H로 결정적이라 스크롤 점프 없음. 선택된 병은
@@ -106,16 +126,31 @@ function WineBottleInner({ bottle, onSelect, selected = false }: WineBottleProps
           }}
         />
 
-        {/* Foil capsule */}
+        {/* Foil capsule — 품종(카테고리)별 색, 무품종은 기존 라임 유지 */}
         <div
-          className="bg-linear-to-b from-lime-500 via-lime-600 to-[#B07F23] relative z-10"
+          className={`relative z-10 ${varietalFoil ? '' : 'bg-linear-to-b from-lime-500 via-lime-600 to-[#B07F23]'}`}
           style={{
             width: dim.neck * 0.92,
             height: 6,
             borderRadius: '1.5px 1.5px 2px 2px',
             boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.4)',
+            ...(varietalFoil ? { background: varietalFoil } : {}),
           }}
         />
+
+        {/* NEW 스탬프 — 미수확(셀러 입고 전) 완성 병. 셀 높이를 바꾸지 않는
+            absolute 오버레이(선반 기하 불변). content-visibility의 paint
+            containment가 버튼 밖 오버행을 자르므로 stage 경계 안(right:0),
+            병목 옆에 걸린 태그처럼 배치. 스크린리더는 aria-label로 전달. */}
+        {isNew && (
+          <span
+            aria-hidden
+            className="pastel-stamp lime absolute z-20 text-[9px] leading-tight px-1.5 py-0"
+            style={{ bottom: dim.height - 6, right: 0 }}
+          >
+            NEW
+          </span>
+        )}
 
         {/* Neck */}
         <div

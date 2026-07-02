@@ -12,32 +12,36 @@ export async function GET() {
   const userId = await getCurrentUserId();
   if (!userId) return authResponse('Unauthorized');
 
-  // Count all stickers filled by this user
-  const totalGrapes = await prisma.sticker.count({
-    where: { filledBy: userId },
-  });
+  // 두 쿼리는 독립 — 직렬 워터폴 대신 병렬로(콜드 응답 절반).
+  const [totalGrapes, completedBoards] = await Promise.all([
+    // Count all stickers filled by this user
+    prisma.sticker.count({
+      where: { filledBy: userId },
+    }),
+    // Fetch completed boards owned by this user
+    prisma.board.findMany({
+      where: {
+        ownerId: userId,
+        isCompleted: true,
+        completedAt: { not: null },
+      },
+      select: {
+        id: true,
+        title: true,
+        totalStickers: true,
+        completedAt: true,
+        createdAt: true,
+        harvestedAt: true, // 수확(셀러 입고) 여부 — NEW 병 표시·입고 버튼용
+        templateId: true, // 품종(카테고리) 라벨 유도용
+      },
+      orderBy: { completedAt: 'desc' },
+    }),
+  ]);
 
   // Get tier data
   const currentTier = getCurrentTier(totalGrapes);
   const nextTier = getNextTier(totalGrapes);
   const tierProgress = getTierProgress(totalGrapes);
-
-  // Fetch completed boards owned by this user
-  const completedBoards = await prisma.board.findMany({
-    where: {
-      ownerId: userId,
-      isCompleted: true,
-      completedAt: { not: null },
-    },
-    select: {
-      id: true,
-      title: true,
-      totalStickers: true,
-      completedAt: true,
-      createdAt: true,
-    },
-    orderBy: { completedAt: 'desc' },
-  });
 
   // Transform completed boards into wine bottles
   const bottles: WineBottle[] = completedBoards.map((board) => {
@@ -56,6 +60,8 @@ export async function GET() {
       createdAt: board.createdAt.toISOString(),
       daysToComplete,
       vintage,
+      harvestedAt: board.harvestedAt?.toISOString() ?? null,
+      templateId: board.templateId ?? null,
     };
   });
 
