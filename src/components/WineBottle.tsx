@@ -75,17 +75,19 @@ const LABEL_FRAME_SHADOW: Record<LabelFrame, string> = {
 };
 
 // 품종(카테고리) 포일 캡슐 색 — templateId 접두(stats route와 동일 규칙:
-// split('-')[0])로 7품종. 인라인 hex 그라디언트라 @source 스캔과 무관(현행
-// 포일도 #B07F23 arbitrary hex 선례). 접두 미상·무템플릿 보드는 기존 라임
-// 포일 폴백 → 구보드 외형 불변. 밀랍 등급에서도 포일은 그대로 남는다.
+// split('-')[0])로 7품종. 인라인 그라디언트라 @source 스캔과 무관. 접두
+// 미상·무템플릿 보드는 기존 라임 포일 폴백 → 구보드 외형 불변. 밀랍 등급에서도
+// 포일은 그대로 남는다. hobby/mental은 @theme 확장 팔레트(ember/mist) 토큰 참조.
 const VARIETAL_FOIL: Record<string, string> = {
   health: 'linear-gradient(to bottom, #8fc972, #6fb050, #3e7a38)', // 건강 — leaf
   growth: 'linear-gradient(to bottom, #f2c94c, #e0ae2c, #b98a1c)', // 자기계발 — sunshine
   lifestyle: 'linear-gradient(to bottom, #cfdc78, #a8b85a, #7e8a3e)', // 생활습관 — lime deep
   work: 'linear-gradient(to bottom, #b28cdc, #9970c8, #7d58a8)', // 직장/학업 — grape
   social: 'linear-gradient(to bottom, #f58bae, #e86a92, #c24a72)', // 관계 — juice
-  hobby: 'linear-gradient(to bottom, #f2a25c, #e08536, #b5651d)', // 취미 — warm orange
-  mental: 'linear-gradient(to bottom, #9fbfe8, #7a9fd4, #5b7fb0)', // 마음건강 — calm blue
+  hobby:
+    'linear-gradient(to bottom, var(--color-ember-300), var(--color-ember-500), var(--color-ember-700))', // 취미 — ember
+  mental:
+    'linear-gradient(to bottom, var(--color-mist-300), var(--color-mist-500), var(--color-mist-700))', // 마음건강 — mist
 };
 
 /**
