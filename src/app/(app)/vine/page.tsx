@@ -132,7 +132,11 @@ export default function VinePage() {
           const { month, day, weekday } = formatDate(group.date);
 
           return (
-            <div key={group.date} className="relative mb-8 last:mb-0">
+            <div
+              key={group.date}
+              className="relative mb-8 last:mb-0 stagger-item"
+              style={{ '--stagger-i': Math.min(groupIndex, 8) } as React.CSSProperties}
+            >
               {/* Node circle on the vine */}
               <div className="absolute -left-8 top-0 flex items-center justify-center">
                 <div className="w-[29px] h-7 flex flex-col items-center justify-center">

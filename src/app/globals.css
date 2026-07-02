@@ -635,10 +635,13 @@
 
 /* Global reduced-motion backstop — neutralizes every animation/transition
    not explicitly handled above (float, shimmer, reward-glow, confetti,
-   capsule, popup, slide/fade/bounce, spinner, etc.) */
+   capsule, popup, slide/fade/bounce, spinner, etc.)
+   animation-delay 0s는 스태거(.stagger-item, fill:both) 필수 동반 —
+   duration만 줄이면 딜레이 동안 아이템이 투명 상태로 방치되는 a11y 회귀. */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.001ms !important;
+    animation-delay: 0s !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
     scroll-behavior: auto !important;
@@ -869,6 +872,15 @@ select:focus-visible {
 
 .animate-fade-in {
   animation: fadeInUp 0.3s ease-out;
+}
+
+/* 리스트 스태거 진입 — 아이템에 붙이고 인라인 --stagger-i(인덱스, 캡 8 권장)를
+   지정하면 40ms 간격 순차 fade-up. fill:both라 딜레이 동안 숨김 상태 —
+   reduced-motion 백스톱의 animation-delay:0s가 즉시 표시를 보장(위 블록 참조).
+   로딩(스켈레톤) 후 마운트되는 목록의 '즉시 팝인'을 해소하는 용도. */
+.stagger-item {
+  animation: fadeInUp 0.35s var(--ease-standard) both;
+  animation-delay: calc(var(--stagger-i, 0) * 40ms);
 }
 
 /* Scrollbar hide */

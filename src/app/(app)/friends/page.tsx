@@ -312,17 +312,18 @@ export default function FriendsPage() {
         </div>
       ) : (
         <div className="space-y-2">
-          {displayed.map((f) => (
-            <FriendCard
-              key={f.id}
-              friend={f}
-              onToggleFavorite={handleToggleFavorite}
-              onRemove={handleRemove}
-              onViewBoards={(userId) => router.push(`/friends/${userId}`)}
-              onSendCheer={(userId) => {
-                setCheerTarget({ id: userId, name: f.user.name });
-              }}
-            />
+          {displayed.map((f, i) => (
+            <div key={f.id} className="stagger-item" style={{ '--stagger-i': Math.min(i, 8) } as React.CSSProperties}>
+              <FriendCard
+                friend={f}
+                onToggleFavorite={handleToggleFavorite}
+                onRemove={handleRemove}
+                onViewBoards={(userId) => router.push(`/friends/${userId}`)}
+                onSendCheer={(userId) => {
+                  setCheerTarget({ id: userId, name: f.user.name });
+                }}
+              />
+            </div>
           ))}
         </div>
       )}
