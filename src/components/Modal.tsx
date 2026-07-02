@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, type MutableRefObject, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type MutableRefObject, type ReactNode } from 'react';
 
 interface ModalProps {
   onClose: () => void;
@@ -37,9 +37,10 @@ export function useModalClose(onClose: () => void) {
   useEffect(() => {
     onCloseRef.current = onClose;
   });
-  // 신원 고정(useRef 초기화 1회) — effect 의존성/리렌더와 무관하게 안전.
-  const requestCloseRef = useRef(() => (closeRef.current ?? onCloseRef.current)());
-  return { closeRef, requestClose: requestCloseRef.current };
+  // 신원 고정(useCallback []) — ref 읽기는 호출 시점(이벤트)에만 일어난다
+  // (렌더 중 ref 접근은 react-hooks/purity 위반).
+  const requestClose = useCallback(() => (closeRef.current ?? onCloseRef.current)(), []);
+  return { closeRef, requestClose };
 }
 
 const FOCUSABLE =
@@ -178,7 +179,6 @@ export default function Modal({
       if (el?.contains(document.activeElement)) prevFocus?.focus?.({ preventScroll: true });
     };
     // 마운트당 1회 — onClose/dismissable는 ref로 읽어 effect 재실행(포커스 도난)을 막는다.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const preset = unstyled ? '' : variant === 'center' ? CENTER_PRESET : SHEET_PRESET;
