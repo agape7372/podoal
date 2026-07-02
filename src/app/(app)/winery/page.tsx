@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useCachedApi } from '@/lib/cachedApi';
 import {
   WINERY_TIERS,
@@ -59,8 +59,14 @@ const TIER_AMBIENT: Record<number, string> = {
 export default function WineryPage() {
   // SWR 캐시: 재방문 시 직전 데이터로 즉시 렌더 + 무음 재검증.
   const { data, loading, error, refresh } = useCachedApi<WineryData>('/api/winery');
-  const [selectedBottle, setSelectedBottle] = useState<WineBottleType | null>(null);
+  // 선택은 id만 상태로, 패널 데이터는 bottles에서 파생 — SWR 재검증 후에도
+  // 패널이 신선하고(객체 스냅샷 고착 해소), 병이 응답에서 사라지면 자동 닫힘.
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const detailRef = useRef<HTMLDivElement>(null);
+  // 전 병에 공유되는 안정 콜백 — WineBottle memo가 선택 토글 리렌더를 N→2로.
+  const handleSelectBottle = useCallback((boardId: string) => {
+    setSelectedId((prev) => (prev === boardId ? null : boardId));
+  }, []);
 
   // ─── 티어 승급 셀레브레이션 ─────────────────────────────
   // localStorage의 마지막 본 티어와 비교해 올라갔을 때만 1회 발화.
@@ -149,10 +155,10 @@ export default function WineryPage() {
   // Bring the detail panel into view when a bottle is selected (it opens below
   // the cellar, which can sit off-screen in a tall cellar).
   useEffect(() => {
-    if (selectedBottle) {
+    if (selectedId) {
       detailRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
-  }, [selectedBottle]);
+  }, [selectedId]);
 
   // ─── Loading Skeleton ───────────────────────────────────
   if (loading) {
@@ -188,6 +194,10 @@ export default function WineryPage() {
 
   const { totalGrapes, currentTier, nextTier, tierProgress, bottles } = data;
   const grapesToNext = nextTier ? nextTier.minGrapes - totalGrapes : 0;
+  // 파생 선택 — find 실패(재검증으로 병 소실)면 null = 패널 자동 닫힘.
+  const selectedBottle = selectedId
+    ? bottles.find((b) => b.boardId === selectedId) ?? null
+    : null;
 
   // Wooden shelf plank drawn at the shared bottle baseline, repeated once per row.
   const shelfPitch = BOTTLE_ROW_H + 24; // cell height + gap-y-6
@@ -274,7 +284,7 @@ export default function WineryPage() {
               >
                 <div
                   ref={progressFillRef}
-                  className="h-full rounded-full bg-linear-to-r from-grape-400 via-grape-500 to-grape-600 transition-all duration-1000 ease-out relative"
+                  className="h-full rounded-full bg-linear-to-r from-grape-400 via-grape-500 to-grape-600 transition-[width] duration-1000 ease-out relative"
                   style={{ width: `${tierProgress}%`, transformOrigin: 'left' }}
                 >
                   {/* Animated shimmer on progress bar */}
@@ -339,12 +349,8 @@ export default function WineryPage() {
                   <WineBottle
                     key={bottle.boardId}
                     bottle={bottle}
-                    selected={selectedBottle?.boardId === bottle.boardId}
-                    onClick={() =>
-                      setSelectedBottle(
-                        selectedBottle?.boardId === bottle.boardId ? null : bottle
-                      )
-                    }
+                    selected={selectedId === bottle.boardId}
+                    onSelect={handleSelectBottle}
                   />
                 ))}
               </div>
@@ -355,7 +361,7 @@ export default function WineryPage() {
               <div ref={detailRef} className="clay-sm mt-3 p-5 bg-grape-50/60 animate-slide-up relative">
                 {/* Close button */}
                 <button
-                  onClick={() => setSelectedBottle(null)}
+                  onClick={() => setSelectedId(null)}
                   className="absolute top-3 right-3 w-7 h-7 rounded-full bg-white/70 flex items-center justify-center text-warm-sub hover:bg-white hover:text-grape-600 transition-colors text-sm"
                   aria-label="닫기"
                 >
