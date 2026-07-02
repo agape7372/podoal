@@ -33,6 +33,7 @@ export async function GET() {
         createdAt: true,
         harvestedAt: true, // 수확(셀러 입고) 여부 — NEW 병 표시·입고 버튼용
         templateId: true, // 품종(카테고리) 라벨 유도용
+        cellarNote: true, // 소믈리에 노트 — 상세 패널 회고 메모
       },
       orderBy: { completedAt: 'desc' },
     }),
@@ -62,6 +63,7 @@ export async function GET() {
       vintage,
       harvestedAt: board.harvestedAt?.toISOString() ?? null,
       templateId: board.templateId ?? null,
+      cellarNote: board.cellarNote ?? null,
     };
   });
 

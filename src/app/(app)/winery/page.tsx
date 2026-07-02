@@ -79,6 +79,34 @@ export default function WineryPage() {
   // NEW 스탬프 소거. 홈 목록에서도 수확 탭으로 이동(기존 의미 그대로).
   const [harvesting, setHarvesting] = useState(false);
   const [harvestError, setHarvestError] = useState('');
+
+  // ─── 소믈리에 노트 ──────────────────────────────────────
+  // 완성 습관 회고 메모 — 같은 PATCH 라우트의 cellarNote 분기(완성 보드 한정).
+  const [noteEditing, setNoteEditing] = useState(false);
+  const [noteDraft, setNoteDraft] = useState('');
+  const [noteSaving, setNoteSaving] = useState(false);
+  const [noteError, setNoteError] = useState('');
+  const saveNote = async (boardId: string) => {
+    if (noteSaving) return;
+    setNoteSaving(true);
+    setNoteError('');
+    try {
+      await api(`/api/boards/${boardId}`, { method: 'PATCH', json: { cellarNote: noteDraft } });
+      setNoteEditing(false);
+      refresh();
+    } catch {
+      feedbackError();
+      setNoteError('노트를 저장하지 못했어요. 잠시 후 다시 시도해주세요.');
+    } finally {
+      setNoteSaving(false);
+    }
+  };
+  // 다른 병을 선택하면 진행 중이던 노트 편집·오류를 초기화.
+  useEffect(() => {
+    setNoteEditing(false);
+    setNoteError('');
+    setHarvestError('');
+  }, [selectedId]);
   const handleHarvest = async (boardId: string) => {
     if (harvesting) return;
     feedbackTap();
@@ -536,6 +564,64 @@ export default function WineryPage() {
                       />
                     </div>
 
+                    {/* 소믈리에 노트 — 라벨 위에 쓰는 회고 메모 */}
+                    {noteEditing ? (
+                      <div className="mt-3">
+                        <textarea
+                          value={noteDraft}
+                          onChange={(e) => setNoteDraft(e.target.value)}
+                          maxLength={200}
+                          rows={3}
+                          aria-label="소믈리에 노트"
+                          placeholder="이 습관을 완성하고 느낀 점을 남겨보세요"
+                          className="clay-input w-full resize-none"
+                        />
+                        <div className="flex items-center gap-2 mt-2">
+                          <button
+                            onClick={() => saveNote(selectedBottle.boardId)}
+                            disabled={noteSaving}
+                            className="clay-button px-3.5 py-1.5 rounded-xl text-xs font-semibold text-grape-700 disabled:opacity-60"
+                          >
+                            {noteSaving ? '저장 중…' : '저장'}
+                          </button>
+                          <button
+                            onClick={() => { feedbackTap(); setNoteEditing(false); setNoteError(''); }}
+                            disabled={noteSaving}
+                            className="px-3 py-1.5 text-xs text-warm-sub"
+                          >
+                            취소
+                          </button>
+                          <span className="ml-auto text-[11px] text-warm-sub tabular-nums">
+                            {noteDraft.length}/200
+                          </span>
+                        </div>
+                      </div>
+                    ) : selectedBottle.cellarNote ? (
+                      <div className="mt-3">
+                        <p className="text-xs text-warm-sub mb-0.5">소믈리에 노트</p>
+                        <p className="text-sm text-warm-text leading-relaxed wrap-break-word">
+                          {selectedBottle.cellarNote}
+                        </p>
+                        <button
+                          onClick={() => { feedbackTap(); setNoteDraft(selectedBottle.cellarNote ?? ''); setNoteEditing(true); }}
+                          className="text-xs text-grape-600 font-semibold mt-1"
+                        >
+                          수정
+                        </button>
+                      </div>
+                    ) : selectedBottle.cellarNote === null ? (
+                      /* 구캐시(undefined)엔 미노출 — 재검증 후 등장 */
+                      <button
+                        onClick={() => { feedbackTap(); setNoteDraft(''); setNoteEditing(true); }}
+                        className="block text-xs text-grape-600 font-semibold mt-3"
+                      >
+                        + 소믈리에 노트 남기기
+                      </button>
+                    ) : null}
+
+                    {noteError && (
+                      <p role="alert" className="text-rose-700 text-xs mt-2">{noteError}</p>
+                    )}
                     {harvestError && (
                       <p role="alert" className="text-rose-700 text-xs mt-3">{harvestError}</p>
                     )}
