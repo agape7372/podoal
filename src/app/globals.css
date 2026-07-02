@@ -122,6 +122,12 @@
   --tracking-wide: 0.01em;
   --tracking-wider: 0.03em;
 
+  /* 모션 이징 토큰 — 앱의 두 가지 모션 성격을 명명(ease-standard/ease-backout 유틸리티 생성).
+     standard = 홈 카드 재정렬 REORDER_TRANSITION과 동일 곡선(감속 위주, UI 이동/진입용).
+     backout = 시그니처 오버슈트(승급·팝업 등 '통통' 비트용). 신규 모션은 이 둘 중 선택. */
+  --ease-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-backout: cubic-bezier(0.34, 1.56, 0.64, 1);
+
   --animate-bounce-in: bounceIn 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97);
   --animate-pop: pop 0.3s cubic-bezier(0.36, 0.07, 0.19, 0.97);
   --animate-shake: shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97);
@@ -508,6 +514,11 @@
     --warm-border: #ece0f3;
     /* single canonical purple-warm shadow tint (matches tailwind boxShadow tokens) */
     --shadow-tint: 73, 50, 100;
+    /* 모션 duration 토큰 — 150/200/300/500ms 혼재를 3단계로 수렴(신규 코드는 이 토큰 사용:
+       Tailwind에선 duration-(--motion-fast) 문법, 커스텀 CSS에선 var()). */
+    --motion-fast: 150ms;
+    --motion-base: 250ms;
+    --motion-slow: 500ms;
   }
 
   * {
