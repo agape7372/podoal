@@ -527,8 +527,10 @@ function GrapeBoardInner({ board, onFill, canFill, onCelebrate, isOwner, onPlant
         </div>
         <div className="w-full h-3 rounded-full bg-clay-bg clay-pressed overflow-hidden" style={{ borderRadius: '999px' }}>
           <div
-            className="h-full rounded-full bg-linear-to-r from-grape-500 via-grape-400 to-lime-300 transition-all duration-500 ease-out"
-            style={{ width: `${progress}%` }}
+            // width 대신 scaleX — 알 채울 때마다 변하는 가장 빈번한 바라 레이아웃
+            // 스래싱 제거 효과가 가장 크다(승급 연출 WAAPI와 동일 패턴).
+            className="h-full w-full origin-left rounded-full bg-linear-to-r from-grape-500 via-grape-400 to-lime-300 transition-transform duration-500 ease-out"
+            style={{ transform: `scaleX(${progress / 100})` }}
           />
         </div>
       </div>

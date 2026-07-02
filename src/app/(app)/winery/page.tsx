@@ -190,8 +190,10 @@ export default function WineryPage() {
         ));
       }
       if (progressFillRef.current) {
+        // 암시적 to-keyframe: scaleX(0)에서 요소의 현재 값(정지 상태의
+        // scaleX(tierProgress/100))으로 — 승급 직후 풀바로 튀지 않는다.
         anims.push(progressFillRef.current.animate(
-          [{ transform: 'scaleX(0)' }, { transform: 'scaleX(1)' }],
+          [{ transform: 'scaleX(0)' }],
           { duration: 900, delay: 250, easing: 'ease-out', fill: 'backwards' },
         ));
       }
@@ -363,8 +365,10 @@ export default function WineryPage() {
               >
                 <div
                   ref={progressFillRef}
-                  className="h-full rounded-full bg-linear-to-r from-grape-400 via-grape-500 to-grape-600 transition-[width] duration-1000 ease-out relative"
-                  style={{ width: `${tierProgress}%`, transformOrigin: 'left' }}
+                  // width 대신 scaleX(컴포지터 전용) — 승급 WAAPI(위 effect)는 암시적
+                  // to-keyframe으로 이 정지 상태(scaleX(tierProgress/100))에 수렴한다.
+                  className="h-full w-full rounded-full bg-linear-to-r from-grape-400 via-grape-500 to-grape-600 transition-transform duration-1000 ease-out relative"
+                  style={{ transform: `scaleX(${tierProgress / 100})`, transformOrigin: 'left' }}
                 >
                   {/* Animated shimmer on progress bar */}
                   <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/30 to-transparent animate-shimmer" />
