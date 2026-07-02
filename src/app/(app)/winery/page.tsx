@@ -20,6 +20,36 @@ interface WineryData {
   bottles: WineBottleType[];
 }
 
+// ─── 티어 시각 레코드 ───────────────────────────────────────
+// winery.ts의 tier.color는 @source가 src/lib를 스캔하지 않아 CSS가 조용히
+// 미생성되는 지뢰 위에 있었다(Lv3·5·7 글로우 완전 투명 — CLAUDE.md의 @source
+// 항목이 실제로 문 사례). 스캔되는 이 파일 안의 리터럴이 시각 정본이다.
+// (티어 임계값·이름 정본은 여전히 src/lib/winery.ts — 상호 참조 주석 유지)
+// Lv3·5·7의 옛 orange/amber는 팔레트 규약에 맞춰 sunshine-* 토큰으로 재조색
+// — 버그 수정이자 의도적 색 결정.
+const TIER_GLOW: Record<number, string> = {
+  1: 'from-grape-100 to-grape-50',
+  2: 'from-grape-200 to-grape-100',
+  3: 'from-sunshine-200 to-sunshine-100',
+  4: 'from-grape-300 to-grape-200',
+  5: 'from-sunshine-300 to-sunshine-200',
+  6: 'from-grape-400 to-grape-300',
+  7: 'from-sunshine-400 to-sunshine-300',
+};
+
+// 셀러 앰비언트 조명 — 티어가 오르면 저장고의 빛이 바뀐다(공간 서사).
+// 인라인 radial-gradient rgba 리터럴이라 @source와 무관. 값은 @theme의
+// grape/sunshine 실제 hex에서 유도(low-opacity 워시).
+const TIER_AMBIENT: Record<number, string> = {
+  1: 'rgba(244, 236, 251, 0.55)', // grape-100
+  2: 'rgba(235, 224, 246, 0.55)', // grape-200
+  3: 'rgba(253, 239, 180, 0.35)', // sunshine-200
+  4: 'rgba(220, 196, 242, 0.45)', // grape-300
+  5: 'rgba(249, 224, 130, 0.30)', // sunshine-300
+  6: 'rgba(201, 168, 232, 0.40)', // grape-400
+  7: 'rgba(242, 201, 76, 0.25)',  // sunshine-400
+};
+
 export default function WineryPage() {
   // SWR 캐시: 재방문 시 직전 데이터로 즉시 렌더 + 무음 재검증.
   const { data, loading, error, refresh } = useCachedApi<WineryData>('/api/winery');
@@ -81,9 +111,10 @@ export default function WineryPage() {
 
       {/* ─── Tier Display Section ──────────────────────────── */}
       <section className="clay-float p-6 mb-6 animate-fade-in relative overflow-hidden">
-        {/* Background glow matching tier color */}
+        {/* Background glow matching tier color — TIER_GLOW(스캔 보장 리터럴) 참조.
+            currentTier.color(winery.ts)를 직접 쓰면 CSS 미생성(@source 지뢰). */}
         <div
-          className={`absolute inset-0 bg-linear-to-br ${currentTier.color} opacity-20 pointer-events-none`}
+          className={`absolute inset-0 bg-linear-to-br ${TIER_GLOW[currentTier.level]} opacity-20 pointer-events-none`}
         />
 
         <div className="relative z-10 text-center">
@@ -95,9 +126,9 @@ export default function WineryPage() {
               label={currentTier.name}
               className="block animate-float mx-auto"
             />
-            {/* Glow ring */}
+            {/* Glow ring — TIER_GLOW 참조(위와 동일 사유) */}
             <div
-              className={`absolute inset-0 -m-3 rounded-full bg-linear-to-br ${currentTier.color} opacity-40 blur-xl pointer-events-none`}
+              className={`absolute inset-0 -m-3 rounded-full bg-linear-to-br ${TIER_GLOW[currentTier.level]} opacity-40 blur-xl pointer-events-none`}
             />
           </div>
 
@@ -181,7 +212,16 @@ export default function WineryPage() {
           <>
             {/* Bottle grid — each row stands on a wooden shelf (repeating
                 background plank at the shared bottle baseline). */}
-            <div className="clay p-5">
+            <div className="clay p-5 relative overflow-hidden">
+              {/* 티어 앰비언트 조명 — 승급하면 셀러의 빛이 바뀐다. 인라인 rgba
+                  리터럴(TIER_AMBIENT)이라 @source 스캔과 무관. 장식 전용. */}
+              <div
+                aria-hidden
+                className="absolute inset-x-0 top-0 h-32 pointer-events-none"
+                style={{
+                  background: `radial-gradient(ellipse 90% 100% at 50% 0%, ${TIER_AMBIENT[currentTier.level]}, transparent 72%)`,
+                }}
+              />
               <div
                 className="grid grid-cols-3 sm:grid-cols-4 gap-y-6 gap-x-2 justify-items-center"
                 style={{ backgroundImage: cellarShelf }}
@@ -281,13 +321,18 @@ export default function WineryPage() {
                     key={tier.level}
                     className={`
                       relative flex items-center gap-3 py-3 px-3 rounded-2xl transition-all duration-300
-                      ${isCurrent
-                        ? 'bg-linear-to-r from-grape-100/60 to-grape-50/40 shadow-xs'
-                        : ''
-                      }
+                      ${isCurrent ? 'shadow-xs' : ''}
                       ${isFuture ? 'opacity-40' : ''}
                     `}
                   >
+                    {/* NOW 행 하이라이트 — TIER_GLOW 동일 레코드 참조(티어 색과 동조).
+                        아주 밝은 톤의 30% 워시라 위 콘텐츠 가독성 영향 없음. */}
+                    {isCurrent && (
+                      <div
+                        aria-hidden
+                        className={`absolute inset-0 rounded-2xl bg-linear-to-r ${TIER_GLOW[tier.level]} opacity-30 pointer-events-none`}
+                      />
+                    )}
                     {/* Node dot on the line */}
                     <div
                       className={`
@@ -307,8 +352,8 @@ export default function WineryPage() {
                       )}
                     </div>
 
-                    {/* Tier info */}
-                    <div className="flex-1 min-w-0">
+                    {/* Tier info — relative로 NOW 워시 레이어 위에 페인트 */}
+                    <div className="relative flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span
                           className={`text-sm font-bold ${
@@ -336,7 +381,7 @@ export default function WineryPage() {
 
                     {/* Level badge */}
                     <span
-                      className={`text-xs font-bold shrink-0 tabular-nums ${
+                      className={`relative text-xs font-bold shrink-0 tabular-nums ${
                         isCurrent
                           ? 'text-grape-600'
                           : isPast

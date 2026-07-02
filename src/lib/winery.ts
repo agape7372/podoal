@@ -5,7 +5,13 @@ export interface WineryTier {
   minGrapes: number;
   name: string;
   icon: string;
-  color: string; // tailwind gradient class
+  /**
+   * tailwind gradient class — ⚠️ 이 파일(src/lib)은 @source 스캔 밖이라
+   * 여기 문자열만으로는 CSS가 생성되지 않는다. 실제 렌더에 쓰는 시각 정본은
+   * winery/page.tsx의 TIER_GLOW 리터럴 레코드(스캔 보장). 이 필드는 API 응답
+   * 계약 보존용으로만 유지 — 새 사용처에서 직접 클래스로 쓰지 말 것.
+   */
+  color: string;
 }
 
 export const WINERY_TIERS: WineryTier[] = [
