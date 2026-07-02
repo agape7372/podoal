@@ -7,6 +7,7 @@ import { useAppStore } from '@/lib/store';
 import { refreshUnreadCount } from '@/lib/notifications';
 import Avatar from '@/components/Avatar';
 import EmojiIcon from '@/components/EmojiIcon';
+import EmptyState from '@/components/EmptyState';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import type { MessageInfo } from '@/types';
 
@@ -124,11 +125,12 @@ export default function MessagesPage() {
           <button onClick={refresh} className="clay-button px-5 py-2.5 rounded-2xl text-sm font-semibold text-grape-700">다시 불러오기</button>
         </div>
       ) : messages.length === 0 ? (
-        <div className="text-center py-16">
-          <EmojiIcon emoji="💌" size={52} className="block mx-auto mb-4" />
-          <p className="text-warm-sub">아직 메시지가 없어요</p>
-          <p className="text-xs text-warm-sub mt-1">친구에게 응원을 보내보세요!</p>
-        </div>
+        <EmptyState
+          /* art="/illustrations/empty/empty-messages-v1.webp" — 아트 생성 후 주석 해제 (docs/ILLUSTRATION_STYLE.md) */
+          fallbackEmoji="💌"
+          title="아직 메시지가 없어요"
+          description="친구에게 응원을 보내보세요!"
+        />
       ) : (
         <div className="space-y-2">
           {messages.map((msg) => (

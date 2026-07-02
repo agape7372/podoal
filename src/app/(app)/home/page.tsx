@@ -15,6 +15,7 @@ import Avatar from '@/components/Avatar';
 import NotificationBell from '@/components/NotificationBell';
 import FriendActivityCard, { type CheerState } from '@/components/FriendActivityCard';
 import Podo from '@/components/mascot/Podo';
+import EmptyState from '@/components/EmptyState';
 import type { BoardSummary, BoardDetail } from '@/types';
 import { feedbackTap, feedbackCheer } from '@/lib/feedback';
 import { formatRelativeTime, type FriendActivity } from '@/lib/activity';
@@ -732,23 +733,19 @@ export default function HomePage() {
           <ClayButton variant="secondary" onClick={loadBoards}>다시 불러오기</ClayButton>
         </div>
       ) : displayBoards.length === 0 ? (
-        <div className="text-center py-12">
-          <div className="mb-5 flex justify-center">
-            <Podo size={96} />
-          </div>
-          <p className="font-display text-base text-warm-text mb-1.5">
-            {filter === 'all' ? '아직 포도판이 없어요' : filter === 'active' ? '진행중인 포도판이 없어요' : filter === 'completed' ? '완료한 포도판이 없어요' : '수확한 포도판이 없어요'}
-          </p>
+        <EmptyState
+          /* art="/illustrations/empty/empty-home-v1.webp" — 아트 생성 후 주석 해제 (docs/ILLUSTRATION_STYLE.md) */
+          icon={<Podo size={96} />}
+          title={filter === 'all' ? '아직 포도판이 없어요' : filter === 'active' ? '진행중인 포도판이 없어요' : filter === 'completed' ? '완료한 포도판이 없어요' : '수확한 포도판이 없어요'}
+          description={filter === 'all' ? '한 알씩 채워볼 첫 판을 만들어 보세요' : undefined}
+        >
           {filter === 'all' && (
-            <>
-              <p className="text-sm text-warm-sub mb-5 text-balance">한 알씩 채워볼 첫 판을 만들어 보세요</p>
-              {/* href(<Link>): 보드 0개 신규 사용자 경로도 /board/create 프리페치를 받는다(FAB와 동일). */}
-              <ClayButton variant="joyful" href="/board/create" onClick={feedbackTap}>
-                포도판 만들기
-              </ClayButton>
-            </>
+            /* href(<Link>): 보드 0개 신규 사용자 경로도 /board/create 프리페치를 받는다(FAB와 동일). */
+            <ClayButton variant="joyful" href="/board/create" onClick={feedbackTap}>
+              포도판 만들기
+            </ClayButton>
           )}
-        </div>
+        </EmptyState>
       ) : (
         <>
           <ul className="space-y-3">

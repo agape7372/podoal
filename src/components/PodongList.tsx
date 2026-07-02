@@ -9,6 +9,7 @@ import Avatar from '@/components/Avatar';
 import type { RelayInfo } from '@/types';
 import { feedbackTap } from '@/lib/feedback';
 import EmojiIcon from '@/components/EmojiIcon';
+import EmptyState from '@/components/EmptyState';
 
 interface PodongListProps {
   /** Show the page H1. False when embedded under the 친구 page header. */
@@ -244,11 +245,12 @@ export default function PodongList({ heading = true }: PodongListProps) {
           <button onClick={loadRelays} className="clay-button px-5 py-2.5 rounded-2xl text-sm font-semibold text-grape-700">다시 불러오기</button>
         </div>
       ) : relays.length === 0 ? (
-        <div className="text-center py-16">
-          <EmojiIcon emoji={'🔗'} size={52} className="block mx-auto mb-4" />
-          <p className="text-sm leading-relaxed text-warm-sub mb-1">아직 포도동이 없어요</p>
-          <p className="text-sm leading-relaxed text-warm-sub mb-5">친구들과 함께 습관 포도동을 시작해 보세요!</p>
-        </div>
+        <EmptyState
+          /* art="/illustrations/empty/empty-podong-v1.webp" — 아트 생성 후 주석 해제 (docs/ILLUSTRATION_STYLE.md) */
+          fallbackEmoji="🔗"
+          title="아직 포도동이 없어요"
+          description="친구들과 함께 습관 포도동을 시작해 보세요!"
+        />
       ) : (
         <>
           {/* Active — 꾹 눌러 위아래로 정렬(REQ12) */}

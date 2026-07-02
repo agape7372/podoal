@@ -2,6 +2,7 @@
 
 import { useCachedApi } from '@/lib/cachedApi';
 import EmojiIcon from '@/components/EmojiIcon';
+import EmptyState from '@/components/EmptyState';
 
 interface ActivityItem {
   type: 'sticker' | 'board_complete' | 'capsule_open';
@@ -90,15 +91,12 @@ export default function VinePage() {
           </h1>
           <p className="text-sm text-warm-sub">나의 성장 기록</p>
         </div>
-        <div className="text-center py-20">
-          <EmojiIcon emoji="🌱" size={52} className="block mx-auto mb-4" />
-          <p className="text-sm text-warm-sub">
-            아직 활동 기록이 없어요
-          </p>
-          <p className="text-xs text-warm-sub mt-1">
-            포도알을 채우면 여기에 기록이 남아요!
-          </p>
-        </div>
+        <EmptyState
+          /* art="/illustrations/empty/empty-vine-v1.webp" — 아트 생성 후 주석 해제 (docs/ILLUSTRATION_STYLE.md) */
+          fallbackEmoji="🌱"
+          title="아직 활동 기록이 없어요"
+          description="포도알을 채우면 여기에 기록이 남아요!"
+        />
       </div>
     );
   }

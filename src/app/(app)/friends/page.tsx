@@ -10,6 +10,7 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import ClayInput from '@/components/ClayInput';
 import Avatar from '@/components/Avatar';
 import EmojiIcon from '@/components/EmojiIcon';
+import EmptyState from '@/components/EmptyState';
 import PodongList from '@/components/PodongList';
 import type { FriendInfo, SearchedUser } from '@/types';
 import { feedbackSuccess, feedbackTap } from '@/lib/feedback';
@@ -303,13 +304,13 @@ export default function FriendsPage() {
           <button onClick={fetchFriends} className="clay-button px-5 py-2.5 rounded-2xl text-sm font-semibold text-grape-700">다시 불러오기</button>
         </div>
       ) : displayed.length === 0 ? (
-        <div className="text-center py-12">
-          <EmojiIcon emoji={tab === 'favorite' ? '⭐' : '👥'} size={40} className="block mx-auto mb-3" />
-          <p className="text-warm-sub">
-            {tab === 'favorite' ? '즐겨찾기한 친구가 없어요' : '아직 친구가 없어요'}
-          </p>
-          <p className="text-xs text-warm-sub mt-1">이름으로 친구를 검색해 보세요!</p>
-        </div>
+        <EmptyState
+          /* art={tab === 'favorite' ? '/illustrations/empty/empty-favorites-v1.webp' : '/illustrations/empty/empty-friends-v1.webp'} — 아트 생성 후 주석 해제 (docs/ILLUSTRATION_STYLE.md) */
+          fallbackEmoji={tab === 'favorite' ? '⭐' : '👥'}
+          artSize={80}
+          title={tab === 'favorite' ? '즐겨찾기한 친구가 없어요' : '아직 친구가 없어요'}
+          description="이름으로 친구를 검색해 보세요!"
+        />
       ) : (
         <div className="space-y-2">
           {displayed.map((f, i) => (
