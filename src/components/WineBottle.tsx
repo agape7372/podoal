@@ -11,18 +11,16 @@ interface WineBottleProps {
   selected?: boolean;
 }
 
-const SIZE_MAP = {
-  piccolo: { height: 80, width: 32, neck: 14, label: 20 },
-  standard: { height: 100, width: 38, neck: 16, label: 24 },
-  magnum: { height: 120, width: 44, neck: 18, label: 28 },
-  jeroboam: { height: 140, width: 52, neck: 20, label: 32 },
-} as const;
+// 병 치수 — 등급과 무관하게 단일(사용자 결정: 크기 통일, 2026-07-02).
+// 등급(캐주얼→그랑 크뤼)은 아래 BOTTLE_GRADES의 만듦새로만 말한다.
+// 스탠다드 와인병 비례를 기준으로 채택.
+const DIM = { height: 100, width: 38, neck: 16, label: 24 } as const;
 
 // Every bottle is drawn inside a fixed-height "stage" and bottom-anchored, so
-// bottles of different sizes share one baseline (they stand on the shelf
-// instead of hanging from the top of the grid cell). The winery page draws the
-// shelf plank at BOTTLE_BASELINE_H and repeats rows every BOTTLE_ROW_H + gap.
-const STAGE_H = SIZE_MAP.jeroboam.height + 12; // 152 — tallest bottle + headroom
+// bottles stand on the shelf instead of hanging from the top of the grid cell.
+// The winery page draws the shelf plank at BOTTLE_BASELINE_H and repeats rows
+// every BOTTLE_ROW_H + gap. (밀랍 등급의 병 상단 +4px도 headroom 안)
+const STAGE_H = DIM.height + 12; // 112 — bottle + headroom
 const TITLE_H = 16; // fixed title row so the cell height is deterministic
 export const BOTTLE_BASELINE_H = STAGE_H; // bottle bases sit here from the cell top
 export const BOTTLE_ROW_H = STAGE_H + 8 + TITLE_H; // stage + gap-2 + title row
@@ -111,7 +109,7 @@ function getBottleGradient(daysToComplete: number): { body: string; highlight: s
 }
 
 function WineBottleInner({ bottle, onSelect, selected = false }: WineBottleProps) {
-  const dim = SIZE_MAP[bottle.bottleSize];
+  const dim = DIM; // 크기 통일 — bottleSize는 만듦새 등급 키로만 쓴다
   const gradient = getBottleGradient(bottle.daysToComplete);
   const grade = BOTTLE_GRADES[bottle.bottleSize];
   const rootRef = useRef<HTMLButtonElement>(null);
