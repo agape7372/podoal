@@ -10,7 +10,13 @@ import {
 } from '@/lib/winery';
 import WineBottle, { BOTTLE_BASELINE_H, BOTTLE_ROW_H } from '@/components/WineBottle';
 import EmojiIcon from '@/components/EmojiIcon';
+import Confetti from '@/components/Confetti';
 import { stripTitleEmoji } from '@/lib/title';
+import { feedbackBottle } from '@/lib/feedback';
+
+// 마지막으로 본 티어 레벨(기기별) — 승급 감지용. zustand store 키는 동결
+// 대상(podoal-app-settings)이라 스토어 밖 독립 키로 둔다.
+const LAST_TIER_KEY = 'podoal-winery-last-tier';
 
 interface WineryData {
   totalGrapes: number;
@@ -55,6 +61,90 @@ export default function WineryPage() {
   const { data, loading, error, refresh } = useCachedApi<WineryData>('/api/winery');
   const [selectedBottle, setSelectedBottle] = useState<WineBottleType | null>(null);
   const detailRef = useRef<HTMLDivElement>(null);
+
+  // ─── 티어 승급 셀레브레이션 ─────────────────────────────
+  // localStorage의 마지막 본 티어와 비교해 올라갔을 때만 1회 발화.
+  // 첫 방문(저장값 없음)은 조용히 기록만 — 소급 축하 폭탄 방지.
+  // 다중 레벨 점프는 최종 티어에서 1회만.
+  const [tierPop, setTierPop] = useState(0); // n>0 = n번째 연출(링 리마운트 키)
+  const [confettiTrigger, setConfettiTrigger] = useState(0);
+  const celebratedRef = useRef(false); // SWR 재검증마다 effect가 다시 돌아도 세션 1회
+  const tierIconRef = useRef<HTMLDivElement>(null);
+  const tierRingRef = useRef<HTMLDivElement>(null);
+  const progressFillRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!data) return;
+    const level = data.currentTier.level;
+    let stored: number | null = null;
+    try {
+      const raw = localStorage.getItem(LAST_TIER_KEY);
+      stored = raw === null ? null : parseInt(raw, 10);
+    } catch {
+      return; // storage 접근 불가(프라이빗 모드 등) — 연출 없이 정상 렌더
+    }
+    if (stored === null || Number.isNaN(stored)) {
+      try { localStorage.setItem(LAST_TIER_KEY, String(level)); } catch {}
+      return;
+    }
+    if (level <= stored) {
+      // 하향(데이터 보정)도 동기화해 다음 실제 승급이 정확히 감지되게 한다.
+      if (level < stored) {
+        try { localStorage.setItem(LAST_TIER_KEY, String(level)); } catch {}
+      }
+      return;
+    }
+    try { localStorage.setItem(LAST_TIER_KEY, String(level)); } catch {}
+    if (celebratedRef.current) return;
+    celebratedRef.current = true;
+    setTierPop((p) => p + 1);
+  }, [data]);
+
+  // 연출 시퀀스 — GrapeBoard 관례: React 노드엔 WAAPI만(클래스 불변),
+  // transform/opacity 한정, 장식 노드 aria-hidden, cleanup으로 선제 정리.
+  // WAAPI는 globals.css의 전역 reduced-motion 백스톱 밖이라 직접 가드.
+  useEffect(() => {
+    if (tierPop === 0) return;
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const anims: Animation[] = [];
+    if (!reduced) {
+      if (tierIconRef.current) {
+        anims.push(tierIconRef.current.animate(
+          [
+            { transform: 'scale(1) rotate(0deg)' },
+            { transform: 'scale(1.16) rotate(-4deg)', offset: 0.35 },
+            { transform: 'scale(1)' },
+          ],
+          { duration: 700, easing: 'cubic-bezier(.34,1.56,.64,1)' },
+        ));
+      }
+      if (tierRingRef.current) {
+        anims.push(tierRingRef.current.animate(
+          [
+            { opacity: 0.75, transform: 'scale(0.7)' },
+            { opacity: 0, transform: 'scale(1.7)' },
+          ],
+          { duration: 900, easing: 'ease-out' },
+        ));
+      }
+      if (progressFillRef.current) {
+        anims.push(progressFillRef.current.animate(
+          [{ transform: 'scaleX(0)' }, { transform: 'scaleX(1)' }],
+          { duration: 900, delay: 250, easing: 'ease-out', fill: 'backwards' },
+        ));
+      }
+    }
+    // 박자: 아이콘 팝 정점에서 사운드+햅틱(feedbackBottle 첫 소생)과 컨페티 동시.
+    // reduced여도 발화 — 컨페티의 CSS 애니는 전역 백스톱이 담당한다.
+    const beat = setTimeout(() => {
+      feedbackBottle();
+      setConfettiTrigger((t) => t + 1);
+    }, 350);
+    return () => {
+      anims.forEach((a) => a.cancel());
+      clearTimeout(beat);
+    };
+  }, [tierPop]);
 
   // Bring the detail panel into view when a bottle is selected (it opens below
   // the cellar, which can sit off-screen in a tall cellar).
@@ -105,6 +195,13 @@ export default function WineryPage() {
 
   return (
     <div className="pb-4">
+      {/* 승급 셀레브레이션 컨페티 (trigger 카운터 관례) */}
+      <Confetti trigger={confettiTrigger} />
+      {/* 스크린리더용 승급 안내 — 시각 연출의 비시각 짝 */}
+      {tierPop > 0 && (
+        <p role="status" className="sr-only">{currentTier.name} 티어로 승급했어요</p>
+      )}
+
       <h1 className="font-display text-2xl font-bold text-grape-700 mb-6 animate-fade-in">
         <EmojiIcon emoji="🏰" size={24} className="mr-1.5" />포도 와이너리
       </h1>
@@ -119,7 +216,7 @@ export default function WineryPage() {
 
         <div className="relative z-10 text-center">
           {/* Tier icon with glow */}
-          <div className="relative inline-block mb-3">
+          <div ref={tierIconRef} className="relative inline-block mb-3">
             <EmojiIcon
               emoji={currentTier.icon}
               size={72}
@@ -130,6 +227,17 @@ export default function WineryPage() {
             <div
               className={`absolute inset-0 -m-3 rounded-full bg-linear-to-br ${TIER_GLOW[currentTier.level]} opacity-40 blur-xl pointer-events-none`}
             />
+            {/* 승급 링 버스트 — WAAPI 전용(초기 opacity 0, 연출 후 자연 소멸).
+                key로 승급마다 리마운트해 재발화 잔상 없이 초기화. */}
+            {tierPop > 0 && (
+              <div
+                key={tierPop}
+                ref={tierRingRef}
+                aria-hidden
+                className={`absolute inset-0 -m-3 rounded-full bg-linear-to-br ${TIER_GLOW[currentTier.level]} pointer-events-none`}
+                style={{ opacity: 0 }}
+              />
+            )}
           </div>
 
           {/* Tier name + level badge */}
@@ -165,8 +273,9 @@ export default function WineryPage() {
                 aria-label={`${currentTier.name}에서 ${nextTier.name}까지 진행률`}
               >
                 <div
+                  ref={progressFillRef}
                   className="h-full rounded-full bg-linear-to-r from-grape-400 via-grape-500 to-grape-600 transition-all duration-1000 ease-out relative"
-                  style={{ width: `${tierProgress}%` }}
+                  style={{ width: `${tierProgress}%`, transformOrigin: 'left' }}
                 >
                   {/* Animated shimmer on progress bar */}
                   <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/30 to-transparent animate-shimmer" />
