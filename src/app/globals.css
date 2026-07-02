@@ -917,6 +917,14 @@ select:focus-visible {
   background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.22) 50%, transparent 100%);
   background-size: 50% 100%;
   animation: bottleShimmer 2.5s ease-in-out infinite;
+  /* 구동 다이어트: opacity-0로 안 보이는 동안에도 병 수만큼 상시 스타일
+     재계산을 내던 것을 hover 시에만 구동(0~1개). sticky-hover 관례상 탭한
+     병 1개가 상시 구동으로 남는 것은 의도된 UX. keyframes 이름은
+     bottleShimmer 유지 — @theme shimmer와 동명 충돌 방지 선례. */
+  animation-play-state: paused;
+}
+.group:hover .wine-bottle-shimmer {
+  animation-play-state: running;
 }
 
 /* Floating animation — @theme의 float(-8px/3s)와 동명 충돌 방지를 위해 고유 이름 사용.

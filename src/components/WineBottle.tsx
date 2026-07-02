@@ -1,11 +1,13 @@
 'use client';
 
+import { memo } from 'react';
 import type { WineBottle as WineBottleType } from '@/lib/winery';
 import { stripTitleEmoji } from '@/lib/title';
 
 interface WineBottleProps {
   bottle: WineBottleType;
-  onClick?: () => void;
+  /** boardId를 넘기는 안정 콜백 — 페이지가 useCallback 하나로 전 병에 공유(memo 유지). */
+  onSelect?: (boardId: string) => void;
   selected?: boolean;
 }
 
@@ -45,16 +47,24 @@ function getBottleGradient(daysToComplete: number): { body: string; highlight: s
   return { body: 'from-grape-500 via-grape-400 to-grape-300', highlight: 'bg-grape-200/40' };
 }
 
-export default function WineBottle({ bottle, onClick, selected = false }: WineBottleProps) {
+function WineBottleInner({ bottle, onSelect, selected = false }: WineBottleProps) {
   const dim = SIZE_MAP[bottle.bottleSize];
   const gradient = getBottleGradient(bottle.daysToComplete);
 
   return (
     <button
-      onClick={onClick}
+      onClick={() => onSelect?.(bottle.boardId)}
       aria-pressed={selected}
       className="group flex flex-col items-center gap-2 transition-all duration-300 hover:scale-105 hover:-rotate-1 active:scale-95"
       aria-label={`${bottle.title} - ${bottle.vintage}년 빈티지`}
+      style={{
+        // 구동 다이어트: 뷰포트 밖 병(노드 12개+blur 2개)의 paint를 통째 스킵.
+        // 셀 높이가 BOTTLE_ROW_H로 결정적이라 스크롤 점프 없음. 선택된 병은
+        // visible — paint containment가 셀렉션 할로(blur, 셀 밖 확장)를 자르는
+        // 것을 방지. 미지원 브라우저는 무해한 no-op.
+        contentVisibility: selected ? 'visible' : 'auto',
+        containIntrinsicSize: `auto 80px auto ${BOTTLE_ROW_H}px`,
+      }}
     >
       {/* Fixed-height stage, bottle bottom-anchored to share a common baseline */}
       <div className="relative flex flex-col items-center justify-end" style={{ height: STAGE_H }}>
@@ -179,3 +189,8 @@ export default function WineBottle({ bottle, onClick, selected = false }: WineBo
     </button>
   );
 }
+
+// 선택 토글마다 전 병이 리렌더되던 것을 변경된 2개(이전·새 선택)로 줄인다.
+// bottle 참조는 SWR 응답 객체 안에서 안정, onSelect는 페이지 useCallback.
+const WineBottle = memo(WineBottleInner);
+export default WineBottle;
