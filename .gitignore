@@ -18,6 +18,8 @@ Thumbs.db
 .cache
 *.png
 !public/**/*.png
+# Next OG 파일 컨벤션(src/app/opengraph-image.png)은 추적 — 스크린샷 위생 규칙의 유일한 소스 예외
+!src/app/opengraph-image.png
 take-screenshot*.mjs
 # Local-only review/screenshot artifacts (never ship/track)
 .shots/

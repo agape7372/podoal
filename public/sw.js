@@ -1,7 +1,7 @@
 // IMPORTANT: bump CACHE_VERSION whenever you change which assets you want to
 // invalidate on the next deploy. The activate handler deletes every cache
 // whose name doesn't match the current value, so users get a fresh shell.
-const CACHE_VERSION = '2026-06-14-glow-radius';
+const CACHE_VERSION = '2026-07-03-art-infra';
 const CACHE_NAME = `podoal-${CACHE_VERSION}`;
 const APP_SHELL = ['/', '/home', '/manifest.json'];
 

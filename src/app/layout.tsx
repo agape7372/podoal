@@ -24,8 +24,17 @@ const maruBuri = localFont({
 });
 
 export const metadata: Metadata = {
+  // OG/트위터 이미지의 절대 URL 보장(src/app/opengraph-image.png 파일 컨벤션과 쌍).
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? 'https://podoal.vercel.app'),
   title: 'podoal — 한 알씩, 매일의 기록',
   description: '포도알을 한 알씩 채우며 목표를 달성하고, 소중한 사람에게 응원과 보상을 주고받아요.',
+  openGraph: {
+    title: 'podoal — 한 알씩, 매일의 기록',
+    description: '포도알을 한 알씩 채우며 목표를 달성하고, 소중한 사람에게 응원과 보상을 주고받아요.',
+    siteName: 'podoal',
+    locale: 'ko_KR',
+    type: 'website',
+  },
   manifest: '/manifest.json',
   // 브라우저 기본 /favicon.ico 요청(404) 방지 + iOS는 PNG apple-touch-icon만 인식(SVG 무시).
   icons: {
@@ -58,6 +67,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <link rel="apple-touch-icon" href="/icons/icon-180.png" />
+        {/* iOS 스플래시(세로 전용 PWA, 대표 6기기) — scripts/gen-brand-assets.mjs가 생성.
+            media는 CSS px(device-width/height) × DPR 조합으로 기기를 매칭한다. */}
+        <link rel="apple-touch-startup-image" href="/splash/splash-1170x2532.png" media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3)" />
+        <link rel="apple-touch-startup-image" href="/splash/splash-1179x2556.png" media="(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3)" />
+        <link rel="apple-touch-startup-image" href="/splash/splash-1290x2796.png" media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3)" />
+        <link rel="apple-touch-startup-image" href="/splash/splash-1125x2436.png" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)" />
+        <link rel="apple-touch-startup-image" href="/splash/splash-828x1792.png" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2)" />
+        <link rel="apple-touch-startup-image" href="/splash/splash-1620x2160.png" media="(device-width: 810px) and (device-height: 1080px) and (-webkit-device-pixel-ratio: 2)" />
       </head>
       <body className="min-h-dvh bg-clay-bg text-warm-text antialiased">
         {children}

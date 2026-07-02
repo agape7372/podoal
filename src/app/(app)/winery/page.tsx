@@ -11,6 +11,7 @@ import {
 import Link from 'next/link';
 import WineBottle, { BOTTLE_BASELINE_H, BOTTLE_ROW_H } from '@/components/WineBottle';
 import EmojiIcon from '@/components/EmojiIcon';
+import EmptyState from '@/components/EmptyState';
 import Chevron from '@/components/Chevron';
 import Confetti from '@/components/Confetti';
 import { stripTitleEmoji } from '@/lib/title';
@@ -45,6 +46,45 @@ const TIER_GLOW: Record<number, string> = {
   6: 'from-grape-400 to-grape-300',
   7: 'from-sunshine-400 to-sunshine-300',
 };
+
+// 티어 배지 아트 스캐폴드 — AI 배지 생성(docs/ILLUSTRATION_STYLE.md §B) 후 경로를
+// 채우면 히어로(72px)·로드맵(24px)이 자동 채택하고, 비거나 로드 실패 시 EmojiIcon
+// 폴백. 14px 진행 마커는 판독성 문제로 항상 EmojiIcon(교체 대상 아님).
+// 예: 1: '/illustrations/tiers/tier-1-v1.webp', …
+const TIER_ART: Record<number, string> = {};
+
+// 티어 아이콘 단일 렌더러 — TIER_ART 유무/실패에 따라 아트 ↔ EmojiIcon 전환.
+function TierBadge({
+  level,
+  icon,
+  size,
+  label,
+  className,
+}: {
+  level: number;
+  icon: string;
+  size: number;
+  label?: string;
+  className?: string;
+}) {
+  const [failed, setFailed] = useState(false);
+  const art = TIER_ART[level];
+  if (!art || failed) {
+    return <EmojiIcon emoji={icon} size={size} label={label} className={className} />;
+  }
+  return (
+    <img
+      src={art}
+      alt={label ?? ''}
+      aria-hidden={label ? undefined : true}
+      width={size}
+      height={size}
+      decoding="async"
+      className={className}
+      onError={() => setFailed(true)}
+    />
+  );
+}
 
 // 셀러 앰비언트 조명 — 티어가 오르면 저장고의 빛이 바뀐다(공간 서사).
 // 인라인 radial-gradient rgba 리터럴이라 @source와 무관. 값은 @theme의
@@ -308,8 +348,9 @@ export default function WineryPage() {
         <div className="relative z-10 text-center">
           {/* Tier icon with glow */}
           <div ref={tierIconRef} className="relative inline-block mb-3">
-            <EmojiIcon
-              emoji={currentTier.icon}
+            <TierBadge
+              level={currentTier.level}
+              icon={currentTier.icon}
               size={72}
               label={currentTier.name}
               className="block animate-float mx-auto"
@@ -400,48 +441,22 @@ export default function WineryPage() {
         </div>
 
         {bottles.length === 0 ? (
-          /* Empty state — 첫 와인을 기다리는 빈 선반 */
-          <div className="clay p-8 text-center">
-            {/* 빈 나무 선반 + 고스트 병 실루엣: "여기에 첫 와인이 놓입니다".
-                cellarShelf와 동일 기하(BOTTLE_BASELINE_H 바닥 정렬)라 첫 병이
-                생겼을 때 그 자리에 그대로 놓인다. 장식 전용. */}
-            <div
-              aria-hidden
-              className="relative mx-auto mb-5 w-full max-w-[240px]"
-              style={{ height: BOTTLE_BASELINE_H + 8, backgroundImage: cellarShelf }}
+          /* Empty state — 첫 와인을 기다리는 빈 선반. 인라인 🍇는 fallbackEmoji로 승격,
+             clay 카드 표면은 px-8로 보존(수직 여백은 EmptyState의 py-12가 담당). */
+          <div className="clay px-8">
+            <EmptyState
+              /* art="/illustrations/empty/empty-winery-v1.webp" — 아트 생성 후 주석 해제 (docs/ILLUSTRATION_STYLE.md) */
+              fallbackEmoji="🍇"
+              title="아직 완성된 와인이 없어요."
+              description="포도판을 완성하면 와인이 만들어져요!"
             >
-              {[
-                { w: 34, h: 84, neck: 14, left: '26%' },
-                { w: 38, h: 100, neck: 16, left: '58%' },
-              ].map((g, i) => (
-                <div
-                  key={i}
-                  className="absolute flex flex-col items-center"
-                  style={{ left: g.left, bottom: 8 }}
-                >
-                  <div
-                    className="bg-grape-300/25"
-                    style={{ width: g.neck, height: g.h * 0.24, borderRadius: '3px 3px 0 0' }}
-                  />
-                  <div
-                    className="bg-grape-300/25"
-                    style={{ width: g.w, height: g.h * 0.62, borderRadius: '9px 9px 5px 5px' }}
-                  />
-                </div>
-              ))}
-            </div>
-            <p className="text-warm-sub text-sm leading-relaxed">
-              아직 완성된 와인이 없어요.
-              <br />
-              포도판을 완성하면 와인이 만들어져요!
-              <EmojiIcon emoji="🍇" size={16} className="ml-1" />
-            </p>
-            <Link
-              href="/home"
-              className="clay-button inline-block mt-5 px-5 py-2.5 rounded-2xl text-sm font-semibold text-grape-700"
-            >
-              포도판 채우러 가기
-            </Link>
+              <Link
+                href="/home"
+                className="clay-button inline-block px-5 py-2.5 rounded-2xl text-sm font-semibold text-grape-700"
+              >
+                포도판 채우러 가기
+              </Link>
+            </EmptyState>
           </div>
         ) : (
           <>
@@ -705,7 +720,7 @@ export default function WineryPage() {
                       {isPast ? (
                         <span className="text-grape-700 text-sm font-bold">{'\u{2713}'}</span>
                       ) : (
-                        <EmojiIcon emoji={tier.icon} size={24} />
+                        <TierBadge level={tier.level} icon={tier.icon} size={24} />
                       )}
                     </div>
 
