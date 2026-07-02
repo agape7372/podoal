@@ -407,8 +407,8 @@ export default function WineryPage() {
               style={{ height: BOTTLE_BASELINE_H + 8, backgroundImage: cellarShelf }}
             >
               {[
-                { w: 38, h: 100, neck: 16, left: '26%' },
-                { w: 44, h: 120, neck: 18, left: '58%' },
+                { w: 34, h: 84, neck: 14, left: '26%' },
+                { w: 38, h: 100, neck: 16, left: '58%' },
               ].map((g, i) => (
                 <div
                   key={i}
