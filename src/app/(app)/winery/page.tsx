@@ -8,11 +8,13 @@ import {
   type WineryTier,
   type WineBottle as WineBottleType,
 } from '@/lib/winery';
+import Link from 'next/link';
 import WineBottle, { BOTTLE_BASELINE_H, BOTTLE_ROW_H } from '@/components/WineBottle';
 import EmojiIcon from '@/components/EmojiIcon';
+import Chevron from '@/components/Chevron';
 import Confetti from '@/components/Confetti';
 import { stripTitleEmoji } from '@/lib/title';
-import { feedbackBottle } from '@/lib/feedback';
+import { feedbackBottle, feedbackTap } from '@/lib/feedback';
 
 // 마지막으로 본 티어 레벨(기기별) — 승급 감지용. zustand store 키는 동결
 // 대상(podoal-app-settings)이라 스토어 밖 독립 키로 둔다.
@@ -67,6 +69,8 @@ export default function WineryPage() {
   const handleSelectBottle = useCallback((boardId: string) => {
     setSelectedId((prev) => (prev === boardId ? null : boardId));
   }, []);
+  // 연도 선반 펼침 상태 — null = 기본(최신 연도만 펼침).
+  const [openYears, setOpenYears] = useState<string[] | null>(null);
 
   // ─── 티어 승급 셀레브레이션 ─────────────────────────────
   // localStorage의 마지막 본 티어와 비교해 올라갔을 때만 1회 발화.
@@ -199,6 +203,29 @@ export default function WineryPage() {
     ? bottles.find((b) => b.boardId === selectedId) ?? null
     : null;
 
+  // ─── 빈티지 연도 선반 그룹핑 ────────────────────────────
+  // bottles는 completedAt desc라 연도가 연속 — O(n) 단일 패스로 그룹.
+  // 연도가 2개 이상일 때만 헤더 노출(신규 유저 화면은 현행과 동일).
+  // 접힌 연도는 병 DOM 자체를 만들지 않는다 — content-visibility보다 근본적,
+  // 병 수백 개에서도 초기 커밋 억제(가상화 불필요).
+  const bottlesByYear: Array<{ year: string; items: WineBottleType[] }> = [];
+  for (const b of bottles) {
+    const last = bottlesByYear[bottlesByYear.length - 1];
+    if (last && last.year === b.vintage) last.items.push(b);
+    else bottlesByYear.push({ year: b.vintage, items: [b] });
+  }
+  const multiYear = bottlesByYear.length > 1;
+  // null = 기본값(최신 연도만 펼침). 사용자가 토글하면 배열로 승격.
+  const expandedYears = openYears ?? (bottlesByYear.length > 0 ? [bottlesByYear[0].year] : []);
+  const toggleYear = (year: string) => {
+    feedbackTap();
+    setOpenYears(
+      expandedYears.includes(year)
+        ? expandedYears.filter((y) => y !== year)
+        : [...expandedYears, year],
+    );
+  };
+
   // Wooden shelf plank drawn at the shared bottle baseline, repeated once per row.
   const shelfPitch = BOTTLE_ROW_H + 24; // cell height + gap-y-6
   const cellarShelf = `repeating-linear-gradient(to bottom, transparent 0 ${BOTTLE_BASELINE_H}px, rgba(146,100,56,0.30) ${BOTTLE_BASELINE_H}px ${BOTTLE_BASELINE_H + 4}px, rgba(83,55,28,0.16) ${BOTTLE_BASELINE_H + 4}px ${BOTTLE_BASELINE_H + 7}px, transparent ${BOTTLE_BASELINE_H + 7}px ${shelfPitch}px)`;
@@ -317,15 +344,48 @@ export default function WineryPage() {
         </div>
 
         {bottles.length === 0 ? (
-          /* Empty state */
+          /* Empty state — 첫 와인을 기다리는 빈 선반 */
           <div className="clay p-8 text-center">
-            <EmojiIcon emoji="🍾" size={52} className="block mx-auto mb-4 animate-float" />
+            {/* 빈 나무 선반 + 고스트 병 실루엣: "여기에 첫 와인이 놓입니다".
+                cellarShelf와 동일 기하(BOTTLE_BASELINE_H 바닥 정렬)라 첫 병이
+                생겼을 때 그 자리에 그대로 놓인다. 장식 전용. */}
+            <div
+              aria-hidden
+              className="relative mx-auto mb-5 w-full max-w-[240px]"
+              style={{ height: BOTTLE_BASELINE_H + 8, backgroundImage: cellarShelf }}
+            >
+              {[
+                { w: 38, h: 100, neck: 16, left: '26%' },
+                { w: 44, h: 120, neck: 18, left: '58%' },
+              ].map((g, i) => (
+                <div
+                  key={i}
+                  className="absolute flex flex-col items-center"
+                  style={{ left: g.left, bottom: 8 }}
+                >
+                  <div
+                    className="bg-grape-300/25"
+                    style={{ width: g.neck, height: g.h * 0.24, borderRadius: '3px 3px 0 0' }}
+                  />
+                  <div
+                    className="bg-grape-300/25"
+                    style={{ width: g.w, height: g.h * 0.62, borderRadius: '9px 9px 5px 5px' }}
+                  />
+                </div>
+              ))}
+            </div>
             <p className="text-warm-sub text-sm leading-relaxed">
               아직 완성된 와인이 없어요.
               <br />
               포도판을 완성하면 와인이 만들어져요!
               <EmojiIcon emoji="🍇" size={16} className="ml-1" />
             </p>
+            <Link
+              href="/home"
+              className="clay-button inline-block mt-5 px-5 py-2.5 rounded-2xl text-sm font-semibold text-grape-700"
+            >
+              포도판 채우러 가기
+            </Link>
           </div>
         ) : (
           <>
@@ -341,28 +401,75 @@ export default function WineryPage() {
                   background: `radial-gradient(ellipse 90% 100% at 50% 0%, ${TIER_AMBIENT[currentTier.level]}, transparent 72%)`,
                 }}
               />
-              <div
-                className="grid grid-cols-3 sm:grid-cols-4 gap-y-6 gap-x-2 justify-items-center"
-                style={{ backgroundImage: cellarShelf }}
-              >
-                {bottles.map((bottle) => (
-                  <WineBottle
-                    key={bottle.boardId}
-                    bottle={bottle}
-                    selected={selectedId === bottle.boardId}
-                    onSelect={handleSelectBottle}
-                  />
-                ))}
-              </div>
+              {multiYear ? (
+                /* 연도별 선반 — 선반 배경은 반드시 연도 그리드 각각에 적용
+                   (전역 1장이면 헤더 높이만큼 선반선이 어긋난다). */
+                <div className="space-y-4">
+                  {bottlesByYear.map(({ year, items }) => {
+                    const open = expandedYears.includes(year);
+                    return (
+                      <div key={year}>
+                        <button
+                          onClick={() => toggleYear(year)}
+                          aria-expanded={open}
+                          className="w-full flex items-center gap-2.5 py-1.5 px-1"
+                        >
+                          <span className="pastel-stamp text-xs tabular-nums">{year}</span>
+                          <span className="text-xs text-warm-sub font-medium tabular-nums">
+                            {items.length}병
+                          </span>
+                          <span
+                            className={`ml-auto transition-transform duration-300 ${open ? 'rotate-90' : ''}`}
+                          >
+                            <Chevron size={16} />
+                          </span>
+                        </button>
+                        {/* 접힌 연도는 병 DOM 미생성 — 초기 커밋 억제 */}
+                        {open && (
+                          <div
+                            className="grid grid-cols-3 sm:grid-cols-4 gap-y-6 gap-x-2 justify-items-center mt-2"
+                            style={{ backgroundImage: cellarShelf }}
+                          >
+                            {items.map((bottle) => (
+                              <WineBottle
+                                key={bottle.boardId}
+                                bottle={bottle}
+                                selected={selectedId === bottle.boardId}
+                                onSelect={handleSelectBottle}
+                              />
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div
+                  className="grid grid-cols-3 sm:grid-cols-4 gap-y-6 gap-x-2 justify-items-center"
+                  style={{ backgroundImage: cellarShelf }}
+                >
+                  {bottles.map((bottle) => (
+                    <WineBottle
+                      key={bottle.boardId}
+                      bottle={bottle}
+                      selected={selectedId === bottle.boardId}
+                      onSelect={handleSelectBottle}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
 
-            {/* Selected bottle detail panel */}
+            {/* Selected bottle detail panel — 실제 와인 라벨처럼(texture-paper +
+                빈티지 스탬프 + font-display), 막다른 골목이던 패널에 보드 회고
+                출구 추가(완성 보드의 보상·타임캡슐·공유가 링크 1개로 열림). */}
             {selectedBottle && (
-              <div ref={detailRef} className="clay-sm mt-3 p-5 bg-grape-50/60 animate-slide-up relative">
+              <div ref={detailRef} className="clay-sm mt-3 p-5 texture-paper bg-clay-cream animate-slide-up relative">
                 {/* Close button */}
                 <button
                   onClick={() => setSelectedId(null)}
-                  className="absolute top-3 right-3 w-7 h-7 rounded-full bg-white/70 flex items-center justify-center text-warm-sub hover:bg-white hover:text-grape-600 transition-colors text-sm"
+                  className="absolute top-3 right-3 w-7 h-7 rounded-full bg-white/70 flex items-center justify-center text-warm-sub hover:bg-white hover:text-grape-600 transition-colors text-sm z-10"
                   aria-label="닫기"
                 >
                   {'\u{2715}'}
@@ -377,16 +484,19 @@ export default function WineryPage() {
                   </div>
 
                   <div className="flex-1 min-w-0">
-                    {/* Title */}
-                    <h4 className="text-base font-bold text-grape-800 mb-2 wrap-break-word">
+                    {/* 빈티지 스탬프 + Title */}
+                    <span className="pastel-stamp text-[11px] tabular-nums mb-2">
+                      {selectedBottle.vintage} 빈티지
+                    </span>
+                    <h4 className="font-display text-base font-bold text-grape-800 mt-1.5 mb-2 wrap-break-word">
                       {stripTitleEmoji(selectedBottle.title)}
                     </h4>
 
-                    {/* Detail grid */}
+                    {/* Detail grid — 빈티지는 스탬프로 승격, 자리는 완성일로 */}
                     <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-sm">
                       <DetailRow
-                        label="빈티지"
-                        value={`${selectedBottle.vintage}년`}
+                        label="완성일"
+                        value={formatDate(selectedBottle.completedAt)}
                       />
                       <DetailRow
                         label="숙성 기간"
@@ -402,10 +512,13 @@ export default function WineryPage() {
                       />
                     </div>
 
-                    {/* Completion date */}
-                    <p className="text-xs text-warm-sub mt-2">
-                      {formatDate(selectedBottle.completedAt)} 완성
-                    </p>
+                    {/* 회고 출구 — 완성 보드 상세(보상·캡슐·공유 카드)로 */}
+                    <Link
+                      href={`/board/${selectedBottle.boardId}`}
+                      className="clay-button inline-block mt-4 px-4 py-2 rounded-2xl text-sm font-semibold text-grape-700"
+                    >
+                      포도판 다시 보기
+                    </Link>
                   </div>
                 </div>
               </div>
