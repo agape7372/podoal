@@ -777,6 +777,10 @@ export default function BoardDetailPage() {
   // 포도동 연결 보드는 선물 불가(서버도 gift POST에서 차단). inRelay가 없는 구버전
   // 캐시 응답은 홈 요약의 podong(그룹 전용)으로 폴백.
   const noGift = board.inRelay ?? summary?.podong ?? false;
+  // 보상 심기/편집 진입 게이트 — 선물 복사본·비창시자 포도동 보드의 보상은 타인
+  // 작성(서프라이즈)이라 편집 모달을 열면 안 된다(서버도 차단, rewardAccess.ts).
+  // 필드가 없는 구버전 캐시 응답은 선물 여부만으로 근사(포도동 판정은 재검증 후 도착).
+  const canManageRewards = board.canManageRewards ?? !board.giftedFrom;
   const filledCount = board.stickers.length;
   // 중간 보상(아이콘 슬라이더) vs 완성 보상(카드) 분리.
   const midRewards = board.rewards
@@ -917,7 +921,7 @@ export default function BoardDetailPage() {
           canFill={isOwner && !board.isCompleted}
           onCelebrate={handleCelebrate}
           isOwner={isOwner}
-          onPlantReward={isOwner && !board.isCompleted ? handlePlantReward : undefined}
+          onPlantReward={isOwner && !board.isCompleted && canManageRewards ? handlePlantReward : undefined}
           onMidRewardReached={handleMidRewardReached}
         />
       </div>

@@ -9,7 +9,7 @@ import { stripTitleEmoji } from '@/lib/title';
 import { REWARD_TYPE_ICON } from '@/lib/icons';
 import { REWARD_TYPE_LABELS } from '@/types';
 import type { CollectedReward, RewardType, RewardInfo } from '@/types';
-import { feedbackTap } from '@/lib/feedback';
+import { feedbackTap, feedbackError } from '@/lib/feedback';
 
 type Filter = 'all' | RewardType;
 
@@ -24,10 +24,12 @@ export default function RewardList() {
   const [filter, setFilter] = useState<Filter>('all');
   const [opened, setOpened] = useState<RewardInfo | null>(null);
   const [opening, setOpening] = useState<string | null>(null);
+  const [openError, setOpenError] = useState('');
 
   const openReward = async (r: CollectedReward) => {
     feedbackTap();
-    if (r.revealedAt && r.content) {
+    setOpenError('');
+    if (r.revealedAt && (r.content || r.imageUrl)) {
       setOpened(r);
       return;
     }
@@ -41,7 +43,16 @@ export default function RewardList() {
       mutate((prev) =>
         prev && { ...prev, rewards: prev.rewards.map((x) => (x.id === r.id ? { ...x, ...data.reward } : x)) });
     } catch {
-      setOpened(r);
+      // /api/rewards가 본문을 동봉하므로(마스킹 정렬) 내용이 있으면 그대로 연다 —
+      // reveal(열람 기록)만 다음 탭으로 미뤄진다. imageUrl 전용 보상(내용 없는
+      // 기프티콘 이미지)도 열 수 있게 양쪽을 본다(보드 페이지 openReward와 동일
+      // 기준). 둘 다 없으면 빈 편지 대신 실패를 말한다.
+      if (r.content || r.imageUrl) {
+        setOpened(r);
+      } else {
+        feedbackError();
+        setOpenError('보상을 여는 데 실패했어요. 잠시 후 다시 시도해주세요.');
+      }
     } finally {
       setOpening(null);
     }
@@ -71,6 +82,8 @@ export default function RewardList() {
           );
         })}
       </div>
+
+      {openError && <p role="alert" className="text-rose-700 text-xs text-center mb-3">{openError}</p>}
 
       {loading ? (
         <div className="grid grid-cols-2 gap-3">
