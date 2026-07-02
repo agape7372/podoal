@@ -872,3 +872,42 @@ select:focus-visible {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* =========================================================================
+   MODAL 진입/이탈 대칭 (Modal.tsx가 상태에 따라 주입)
+   — 백드롭은 페이드 인/아웃, 시트는 variant별 이탈(슬라이드다운/스케일아웃).
+   ⚠ 이 블록은 반드시 파일 '최하단'에 둔다: 이탈 클래스가 unlayered 최후순이어야
+   호출부/프리셋의 진입 애니 선언(.animate-slide-up/bounce-in/fade-in)을 이긴다.
+   키프레임 이름은 modal* 고유 접두 — @theme 동명 가림 회귀 방지 규약.
+   reduced-motion은 전역 백스톱(0.001ms)이 처리 → animationend 즉시 발화로
+   닫힘도 즉시(별도 가드 불필요). ========================================= */
+@keyframes modalBackdropIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes modalBackdropOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+@keyframes modalSheetOut {
+  from { transform: translateY(0); }
+  to { transform: translateY(100%); }
+}
+@keyframes modalCenterOut {
+  from { transform: scale(1); }
+  to { transform: scale(0.92); }
+}
+.modal-backdrop-in {
+  animation: modalBackdropIn 0.25s ease-out;
+}
+/* both: 종료 상태(투명) 유지 — animationend 후 finishClose(언마운트)까지의 프레임 공백에
+   원상 복귀 플래시가 없도록. 시트 이탈도 동일. */
+.modal-backdrop-out {
+  animation: modalBackdropOut 0.25s ease-in both;
+}
+.modal-sheet-out {
+  animation: modalSheetOut 0.25s ease-in both;
+}
+.modal-center-out {
+  animation: modalCenterOut 0.2s ease-in both;
+}

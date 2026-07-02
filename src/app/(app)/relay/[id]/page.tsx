@@ -7,7 +7,7 @@ import { useCachedApi } from '@/lib/cachedApi';
 import { useAppStore } from '@/lib/store';
 import ClayButton from '@/components/ClayButton';
 import ConfirmDialog from '@/components/ConfirmDialog';
-import Modal from '@/components/Modal';
+import Modal, { useModalClose } from '@/components/Modal';
 import Avatar from '@/components/Avatar';
 import type { RelayInfo, RelayMode, BoardSummary } from '@/types';
 import { feedbackRelay, feedbackSuccess, feedbackTap } from '@/lib/feedback';
@@ -60,6 +60,11 @@ export default function RelayDetailPage() {
   const [attachOpen, setAttachOpen] = useState(false);
   const [myBoards, setMyBoards] = useState<BoardSummary[]>([]);
   const [loadingMyBoards, setLoadingMyBoards] = useState(false);
+  // 첨부 시트의 '닫기' 버튼이 이탈 애니를 거쳐 닫히도록(조건부 호출 금지 — 페이지 최상위).
+  // 참여 성공 경로(handleJoin)는 종전대로 setAttachOpen(false)로 즉시 언마운트.
+  const { closeRef: attachCloseRef, requestClose: requestCloseAttach } = useModalClose(() =>
+    setAttachOpen(false),
+  );
 
   const fetchRelay = refresh;
 
@@ -429,14 +434,16 @@ export default function RelayDetailPage() {
       {/* 기존 포도판 불러오기 모달(그룹) */}
       {attachOpen && (
         <Modal
+          unstyled
           onClose={() => setAttachOpen(false)}
+          closeRef={attachCloseRef}
           label="기존 포도판 불러오기"
           backdropClassName="z-90 bg-black/40 backdrop-blur-xs"
           sheetClassName="w-full max-w-lg bg-clay-bg rounded-t-[28px] clay-float p-5 pb-8 safe-bottom max-h-[75vh] flex flex-col"
         >
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-display text-lg font-bold text-grape-700">기존 포도판 불러오기</h3>
-            <button onClick={() => setAttachOpen(false)} className="text-warm-sub text-sm">닫기</button>
+            <button onClick={requestCloseAttach} className="text-warm-sub text-sm">닫기</button>
           </div>
           <div className="flex-1 overflow-y-auto pb-4">
             {loadingMyBoards ? (

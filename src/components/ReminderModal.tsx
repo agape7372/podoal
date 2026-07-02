@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import Modal from './Modal';
+import Modal, { useModalClose } from './Modal';
 import { api } from '@/lib/api';
 import type { ReminderInfo } from '@/types';
 import { stripTitleEmoji } from '@/lib/title';
@@ -17,6 +17,7 @@ const DAY_LABELS = ['월', '화', '수', '목', '금', '토', '일'];
 const DAY_VALUES = ['1', '2', '3', '4', '5', '6', '7'];
 
 export default function ReminderModal({ reminder, boards, onSave, onClose }: ReminderModalProps) {
+  const { closeRef, requestClose } = useModalClose(onClose);
   const [time, setTime] = useState(reminder?.time || '09:00');
   const [selectedDays, setSelectedDays] = useState<string[]>(
     reminder?.days ? reminder.days.split(',') : ['1', '2', '3', '4', '5', '6', '7']
@@ -80,9 +81,10 @@ export default function ReminderModal({ reminder, boards, onSave, onClose }: Rem
   return (
     <Modal
       onClose={onClose}
+      closeRef={closeRef}
       label={reminder ? '리마인더 수정' : '리마인더 추가'}
       backdropClassName="z-90 bg-black/30 backdrop-blur-xs"
-      sheetClassName="w-full max-w-lg bg-clay-bg rounded-t-clay-lg clay-float p-6 pb-8 safe-bottom animate-slide-up max-h-[85vh] flex flex-col"
+      sheetClassName="max-h-[85vh] flex flex-col"
     >
       <div className="w-12 h-1.5 bg-warm-border rounded-full mx-auto mb-5" />
 
@@ -174,7 +176,7 @@ export default function ReminderModal({ reminder, boards, onSave, onClose }: Rem
           {/* Buttons */}
           <div className="flex gap-3 pt-2">
             <button
-              onClick={onClose}
+              onClick={requestClose}
               className="flex-1 clay-button py-3 rounded-2xl text-sm font-medium text-warm-sub"
             >
               취소

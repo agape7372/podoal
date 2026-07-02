@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { CHEER_EMOJIS } from '@/types';
 import { feedbackCheer } from '@/lib/feedback';
 import { ellipsizeName } from '@/lib/title';
-import Modal from './Modal';
+import Modal, { useModalClose } from './Modal';
 import ClayButton from './ClayButton';
 import EmojiIcon from './EmojiIcon';
 
@@ -26,6 +26,7 @@ const quickMessages: { text: string; emoji?: string }[] = [
 ];
 
 export default function CheerModal({ recipientName, onSend, onClose }: CheerModalProps) {
+  const { closeRef, requestClose } = useModalClose(onClose);
   const [selectedEmoji, setSelectedEmoji] = useState('💜');
   const [selectedMsg, setSelectedMsg] = useState('');
   const [sending, setSending] = useState(false);
@@ -38,7 +39,7 @@ export default function CheerModal({ recipientName, onSend, onClose }: CheerModa
     try {
       await onSend(selectedMsg, selectedEmoji);
       feedbackCheer();
-      onClose();
+      requestClose();
     } catch (e) {
       setError(e instanceof Error ? e.message : '응원을 보내지 못했어요');
     } finally {
@@ -49,9 +50,9 @@ export default function CheerModal({ recipientName, onSend, onClose }: CheerModa
   return (
     <Modal
       onClose={onClose}
+      closeRef={closeRef}
       label="응원 보내기"
       backdropClassName="z-90 bg-black/30 backdrop-blur-xs"
-      sheetClassName="w-full max-w-lg bg-clay-bg rounded-t-clay-lg clay-float p-6 pb-8 safe-bottom animate-slide-up"
     >
       <div className="w-12 h-1.5 bg-warm-border rounded-full mx-auto mb-5" />
 
@@ -111,7 +112,7 @@ export default function CheerModal({ recipientName, onSend, onClose }: CheerModa
         )}
 
         <div className="flex gap-3">
-          <ClayButton variant="ghost" onClick={onClose} fullWidth>
+          <ClayButton variant="ghost" onClick={requestClose} fullWidth>
             취소
           </ClayButton>
           <ClayButton

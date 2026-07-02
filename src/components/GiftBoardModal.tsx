@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Modal from './Modal';
+import Modal, { useModalClose } from './Modal';
 import Avatar from './Avatar';
 import ClayButton from './ClayButton';
 import EmojiIcon from './EmojiIcon';
@@ -16,6 +16,7 @@ interface GiftBoardModalProps {
 }
 
 export default function GiftBoardModal({ boardTitle, onGift, onClose }: GiftBoardModalProps) {
+  const { closeRef, requestClose } = useModalClose(onClose);
   const [friends, setFriends] = useState<FriendInfo[]>([]);
   const [selectedFriend, setSelectedFriend] = useState<string | null>(null);
   const [message, setMessage] = useState('');
@@ -40,7 +41,7 @@ export default function GiftBoardModal({ boardTitle, onGift, onClose }: GiftBoar
     try {
       await onGift(selectedFriend, message.trim());
       feedbackSuccess();
-      onClose();
+      requestClose();
     } catch (e) {
       setError(e instanceof Error ? e.message : '선물을 보내지 못했어요');
     } finally {
@@ -51,9 +52,9 @@ export default function GiftBoardModal({ boardTitle, onGift, onClose }: GiftBoar
   return (
     <Modal
       onClose={onClose}
+      closeRef={closeRef}
       label="포도판 선물하기"
       backdropClassName="z-90 bg-black/30 backdrop-blur-xs"
-      sheetClassName="w-full max-w-lg bg-clay-bg rounded-t-clay-lg clay-float p-6 pb-8 safe-bottom animate-slide-up"
     >
       <div className="w-12 h-1.5 bg-warm-border rounded-full mx-auto mb-5" />
 
@@ -124,7 +125,7 @@ export default function GiftBoardModal({ boardTitle, onGift, onClose }: GiftBoar
         )}
 
         <div className="flex gap-3">
-          <ClayButton variant="ghost" onClick={onClose} fullWidth>
+          <ClayButton variant="ghost" onClick={requestClose} fullWidth>
             취소
           </ClayButton>
           <ClayButton

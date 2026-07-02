@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Modal from './Modal';
+import Modal, { useModalClose } from './Modal';
 import ClayButton from './ClayButton';
 import EmojiIcon from './EmojiIcon';
 import { buildWeeklyRecapData, generateWeeklyRecapCard } from '@/lib/weeklyRecap';
@@ -17,6 +17,7 @@ interface WeeklyRecapModalProps {
 // 주간 회고 카드 모달 — ShareCardModal과 동일한 blob 생명주기 패턴
 // (생성→objectURL 미리보기→공유/다운로드, cleanup에서 revokeObjectURL).
 export default function WeeklyRecapModal({ stats, userName, onClose }: WeeklyRecapModalProps) {
+  const { closeRef, requestClose } = useModalClose(onClose);
   const [imageBlob, setImageBlob] = useState<Blob | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -96,9 +97,9 @@ export default function WeeklyRecapModal({ stats, userName, onClose }: WeeklyRec
   return (
     <Modal
       onClose={onClose}
+      closeRef={closeRef}
       label="주간 회고 카드"
       backdropClassName="z-90 bg-black/30 backdrop-blur-xs"
-      sheetClassName="w-full max-w-lg bg-clay-bg rounded-t-clay-lg clay-float p-6 pb-8 safe-bottom animate-slide-up"
     >
       <div className="w-12 h-1.5 bg-warm-border rounded-full mx-auto mb-5" />
 
@@ -131,7 +132,7 @@ export default function WeeklyRecapModal({ stats, userName, onClose }: WeeklyRec
 
       {/* Buttons */}
       <div className="flex gap-3">
-        <ClayButton variant="ghost" onClick={onClose} fullWidth>
+        <ClayButton variant="ghost" onClick={requestClose} fullWidth>
           닫기
         </ClayButton>
         <ClayButton

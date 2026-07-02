@@ -1,6 +1,6 @@
 'use client';
 
-import Modal from './Modal';
+import Modal, { useModalClose } from './Modal';
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -32,12 +32,16 @@ export default function ConfirmDialog({
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
+  // 훅은 조건부 return 앞에서 무조건 호출(취소 버튼이 이탈 애니를 거쳐 닫히도록).
+  const { closeRef, requestClose } = useModalClose(onCancel);
   if (!open) return null;
 
   return (
     <Modal
       variant="center"
+      unstyled
       onClose={onCancel}
+      closeRef={closeRef}
       dismissable={!loading}
       labelledBy="confirm-title"
       backdropClassName="z-90 bg-warm-text/30 px-6"
@@ -49,7 +53,7 @@ export default function ConfirmDialog({
       {description && <p className="text-sm text-warm-sub mb-4 leading-relaxed">{description}</p>}
       <div className="flex gap-2.5 mt-2">
         <button
-          onClick={onCancel}
+          onClick={requestClose}
           disabled={loading}
           className="clay-button flex-1 py-3 rounded-2xl text-sm font-semibold text-warm-sub disabled:opacity-50"
         >

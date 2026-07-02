@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Modal from './Modal';
+import Modal, { useModalClose } from './Modal';
 import ClayButton from './ClayButton';
 import EmojiIcon from './EmojiIcon';
 import { generateShareCard } from '@/lib/shareCard';
@@ -16,6 +16,7 @@ interface ShareCardModalProps {
 }
 
 export default function ShareCardModal({ board, userName, onClose }: ShareCardModalProps) {
+  const { closeRef, requestClose } = useModalClose(onClose);
   const [imageBlob, setImageBlob] = useState<Blob | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -105,9 +106,9 @@ export default function ShareCardModal({ board, userName, onClose }: ShareCardMo
   return (
     <Modal
       onClose={onClose}
+      closeRef={closeRef}
       label="공유 카드"
       backdropClassName="z-90 bg-black/30 backdrop-blur-xs"
-      sheetClassName="w-full max-w-lg bg-clay-bg rounded-t-clay-lg clay-float p-6 pb-8 safe-bottom animate-slide-up"
     >
       <div className="w-12 h-1.5 bg-warm-border rounded-full mx-auto mb-5" />
 
@@ -140,7 +141,7 @@ export default function ShareCardModal({ board, userName, onClose }: ShareCardMo
 
         {/* Buttons */}
         <div className="flex gap-3">
-          <ClayButton variant="ghost" onClick={onClose} fullWidth>
+          <ClayButton variant="ghost" onClick={requestClose} fullWidth>
             닫기
           </ClayButton>
           <ClayButton

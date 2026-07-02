@@ -1,6 +1,6 @@
 'use client';
 
-import Modal from './Modal';
+import Modal, { useModalClose } from './Modal';
 import ClayButton from './ClayButton';
 import EmojiIcon from './EmojiIcon';
 import Podo from './mascot/Podo';
@@ -27,13 +27,17 @@ export default function OnboardingWelcome({ onClose }: OnboardingWelcomeProps) {
     onClose();
   };
 
+  // '둘러볼게요' 순수 닫기는 이탈 애니를 거친다. CTA(start)는 <Link>가 즉시
+  // 이동하므로 onClose를 동기로 직접 호출해야 '다시 보지 않음' 기록이 보장된다.
+  const { closeRef, requestClose } = useModalClose(onClose);
+
   return (
     <Modal
       variant="center"
       onClose={onClose}
+      closeRef={closeRef}
       label="포도알 시작하기"
       backdropClassName="z-92 bg-black/40 backdrop-blur-xs p-6"
-      sheetClassName="w-full max-w-sm bg-clay-bg rounded-[28px] clay-float p-6 text-center animate-bounce-in"
     >
       <div className="flex justify-center mb-3">
         <Podo size={64} />
@@ -65,7 +69,7 @@ export default function OnboardingWelcome({ onClose }: OnboardingWelcomeProps) {
         <EmojiIcon emoji="🍇" size={16} className="mr-1" />첫 포도판 만들기
       </ClayButton>
       <button
-        onClick={() => { feedbackTap(); onClose(); }}
+        onClick={() => { feedbackTap(); requestClose(); }}
         className="w-full text-sm text-warm-sub mt-2.5 py-1.5"
       >
         둘러볼게요
