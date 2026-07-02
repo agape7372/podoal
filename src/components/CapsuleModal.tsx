@@ -299,7 +299,7 @@ export default function CapsuleModal({ boardId, isOwner, onClose }: CapsuleModal
                           className={`
                             clay-sm p-4 bg-grape-50
                             transition-all duration-500
-                            ${isJustOpened ? 'animate-bounce-in ring-2 ring-grape-300' : ''}
+                            ${isJustOpened ? 'capsule-open ring-2 ring-grape-300' : ''}
                           `}
                         >
                           <div className="flex items-start gap-3">

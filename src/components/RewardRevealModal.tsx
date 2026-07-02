@@ -33,6 +33,7 @@ export default function RewardRevealModal({ reward, loading = false, loadingNote
       variant="center"
       onClose={onClose}
       closeRef={closeRef}
+      enterClassName="animate-reward-reveal"
       label={`보상 개봉 — ${reward.title}`}
       backdropClassName="z-95 bg-black/40 backdrop-blur-xs p-6"
       overlay={<Confetti trigger={1} />}

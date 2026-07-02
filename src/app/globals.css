@@ -136,7 +136,7 @@
      로컬 정의를 가리는 회귀 선례(skeletonSweep 사건, 2026-06-11). */
   --animate-bounce-in: bounceIn 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97);
   --animate-slide-up: slideUp 0.4s ease-out;
-  --animate-reward-reveal: rewardReveal 1s cubic-bezier(0.34, 1.56, 0.64, 1);
+  --animate-reward-reveal: rewardReveal 0.7s cubic-bezier(0.22, 1, 0.36, 1);
   --animate-shimmer: shimmer 2s infinite;
 
   @keyframes bounceIn {
@@ -162,16 +162,23 @@
       opacity: 1;
     }
   }
+  /* 보상 개봉 전용 3D 카드 플립 — 범용 bounce-in과 구분되는 '개봉감'.
+     perspective 없이는 rotateY가 가로 스쿼시로만 보이고, 180° 시작은 전반부에
+     미러 콘텐츠가 노출되므로 90°(모서리) 시작 + 오버슈트(-8°)로 재작성(2026-07). */
   @keyframes rewardReveal {
     0% {
-      transform: scale(0) rotateY(180deg);
+      transform: perspective(800px) rotateY(90deg) scale(0.7);
       opacity: 0;
     }
-    60% {
-      transform: scale(1.1) rotateY(10deg);
+    55% {
+      transform: perspective(800px) rotateY(-8deg) scale(1.04);
+      opacity: 1;
+    }
+    78% {
+      transform: perspective(800px) rotateY(3deg) scale(0.99);
     }
     100% {
-      transform: scale(1) rotateY(0deg);
+      transform: perspective(800px) rotateY(0deg) scale(1);
       opacity: 1;
     }
   }
