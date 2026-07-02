@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Modal from './Modal';
+import Modal, { useModalClose } from './Modal';
 import ClayButton from './ClayButton';
 import ClayInput from './ClayInput';
 import ConfirmDialog from './ConfirmDialog';
@@ -29,6 +29,7 @@ const placeholders: Record<RewardType, { title: string; content: string }> = {
 };
 
 export default function MidRewardModal({ board, position, existingReward, onClose, onSaved }: MidRewardModalProps) {
+  const { closeRef, requestClose } = useModalClose(onClose);
   const editing = !!existingReward;
   const [type, setType] = useState<RewardType>(existingReward?.type ?? 'letter');
   const [title, setTitle] = useState(existingReward?.title ?? '');
@@ -91,7 +92,7 @@ export default function MidRewardModal({ board, position, existingReward, onClos
       }
       feedbackSuccess();
       onSaved();
-      onClose();
+      requestClose();
     } catch (e) {
       setError(e instanceof Error ? e.message : '보상을 저장하지 못했어요');
       setBusy(false);
@@ -106,7 +107,7 @@ export default function MidRewardModal({ board, position, existingReward, onClos
       await api(`/api/boards/${board.id}/rewards/${existingReward.id}`, { method: 'DELETE' });
       feedbackSuccess();
       onSaved();
-      onClose();
+      requestClose();
     } catch (e) {
       setError(e instanceof Error ? e.message : '보상을 삭제하지 못했어요');
       setDeleting(false);
@@ -117,10 +118,10 @@ export default function MidRewardModal({ board, position, existingReward, onClos
   return (
     <Modal
       onClose={onClose}
+      closeRef={closeRef}
       dismissable={!busy && !deleting}
       label={editing ? '중간 보상 수정' : '중간 보상'}
       backdropClassName="z-90 bg-black/30 backdrop-blur-xs"
-      sheetClassName="w-full max-w-lg bg-clay-bg rounded-t-clay-lg clay-float p-6 pb-8 safe-bottom animate-slide-up"
     >
       <div className="w-12 h-1.5 bg-warm-border rounded-full mx-auto mb-5" />
         <h3 className="font-display text-xl font-bold text-grape-700 text-center mb-1">
@@ -175,7 +176,7 @@ export default function MidRewardModal({ board, position, existingReward, onClos
         {error && <p role="alert" className="text-rose-700 text-xs text-center mb-3">{error}</p>}
 
         <div className="flex gap-3">
-          <ClayButton variant="ghost" onClick={onClose} fullWidth disabled={busy || deleting}>
+          <ClayButton variant="ghost" onClick={requestClose} fullWidth disabled={busy || deleting}>
             취소
           </ClayButton>
           <ClayButton variant="primary" onClick={save} fullWidth loading={busy} disabled={deleting}>

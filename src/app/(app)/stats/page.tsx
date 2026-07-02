@@ -126,7 +126,7 @@ export default function StatsPage() {
                 <div key={day.date} className="flex flex-col items-center gap-1 flex-1">
                   <span className="text-[10px] text-warm-sub tabular-nums">{day.count}</span>
                   <div
-                    className="w-full rounded-t-lg bg-linear-to-t from-grape-400 to-grape-300 transition-all duration-500"
+                    className="w-full rounded-t-lg bg-linear-to-t from-grape-400 to-grape-300 transition-[height] duration-500"
                     style={{
                       height: `${Math.max((day.count / maxDaily) * 80, 4)}px`,
                       minHeight: '4px',
@@ -274,7 +274,7 @@ function DayOfWeekChart({ data }: { data: { day: string; count: number }[] }) {
           <span className="text-xs text-warm-sub w-5 text-right shrink-0">{d.day}</span>
           <div className="flex-1 h-5 bg-warm-border/40 rounded-full overflow-hidden">
             <div
-              className="h-full bg-linear-to-r from-grape-300 to-grape-500 rounded-full transition-all duration-500"
+              className="h-full bg-linear-to-r from-grape-300 to-grape-500 rounded-full transition-[width] duration-500"
               style={{ width: `${Math.max((d.count / maxCount) * 100, d.count > 0 ? 8 : 0)}%` }}
             />
           </div>
@@ -316,7 +316,7 @@ function CircularProgress({ value }: { value: number }) {
             strokeLinecap="round"
             strokeDasharray={circumference}
             strokeDashoffset={strokeDashoffset}
-            className="transition-all duration-700"
+            className="transition-[stroke-dashoffset] duration-700"
           />
           <defs>
             <linearGradient id="grapeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -348,7 +348,7 @@ function MonthlyChart({ data }: { data: { month: string; count: number }[] }) {
         <div key={d.month} className="flex flex-col items-center gap-1 flex-1">
           <span className="text-[10px] text-warm-sub tabular-nums">{d.count}</span>
           <div
-            className="w-full rounded-t-lg bg-linear-to-t from-grape-500 to-grape-300 transition-all duration-500"
+            className="w-full rounded-t-lg bg-linear-to-t from-grape-500 to-grape-300 transition-[height] duration-500"
             style={{
               height: `${Math.max((d.count / maxCount) * 96, 4)}px`,
               minHeight: '4px',
@@ -395,7 +395,7 @@ function CategoryBreakdown({ data }: { data: { category: string; count: number }
           </div>
           <div className="h-3 bg-warm-border/40 rounded-full overflow-hidden">
             <div
-              className="h-full bg-linear-to-r from-grape-300 to-grape-500 rounded-full transition-all duration-500"
+              className="h-full bg-linear-to-r from-grape-300 to-grape-500 rounded-full transition-[width] duration-500"
               style={{ width: `${(d.count / maxCount) * 100}%` }}
             />
           </div>

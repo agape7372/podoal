@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import Modal from './Modal';
+import Modal, { useModalClose } from './Modal';
 import ClayButton from './ClayButton';
 import ClayInput from './ClayInput';
 import EmojiIcon from './EmojiIcon';
@@ -19,6 +19,7 @@ interface EditBoardInfoModalProps {
  * Mirrors MidRewardModal's skeleton (z-[90] sheet, ClayInput + textarea, error row).
  */
 export default function EditBoardInfoModal({ initialTitle, initialDescription, onSave, onClose }: EditBoardInfoModalProps) {
+  const { closeRef, requestClose } = useModalClose(onClose);
   // 편집 대상은 DB 원본이라 stripTitleEmoji를 적용하지 않은 raw 제목을 그대로 보여준다.
   const [title, setTitle] = useState(initialTitle);
   const [description, setDescription] = useState(initialDescription);
@@ -34,7 +35,7 @@ export default function EditBoardInfoModal({ initialTitle, initialDescription, o
     setError('');
     try {
       await onSave({ title: title.trim(), description: description.trim() });
-      onClose();
+      requestClose();
     } catch (e) {
       setError(e instanceof Error ? e.message : '수정하지 못했어요');
       setBusy(false);
@@ -44,10 +45,10 @@ export default function EditBoardInfoModal({ initialTitle, initialDescription, o
   return (
     <Modal
       onClose={onClose}
+      closeRef={closeRef}
       dismissable={!busy}
       label="포도판 수정"
       backdropClassName="z-90 bg-black/30 backdrop-blur-xs"
-      sheetClassName="w-full max-w-lg bg-clay-bg rounded-t-clay-lg clay-float p-6 pb-8 safe-bottom animate-slide-up"
     >
       <div className="w-12 h-1.5 bg-warm-border rounded-full mx-auto mb-5" />
       <h3 className="font-display text-xl font-bold text-grape-700 text-center mb-5">
@@ -82,7 +83,7 @@ export default function EditBoardInfoModal({ initialTitle, initialDescription, o
         {error && <p role="alert" className="text-rose-700 text-xs text-center mb-3">{error}</p>}
 
         <div className="flex gap-3">
-          <ClayButton variant="ghost" onClick={onClose} fullWidth disabled={busy}>
+          <ClayButton variant="ghost" onClick={requestClose} fullWidth disabled={busy}>
             취소
           </ClayButton>
           <ClayButton variant="primary" onClick={save} fullWidth loading={busy}>

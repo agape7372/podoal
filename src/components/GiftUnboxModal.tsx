@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import Modal from './Modal';
+import Modal, { useModalClose } from './Modal';
 import Avatar from './Avatar';
 import ClayButton from './ClayButton';
 import EmojiIcon from './EmojiIcon';
@@ -49,15 +49,18 @@ export default function GiftUnboxModal({
     }
   };
 
+  // 거절 버튼은 이탈 애니를 거쳐 handleDecline(Modal onClose)로 닫힌다.
+  const { closeRef, requestClose } = useModalClose(handleDecline);
+
   return (
     <Modal
       variant="center"
       onClose={handleDecline}
+      closeRef={closeRef}
       dismissable={false}
       label={`${senderName}님의 선물 — ${boardTitle}`}
       backdropClassName="z-95 bg-black/40 backdrop-blur-xs p-6"
       overlay={<Confetti trigger={confetti} />}
-      sheetClassName="w-full max-w-sm bg-clay-bg rounded-[28px] clay-float p-6 text-center animate-bounce-in"
     >
       <EmojiIcon emoji="🎁" size={64} className="block mx-auto mb-3" />
         <div className="flex items-center justify-center gap-2 mb-1">
@@ -79,7 +82,7 @@ export default function GiftUnboxModal({
             <EmojiIcon emoji="🍇" size={16} className="mr-1" />선물 받기
           </ClayButton>
           <button
-            onClick={handleDecline}
+            onClick={requestClose}
             disabled={busy}
             className="text-xs text-warm-sub underline py-1"
           >

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { api } from '@/lib/api';
-import Modal from './Modal';
+import Modal, { useModalClose } from './Modal';
 import ClayButton from './ClayButton';
 import EmojiIcon from './EmojiIcon';
 import type { TimeCapsuleInfo } from '@/types';
@@ -19,6 +19,7 @@ interface CapsuleModalProps {
 const CAPSULE_EMOJIS = ['🍇', '💜', '✨', '🎉', '💪', '🌟', '❤️', '👏', '🔥', '🥳'];
 
 export default function CapsuleModal({ boardId, isOwner, onClose }: CapsuleModalProps) {
+  const { closeRef, requestClose } = useModalClose(onClose);
   const [tab, setTab] = useState<'create' | 'list'>(isOwner ? 'create' : 'list');
   const [capsules, setCapsules] = useState<TimeCapsuleInfo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -127,9 +128,10 @@ export default function CapsuleModal({ boardId, isOwner, onClose }: CapsuleModal
   return (
     <Modal
       onClose={onClose}
+      closeRef={closeRef}
       label="동결건조 — 미래의 나에게 보내는 메시지"
       backdropClassName="z-90 bg-black/30 backdrop-blur-xs"
-      sheetClassName="w-full max-w-lg bg-clay-bg rounded-t-clay-lg clay-float p-6 pb-8 safe-bottom animate-slide-up max-h-[85vh] flex flex-col"
+      sheetClassName="max-h-[85vh] flex flex-col"
     >
       <div className="w-12 h-1.5 bg-warm-border rounded-full mx-auto mb-5" />
 
@@ -240,7 +242,7 @@ export default function CapsuleModal({ boardId, isOwner, onClose }: CapsuleModal
               )}
 
               <div className="flex gap-3 pt-2">
-                <ClayButton variant="ghost" onClick={onClose} fullWidth>
+                <ClayButton variant="ghost" onClick={requestClose} fullWidth>
                   취소
                 </ClayButton>
                 <ClayButton
@@ -297,7 +299,7 @@ export default function CapsuleModal({ boardId, isOwner, onClose }: CapsuleModal
                           className={`
                             clay-sm p-4 bg-grape-50
                             transition-all duration-500
-                            ${isJustOpened ? 'animate-bounce-in ring-2 ring-grape-300' : ''}
+                            ${isJustOpened ? 'capsule-open ring-2 ring-grape-300' : ''}
                           `}
                         >
                           <div className="flex items-start gap-3">
@@ -389,7 +391,7 @@ export default function CapsuleModal({ boardId, isOwner, onClose }: CapsuleModal
               {/* Close button at the bottom of list view */}
               {!loading && (
                 <div className="pt-2 pb-2">
-                  <ClayButton variant="ghost" onClick={onClose} fullWidth>
+                  <ClayButton variant="ghost" onClick={requestClose} fullWidth>
                     닫기
                   </ClayButton>
                 </div>

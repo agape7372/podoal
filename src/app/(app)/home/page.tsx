@@ -752,8 +752,14 @@ export default function HomePage() {
       ) : (
         <>
           <ul className="space-y-3">
-            {displayBoards.map((board) => (
-              <li key={board.id}>
+            {displayBoards.map((board, i) => (
+              // 스태거는 li(정적 래퍼)에만 — FLIP/스와이프가 잡는 transform 레이어는
+              // SwipeableBoardCard 내부(innerRef/moveLayerRef)라 인라인 transform과 충돌 없음.
+              <li
+                key={board.id}
+                className="stagger-item"
+                style={{ '--stagger-i': Math.min(i, 8) } as React.CSSProperties}
+              >
                 <SwipeableBoardCard
                   board={board}
                   offset={offsetFor(board.id)}

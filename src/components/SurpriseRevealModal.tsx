@@ -1,6 +1,6 @@
 'use client';
 
-import Modal from './Modal';
+import Modal, { useModalClose } from './Modal';
 import Avatar from './Avatar';
 import ClayButton from './ClayButton';
 import EmojiIcon from './EmojiIcon';
@@ -15,15 +15,16 @@ interface SurpriseRevealModalProps {
 // Shown the instant a recipient fills a grape that a friend had planted a
 // surprise gift on.
 export default function SurpriseRevealModal({ gift, onClose }: SurpriseRevealModalProps) {
+  const { closeRef, requestClose } = useModalClose(onClose);
   return (
     <Modal
       variant="center"
       onClose={onClose}
+      closeRef={closeRef}
       dismissable={false}
       label="포도알 속 깜짝 선물"
       backdropClassName="z-95 bg-black/40 backdrop-blur-xs p-6"
       overlay={<Confetti trigger={1} />}
-      sheetClassName="w-full max-w-sm bg-clay-bg rounded-[28px] clay-float p-6 text-center animate-bounce-in"
     >
       <EmojiIcon emoji={gift.emoji || '🎁'} size={64} className="block mx-auto mb-3" />
         <p className="text-sm text-warm-sub mb-1">포도알 속 깜짝 선물!</p>
@@ -38,7 +39,7 @@ export default function SurpriseRevealModal({ gift, onClose }: SurpriseRevealMod
             &ldquo;{gift.message}&rdquo;
           </div>
         )}
-      <ClayButton variant="joyful" onClick={onClose} fullWidth>
+      <ClayButton variant="joyful" onClick={requestClose} fullWidth>
         <EmojiIcon emoji="💜" size={16} />고마워요!
       </ClayButton>
     </Modal>

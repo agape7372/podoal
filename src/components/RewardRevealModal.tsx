@@ -3,7 +3,7 @@
 import type { RewardInfo } from '@/types';
 import { REWARD_TYPE_LABELS } from '@/types';
 import { REWARD_TYPE_ICON, ICON } from '@/lib/icons';
-import Modal from './Modal';
+import Modal, { useModalClose } from './Modal';
 import ClayButton from './ClayButton';
 import EmojiIcon from './EmojiIcon';
 import Confetti from './Confetti';
@@ -27,14 +27,16 @@ interface RewardRevealModalProps {
  * 보상(빈 content·imageUrl)은 본문 박스를 생략하고 제목만 보여준다.
  */
 export default function RewardRevealModal({ reward, loading = false, loadingNote, onClose }: RewardRevealModalProps) {
+  const { closeRef, requestClose } = useModalClose(onClose);
   return (
     <Modal
       variant="center"
       onClose={onClose}
+      closeRef={closeRef}
+      enterClassName="animate-reward-reveal"
       label={`보상 개봉 — ${reward.title}`}
       backdropClassName="z-95 bg-black/40 backdrop-blur-xs p-6"
       overlay={<Confetti trigger={1} />}
-      sheetClassName="w-full max-w-sm bg-clay-bg rounded-[28px] clay-float p-6 text-center animate-bounce-in"
     >
       <p className="text-sm text-warm-sub mb-2">보상 개봉!</p>
         <EmojiIcon emoji={REWARD_TYPE_ICON[reward.type]} size={56} className="block mx-auto mb-2" />
@@ -58,7 +60,7 @@ export default function RewardRevealModal({ reward, loading = false, loadingNote
             <img src={reward.imageUrl} alt={reward.title} className="w-full object-cover max-h-60" />
           </div>
         )}
-      <ClayButton variant="joyful" onClick={onClose} fullWidth>
+      <ClayButton variant="joyful" onClick={requestClose} fullWidth>
         <EmojiIcon emoji={ICON.heart} size={16} className="mr-1" />확인
       </ClayButton>
     </Modal>

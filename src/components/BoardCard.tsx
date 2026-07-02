@@ -77,8 +77,10 @@ export default function BoardCard({ board, asStatic = false, reserveTopRight = f
         {/* Progress bar */}
         <div className="w-full h-2 rounded-full bg-clay-bg overflow-hidden">
           <div
-            className="h-full rounded-full bg-linear-to-r from-grape-500 via-grape-400 to-lime-300 transition-all"
-            style={{ width: `${progress}%` }}
+            // width 대신 scaleX — 진행 변화 시 프레임마다 레이아웃을 유발하지 않는다
+            // (컴포지터 전용). 그라데이션은 요소 박스 기준이라 두 방식의 시각이 동일.
+            className="h-full w-full origin-left rounded-full bg-linear-to-r from-grape-500 via-grape-400 to-lime-300 transition-transform"
+            style={{ transform: `scaleX(${progress / 100})` }}
           />
         </div>
         <div className="flex justify-between items-center mt-1.5">

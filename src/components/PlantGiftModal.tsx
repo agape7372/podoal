@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import Modal from './Modal';
+import Modal, { useModalClose } from './Modal';
 import ClayButton from './ClayButton';
 import EmojiIcon from './EmojiIcon';
 import { api } from '@/lib/api';
@@ -15,6 +15,7 @@ interface PlantGiftModalProps {
 }
 
 export default function PlantGiftModal({ board, onClose, onPlanted }: PlantGiftModalProps) {
+  const { closeRef, requestClose } = useModalClose(onClose);
   const positions: number[] = [];
   for (let p = board.filledCount; p < board.totalStickers; p++) positions.push(p);
 
@@ -30,7 +31,7 @@ export default function PlantGiftModal({ board, onClose, onPlanted }: PlantGiftM
       await api(`/api/boards/${board.id}/plant-gift`, { method: 'POST', json: { position, message: message.trim() } });
       feedbackSuccess();
       onPlanted();
-      onClose();
+      requestClose();
     } catch (e) {
       setError(e instanceof Error ? e.message : '선물을 심지 못했어요');
     } finally {
@@ -41,9 +42,9 @@ export default function PlantGiftModal({ board, onClose, onPlanted }: PlantGiftM
   return (
     <Modal
       onClose={onClose}
+      closeRef={closeRef}
       label="깜짝 선물 심기"
       backdropClassName="z-90 bg-black/30 backdrop-blur-xs"
-      sheetClassName="w-full max-w-lg bg-clay-bg rounded-t-clay-lg clay-float p-6 pb-8 safe-bottom animate-slide-up"
     >
       <div className="w-12 h-1.5 bg-warm-border rounded-full mx-auto mb-5" />
       <h3 className="font-display text-xl font-bold text-grape-700 text-center mb-1">
@@ -87,7 +88,7 @@ export default function PlantGiftModal({ board, onClose, onPlanted }: PlantGiftM
         {error && <p role="alert" className="text-rose-700 text-xs text-center mb-3">{error}</p>}
 
         <div className="flex gap-3">
-          <ClayButton variant="ghost" onClick={onClose} fullWidth>취소</ClayButton>
+          <ClayButton variant="ghost" onClick={requestClose} fullWidth>취소</ClayButton>
           <ClayButton variant="primary" onClick={handlePlant} fullWidth loading={busy} disabled={positions.length === 0}>
             <EmojiIcon emoji="🎁" size={16} className="mr-1" />선물 심기
           </ClayButton>
