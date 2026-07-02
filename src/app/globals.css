@@ -68,19 +68,23 @@
   --color-sunshine-600: #b98a1c;
   --color-sunshine-700: #8a6612;
 
+  /* 확장 팔레트 — 와이너리 품종 포일(WineBottle)의 취미(warm orange)·마음건강(calm blue)
+     계열. 인라인 hex 섬이던 값을 정식 토큰으로 편입(var()로만 참조, 유틸리티 미사용). */
+  --color-ember-300: #f2a25c;
+  --color-ember-500: #e08536;
+  --color-ember-700: #b5651d;
+  --color-mist-300: #9fbfe8;
+  --color-mist-500: #7a9fd4;
+  --color-mist-700: #5b7fb0;
+
   --radius-clay: 24px;
   --radius-clay-lg: 32px;
-  --radius-clay-xl: 40px;
-  --radius-clay-pill: 999px;
 
-  --shadow-clay:
-    0 4px 12px rgba(73, 50, 100, 0.06), 0 1px 3px rgba(73, 50, 100, 0.04);
+  /* 그림자의 정본은 아래 .clay* @utility(하드 오프셋 "스티커" 그림자)다.
+     여기 토큰은 마크업에서 shadow-* 유틸리티로 실사용되는 것만 유지한다
+     (미사용이던 clay/clay-pressed/clay-float/clay-puffy 토큰은 유틸과 값이
+     발산한 채 죽어 있어 제거 — radius-clay-xl/-pill도 동일). */
   --shadow-clay-sm: 0 2px 6px rgba(73, 50, 100, 0.05);
-  --shadow-clay-pressed: inset 0 2px 5px rgba(73, 50, 100, 0.08);
-  --shadow-clay-float:
-    0 8px 24px rgba(73, 50, 100, 0.1), 0 2px 6px rgba(73, 50, 100, 0.05);
-  --shadow-clay-puffy:
-    0 14px 32px rgba(73, 50, 100, 0.14), 0 4px 10px rgba(73, 50, 100, 0.07);
   --shadow-grape-glow:
     0 0 0 4px rgba(155, 126, 216, 0.15), 0 6px 18px rgba(123, 95, 184, 0.2);
 

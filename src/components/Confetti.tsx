@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from 'react';
 
-// Classic multi-color party confetti.
+// Brand-pastel party confetti — podoal @theme 토큰 값과 동기(iOS 시스템 팔레트였던
+// 오프-브랜드 8색을 grape/juice/leaf/lime/sunshine 계열로 교체).
 const CONFETTI_COLORS = [
-  '#FF3B30', '#FF9500',
-  '#FFCC00', '#34C759',
-  '#00C7BE', '#007AFF',
-  '#5856D6', '#FF2D55',
+  '#c9a8e8', '#9970c8', // grape-400 / grape-600
+  '#f58bae', '#c84b73', // juice-400 / juice-600
+  '#8fc972', '#cfdc78', // leaf-400 / lime-500
+  '#f9e082', '#e0ae2c', // sunshine-300 / sunshine-500
 ];
 const CONFETTI_COUNT = 50;
 

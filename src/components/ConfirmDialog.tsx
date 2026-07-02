@@ -41,7 +41,7 @@ export default function ConfirmDialog({
       dismissable={!loading}
       labelledBy="confirm-title"
       backdropClassName="z-90 bg-warm-text/30 px-6"
-      sheetClassName="clay-puffy bg-white w-full max-w-xs p-5 text-center animate-fade-in"
+      sheetClassName="clay-puffy bg-clay-bg w-full max-w-xs p-5 text-center animate-fade-in"
     >
       <h2 id="confirm-title" className="font-display text-lg font-bold text-warm-text mb-1.5">
         {title}
