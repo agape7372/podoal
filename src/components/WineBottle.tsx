@@ -1,6 +1,6 @@
 'use client';
 
-import { memo } from 'react';
+import { memo, useEffect, useRef } from 'react';
 import type { WineBottle as WineBottleType } from '@/lib/winery';
 import { stripTitleEmoji } from '@/lib/title';
 
@@ -50,9 +50,28 @@ function getBottleGradient(daysToComplete: number): { body: string; highlight: s
 function WineBottleInner({ bottle, onSelect, selected = false }: WineBottleProps) {
   const dim = SIZE_MAP[bottle.bottleSize];
   const gradient = getBottleGradient(bottle.daysToComplete);
+  const rootRef = useRef<HTMLButtonElement>(null);
+
+  // 선택 시 짧은 wobble — WAAPI(rotate, transform만). 전역 reduced-motion
+  // 백스톱은 CSS 애니 전용이라 WAAPI는 직접 가드. cleanup으로 선제 정리.
+  useEffect(() => {
+    if (!selected || !rootRef.current) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const anim = rootRef.current.animate(
+      [
+        { transform: 'rotate(0deg)' },
+        { transform: 'rotate(-2.5deg)', offset: 0.3 },
+        { transform: 'rotate(2deg)', offset: 0.65 },
+        { transform: 'rotate(0deg)' },
+      ],
+      { duration: 380, easing: 'ease-in-out' },
+    );
+    return () => anim.cancel();
+  }, [selected]);
 
   return (
     <button
+      ref={rootRef}
       onClick={() => onSelect?.(bottle.boardId)}
       aria-pressed={selected}
       className="group flex flex-col items-center gap-2 transition-all duration-300 hover:scale-105 hover:-rotate-1 active:scale-95"
