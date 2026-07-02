@@ -56,6 +56,7 @@ model Board {
   completedAt   DateTime?
   order         Int?      // 홈 목록 사용자 지정 정렬(null=createdAt 폴백)
   harvestedAt   DateTime? // 수확(숨김) 시각. null=노출
+  cellarNote    String?   // 소믈리에 노트 — 완성 습관 회고 메모(와이너리 상세 패널, ≤200자)
   createdAt     DateTime @default(now())
 
   owner             User               @relation("BoardOwner", fields: [ownerId], references: [id])
@@ -71,6 +72,7 @@ model Board {
 
   @@index([ownerId])    // 홈 보드 목록
   @@index([giftedToId]) // 받은 선물 보드·친구 활동 피드
+  @@index([ownerId, isCompleted, completedAt]) // 와이너리 병 목록(완성 보드 completedAt desc) — 선두 ownerId라 홈 조회도 커버
 }
 
 model Sticker {

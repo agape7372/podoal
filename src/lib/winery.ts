@@ -98,4 +98,6 @@ export interface WineBottle {
   harvestedAt: string | null;
   /** 보드 템플릿 id — 접두(카테고리)로 품종 포일 색을 유도(stats와 동일 규칙). */
   templateId: string | null;
+  /** 소믈리에 노트 — 완성 습관 회고 메모(≤200자). null = 미작성. */
+  cellarNote: string | null;
 }

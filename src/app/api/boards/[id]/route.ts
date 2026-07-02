@@ -153,7 +153,13 @@ export async function PATCH(request: Request, props: { params: Promise<{ id: str
   }
 
   const body = await request.json().catch(() => ({}));
-  const data: { allowFriendPlant?: boolean; title?: string; description?: string; harvestedAt?: Date | null } = {};
+  const data: {
+    allowFriendPlant?: boolean;
+    title?: string;
+    description?: string;
+    harvestedAt?: Date | null;
+    cellarNote?: string | null;
+  } = {};
   if (typeof body?.allowFriendPlant === 'boolean') {
     data.allowFriendPlant = body.allowFriendPlant;
   }
@@ -163,6 +169,18 @@ export async function PATCH(request: Request, props: { params: Promise<{ id: str
       return authResponse('완료된 포도판만 수확할 수 있어요', 400);
     }
     data.harvestedAt = body.harvested ? new Date() : null;
+  }
+  // 소믈리에 노트(와이너리) — 완성 보드 한정 회고 메모. 빈 문자열 저장은 null로
+  // 정규화(노트 삭제 의미). description과 동일한 200자 상한.
+  if (typeof body?.cellarNote === 'string') {
+    if (!board.isCompleted) {
+      return authResponse('완성된 포도판에만 노트를 남길 수 있어요', 400);
+    }
+    if (body.cellarNote.length > 200) {
+      return authResponse('노트는 200자 이하여야 합니다.', 400);
+    }
+    const trimmed = body.cellarNote.trim();
+    data.cellarNote = trimmed === '' ? null : trimmed;
   }
   // 제목/설명 편집 — POST(boards/route.ts)와 동일 검증. stripTitleEmoji는 표시 전용이라 저장경로에 미적용(raw 저장).
   if (typeof body?.title === 'string') {
