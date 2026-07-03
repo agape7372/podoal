@@ -25,7 +25,7 @@ const maruBuri = localFont({
 
 export const metadata: Metadata = {
   // OG/트위터 이미지의 절대 URL 보장(src/app/opengraph-image.png 파일 컨벤션과 쌍).
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? 'https://podoal.vercel.app'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? 'https://podoal-rouge.vercel.app'),
   title: 'podoal — 한 알씩, 매일의 기록',
   description: '포도알을 한 알씩 채우며 목표를 달성하고, 소중한 사람에게 응원과 보상을 주고받아요.',
   openGraph: {
