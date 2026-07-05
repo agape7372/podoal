@@ -24,3 +24,6 @@ take-screenshot*.mjs
 # Local-only review/screenshot artifacts (never ship/track)
 .shots/
 taste-review/
+
+# Claude Code local tooling
+.claude/

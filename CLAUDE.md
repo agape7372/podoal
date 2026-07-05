@@ -2,7 +2,9 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-> **About this project (podoal)** — This is **podoal**, a habit-tracking PWA with a claymorphism visual redesign. Data layer (Prisma schema, all `/api/*` routes, `src/lib/auth.ts`, `src/lib/oauth.ts`, `src/lib/store.ts` keys, `src/lib/feedback.ts` function signatures, `prisma/seed.ts`, env var names) — **do not modify**. Visual layer (`src/app/globals.css`, all `src/components/**`, all page components, manifest brand strings) was redesigned.
+> **About this project (podoal)** — This is **podoal**, a habit-tracking PWA with a claymorphism visual redesign. Data layer (Prisma schema, all `/api/*` routes, `src/lib/auth.ts`, `src/lib/oauth.ts`, `src/lib/store.ts` keys, `src/lib/feedback.ts` function signatures, `prisma/seed.ts`, env var names) was originally frozen at redesign time. **As of 2026-07-05 the freeze is relaxed to a gate, not a ban** — verified real bugs (input-validation 500s, missing authZ, races) and additive fields ARE fixable; renames / key changes / response-field removals still need explicit approval. Before touching the data layer, follow the gate in [`docs/PRINCIPLES.md`](docs/PRINCIPLES.md) §3 (reproduction required, guard patterns, migration procedure). Visual layer (`src/app/globals.css`, all `src/components/**`, all page components, manifest brand strings) was redesigned.
+>
+> **Companion docs (read these — they carry the operating knowledge)**: [`docs/PRINCIPLES.md`](docs/PRINCIPLES.md) (change classifier, data-layer gate, UI checklist, "건드리면 부서지는 곳" map, triage) · [`docs/PLAYBOOK.md`](docs/PLAYBOOK.md) (local bootstrap, incident trees, env ledger, subagent protocol) · [`docs/ROADMAP.md`](docs/ROADMAP.md) (future phases) · [`docs/REVIEW_CHECKLIST.md`](docs/REVIEW_CHECKLIST.md) (pre-commit 7 gates) · [`docs/MONETIZATION_PLAN.md`](docs/MONETIZATION_PLAN.md) · [`docs/audit/`](docs/audit/) (adversarial audits). CLAUDE.md is the convention source; PRINCIPLES is the decision procedure.
 >
 > **podoal design tokens**
 > - Brand purple (ACTUAL values): `tailwind grape-500` = `#B28CDC`, `--grape-primary` = `#DCC4F2`. The `#9B7ED8` accent now lives **only** in the `grape-glow` shadow token — the winery Lv badge gradient was unified to `grape-700 → grape-800` utilities (for AA-contrast white text; the old inline `#9B7ED8 → #7B5FB8` hex is gone)
@@ -65,14 +67,19 @@ All UI pages live inside the `(app)` route group which handles auth checks, rend
 
 ```
 src/app/(app)/
-  home/              # Dashboard. Filter tabs (전체/진행중/완료) carry the counts inline —
-                     #   the separate stat-pill row was merged in (no duplicate counts)
+  home/              # Dashboard. Filter tabs (전체/진행/완료/수확) carry the counts inline —
+                     #   the separate stat-pill row was merged in (no duplicate counts). Boards
+                     #   long-press to drag-reorder (order field), swipe to harvest (harvestedAt
+                     #   = hidden). Completed boards get a 소믈리에 노트 (cellarNote) in winery.
   board/create/      # Board creation form (4-step: template → info → size → reward)
   board/[id]/        # Board detail with grape cluster, share card, capsule, gift
   friends/           # Friends list
   friends/[id]/      # Friend detail + their boards
-  messages/          # Message inbox
-  more/              # "More" menu grid (friends, messages, stats, vine, settings, etc.)
+  messages/          # Message inbox (gift/celebration messages link to their board — PA-008)
+  more/              # "More" menu grid (알림함/inbox, messages, stats, vine, settings, etc.).
+                     #   알림함 reads GET /api/notifications — a UNIFIED feed aggregating messages
+                     #   + rewards + friend-requests + relay-invites + planted-gifts (no separate
+                     #   Notification table); unread badge derives from it (refreshUnreadCount).
   notifications/     # Notification & reminder settings
   relay/             # Relay challenge list
   relay/[id]/        # Relay detail with chain visualization
