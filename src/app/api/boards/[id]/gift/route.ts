@@ -13,9 +13,9 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
   const { id: boardId } = params;
   const body = await request.json();
   const { friendId, message } = body;
-  const giftNote = typeof message === 'string' ? message.trim().slice(0, 500) : '';
+  const giftNote = typeof message === 'string' ? message.trim().slice(0, 200) : '';
 
-  if (!friendId) {
+  if (typeof friendId !== 'string' || !friendId) {
     return authResponse('Missing required field: friendId', 400);
   }
 
@@ -62,6 +62,23 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
 
   if (!friendship) {
     return authResponse('Friendship not found or not accepted', 403);
+  }
+
+  // 중복 선물 방지: 같은 원본을 같은 친구에게 이미 선물했고 아직 열어보지 않았다면
+  // 다시 선물할 때마다 사본이 계속 쌓인다(중복 오염). 스키마에 "원본 boardId" 필드가
+  // 없어 giftedFrom/To만으로 원본을 특정할 수 없으므로, title 일치 + 미개봉을
+  // 근사 식별자로 사용해 차단한다(상대가 열어보면 giftOpenedAt이 채워져 다시 보낼 수 있음).
+  const existingGift = await prisma.board.findFirst({
+    where: {
+      giftedFromId: userId,
+      giftedToId: friendId,
+      title: board.title,
+      giftOpenedAt: null,
+    },
+    select: { id: true },
+  });
+  if (existingGift) {
+    return authResponse('이미 선물했어요. 상대가 열어보면 다시 보낼 수 있어요', 409);
   }
 
   // Create a copy of the board for the friend — 복사+보상복사 트랜잭션은
