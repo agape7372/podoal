@@ -51,6 +51,11 @@ export async function POST(request: Request) {
     }
   }
 
+  // Validate message if provided
+  if (message !== undefined && (typeof message !== 'string' || message.length > 200)) {
+    return authResponse('메시지는 200자 이하여야 해요', 400);
+  }
+
   // Validate boardId if provided
   if (boardId) {
     const board = await prisma.board.findFirst({
@@ -62,6 +67,12 @@ export async function POST(request: Request) {
     if (!board) {
       return authResponse('Board not found or unauthorized', 404);
     }
+  }
+
+  // Check reminder count limit
+  const count = await prisma.reminder.count({ where: { userId } });
+  if (count >= 50) {
+    return authResponse('리마인더는 최대 50개까지 만들 수 있어요', 400);
   }
 
   const reminder = await prisma.reminder.create({
