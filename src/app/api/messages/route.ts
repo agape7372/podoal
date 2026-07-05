@@ -93,6 +93,21 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: '받는 사람을 찾을 수 없어요' }, { status: 404 });
     }
 
+    // 친구에게만 메시지를 보낼 수 있다(소셜 모델 보호) — boards/[id]/gift/route.ts와 동일한
+    // 양방향 accepted Friendship 검증 패턴.
+    const friendship = await prisma.friendship.findFirst({
+      where: {
+        status: 'accepted',
+        OR: [
+          { requesterId: userId, receiverId },
+          { requesterId: receiverId, receiverId: userId },
+        ],
+      },
+    });
+    if (!friendship) {
+      return authResponse('친구에게만 메시지를 보낼 수 있어요', 403);
+    }
+
     // Validate boardId points at a board the sender can actually reference.
     let resolvedBoardId: string | null = null;
     if (boardId) {
