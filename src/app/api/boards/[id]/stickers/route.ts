@@ -17,6 +17,10 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
     return authResponse('칸 정보가 없어요', 400);
   }
 
+  if (!Number.isInteger(position)) {
+    return authResponse('잘못된 칸이에요', 400);
+  }
+
   const board = await prisma.board.findUnique({
     where: { id: boardId },
     select: {
