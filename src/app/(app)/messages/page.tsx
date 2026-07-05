@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { useCachedApi } from '@/lib/cachedApi';
 import { useAppStore } from '@/lib/store';
@@ -12,6 +13,7 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import type { MessageInfo } from '@/types';
 
 export default function MessagesPage() {
+  const router = useRouter();
   // SWR 캐시: 재방문 시 직전 목록으로 즉시 렌더 + 무음 재검증.
   const { data, loading, error, refresh, mutate } = useCachedApi<MessageInfo[]>('/api/messages');
   const messages = data ?? [];
@@ -77,6 +79,12 @@ export default function MessagesPage() {
     }
   };
 
+  const handleGoToBoard = async (msg: MessageInfo) => {
+    if (!msg.boardId) return;
+    if (!msg.isRead) await handleMarkRead(msg.id);
+    router.push(`/board/${msg.boardId}`);
+  };
+
   const formatTime = (dateStr: string) => {
     const d = new Date(dateStr);
     const now = new Date();
@@ -139,6 +147,7 @@ export default function MessagesPage() {
                 onClick={() => !msg.isRead && handleMarkRead(msg.id)}
                 className={`
                   w-full clay-sm p-4 pr-11 text-left transition-all
+                  ${msg.boardId ? 'pb-8' : ''}
                   ${typeBg(msg.type)}
                   ${!msg.isRead ? 'ring-2 ring-grape-300/50' : 'opacity-80'}
                 `}
@@ -167,6 +176,20 @@ export default function MessagesPage() {
                   </div>
                 </div>
               </button>
+              {/* 이동 버튼은 카드 button의 형제(중첩 X) — 클릭이 markRead로 버블되지 않는다.
+                  boardId가 있는 메시지(선물·깜짝선물·축하 등)만 노출. */}
+              {msg.boardId && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleGoToBoard(msg);
+                  }}
+                  aria-label="포도판 보러 가기"
+                  className="absolute bottom-2.5 left-4 text-xs font-semibold text-grape-600 hover:text-grape-700 transition-colors"
+                >
+                  포도판 보러 가기 →
+                </button>
+              )}
               {/* 삭제 버튼은 카드 button의 형제(중첩 X) — 클릭이 markRead로 버블되지 않는다. */}
               <button
                 onClick={() => setConfirmDeleteId(msg.id)}
