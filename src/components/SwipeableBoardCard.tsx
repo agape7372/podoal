@@ -86,9 +86,12 @@ export default function SwipeableBoardCard({
             버튼 크기는 그대로, 양옆 여백만 늘어난다(시안 v2 1번의 여백감). 탭 피드백은
             시안 값 그대로: scale 0.96 + grape-300 16% 틴트 워시(모바일은 hover 부재 —
             active가 체감의 전부). */}
+        {/* 풀스와이프 커밋 임계를 넘으면 부모 제스처가 data-commit="1"을 쓴다(group/tray) —
+            버튼이 커지고 틴트가 짙어져 '여기서 놓으면 수확'을 예고한다. 트레이 폭도 부모의
+            setCardX가 노출 폭에 맞춰 직접 늘린다(정지 시 trayWidth prop 값으로 복원됨). */}
         <div
           data-tray
-          className="absolute inset-y-0 right-0 flex items-stretch justify-center"
+          className="group/tray absolute inset-y-0 right-0 flex items-stretch justify-center"
           style={{ width: trayWidth }}
           aria-hidden={!revealed}
         >
@@ -98,11 +101,11 @@ export default function SwipeableBoardCard({
             aria-disabled={!canHarvest}
             title={canHarvest ? undefined : '포도판을 다 채우면 수확할 수 있어요'}
             tabIndex={revealed ? 0 : -1}
-            className={`w-[88px] rounded-2xl text-xs font-semibold flex flex-col items-center justify-center gap-[3px] transition-[transform,background-color] duration-150 active:scale-[0.96] ${
+            className={`w-[88px] rounded-2xl text-xs font-semibold flex flex-col items-center justify-center gap-[3px] transition-[transform,background-color] duration-150 active:scale-[0.96] group-data-[commit=1]/tray:scale-110 ${
               harvested
-                ? 'text-leaf-700 hover:bg-leaf-100/40 active:bg-leaf-100/60'
+                ? 'text-leaf-700 hover:bg-leaf-100/40 active:bg-leaf-100/60 group-data-[commit=1]/tray:bg-leaf-100/70'
                 : canHarvest
-                  ? 'text-grape-700 hover:bg-grape-300/15 active:bg-grape-300/25'
+                  ? 'text-grape-700 hover:bg-grape-300/15 active:bg-grape-300/25 group-data-[commit=1]/tray:bg-grape-300/30'
                   : 'text-warm-light cursor-not-allowed'
             }`}
           >
