@@ -291,7 +291,8 @@ async function main() {
     { senderId: coworker.id, receiverId: dev.id, content: '너도 운동 열심히 하는구나 ㅋㅋ', type: 'cheer', emoji: '👏', isRead: false, createdAt: new Date(now - 1 * 60 * 60 * 1000) },
 
     // 헬스메이트 수진 → dev
-    { senderId: gymBuddy.id, receiverId: dev.id, content: '내일 같이 헬스 갈까?', type: 'cheer', emoji: '🏋️', isRead: false, createdAt: new Date(now - 45 * 60 * 1000) },
+    // 💪(1f4aa): 🏋️는 public/icons/fluent에 flat SVG가 없어 콘솔 경고 + 아이콘 미표시(W2-C 발견)
+    { senderId: gymBuddy.id, receiverId: dev.id, content: '내일 같이 헬스 갈까?', type: 'cheer', emoji: '💪', isRead: false, createdAt: new Date(now - 45 * 60 * 1000) },
     { senderId: gymBuddy.id, receiverId: dev.id, content: '오늘 스쿼트 100개 클리어! 🥳', type: 'celebration', emoji: '🥳', isRead: false, createdAt: new Date(now - 10 * 60 * 1000) },
 
     // dev → 베프 민지 (dev가 보낸 메시지)

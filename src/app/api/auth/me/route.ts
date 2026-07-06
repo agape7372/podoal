@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { getCurrentUserId } from "@/lib/auth";
+import { buildClearAuthCookie, getCurrentUserId } from "@/lib/auth";
 
 export async function GET() {
   try {
@@ -57,4 +57,75 @@ export async function POST() {
       { status: 500 }
     );
   }
+}
+
+// 회원탈퇴(W1-D) — User를 참조하는 관계 대부분이 onDelete 미지정(Restrict)이라
+// 단순 user.delete()는 FK로 막힌다(2026-07-06 schema 실측). 자식 → 부모 순서의
+// 트랜잭션 순차 삭제로 처리한다. 스키마 무변경(마이그레이션 없음).
+//
+// 정책(카드 W1-D-API에서 확정):
+// - 내가 심은 깜짝 선물(타인 보드 포함): 삭제 — 미공개분은 조용히 사라진다.
+// - 메시지(송·수신)·친구관계(양방향)·리마인더·알림설정·타임캡슐: 삭제.
+// - 내가 만든 릴레이: 통째 삭제(참가자 행은 cascade) — 동료의 연결 보드 자체는 남는다.
+//   내가 참가만 한 릴레이: 내 참가자 행만 삭제.
+// - 내 보드: 전부 삭제(스티커·보상·캡슐·심긴 선물은 cascade, 메시지 boardId는 SetNull).
+//   선물 복사본은 ownerId=수령자(giftBoardCopy)라 남의 진행을 지우는 일은 없다.
+//   단 내가 '선물한' 흔적(타인 보드의 giftedFromId=나)은 FK를 위해 null로 끊는다
+//   (보드·진행은 그대로, '누구에게 받았는지' 표시만 사라짐 — 탈퇴자의 잔상 제거 겸).
+export async function DELETE() {
+  const userId = await getCurrentUserId();
+  if (!userId) {
+    return Response.json({ error: "Not authenticated." }, { status: 401 });
+  }
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.plantedGift.deleteMany({ where: { plantedById: userId } });
+      await tx.message.deleteMany({
+        where: { OR: [{ senderId: userId }, { receiverId: userId }] },
+      });
+      await tx.friendship.deleteMany({
+        where: { OR: [{ requesterId: userId }, { receiverId: userId }] },
+      });
+      await tx.reminder.deleteMany({ where: { userId } });
+      await tx.notificationSetting.deleteMany({ where: { userId } });
+      await tx.timeCapsule.deleteMany({ where: { userId } });
+      await tx.relayParticipant.deleteMany({ where: { userId } });
+      await tx.relay.deleteMany({ where: { creatorId: userId } });
+      // 타인 소유 보드 위 내 스티커 — 현행 쓰기 경로(owner/giftedTo만 채움, 복사본은
+      // 수령자 소유)상 존재하지 않아야 하나, 남아 있으면 user.delete가 FK로 막힌다.
+      // 방어적 정리(정상 데이터면 0행).
+      await tx.sticker.deleteMany({
+        where: { filledBy: userId, board: { NOT: { ownerId: userId } } },
+      });
+      // 타인 소유 보드에 남은 나의 참조(내가 선물한 복사본의 giftedFrom / 방어적 giftedTo).
+      await tx.board.updateMany({
+        where: { giftedFromId: userId, NOT: { ownerId: userId } },
+        data: { giftedFromId: null },
+      });
+      await tx.board.updateMany({
+        where: { giftedToId: userId, NOT: { ownerId: userId } },
+        data: { giftedToId: null },
+      });
+      // 내 보드 삭제 전, 내 보드를 참조하는 타인의 릴레이 참가 행 연결 해제
+      // (RelayParticipant.boardId는 내 참가 행에만 있는 게 정상이지만 방어적으로).
+      await tx.relayParticipant.updateMany({
+        where: { board: { ownerId: userId } },
+        data: { boardId: null },
+      });
+      await tx.board.deleteMany({ where: { ownerId: userId } });
+      // PushSubscription은 onDelete: Cascade — user 삭제와 함께 정리된다.
+      await tx.user.delete({ where: { id: userId } });
+    });
+  } catch (error) {
+    console.error("Delete account error:", error);
+    return Response.json(
+      { error: "탈퇴 처리에 실패했어요. 잠시 후 다시 시도해주세요." },
+      { status: 500 }
+    );
+  }
+
+  const response = Response.json({ ok: true });
+  response.headers.set("Set-Cookie", buildClearAuthCookie());
+  return response;
 }

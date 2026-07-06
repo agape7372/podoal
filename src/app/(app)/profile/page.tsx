@@ -1,11 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { useAppStore } from '@/lib/store';
 import { api } from '@/lib/api';
 import { AVATAR_OPTIONS, type UserProfile } from '@/types';
-import { feedbackSuccess, feedbackTap } from '@/lib/feedback';
+import { feedbackError, feedbackSuccess, feedbackTap } from '@/lib/feedback';
 import Avatar from '@/components/Avatar';
 import ClayButton from '@/components/ClayButton';
 import ClayInput from '@/components/ClayInput';
@@ -32,7 +31,6 @@ export default function ProfilePage() {
 }
 
 function ProfileView({ user }: { user: UserProfile }) {
-  const router = useRouter();
   const setUser = useAppStore((s) => s.setUser);
 
   const [editName, setEditName] = useState(user.name);
@@ -41,6 +39,24 @@ function ProfileView({ user }: { user: UserProfile }) {
   const [saveError, setSaveError] = useState('');
   const [saved, setSaved] = useState(false);
   const [confirmLogout, setConfirmLogout] = useState(false);
+
+  // ── 계정 섹션(W1-D-UI): 로그아웃 · 비밀번호 변경 · 회원탈퇴 ──
+  const isEmailAccount = user.provider == null;
+
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  const [pwOpen, setPwOpen] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [pwSaving, setPwSaving] = useState(false);
+  const [pwError, setPwError] = useState('');
+  const [pwSuccess, setPwSuccess] = useState(false);
+
+  const [confirmDeleteStep1, setConfirmDeleteStep1] = useState(false);
+  const [confirmDeleteStep2, setConfirmDeleteStep2] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
 
   const dirty = editName.trim() !== user.name || editAvatar !== user.avatar;
   const canSave = dirty && editName.trim().length > 0 && !saving;
@@ -72,12 +88,63 @@ function ProfileView({ user }: { user: UserProfile }) {
     }
   };
 
+  // 하드 이동(window.location.href) — router.push/replace는 클라 상태(Zustand 등)를
+  // 리셋하지 않는다. 로그아웃/탈퇴는 다음 사용자를 위해 전부 리셋되어야 한다(카드 스펙).
   const handleLogout = async () => {
+    if (loggingOut) return;
+    setLoggingOut(true);
     try {
-      await fetch('/api/auth/me', { method: 'POST' });
+      await api('/api/auth/logout', { method: 'POST' });
+    } catch {
+      // 네트워크 실패해도 클라에서 나가는 흐름은 유지 — 쿠키가 안 지워졌을 가능성은
+      // 있으나, 사용자를 로그아웃 시트에 무한정 가둬두는 것보다 안전한 폴백.
     } finally {
-      useAppStore.getState().setUser(null);
-      router.replace('/');
+      window.location.href = '/';
+    }
+  };
+
+  const handleChangePassword = async () => {
+    if (pwSaving) return;
+    setPwError('');
+    if (newPassword.length < 6) {
+      setPwError('새 비밀번호는 6자 이상이어야 해요');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPwError('새 비밀번호가 일치하지 않아요');
+      return;
+    }
+    setPwSaving(true);
+    try {
+      await api('/api/auth/password', {
+        method: 'PATCH',
+        json: { currentPassword, newPassword },
+      });
+      setPwSuccess(true);
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      feedbackSuccess();
+    } catch (e) {
+      setPwError(e instanceof Error ? e.message : '비밀번호 변경에 실패했어요');
+      feedbackError();
+    } finally {
+      setPwSaving(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (deleting) return;
+    setDeleting(true);
+    try {
+      await api('/api/auth/me', { method: 'DELETE' });
+      window.location.href = '/';
+    } catch (e) {
+      setDeleting(false);
+      setConfirmDeleteStep2(false);
+      feedbackError();
+      // 이 페이지에 남아 안내 — ConfirmDialog는 이미 닫혔으므로 별도 배너로 알린다.
+      setDeleteError(e instanceof Error ? e.message : '탈퇴에 실패했어요');
     }
   };
 
@@ -150,15 +217,108 @@ function ProfileView({ user }: { user: UserProfile }) {
         </div>
       </section>
 
-      {/* Logout (account action) */}
-      <ClayButton
-        variant="ghost"
-        fullWidth
-        onClick={() => { feedbackTap(); setConfirmLogout(true); }}
-        className="text-rose-600 hover:bg-rose-50"
-      >
-        로그아웃
-      </ClayButton>
+      {/* Account (W1-D-UI): 로그아웃 · 비밀번호 변경 · 회원탈퇴 */}
+      <section className="mb-4">
+        <h2 className="text-sm font-bold text-warm-text mb-3 ml-0.5">계정</h2>
+
+        <div className="clay overflow-hidden">
+          {/* 로그아웃 */}
+          <button
+            type="button"
+            onClick={() => { feedbackTap(); setConfirmLogout(true); }}
+            disabled={loggingOut}
+            className="w-full flex items-center justify-between p-4 text-left transition-transform active:scale-[0.98] disabled:opacity-60"
+          >
+            <span className="text-sm font-medium text-warm-text">로그아웃</span>
+            {loggingOut && (
+              <span className="w-4 h-4 border-2 border-warm-sub/40 border-t-warm-sub rounded-full animate-spin" aria-hidden="true" />
+            )}
+          </button>
+
+          {/* 비밀번호 변경 (이메일 계정만) */}
+          {isEmailAccount ? (
+            <div className="border-t border-warm-border/55">
+              <button
+                type="button"
+                onClick={() => {
+                  feedbackTap();
+                  setPwOpen((v) => !v);
+                  setPwError('');
+                  setPwSuccess(false);
+                }}
+                aria-expanded={pwOpen}
+                className="w-full flex items-center justify-between p-4 text-left transition-transform active:scale-[0.98]"
+              >
+                <span className="text-sm font-medium text-warm-text">비밀번호 변경</span>
+                <span className={`text-warm-sub transition-transform ${pwOpen ? 'rotate-90' : ''}`} aria-hidden="true">›</span>
+              </button>
+
+              {pwOpen && (
+                <div className="px-4 pb-4 space-y-3">
+                  <ClayInput
+                    type="password"
+                    label="현재 비밀번호"
+                    value={currentPassword}
+                    onChange={(e) => { setCurrentPassword(e.target.value); setPwSuccess(false); }}
+                    autoComplete="current-password"
+                  />
+                  <ClayInput
+                    type="password"
+                    label="새 비밀번호"
+                    value={newPassword}
+                    onChange={(e) => { setNewPassword(e.target.value); setPwSuccess(false); }}
+                    autoComplete="new-password"
+                  />
+                  <ClayInput
+                    type="password"
+                    label="새 비밀번호 확인"
+                    value={confirmPassword}
+                    onChange={(e) => { setConfirmPassword(e.target.value); setPwSuccess(false); }}
+                    autoComplete="new-password"
+                  />
+
+                  {pwError ? (
+                    <p role="alert" className="text-rose-700 text-sm ml-1">{pwError}</p>
+                  ) : pwSuccess ? (
+                    <p className="text-grape-600 text-sm ml-1">비밀번호를 바꿨어요</p>
+                  ) : null}
+
+                  <ClayButton
+                    variant="primary"
+                    fullWidth
+                    loading={pwSaving}
+                    disabled={pwSaving || !currentPassword || !newPassword || !confirmPassword}
+                    onClick={handleChangePassword}
+                  >
+                    변경하기
+                  </ClayButton>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="border-t border-warm-border/55 p-4">
+              <p className="text-xs text-warm-sub">소셜 계정은 비밀번호가 없어요</p>
+            </div>
+          )}
+
+          {/* 회원탈퇴 */}
+          <button
+            type="button"
+            onClick={() => { feedbackTap(); setConfirmDeleteStep1(true); }}
+            disabled={deleting}
+            className="w-full flex items-center justify-between p-4 text-left transition-transform active:scale-[0.98] border-t border-warm-border/55 disabled:opacity-60"
+          >
+            <span className="text-sm font-medium text-juice-700">회원탈퇴</span>
+            {deleting && (
+              <span className="w-4 h-4 border-2 border-juice-300 border-t-juice-700 rounded-full animate-spin" aria-hidden="true" />
+            )}
+          </button>
+        </div>
+
+        {deleteError && (
+          <p role="alert" className="text-rose-700 text-sm mt-2 ml-1">{deleteError}</p>
+        )}
+      </section>
 
       <ConfirmDialog
         open={confirmLogout}
@@ -167,8 +327,32 @@ function ProfileView({ user }: { user: UserProfile }) {
         confirmLabel="로그아웃"
         cancelLabel="취소"
         destructive
+        loading={loggingOut}
         onConfirm={handleLogout}
         onCancel={() => setConfirmLogout(false)}
+      />
+
+      <ConfirmDialog
+        open={confirmDeleteStep1}
+        title="정말 떠나시나요?"
+        description="포도판·친구·기록이 모두 사라져요"
+        confirmLabel="계속"
+        cancelLabel="취소"
+        destructive
+        onConfirm={() => { setConfirmDeleteStep1(false); setConfirmDeleteStep2(true); }}
+        onCancel={() => setConfirmDeleteStep1(false)}
+      />
+
+      <ConfirmDialog
+        open={confirmDeleteStep2}
+        title="되돌릴 수 없어요"
+        description="정말 삭제할까요?"
+        confirmLabel="삭제하기"
+        cancelLabel="취소"
+        destructive
+        loading={deleting}
+        onConfirm={handleDeleteAccount}
+        onCancel={() => setConfirmDeleteStep2(false)}
       />
     </div>
   );
