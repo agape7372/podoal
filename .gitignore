@@ -24,6 +24,13 @@ take-screenshot*.mjs
 # Local-only review/screenshot artifacts (never ship/track)
 .shots/
 taste-review/
+.playwright-mcp/
+# AI 아트 인테이크 원본(대용량) — PROMPTS.md만 추적, 산출물은 public/illustrations/로
+art-intake/*.webp
+art-intake/*.jpg
+art-intake/*.jpeg
 
 # Claude Code local tooling
 .claude/
+
+.vercel

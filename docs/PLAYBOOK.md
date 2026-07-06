@@ -44,6 +44,19 @@ npm run dev                            # localhost:3000
 3. 새 SW 활성화엔 앱 재오픈/새로고침 필요.
 ```
 
+**버그 클래스 카탈로그 — 증상이 위 3개 트리에 없으면 여기서 클래스를 찾고 "진단 시작점"부터 연다** (이 코드베이스 고유의 6대 재발 클래스):
+
+| # | 클래스 | 전형적 증상 | 진단 시작점 | 선례 |
+|---|--------|------------|------------|------|
+| 1 | 낙관 업데이트·직렬 큐 경합 | 채운 알이 되감김·완성 연출 오취소·유령 포도알 | `src/lib/boardFillState.ts`(mergeServerBoard·applyFillResult·rollbackFill) → board/[id] postFillSticker | #66·#74 병합 규칙 주석 |
+| 2 | 포인터 제스처 | 스와이프/리프트/탭이 안 먹거나 스크롤 죽음 | home/page.tsx gAxis 축잠금·포인터 캡처·releaseCapture의 touchAction 복원, SwipeableBoardCard 주석 | #94~#103 드래그 회귀 |
+| 3 | SW 캐시 stale | "UI가 옛날 버전"(위 트리) | `public/sw.js` CACHE_VERSION·navigate network-first | 구 보드 URL stale 문서 |
+| 4 | 권한·마스킹 | 내용이 빈 문자열·403/404 혼동 | board GET `canSeeBody`·`isViewerPrivileged`, 균일 403 프로빙 방어(plant-gift) | 친구 뷰 보상 마스킹 |
+| 5 | Serializable 충돌 | 간헐 500/503, P2034 없이 커밋 시점 충돌 | `isSerializationConflict()`(fillBoard.ts) — `e.code==='P2034'` 단독 검사 금지 | CLAUDE.md Prisma 7 절 |
+| 6 | SSE·알림 지연 | 메시지가 "실시간이 아님"(최대 10초+재연결) | useSSE 10초 폴·4분 스트림 캡·lastCheck 스냅샷 | PRINCIPLES §6 |
+
+수정 후엔 반드시 PRINCIPLES §10 3단계(가설→재현→적대 검증)를 통과시킨다.
+
 ## 4. cron 운영
 
 - 3종: `reminders.yml`(5분), `daily-nudge.yml`(일간 KST 오전), `weekly-recap.yml`(주간). GitHub Actions가 `Authorization: Bearer $CRON_SECRET`로 `/api/cron/*` 호출(Vercel Hobby는 Vercel Cron 불가).
@@ -105,4 +118,42 @@ npm run dev                            # localhost:3000
 
 **병렬 안전**: 서브에이전트는 작업 트리를 공유(worktree 미사용) → **웨이브 내 소유 파일 교집합 0**을 착수 전 기계 검증. 병렬 3~4 상한. 스키마 카드는 단독 웨이브.
 
-**⚠ 모든 보고는 가설.** 2026-07-05 감사에서 탐색 에이전트의 "High 2건"(messages 스팸·NotificationSetting skip)이 재검증에서 전부 무효(과대/허위)였다. 서브에이전트 diff·탐색 보고는 페이블이 **코드로 재확인** 후 채택. 리뷰 게이트는 `docs/REVIEW_CHECKLIST.md` 7항. 반려 2회 → 상위 모델, 3회 → 페이블 직접.
+**⚠ 모든 보고는 가설.** 2026-07-05 감사에서 탐색 에이전트의 "High 2건"(messages 스팸·NotificationSetting skip)이 재검증에서 전부 무효(과대/허위)였다. 서브에이전트 diff·탐색 보고는 상위 모델이 **코드로 재확인** 후 채택. 리뷰 게이트는 `docs/REVIEW_CHECKLIST.md` 7항. 반려 2회 → 상위 모델, 3회 → 최상위 모델 직접(절차는 PRINCIPLES §10).
+
+**카드 저장소 (`docs/cards/`)** — 카드는 감사 보고서 인라인이 아니라 파일로 산다:
+
+- 위치·이름: `docs/cards/YYYY-MM-DD-<웨이브>-<slug>.md` (예: `2026-07-06-W1-plant-gift-move.md`).
+- 상태 헤더(첫 줄): `상태: 대기 | 진행 | 검증대기 | 완료 | 반려 n회` — 배정받은 모델이 직접 갱신.
+- 필수 절(템플릿 항목에 추가): **필독** — 이 카드에 필요한 문서 절만 나열(예: "PRINCIPLES §5·CLAUDE.md 모션 규약"). 하위모델은 전 문서가 아니라 카드의 필독 목록만 읽는다.
+- 완료 카드는 분기 로테이션 때 `docs/cards/_archive/`로 이동(위키 log 로테이션과 동일 주기).
+- **백로그와의 관계**: ROADMAP 백로그 항목은 착수 결정 시 카드로 변환된 뒤에만 작업 가능 — 백로그에서 곧장 코드로 가지 않는다.
+
+## 8. 디버깅 프로토콜 (재현 인프라)
+
+**2계정 재현 절차** — 친구·선물·릴레이 버그는 계정 2개가 기본:
+
+```bash
+# 계정 A(dev): 웰컴 "🛠 개발자 모드" 버튼 또는
+curl -s -c /tmp/a.jar -X POST localhost:3000/api/auth/dev
+# 친구 3명 시드(test1234 비번, 수락된 친구관계 포함):
+curl -s -b /tmp/a.jar -X POST localhost:3000/api/dev/seed-friends
+# 계정 B(시드 친구로 로그인):
+curl -s -c /tmp/b.jar -X POST localhost:3000/api/auth/login \
+  -H 'Content-Type: application/json' -d '{"email":"friend1@podoal.com","password":"test1234"}'
+# 이후 -b /tmp/a.jar / -b /tmp/b.jar 로 두 시점을 오가며 재현
+# (friend1 이메일은 seed-friends 응답에서 확인 — 시드 구현이 정본)
+# 브라우저 2세션: 일반 창=A, 시크릿 창=B (또는 프로필 2개)
+```
+
+**재현 스크립트 자산화** — 일회용 재현 코드를 버리지 않는다:
+
+- 위치: `scripts/repro/<slug>.mjs` (node 실행 가능, 상단 주석에 대상 버그·기대 출력 명시).
+- 카드의 "검증법"이 이 스크립트를 가리키게 한다 — 수정 전 실패·수정 후 통과가 그대로 회귀 테스트.
+- E2E 프레임워크 도입은 `scripts/repro/`에 3개 이상 쌓이면 그때 승격 검토(현재 자동 테스트 0 — lint+tsc+build만. 선제 도입은 과설계).
+
+**베타 제보 → 카드 변환** — 사용자 문장("안 돼요")을 받으면 이 4질문으로 구조화 후 트리아지(PRINCIPLES §8) → `docs/cards/` 등재:
+
+1. 어느 화면·버튼에서? (라우트 특정)
+2. 어떤 계정·상태에서? (완성/미완성 보드, 친구 여부, 기기)
+3. 기대한 것 vs 실제 본 것?
+4. 재현되는가, 한 번뿐인가?
