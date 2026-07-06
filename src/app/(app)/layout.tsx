@@ -52,7 +52,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <main className="max-w-lg mx-auto px-4 pt-4 safe-top">
         {children}
       </main>
-      <InstallPrompt />
+      <InstallPrompt avoidFab />
       <Navigation />
     </div>
   );

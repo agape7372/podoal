@@ -12,7 +12,13 @@ interface BeforeInstallPromptEvent extends Event {
 const DISMISS_KEY = 'podoal-install-dismissed';
 const DISMISS_DAYS = 7;
 
-export default function InstallPrompt() {
+interface InstallPromptProps {
+  /** 우측 하단 FAB(홈 +버튼)이 있는 화면에서만 true — 배너가 FAB 폭만큼 오른쪽을
+   *  비킨다. FAB 없는 화면(웰컴)에서 이 여백을 주면 배너가 왼쪽으로 쏠려 보인다. */
+  avoidFab?: boolean;
+}
+
+export default function InstallPrompt({ avoidFab = false }: InstallPromptProps) {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   // 'prompt' = Chrome/Android 네이티브 설치 가능, 'ios' = iOS Safari 수동 안내, null = 숨김.
   const [mode, setMode] = useState<'prompt' | 'ios' | null>(null);
@@ -65,9 +71,9 @@ export default function InstallPrompt() {
   if (!mode) return null;
 
   // 우측 하단 FAB(홈, bottom-28 right-6)와 겹쳐 버튼이 가려지던 문제 →
-  // 오른쪽에 FAB 폭만큼 여백을 둬 배너 카드가 코너를 비킨다.
+  // FAB 있는 화면(avoidFab)에서만 오른쪽에 FAB 폭만큼 여백을 둬 코너를 비킨다.
   return (
-    <div className="fixed bottom-[88px] left-0 right-0 z-30 pl-4 pr-[88px] safe-bottom animate-slide-up pointer-events-none">
+    <div className={`fixed bottom-[88px] left-0 right-0 z-30 pl-4 ${avoidFab ? 'pr-[88px]' : 'pr-4'} safe-bottom animate-slide-up pointer-events-none`}>
       <div className="max-w-md mx-auto pointer-events-auto">
         <div
           className="clay-puffy bg-white/95 backdrop-blur-md flex items-center gap-2 p-2.5 pr-3"
