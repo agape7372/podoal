@@ -4,6 +4,7 @@ import { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import ClayButton from '@/components/ClayButton';
 import ClayInput from '@/components/ClayInput';
+import InstallPrompt from '@/components/InstallPrompt';
 import Podo from '@/components/mascot/Podo';
 import EmojiIcon from '@/components/EmojiIcon';
 import { AVATAR_OPTIONS } from '@/types';
@@ -50,6 +51,15 @@ function describeAuthError(message: string): string {
 }
 
 export default function AuthPage() {
+  // SW 등록을 (app) 레이아웃에만 두면 첫 방문(웰컴)은 Chrome PWA 설치 조건
+  // (manifest+SW) 자체가 미충족 — 설치 배너가 영영 안 뜬다(2026-07-06 베타 보고).
+  // 등록은 멱등이라 로그인 후 (app) 레이아웃의 재등록과 충돌 없음.
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    }
+  }, []);
+
   return (
     <Suspense fallback={
       <div className="min-h-dvh flex items-center justify-center">
@@ -57,6 +67,9 @@ export default function AuthPage() {
       </div>
     }>
       <AuthPageInner />
+      {/* 로그인 전에도 설치 경로 노출(안드로이드 네이티브 프롬프트/iOS 수동 안내) —
+          신규 사용자 온보딩의 첫 화면이 웰컴이므로 여기가 실질적 설치 접점. */}
+      <InstallPrompt />
     </Suspense>
   );
 }
