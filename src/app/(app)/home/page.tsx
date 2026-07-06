@@ -808,7 +808,7 @@ export default function HomePage() {
         </div>
       ) : displayBoards.length === 0 ? (
         <EmptyState
-          art="/illustrations/empty/empty-home-v1.webp"
+          art="/illustrations/empty/empty-home-v2.webp"
           icon={<Podo size={96} />}
           title={filter === 'all' ? '아직 포도판이 없어요' : filter === 'active' ? '진행중인 포도판이 없어요' : filter === 'completed' ? '완료한 포도판이 없어요' : '수확한 포도판이 없어요'}
           description={filter === 'all' ? '한 알씩 채워볼 첫 판을 만들어 보세요' : undefined}

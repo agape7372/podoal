@@ -305,7 +305,7 @@ export default function FriendsPage() {
         </div>
       ) : displayed.length === 0 ? (
         <EmptyState
-          art={tab === 'favorite' ? '/illustrations/empty/empty-favorites-v1.webp' : '/illustrations/empty/empty-friends-v1.webp'}
+          art={tab === 'favorite' ? '/illustrations/empty/empty-favorites-v2.webp' : '/illustrations/empty/empty-friends-v2.webp'}
           fallbackEmoji={tab === 'favorite' ? '⭐' : '👥'}
           artSize={80}
           title={tab === 'favorite' ? '즐겨찾기한 친구가 없어요' : '아직 친구가 없어요'}

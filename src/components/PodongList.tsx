@@ -246,7 +246,7 @@ export default function PodongList({ heading = true }: PodongListProps) {
         </div>
       ) : relays.length === 0 ? (
         <EmptyState
-          art="/illustrations/empty/empty-podong-v1.webp"
+          art="/illustrations/empty/empty-podong-v2.webp"
           fallbackEmoji="🔗"
           title="아직 포도동이 없어요"
           description="친구들과 함께 습관 포도동을 시작해 보세요!"

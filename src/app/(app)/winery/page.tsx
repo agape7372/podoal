@@ -52,13 +52,13 @@ const TIER_GLOW: Record<number, string> = {
 // 폴백. 14px 진행 마커는 판독성 문제로 항상 EmojiIcon(교체 대상 아님).
 // 2026-07-06 플랫 이모지 스타일 세트(z_image·라운드 타일)로 채움 — docs/ILLUSTRATION_STYLE.md 대장 참조.
 const TIER_ART: Record<number, string> = {
-  1: '/illustrations/tiers/tier-1-v1.webp',
-  2: '/illustrations/tiers/tier-2-v1.webp',
-  3: '/illustrations/tiers/tier-3-v1.webp',
-  4: '/illustrations/tiers/tier-4-v1.webp',
-  5: '/illustrations/tiers/tier-5-v1.webp',
-  6: '/illustrations/tiers/tier-6-v1.webp',
-  7: '/illustrations/tiers/tier-7-v1.webp',
+  1: '/illustrations/tiers/tier-1-v2.webp',
+  2: '/illustrations/tiers/tier-2-v2.webp',
+  3: '/illustrations/tiers/tier-3-v2.webp',
+  4: '/illustrations/tiers/tier-4-v2.webp',
+  5: '/illustrations/tiers/tier-5-v2.webp',
+  6: '/illustrations/tiers/tier-6-v2.webp',
+  7: '/illustrations/tiers/tier-7-v2.webp',
 };
 
 // 티어 아이콘 단일 렌더러 — TIER_ART 유무/실패에 따라 아트 ↔ EmojiIcon 전환.
@@ -453,7 +453,7 @@ export default function WineryPage() {
              clay 카드 표면은 px-8로 보존(수직 여백은 EmptyState의 py-12가 담당). */
           <div className="clay px-8">
             <EmptyState
-              art="/illustrations/empty/empty-winery-v1.webp"
+              art="/illustrations/empty/empty-winery-v2.webp"
               fallbackEmoji="🍇"
               title="아직 완성된 와인이 없어요."
               description="포도판을 완성하면 와인이 만들어져요!"
