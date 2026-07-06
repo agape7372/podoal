@@ -134,7 +134,7 @@ export default function MessagesPage() {
         </div>
       ) : messages.length === 0 ? (
         <EmptyState
-          /* art="/illustrations/empty/empty-messages-v1.webp" — 아트 생성 후 주석 해제 (docs/ILLUSTRATION_STYLE.md) */
+          art="/illustrations/empty/empty-messages-v1.webp"
           fallbackEmoji="💌"
           title="아직 메시지가 없어요"
           description="친구에게 응원을 보내보세요!"

@@ -92,7 +92,7 @@ export default function VinePage() {
           <p className="text-sm text-warm-sub">나의 성장 기록</p>
         </div>
         <EmptyState
-          /* art="/illustrations/empty/empty-vine-v1.webp" — 아트 생성 후 주석 해제 (docs/ILLUSTRATION_STYLE.md) */
+          art="/illustrations/empty/empty-vine-v1.webp"
           fallbackEmoji="🌱"
           title="아직 활동 기록이 없어요"
           description="포도알을 채우면 여기에 기록이 남아요!"
