@@ -10,6 +10,7 @@ import Confetti from '@/components/Confetti';
 import GiftUnboxModal from '@/components/GiftUnboxModal';
 import SurpriseRevealModal from '@/components/SurpriseRevealModal';
 import MidRewardModal from '@/components/MidRewardModal';
+import PlantGiftModal from '@/components/PlantGiftModal';
 import RewardRevealModal from '@/components/RewardRevealModal';
 import Avatar from '@/components/Avatar';
 import ConfirmDialog from '@/components/ConfirmDialog';
@@ -29,7 +30,7 @@ import {
   mergeServerBoard,
   stripTempsForCache,
 } from '@/lib/boardFillState';
-import type { BoardDetail, BoardSummary, PlantedGiftInfo, RewardInfo, TimeCapsuleInfo } from '@/types';
+import type { BoardDetail, BoardSummary, PlantedGiftInfo, RewardInfo, RewardType, TimeCapsuleInfo } from '@/types';
 import { REWARD_TYPE_ICON, ICON } from '@/lib/icons';
 import { feedbackTap } from '@/lib/feedback';
 import { stripTitleEmoji } from '@/lib/title';
@@ -160,6 +161,15 @@ export default function BoardDetailPage() {
   const [surpriseQueue, setSurpriseQueue] = useState<PlantedGiftInfo[]>([]);
   // Long-press / "+ 중간 보상" → MidRewardModal targeting this 0-based grape.
   const [plantPos, setPlantPos] = useState<number | null>(null);
+  // Friend (non-owner) view: long-press an unfilled grape → PlantGiftModal fixed
+  // to that position. Separate from `plantPos` (owner's 중간 보상 target) — the
+  // two gestures are mutually exclusive per GrapeBoard's isOwner branch, but keeping
+  // the state distinct avoids overloading one variable across two different modals.
+  const [plantGiftPos, setPlantGiftPos] = useState<number | null>(null);
+  // Brief inline notice when a friend long-presses on a board with allowFriendPlant
+  // off — auto-dismisses, no localStorage (W1-C spec 2).
+  const [plantGiftHint, setPlantGiftHint] = useState(false);
+  const [plantedFeedback, setPlantedFeedback] = useState(false);
   // A mid reward just reached → opened immediately in a popup (instant "쾌감").
   // loading은 팝업 객체에 동봉한 단일 상태 — 분리하면 unlock 응답의 loading 해제가
   // '다른 보상' 팝업의 스켈레톤을 오소거하는 동기화 구멍이 생긴다. content의
@@ -175,6 +185,9 @@ export default function BoardDetailPage() {
   const pendingUnlockContentRef = useRef(
     new Map<string, { title: string; content: string; imageUrl: string }>(),
   );
+  // 이 세션에서 이미 팝업으로 본 보상 id — 완성 자동 개봉(2.4s 타이머)이, 사용자가
+  // 그 사이 직접 열었다 닫은 보상을 다시 들이밀지 않게 한다(적대 검증에서 잡힌 반례).
+  const rewardSeenRef = useRef(new Set<string>());
   // 캐시로 시드됐다면 '첫 로드 완료'로 취급 — 재검증 실패 시 홈으로 튕기는 대신
   // 기존 화면 + 동기화 실패 배너를 유지한다(fetchBoard catch 분기 참조).
   const initialLoadDoneRef = useRef(board !== null);
@@ -413,8 +426,7 @@ export default function BoardDetailPage() {
         } else {
           // 완성 보상도 같은 즉시-채움 경로를 탄다 — 마지막 채움이 느린 사이 사용자가
           // 카드를 먼저 탭해 스켈레톤 팝업을 열어둔 경우(2026-06-13 영상: 편지 무소식),
-          // 이 unlock 응답이 서버가 내용을 아는 가장 이른 순간이다. 팝업이 없으면
-          // 버퍼만 남고(안전망 tryReveal이 왕복 없이 소비), 자동 오픈은 여전히 안 한다.
+          // 이 unlock 응답이 서버가 내용을 아는 가장 이른 순간이다.
           const body = { title: u.title, content: u.content ?? '', imageUrl: u.imageUrl ?? '' };
           pendingUnlockContentRef.current.set(u.id, body);
           setRewardPopup((prev) =>
@@ -423,6 +435,34 @@ export default function BoardDetailPage() {
               : prev,
           );
           fetchBoard();
+          // 완성 자동 개봉(W1-B ④): 완성 연출의 사운드/샤인 비트(임팩트+1650ms)가
+          // 지나간 뒤 완성 보상을 자동으로 연다 — '완성했는데 보상이 안 나온다'는
+          // 보고(2026-07-06)의 기대 정렬. 사용자가 먼저 탭해 팝업이 열려 있으면
+          // no-op(prev 유지 — updater는 순수, StrictMode 이중 실행 안전). reveal은
+          // openReward와 중복될 수 있으나 멱등이라 '열어봤다' 영속화만 보장한다.
+          window.setTimeout(() => {
+            if (!aliveRef.current) return;
+            if (rewardSeenRef.current.has(u.id)) return; // 그 사이 직접 열어봤으면 재개봉 금지
+            const buffered = pendingUnlockContentRef.current.get(u.id) ?? body;
+            pendingUnlockContentRef.current.delete(u.id);
+            setRewardPopup((prev) => prev ?? {
+              reward: {
+                id: u.id,
+                // 서버 보상 type은 validateRewards가 letter|giftcard|wish로 강제 — 단언 안전.
+                type: u.type as RewardType,
+                title: buffered.title,
+                content: buffered.content,
+                imageUrl: buffered.imageUrl,
+                triggerAt: u.triggerAt,
+                unlockedAt: null,
+                revealedAt: null,
+              },
+              loading: false,
+            });
+            api(`/api/boards/${id}/rewards/${u.id}/reveal`, { method: 'POST' })
+              .catch(() => {})
+              .then(() => { if (aliveRef.current) fetchBoard(); });
+          }, 2400);
         }
       }
 
@@ -520,6 +560,20 @@ export default function BoardDetailPage() {
     feedbackTap();
     setPlantPos(pos);
   }, []);
+  // Friend (non-owner) long-press → open PlantGiftModal fixed to that grape, or
+  // (if the owner turned surprise gifts off) a brief inline notice instead. The
+  // long-press gesture itself always fires so the "turned off" case can still be
+  // discovered — only what happens on press depends on allowFriendPlant.
+  const handlePlantGift = useCallback((pos: number) => {
+    if (board?.allowFriendPlant === false) {
+      feedbackTap();
+      setPlantGiftHint(true);
+      setTimeout(() => setPlantGiftHint(false), 2500);
+      return;
+    }
+    feedbackTap();
+    setPlantGiftPos(pos);
+  }, [board?.allowFriendPlant]);
   const handleMidRewardReached = useCallback((r: RewardInfo) => {
     // 빠른 응답이 비트를 추월해 버퍼에 둔 내용이 있으면 스켈레톤 없이 즉시 본문.
     const buffered = pendingUnlockContentRef.current.get(r.id);
@@ -600,7 +654,9 @@ export default function BoardDetailPage() {
       });
       timer = setTimeout(tryReveal, 25000);
     } else {
-      timer = setTimeout(tryReveal, 5000);
+      // 첫 시도 5000→800ms(W1-B): openReward의 자체 reveal이 대개 먼저 채우지만,
+      // 그 요청이 유실됐을 때 스켈레톤을 5초나 방치하는 건 '안 나온다'로 읽힌다.
+      timer = setTimeout(tryReveal, 800);
     }
     return () => {
       cancelled = true;
@@ -668,15 +724,27 @@ export default function BoardDetailPage() {
 
   // Open a reward in the popup (mid chip / final card tap). 내용은 unlocked
   // 시점부터 board GET에 실려 있어 보통 즉시 보인다. reveal은 '열어봤다' 영속화
-  // 전용(멱등)으로 비차단 발사. 스켈레톤은 '구캐시 등으로 내용이 아직 없고
-  // 미공개'인 경우에만 — 응답이 채우거나, 실패 시 닫고 배너(영구 스켈레톤 금지).
+  // 전용(멱등)으로 비차단 발사. 스켈레톤은 '구캐시 등으로 내용이 아직 없는'
+  // 경우에만 — 응답이 채우거나, 실패 시 닫고 배너(영구 스켈레톤 금지).
   const openReward = (reward: RewardInfo) => {
-    const loading = !reward.revealedAt && !reward.content && !reward.imageUrl;
+    // 빠른-응답 버퍼 우선 소비(왕복 0) — 완성/unlock 응답이 이미 내용을 실어 왔다면
+    // 여는 이 순간이 소비 시점이다. 예전엔 안전망 폴링(수 초 뒤)만 버퍼를 봤어서,
+    // 프로드 RTT에선 fetchBoard가 돌아오기 전 탭이 스켈레톤 창을 만들었다(W1-B ①).
+    const buffered = pendingUnlockContentRef.current.get(reward.id);
+    if (buffered) {
+      pendingUnlockContentRef.current.delete(reward.id);
+      reward = { ...reward, ...buffered };
+    }
+    rewardSeenRef.current.add(reward.id); // 완성 자동 개봉의 재개봉 방지 표식
+    // 내용이 로컬에 없으면 로딩 — revealedAt이 있어도 stale 마스킹('')일 수 있어
+    // (완성 직전 GET 캐시 등) 본문 없는 모달 대신 reveal 재발사로 회복한다(멱등, W1-B ③).
+    // 내용이 정말 빈 보상도 이 경로를 타지만 응답의 ''가 loading을 곧 끈다(제목만 표시).
+    const loading = !reward.content && !reward.imageUrl;
     // 연타 직후 카드 탭: 낙관 카운트로 카드가 먼저 '달성'이 되지만 서버 커밋(직렬
     // 큐)은 뒤따라온다 — 그 사이의 스켈레톤은 '저장 중'임을 모달이 직접 말한다.
     setRewardPopup({ reward, loading, savingFills: loading && (fillPendingCounts.get(id) ?? 0) > 0 });
     setConfettiTrigger((t) => t + 1);
-    if (!reward.revealedAt) {
+    if (!reward.revealedAt || loading) {
       api<{ reward: RewardInfo }>(
         `/api/boards/${id}/rewards/${reward.id}/reveal`,
         { method: 'POST' },
@@ -782,6 +850,10 @@ export default function BoardDetailPage() {
   // 필드가 없는 구버전 캐시 응답은 선물 여부만으로 근사(포도동 판정은 재검증 후 도착).
   const canManageRewards = board.canManageRewards ?? !board.giftedFrom;
   const filledCount = board.stickers.length;
+  // 친구 뷰: 내가 이 보드에 심은 깜짝 선물(위치·공개 여부). 서버가 본인 것만 내려준다
+  // (myPlantedGifts, additive GET 필드) — 주인 뷰에선 항상 빈 배열(위치 힌트 없음 유지).
+  const myPlantedGifts = board.myPlantedGifts ?? [];
+  const myPlantedPositions = new Map(myPlantedGifts.map((g) => [g.position, g.revealedAt !== null]));
   // 중간 보상(아이콘 슬라이더) vs 완성 보상(카드) 분리.
   const midRewards = board.rewards
     .filter((r) => r.triggerAt < board.totalStickers)
@@ -913,6 +985,44 @@ export default function BoardDetailPage() {
         )}
       </div>
 
+      {/* Friend view: discoverability caption for the long-press plant-gift gesture
+          (W1-C spec 5) — always visible, no localStorage. Plus a caption for gifts
+          I've already planted here (spec 6). Owner sees neither (no position hints). */}
+      {!isOwner && !board.isCompleted && (
+        <div className="text-center mb-4 space-y-1">
+          <p className="text-xs text-warm-sub">
+            {allowPlant
+              ? '빈 포도알을 꾹 누르면 깜짝 선물을 숨길 수 있어요'
+              : '이 친구는 깜짝 선물 받기를 꺼뒀어요'}
+          </p>
+          {myPlantedGifts.length > 0 && (
+            <p className="text-xs text-warm-sub">
+              <EmojiIcon emoji="🎁" size={12} className="mr-0.5" />
+              내가 숨긴 선물 {myPlantedGifts.length}개 (
+              {myPlantedGifts.map((g) => `${g.position + 1}번째 알`).join(', ')})
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Friend long-pressed a grape but this owner turned surprise gifts off —
+          brief self-dismissing notice (W1-C spec 2). */}
+      {plantGiftHint && (
+        <div className="clay-sm p-3 mb-4 bg-grape-50/70 text-center animate-bounce-in">
+          <span className="text-sm font-medium text-grape-600">이 친구는 깜짝 선물 받기를 꺼뒀어요</span>
+        </div>
+      )}
+
+      {/* Friend planted a gift just now — confirmation banner (mirrors the old
+          friends/[id] plantedFeedback banner, now shown at the plant site). */}
+      {plantedFeedback && (
+        <div className="clay-sm p-3 mb-4 bg-leaf-100/60 text-center animate-bounce-in">
+          <span className="text-sm font-medium text-grape-600">
+            <EmojiIcon emoji="🎁" size={14} className="mr-0.5" />깜짝 선물을 숨겨놨어요!
+          </span>
+        </div>
+      )}
+
       {/* Grape Board */}
       <div className="clay-float p-6 mb-6">
         <GrapeBoard
@@ -922,6 +1032,7 @@ export default function BoardDetailPage() {
           onCelebrate={handleCelebrate}
           isOwner={isOwner}
           onPlantReward={isOwner && !board.isCompleted && canManageRewards ? handlePlantReward : undefined}
+          onPlantGift={!isOwner && !board.isCompleted ? handlePlantGift : undefined}
           onMidRewardReached={handleMidRewardReached}
         />
       </div>
@@ -1089,6 +1200,22 @@ export default function BoardDetailPage() {
           existingReward={board.rewards.find((r) => r.triggerAt === plantPos + 1) ?? null}
           onClose={() => setPlantPos(null)}
           onSaved={() => fetchBoard()}
+        />
+      )}
+
+      {/* Friend (non-owner) long-pressed an empty grape → plant a surprise gift
+          fixed to that position (W1-C: moved in from friends/[id]'s standalone
+          button). onSaved refetches so myPlantedGifts (and the 🎁 marker) update. */}
+      {plantGiftPos !== null && (
+        <PlantGiftModal
+          board={{ id, title: board.title, totalStickers: board.totalStickers, filledCount: board.stickers.length }}
+          fixedPosition={plantGiftPos}
+          onClose={() => setPlantGiftPos(null)}
+          onPlanted={() => {
+            setPlantedFeedback(true);
+            setTimeout(() => setPlantedFeedback(false), 2500);
+            fetchBoard();
+          }}
         />
       )}
 

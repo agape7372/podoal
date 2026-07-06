@@ -12,14 +12,21 @@ interface PlantGiftModalProps {
   board: { id: string; title: string; totalStickers: number; filledCount: number };
   onClose: () => void;
   onPlanted: () => void;
+  /** When given, the position picker is skipped — the gift plants directly at
+   *  this (already long-pressed) grape. Used by the board detail long-press
+   *  entry point; the standalone position-picker flow (below) stays for any
+   *  remaining callers. */
+  fixedPosition?: number;
 }
 
-export default function PlantGiftModal({ board, onClose, onPlanted }: PlantGiftModalProps) {
+export default function PlantGiftModal({ board, onClose, onPlanted, fixedPosition }: PlantGiftModalProps) {
   const { closeRef, requestClose } = useModalClose(onClose);
   const positions: number[] = [];
   for (let p = board.filledCount; p < board.totalStickers; p++) positions.push(p);
 
-  const [position, setPosition] = useState<number>(positions[Math.floor(positions.length / 2)] ?? board.filledCount);
+  const [position, setPosition] = useState<number>(
+    fixedPosition ?? positions[Math.floor(positions.length / 2)] ?? board.filledCount,
+  );
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -57,21 +64,25 @@ export default function PlantGiftModal({ board, onClose, onPlanted }: PlantGiftM
           빈 한 칸에 선물을 숨겨둘게요. 채우면 짠!
         </p>
 
-        {positions.length === 0 ? (
+        {fixedPosition === undefined && positions.length === 0 ? (
           <p className="text-center text-sm text-warm-sub py-6">더 심을 빈 칸이 없어요.</p>
         ) : (
           <>
-            <label className="block text-sm font-medium text-warm-sub mb-2 ml-1">어느 칸에 숨길까요?</label>
-            <select
-              value={position}
-              onChange={(e) => setPosition(Number(e.target.value))}
-              className="clay-input mb-4"
-              aria-label="선물 숨길 위치"
-            >
-              {positions.map((p) => (
-                <option key={p} value={p}>{p + 1}번째 포도알</option>
-              ))}
-            </select>
+            {fixedPosition === undefined && (
+              <>
+                <label className="block text-sm font-medium text-warm-sub mb-2 ml-1">어느 칸에 숨길까요?</label>
+                <select
+                  value={position}
+                  onChange={(e) => setPosition(Number(e.target.value))}
+                  className="clay-input mb-4"
+                  aria-label="선물 숨길 위치"
+                >
+                  {positions.map((p) => (
+                    <option key={p} value={p}>{p + 1}번째 포도알</option>
+                  ))}
+                </select>
+              </>
+            )}
 
             <label className="block text-sm font-medium text-warm-sub mb-2 ml-1">메시지 (선택)</label>
             <textarea
@@ -89,7 +100,7 @@ export default function PlantGiftModal({ board, onClose, onPlanted }: PlantGiftM
 
         <div className="flex gap-3">
           <ClayButton variant="ghost" onClick={requestClose} fullWidth>취소</ClayButton>
-          <ClayButton variant="primary" onClick={handlePlant} fullWidth loading={busy} disabled={positions.length === 0}>
+          <ClayButton variant="primary" onClick={handlePlant} fullWidth loading={busy} disabled={fixedPosition === undefined && positions.length === 0}>
             <EmojiIcon emoji="🎁" size={16} className="mr-1" />선물 심기
           </ClayButton>
         </div>

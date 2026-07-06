@@ -23,6 +23,10 @@ interface GrapeBoardProps {
   isOwner?: boolean;
   /** Long-press an unfilled grape → plant/edit a 중간 보상 at that position. */
   onPlantReward?: (position: number) => void;
+  /** Long-press an unfilled grape as a NON-owner (friend view) → plant a surprise
+   *  gift (PlantGiftModal) at that position. Only consulted when `isOwner` is
+   *  false — the owner gesture always routes to `onPlantReward`. */
+  onPlantGift?: (position: number) => void;
   /** Fired (synced to the confetti beat) when a fill reaches a MID reward, so
    *  the board page can pop the reward open immediately. */
   onMidRewardReached?: (reward: RewardInfo) => void;
@@ -36,12 +40,19 @@ interface GrapeCellProps {
   isFilling: boolean;
   dimmed: boolean;
   rewardEmoji?: string | null;
+  /** Friend view only (W1-C spec 6): a surprise gift I planted sits here.
+   *  'pending' = still hidden (I planted it, not yet revealed); 'revealed' =
+   *  the owner already filled this grape and saw it. Never set for the owner. */
+  myPlantedGiftStatus?: 'pending' | 'revealed' | null;
   grapeSize: number;
   hMargin: number;
   sizeClass: 'sm' | 'md' | 'lg';
   canPlant: boolean;
+  /** Which long-press action this cell fires — owner → reward, viewer → gift. */
+  isOwner: boolean;
   onFill: (position: number) => void;
   onPlantReward?: (position: number) => void;
+  onPlantGift?: (position: number) => void;
 }
 
 // One grape + its 🎁 marker. Extracted so `useLongPress` is called exactly once
@@ -57,14 +68,17 @@ const GrapeCell = memo(function GrapeCell({
   isFilling,
   dimmed,
   rewardEmoji,
+  myPlantedGiftStatus,
   grapeSize,
   hMargin,
   sizeClass,
   canPlant,
+  isOwner,
   onFill,
   onPlantReward,
+  onPlantGift,
 }: GrapeCellProps) {
-  const lp = useLongPress(() => onPlantReward?.(position), { threshold: 500 });
+  const lp = useLongPress(() => (isOwner ? onPlantReward?.(position) : onPlantGift?.(position)), { threshold: 500 });
   const pointerProps = canPlant
     ? {
         onPointerDown: lp.onPointerDown,
@@ -104,6 +118,16 @@ const GrapeCell = memo(function GrapeCell({
       {rewardEmoji && (
         <span className="absolute -top-1 -right-1 z-20 pointer-events-none drop-shadow-xs">
           <EmojiIcon emoji={rewardEmoji} size={Math.round(grapeSize * 0.4)} />
+        </span>
+      )}
+      {/* Opposite corner from rewardEmoji so the two markers never overlap.
+          'revealed' dims to 60% — it's already been seen, 'pending' stays full
+          strength as a still-hidden reminder. */}
+      {myPlantedGiftStatus && (
+        <span
+          className={`absolute -top-1 -left-1 z-20 pointer-events-none drop-shadow-xs ${myPlantedGiftStatus === 'revealed' ? 'opacity-60' : ''}`}
+        >
+          <EmojiIcon emoji="🎁" size={Math.round(grapeSize * 0.4)} />
         </span>
       )}
     </div>
@@ -331,7 +355,7 @@ function burstSparkles(container: HTMLElement): HTMLElement[] {
 }
 // ── 완성 연출 끝 ─────────────────────────────────────────────────────────────
 
-function GrapeBoardInner({ board, onFill, canFill, onCelebrate, isOwner, onPlantReward, onMidRewardReached }: GrapeBoardProps) {
+function GrapeBoardInner({ board, onFill, canFill, onCelebrate, isOwner, onPlantReward, onPlantGift, onMidRewardReached }: GrapeBoardProps) {
   const [fillingPos, setFillingPos] = useState<number | null>(null);
   const [justFilled, setJustFilled] = useState<number | null>(null);
 
@@ -457,6 +481,18 @@ function GrapeBoardInner({ board, onFill, canFill, onCelebrate, isOwner, onPlant
     }
     return m;
   }, [board.rewards, board.totalStickers]);
+
+  // Friend view (W1-C spec 6): grapes where I've hidden a surprise gift.
+  // `board.myPlantedGifts` only ever contains the viewer's OWN plants (server-
+  // scoped) — for the owner it's always empty/undefined, so this map stays
+  // empty and no position hint leaks to them.
+  const myPlantedGiftMarkers = useMemo(() => {
+    const m = new Map<number, 'pending' | 'revealed'>();
+    for (const g of board.myPlantedGifts ?? []) {
+      m.set(g.position, g.revealedAt !== null ? 'revealed' : 'pending');
+    }
+    return m;
+  }, [board.myPlantedGifts]);
 
   const handleFill = useCallback(async (position: number) => {
     if (!canFill || filledPositions.has(position) || position !== nextPosition) return;
@@ -585,12 +621,19 @@ function GrapeBoardInner({ board, onFill, canFill, onCelebrate, isOwner, onPlant
                         isFilling={fillingPos === position}
                         dimmed={canFill && !filled && !isNext}
                         rewardEmoji={rewardMarkers.get(position) ?? null}
+                        myPlantedGiftStatus={myPlantedGiftMarkers.get(position) ?? null}
                         grapeSize={grapeSize}
                         hMargin={hMargin}
                         sizeClass={sizeClass}
-                        canPlant={!!isOwner && !filled && !!onPlantReward && position < board.totalStickers - 1}
+                        canPlant={
+                          !filled &&
+                          position < board.totalStickers - 1 &&
+                          (isOwner ? !!onPlantReward : !!onPlantGift)
+                        }
+                        isOwner={!!isOwner}
                         onFill={handleFill}
                         onPlantReward={onPlantReward}
+                        onPlantGift={onPlantGift}
                       />
                     );
                   })}

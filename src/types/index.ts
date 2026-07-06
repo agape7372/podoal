@@ -44,6 +44,8 @@ export interface BoardDetail extends BoardSummary {
   inRelay?: boolean;
   /** 보상 심기/편집(작성자 행위) 가능 여부 — 선물 복사본·비창시자 포도동 보드는 false (서버 판정, rewardAccess.ts). */
   canManageRewards?: boolean;
+  /** 뷰어 본인이 이 보드에 심은 깜짝 선물의 위치·공개 상태(W2-A, additive). 타인 것은 절대 포함되지 않는다. */
+  myPlantedGifts?: { position: number; revealedAt: string | null }[];
 }
 
 export interface PlantedGiftInfo {

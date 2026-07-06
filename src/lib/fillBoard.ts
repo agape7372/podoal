@@ -187,7 +187,8 @@ export async function fillBoardGrape(
                   boardId,
                   type: 'celebration',
                   emoji: '🎁',
-                  content: `${sticker.filler.name}님이 숨겨둔 선물을 발견했어요!`,
+                  // 위치 포함(W2-A): 심은 사람이 어느 알이었는지 잊어도 이 메시지로 복기 가능.
+                  content: `${sticker.filler.name}님이 ${position + 1}번째 알에 숨겨둔 선물을 발견했어요!`,
                 },
               });
             }

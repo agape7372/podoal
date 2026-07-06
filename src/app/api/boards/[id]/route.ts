@@ -77,6 +77,19 @@ export async function GET(request: Request, props: { params: Promise<{ id: strin
 
   const filledCount = board.stickers.length;
 
+  // 내가 이 보드에 심어둔 깜짝 선물(W2-A, additive) — 위치는 심은 본인에게만 돌려준다.
+  // 주인이 자기 보드의 심긴 위치를 미리 알면 서프라이즈가 죽으므로, 소유자 여부와
+  // 무관하게 "plantedById = 뷰어" 조건만으로 조회한다(타인 것은 절대 포함되지 않음).
+  const myPlanted = await prisma.plantedGift.findMany({
+    where: { boardId: id, plantedById: userId },
+    select: { position: true, revealedAt: true },
+    orderBy: { position: 'asc' },
+  });
+  const myPlantedGifts = myPlanted.map((g) => ({
+    position: g.position,
+    revealedAt: g.revealedAt ? g.revealedAt.toISOString() : null,
+  }));
+
   // Process rewards:
   // - title is always visible (for the locked preview)
   // - content/imageUrl masking은 '잠김(미도달)' 보상의 지연 공개 서스펜스용 —
@@ -129,6 +142,7 @@ export async function GET(request: Request, props: { params: Promise<{ id: strin
     rewardCount: board.rewards.length,
     stickers: board.stickers,
     rewards,
+    myPlantedGifts,
   };
 
   return Response.json({ board: result });
