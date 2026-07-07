@@ -5,6 +5,7 @@ import { api } from '@/lib/api';
 import ReminderModal from '@/components/ReminderModal';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import EmojiIcon from '@/components/EmojiIcon';
+import EmptyState from '@/components/EmptyState';
 import type { NotificationSettingInfo, ReminderInfo, BoardSummary } from '@/types';
 import { stripTitleEmoji } from '@/lib/title';
 import { usePush } from '@/lib/usePush';
@@ -354,13 +355,14 @@ export default function NotificationsPage() {
         </div>
 
         {reminders.length === 0 ? (
-          <div className="text-center py-8 text-warm-sub">
-            <span className="block mb-2"><EmojiIcon emoji="⏰" size={30} /></span>
-            <p className="text-sm">아직 리마인더가 없어요</p>
-            <p className="text-xs text-warm-sub mt-1">
-              리마인더를 추가해서 습관을 잊지 마세요.
-            </p>
-          </div>
+          <EmptyState
+            art="/illustrations/empty/empty-reminders-v2.webp"
+            fallbackEmoji="⏰"
+            artSize={96}
+            title="아직 리마인더가 없어요"
+            description="리마인더를 추가해서 습관을 잊지 마세요."
+            className="py-8"
+          />
         ) : (
           <div className="space-y-3">
             {reminders.map((reminder) => (
