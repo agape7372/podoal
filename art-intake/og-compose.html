@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  @font-face {
+    font-family: 'MaruBuri';
+    src: url('../src/app/fonts/MaruBuri-Bold.woff2') format('woff2');
+    font-weight: 700;
+  }
+  @font-face {
+    font-family: 'MaruBuri';
+    src: url('../src/app/fonts/MaruBuri-SemiBold.woff2') format('woff2');
+    font-weight: 600;
+  }
+  * { margin: 0; padding: 0; }
+  body { width: 1200px; height: 630px; overflow: hidden; }
+  .og {
+    width: 1200px; height: 630px; background: #fcf5eb;
+    display: flex; align-items: center; position: relative;
+  }
+  .art { width: 630px; height: 630px; flex: none; }
+  .art img { width: 100%; height: 100%; display: block; }
+  .text { flex: 1; padding-right: 96px; text-align: left; }
+  .title {
+    font-family: 'MaruBuri'; font-weight: 700; font-size: 118px;
+    color: #5C4482; letter-spacing: -0.02em;
+  }
+  .sub {
+    font-family: 'MaruBuri'; font-weight: 600; font-size: 40px;
+    color: #8a7a9b; margin-top: 22px;
+  }
+</style>
+</head>
+<body>
+  <div class="og">
+    <div class="art"><img src="og-vignette.png" alt=""></div>
+    <div class="text">
+      <div class="title">포도알</div>
+      <div class="sub">한 알씩, 매일의 기록</div>
+    </div>
+  </div>
+</body>
+</html>
