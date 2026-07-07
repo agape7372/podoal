@@ -140,6 +140,9 @@ export async function GET(request: Request, props: { params: Promise<{ id: strin
       userId,
     ).allowed,
     rewardCount: board.rewards.length,
+    // 채움 텀(additive, C1) — W3(숙성 연출·탭 판정)가 이 필드를 소비한다.
+    cadenceType: board.cadenceType,
+    cadenceN: board.cadenceN,
     stickers: board.stickers,
     rewards,
     myPlantedGifts,

@@ -2,6 +2,11 @@ import { prisma } from '@/lib/prisma';
 import { getCurrentUserId, authResponse } from '@/lib/auth';
 import { PUBLIC_USER_SELECT as userProfileSelect } from '@/lib/userSelect';
 import { validateRewards } from '@/lib/rewardValidation';
+import { CADENCE_TYPES } from '@/types';
+
+// 채움 텀(FILL_CADENCE_PLAN §2·§8 C1) — additive. 미지정 시 스키마 기본값 "FREE"와
+// 동일한 의미로 취급한다(하위호환: cadenceType을 모르는 옛 클라도 그대로 동작).
+const VALID_CADENCE_TYPES = new Set<string>(CADENCE_TYPES);
 
 export async function GET() {
   const userId = await getCurrentUserId();
@@ -43,6 +48,9 @@ export async function GET() {
     harvestedAt: board.harvestedAt,
     // 포도동(group 릴레이)에 속한 보드인지 — 홈 카드 출처 배지용.
     podong: board.relayParticipants.some((rp) => rp.relay.mode === 'group'),
+    // 채움 텀(additive, C1) — 없던 시절 보드도 스키마 기본값 "FREE"라 항상 채워져 있다.
+    cadenceType: board.cadenceType,
+    cadenceN: board.cadenceN,
   }));
 
   return Response.json({ boards: result });
@@ -55,7 +63,7 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
-  const { title, description, totalStickers, rewards, templateId } = body;
+  const { title, description, totalStickers, rewards, templateId, cadenceType, cadenceN } = body;
 
   if (
     typeof title !== 'string' ||
@@ -74,6 +82,25 @@ export async function POST(request: Request) {
     return authResponse('잘못된 templateId 입니다.', 400);
   }
 
+  // 채움 텀(additive, C1) — undefined면 "FREE"로 취급(하위호환). 지정 시 4종 외엔 400.
+  const resolvedCadenceType = cadenceType === undefined ? 'FREE' : cadenceType;
+  if (typeof resolvedCadenceType !== 'string' || !VALID_CADENCE_TYPES.has(resolvedCadenceType)) {
+    return authResponse('채우는 리듬 값이 올바르지 않아요.', 400);
+  }
+  // N은 DAILY_N/WEEKLY_N에서만 필수 — FREE/DAILY_1은 무시하고 null 저장(§2 표 범위).
+  let resolvedCadenceN: number | null = null;
+  if (resolvedCadenceType === 'DAILY_N') {
+    if (!Number.isInteger(cadenceN) || cadenceN < 2 || cadenceN > 10) {
+      return authResponse('리듬 횟수가 올바르지 않아요.', 400);
+    }
+    resolvedCadenceN = cadenceN;
+  } else if (resolvedCadenceType === 'WEEKLY_N') {
+    if (!Number.isInteger(cadenceN) || cadenceN < 1 || cadenceN > 7) {
+      return authResponse('리듬 횟수가 올바르지 않아요.', 400);
+    }
+    resolvedCadenceN = cadenceN;
+  }
+
   const rewardError = validateRewards(rewards, totalStickers);
   if (rewardError) {
     return authResponse(rewardError, 400);
@@ -87,6 +114,8 @@ export async function POST(request: Request) {
         totalStickers,
         templateId: templateId || null,
         ownerId: userId,
+        cadenceType: resolvedCadenceType,
+        cadenceN: resolvedCadenceN,
       },
     });
 
@@ -132,6 +161,8 @@ export async function POST(request: Request) {
     giftedTo: board.giftedTo,
     giftedFrom: board.giftedFrom,
     rewardCount: board._count.rewards,
+    cadenceType: board.cadenceType,
+    cadenceN: board.cadenceN,
   };
 
   return Response.json({ board: result }, { status: 201 });

@@ -8,8 +8,9 @@ import NumberStepper from '@/components/NumberStepper';
 import TemplatePicker from '@/components/create/TemplatePicker';
 import RewardEditor from '@/components/create/RewardEditor';
 import StepProgress from '@/components/create/StepProgress';
+import CadencePicker from '@/components/create/CadencePicker';
 import { api } from '@/lib/api';
-import type { RewardType } from '@/types';
+import type { RewardType, CadenceType } from '@/types';
 import type { HabitTemplate } from '@/lib/templates';
 import EmojiIcon from '@/components/EmojiIcon';
 import { feedbackSuccess, feedbackTap } from '@/lib/feedback';
@@ -27,6 +28,10 @@ function CreateBoardInner() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [totalStickers, setTotalStickers] = useState(10);
+  // 채움 텀(FILL_CADENCE_PLAN §2 C1). giftTo(선물 생성)는 v1 FREE 고정 — 섹션
+  // 자체를 숨기고(JSX), 제출 시에도 아래 payload에서 한 번 더 강제한다(이중 방어).
+  const [cadenceType, setCadenceType] = useState<CadenceType>('FREE');
+  const [cadenceN, setCadenceN] = useState(3);
   const [rewardType, setRewardType] = useState<RewardType>('letter');
   const [rewardTitle, setRewardTitle] = useState('');
   const [rewardContent, setRewardContent] = useState('');
@@ -41,6 +46,10 @@ function CreateBoardInner() {
     setTotalStickers(template.suggestedSize);
     setRewardTitle(`${template.name} 달성 보상`);
     setRewardContent(template.suggestedReward);
+    // 템플릿 권장 리듬 자동 제안(giftTo면 v1 FREE 고정 — 선물 보드는 텀 미노출).
+    const rec = !giftTo ? template.recommendedCadence : undefined;
+    setCadenceType(rec?.type ?? 'FREE');
+    setCadenceN(rec?.n ?? 3);
     setStep(1);
   };
 
@@ -49,6 +58,8 @@ function CreateBoardInner() {
     setTitle('');
     setDescription('');
     setTotalStickers(10);
+    setCadenceType('FREE');
+    setCadenceN(3);
     setRewardTitle('');
     setRewardContent('');
     setStep(1);
@@ -64,6 +75,13 @@ function CreateBoardInner() {
       { type: rewardType, title: rewardTitle.trim(), content: rewardContent.trim(), triggerAt: totalStickers },
     ];
 
+    // giftTo(선물 생성)는 v1 FREE 고정 — CadencePicker를 숨겨도 템플릿 자동제안으로
+    // state가 이미 채워져 있을 수 있어(예: giftTo 진입 전 템플릿에서 넘어온 값), 제출
+    // 시점에도 한 번 더 강제한다(이중 방어 — 근거: 위 handleSelectTemplate의 giftTo 분기와 쌍).
+    const effectiveCadenceType: CadenceType = giftTo ? 'FREE' : cadenceType;
+    const effectiveCadenceN =
+      !giftTo && (cadenceType === 'DAILY_N' || cadenceType === 'WEEKLY_N') ? cadenceN : undefined;
+
     setLoading(true);
     setError('');
     try {
@@ -74,6 +92,8 @@ function CreateBoardInner() {
           description: description.trim(),
           totalStickers,
           templateId,
+          cadenceType: effectiveCadenceType,
+          cadenceN: effectiveCadenceN,
           rewards: rewardsPayload,
         },
       });
@@ -190,6 +210,15 @@ function CreateBoardInner() {
             <NumberStepper value={totalStickers} onChange={setTotalStickers} min={2} max={60} />
           </div>
           <p className="text-xs text-warm-sub text-center text-balance">2~60알까지 자유롭게 설정할 수 있어요</p>
+
+          {/* 선물 생성(giftTo)은 v1 FREE 고정 — 섹션 자체를 숨긴다(FILL_CADENCE_PLAN §2). */}
+          {!giftTo && (
+            <CadencePicker
+              cadenceType={cadenceType}
+              cadenceN={cadenceN}
+              onChange={(type, n) => { setCadenceType(type); setCadenceN(n); }}
+            />
+          )}
         </div>
       )}
 

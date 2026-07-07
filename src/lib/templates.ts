@@ -7,6 +7,8 @@ export interface HabitTemplate {
   description: string;
   suggestedSize: number;
   suggestedReward: string;
+  /** 채움 텀 기본 제안(FILL_CADENCE_PLAN §2, additive) — 명백한 템플릿에만 부여, 나머진 생략(=FREE). */
+  recommendedCadence?: { type: 'DAILY_1' | 'DAILY_N' | 'WEEKLY_N'; n?: number };
 }
 
 export const TEMPLATE_CATEGORIES = [
@@ -30,6 +32,7 @@ export const HABIT_TEMPLATES: HabitTemplate[] = [
     description: '하루 8잔 물 마시기로 건강한 습관을 만들어요',
     suggestedSize: 20,
     suggestedReward: '좋아하는 음료 사먹기',
+    recommendedCadence: { type: 'DAILY_N', n: 8 },
   },
   {
     id: 'health-exercise',
@@ -40,6 +43,7 @@ export const HABIT_TEMPLATES: HabitTemplate[] = [
     description: '매일 30분 이상 운동으로 체력을 키워요',
     suggestedSize: 20,
     suggestedReward: '운동복 새로 사기',
+    recommendedCadence: { type: 'DAILY_1' },
   },
   {
     id: 'health-stretch',
@@ -50,6 +54,7 @@ export const HABIT_TEMPLATES: HabitTemplate[] = [
     description: '아침저녁 10분 스트레칭으로 몸을 풀어요',
     suggestedSize: 15,
     suggestedReward: '마사지 받으러 가기',
+    recommendedCadence: { type: 'DAILY_N', n: 2 },
   },
   {
     id: 'health-walk',
@@ -60,6 +65,7 @@ export const HABIT_TEMPLATES: HabitTemplate[] = [
     description: '하루 만보 걷기 도전! 산책의 즐거움을 느껴요',
     suggestedSize: 30,
     suggestedReward: '새 운동화 사기',
+    recommendedCadence: { type: 'DAILY_1' },
   },
   {
     id: 'health-sleep',
@@ -70,6 +76,7 @@ export const HABIT_TEMPLATES: HabitTemplate[] = [
     description: '밤 11시 전에 취침하는 규칙적인 수면 습관',
     suggestedSize: 20,
     suggestedReward: '좋은 베개 사기',
+    recommendedCadence: { type: 'DAILY_1' },
   },
   {
     id: 'health-meditation',
@@ -80,6 +87,7 @@ export const HABIT_TEMPLATES: HabitTemplate[] = [
     description: '하루 10분 명상으로 마음의 평화를 찾아요',
     suggestedSize: 15,
     suggestedReward: '명상 앱 유료 구독하기',
+    recommendedCadence: { type: 'DAILY_1' },
   },
   {
     id: 'health-vitamin',
@@ -90,6 +98,7 @@ export const HABIT_TEMPLATES: HabitTemplate[] = [
     description: '매일 영양제를 꼬박꼬박 챙겨 먹어요',
     suggestedSize: 30,
     suggestedReward: '건강검진 예약하기',
+    recommendedCadence: { type: 'DAILY_1' },
   },
   {
     id: 'health-weight',
@@ -100,6 +109,7 @@ export const HABIT_TEMPLATES: HabitTemplate[] = [
     description: '매일 체중을 기록하며 건강하게 관리해요',
     suggestedSize: 30,
     suggestedReward: '멋진 옷 한 벌 사기',
+    recommendedCadence: { type: 'DAILY_1' },
   },
 
   // ─── 자기계발 (6) ─────────────────────────────────────
@@ -112,6 +122,7 @@ export const HABIT_TEMPLATES: HabitTemplate[] = [
     description: '하루 30분 독서로 지식과 감성을 키워요',
     suggestedSize: 20,
     suggestedReward: '읽고 싶던 책 세트 구매',
+    recommendedCadence: { type: 'DAILY_1' },
   },
   {
     id: 'growth-study',
@@ -122,6 +133,7 @@ export const HABIT_TEMPLATES: HabitTemplate[] = [
     description: '매일 꾸준히 공부하는 습관을 만들어요',
     suggestedSize: 30,
     suggestedReward: '카페에서 맛있는 거 먹기',
+    recommendedCadence: { type: 'DAILY_1' },
   },
   {
     id: 'growth-diary',
@@ -132,6 +144,7 @@ export const HABIT_TEMPLATES: HabitTemplate[] = [
     description: '하루를 돌아보며 일기를 작성해요',
     suggestedSize: 20,
     suggestedReward: '예쁜 다이어리 사기',
+    recommendedCadence: { type: 'DAILY_1' },
   },
   {
     id: 'growth-english',
@@ -142,6 +155,7 @@ export const HABIT_TEMPLATES: HabitTemplate[] = [
     description: '매일 영어 단어 10개 또는 문장 5개 학습하기',
     suggestedSize: 30,
     suggestedReward: '영어 원서 한 권 사기',
+    recommendedCadence: { type: 'DAILY_1' },
   },
   {
     id: 'growth-news',
@@ -152,6 +166,7 @@ export const HABIT_TEMPLATES: HabitTemplate[] = [
     description: '매일 뉴스를 읽고 세상 돌아가는 일을 알아요',
     suggestedSize: 15,
     suggestedReward: '잡지 구독하기',
+    recommendedCadence: { type: 'DAILY_1' },
   },
   {
     id: 'growth-lecture',
@@ -174,6 +189,7 @@ export const HABIT_TEMPLATES: HabitTemplate[] = [
     description: '매일 아침 같은 시간에 일어나는 습관',
     suggestedSize: 20,
     suggestedReward: '브런치 맛집 가기',
+    recommendedCadence: { type: 'DAILY_1' },
   },
   {
     id: 'lifestyle-clean',
@@ -184,6 +200,7 @@ export const HABIT_TEMPLATES: HabitTemplate[] = [
     description: '매일 10분 정리정돈으로 깨끗한 공간 만들기',
     suggestedSize: 15,
     suggestedReward: '인테리어 소품 사기',
+    recommendedCadence: { type: 'DAILY_1' },
   },
   {
     id: 'lifestyle-cook',
@@ -224,6 +241,7 @@ export const HABIT_TEMPLATES: HabitTemplate[] = [
     description: '아침저녁 꼼꼼한 스킨케어 루틴',
     suggestedSize: 20,
     suggestedReward: '좋은 화장품 사기',
+    recommendedCadence: { type: 'DAILY_N', n: 2 },
   },
 
   // ─── 직장/학업 (5) ─────────────────────────────────────
@@ -246,6 +264,7 @@ export const HABIT_TEMPLATES: HabitTemplate[] = [
     description: '하루 시작 전 오늘의 업무를 정리해요',
     suggestedSize: 20,
     suggestedReward: '좋은 플래너 구매하기',
+    recommendedCadence: { type: 'DAILY_1' },
   },
   {
     id: 'work-meeting',
@@ -266,6 +285,7 @@ export const HABIT_TEMPLATES: HabitTemplate[] = [
     description: '목표 자격증 취득을 위해 매일 공부해요',
     suggestedSize: 30,
     suggestedReward: '합격 후 축하 식사',
+    recommendedCadence: { type: 'DAILY_1' },
   },
   {
     id: 'work-portfolio',
@@ -298,6 +318,7 @@ export const HABIT_TEMPLATES: HabitTemplate[] = [
     description: '하루에 한 번 주변 사람을 칭찬해요',
     suggestedSize: 20,
     suggestedReward: '감사 선물 준비하기',
+    recommendedCadence: { type: 'DAILY_1' },
   },
   {
     id: 'social-gratitude',
@@ -308,6 +329,7 @@ export const HABIT_TEMPLATES: HabitTemplate[] = [
     description: '감사한 일 3가지를 매일 기록해요',
     suggestedSize: 20,
     suggestedReward: '감사 편지 쓰기',
+    recommendedCadence: { type: 'DAILY_1' },
   },
 
   // ─── 취미 (5) ─────────────────────────────────────────
@@ -320,6 +342,7 @@ export const HABIT_TEMPLATES: HabitTemplate[] = [
     description: '매일 조금씩 그림을 그리며 실력을 쌓아요',
     suggestedSize: 20,
     suggestedReward: '좋은 화구 세트 사기',
+    recommendedCadence: { type: 'DAILY_1' },
   },
   {
     id: 'hobby-music',
@@ -330,6 +353,7 @@ export const HABIT_TEMPLATES: HabitTemplate[] = [
     description: '좋아하는 악기를 매일 연습해요',
     suggestedSize: 20,
     suggestedReward: '콘서트 티켓 구매',
+    recommendedCadence: { type: 'DAILY_1' },
   },
   {
     id: 'hobby-photo',
@@ -360,6 +384,7 @@ export const HABIT_TEMPLATES: HabitTemplate[] = [
     description: '매일 코드를 작성하며 개발 실력을 키워요',
     suggestedSize: 30,
     suggestedReward: '새 키보드 사기',
+    recommendedCadence: { type: 'DAILY_1' },
   },
 
   // ─── 마음건강 (5) ─────────────────────────────────────
@@ -382,6 +407,7 @@ export const HABIT_TEMPLATES: HabitTemplate[] = [
     description: 'SNS 사용 시간을 하루 30분 이내로 줄여요',
     suggestedSize: 20,
     suggestedReward: 'SNS 대신 좋아하는 취미 시간',
+    recommendedCadence: { type: 'DAILY_1' },
   },
   {
     id: 'mental-detox',
@@ -402,6 +428,7 @@ export const HABIT_TEMPLATES: HabitTemplate[] = [
     description: '매일 아침 나에게 긍정적인 말을 해요',
     suggestedSize: 20,
     suggestedReward: '좋아하는 향초 사기',
+    recommendedCadence: { type: 'DAILY_1' },
   },
   {
     id: 'mental-alone',
@@ -412,6 +439,7 @@ export const HABIT_TEMPLATES: HabitTemplate[] = [
     description: '하루 30분 온전히 나만의 시간을 가져요',
     suggestedSize: 15,
     suggestedReward: '카페에서 여유롭게 시간 보내기',
+    recommendedCadence: { type: 'DAILY_1' },
   },
 ];
 
