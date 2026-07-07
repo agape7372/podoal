@@ -22,7 +22,10 @@ export default function RewardList() {
   const { data, loading, error, refresh, mutate } = useCachedApi<{ rewards: CollectedReward[] }>('/api/rewards');
   const rewards = data?.rewards ?? [];
   const [filter, setFilter] = useState<Filter>('all');
-  const [opened, setOpened] = useState<RewardInfo | null>(null);
+  // reward만이 아니라 그 원본 포도판 id도 함께 들고 있는다 — RewardInfo 자체엔
+  // board가 없어서(CollectedReward에만 있음), 여는 시점에 같이 보관해 뒀다가
+  // RewardRevealModal의 "이 포도판 보러가기" 링크에 넘긴다(W2-rewards-board-link).
+  const [opened, setOpened] = useState<{ reward: RewardInfo; boardId: string } | null>(null);
   const [opening, setOpening] = useState<string | null>(null);
   const [openError, setOpenError] = useState('');
 
@@ -30,7 +33,7 @@ export default function RewardList() {
     feedbackTap();
     setOpenError('');
     if (r.revealedAt && (r.content || r.imageUrl)) {
-      setOpened(r);
+      setOpened({ reward: r, boardId: r.board.id });
       return;
     }
     setOpening(r.id);
@@ -39,7 +42,7 @@ export default function RewardList() {
         `/api/boards/${r.board.id}/rewards/${r.id}/reveal`,
         { method: 'POST' },
       );
-      setOpened(data.reward);
+      setOpened({ reward: data.reward, boardId: r.board.id });
       mutate((prev) =>
         prev && { ...prev, rewards: prev.rewards.map((x) => (x.id === r.id ? { ...x, ...data.reward } : x)) });
     } catch {
@@ -48,7 +51,7 @@ export default function RewardList() {
       // 기프티콘 이미지)도 열 수 있게 양쪽을 본다(보드 페이지 openReward와 동일
       // 기준). 둘 다 없으면 빈 편지 대신 실패를 말한다.
       if (r.content || r.imageUrl) {
-        setOpened(r);
+        setOpened({ reward: r, boardId: r.board.id });
       } else {
         feedbackError();
         setOpenError('보상을 여는 데 실패했어요. 잠시 후 다시 시도해주세요.');
@@ -132,7 +135,9 @@ export default function RewardList() {
         </div>
       )}
 
-      {opened && <RewardRevealModal reward={opened} onClose={() => setOpened(null)} />}
+      {opened && (
+        <RewardRevealModal reward={opened.reward} boardId={opened.boardId} onClose={() => setOpened(null)} />
+      )}
     </div>
   );
 }
