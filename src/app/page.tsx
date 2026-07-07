@@ -11,6 +11,7 @@ import { AVATAR_OPTIONS } from '@/types';
 import { api, fetchUser } from '@/lib/api';
 import { clearPageCache } from '@/lib/cachedApi';
 import { useAppStore } from '@/lib/store';
+import { describeAuthError } from '@/lib/authErrors';
 
 type Mode = 'welcome' | 'login' | 'register';
 
@@ -34,20 +35,6 @@ function describeOAuthError(code: string): string {
     return '소셜 로그인 처리 중 오류가 발생했어요. 잠시 후 다시 시도해주세요.';
   }
   return '로그인 중 오류가 발생했어요.';
-}
-
-// 데이터레이어(/api/auth/*)가 돌려주는 영어 검증 메시지를 한국어로 매핑.
-// 한국어 메시지는 맵에 없으면 원문 그대로 통과한다.
-function describeAuthError(message: string): string {
-  const map: Record<string, string> = {
-    'Name, email, and password are required.': '이름, 이메일, 비밀번호를 모두 입력해주세요.',
-    'Email and password are required.': '이메일과 비밀번호를 입력해주세요.',
-    'Invalid email format.': '이메일 형식이 올바르지 않아요.',
-    'Invalid email or password.': '이메일 또는 비밀번호가 올바르지 않아요.',
-    'Email is already registered.': '이미 가입된 이메일이에요. 로그인해주세요.',
-    'Internal server error.': '일시적인 오류가 발생했어요. 잠시 후 다시 시도해주세요.',
-  };
-  return map[message] ?? message;
 }
 
 export default function AuthPage() {

@@ -5,6 +5,7 @@ import { useAppStore } from '@/lib/store';
 import { api } from '@/lib/api';
 import { AVATAR_OPTIONS, type UserProfile } from '@/types';
 import { feedbackError, feedbackSuccess, feedbackTap } from '@/lib/feedback';
+import { describeAuthError } from '@/lib/authErrors';
 import Avatar from '@/components/Avatar';
 import ClayButton from '@/components/ClayButton';
 import ClayInput from '@/components/ClayInput';
@@ -82,7 +83,7 @@ function ProfileView({ user }: { user: UserProfile }) {
       setSaved(true);
       feedbackSuccess();
     } catch (e) {
-      setSaveError(e instanceof Error ? e.message : '저장에 실패했어요');
+      setSaveError(describeAuthError(e instanceof Error ? e.message : '저장에 실패했어요'));
     } finally {
       setSaving(false);
     }
@@ -126,7 +127,7 @@ function ProfileView({ user }: { user: UserProfile }) {
       setConfirmPassword('');
       feedbackSuccess();
     } catch (e) {
-      setPwError(e instanceof Error ? e.message : '비밀번호 변경에 실패했어요');
+      setPwError(describeAuthError(e instanceof Error ? e.message : '비밀번호 변경에 실패했어요'));
       feedbackError();
     } finally {
       setPwSaving(false);
@@ -144,7 +145,7 @@ function ProfileView({ user }: { user: UserProfile }) {
       setConfirmDeleteStep2(false);
       feedbackError();
       // 이 페이지에 남아 안내 — ConfirmDialog는 이미 닫혔으므로 별도 배너로 알린다.
-      setDeleteError(e instanceof Error ? e.message : '탈퇴에 실패했어요');
+      setDeleteError(describeAuthError(e instanceof Error ? e.message : '탈퇴에 실패했어요'));
     }
   };
 
