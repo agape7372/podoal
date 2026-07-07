@@ -141,6 +141,17 @@ export async function generateShareCard(data: ShareCardData): Promise<Blob> {
   ctx.fillStyle = C.grape600;
   ctx.fillText('포도알', WIDTH / 2, HEIGHT - 52);
 
+  // ─── 12. Inflow line: app domain (WS2 공유카드 유입 동선) ───
+  // NEXT_PUBLIC_*은 빌드타임 인라인 — layout.tsx의 metadataBase와 동일한
+  // fallback 패턴(하드코딩 금지). 워터마크(y=HEIGHT-52) 아래 24px 이상
+  // 떨어뜨려 겹치지 않게 배치.
+  const appHost = new URL(
+    process.env.NEXT_PUBLIC_APP_URL ?? 'https://podoal-rouge.vercel.app',
+  ).host;
+  ctx.font = `400 24px ${fonts.body}`;
+  ctx.fillStyle = C.warmSub;
+  ctx.fillText(appHost, WIDTH / 2, HEIGHT - 26);
+
   // ─── Convert to Blob ───────────────────────────────────────
   return canvasToBlob(canvas);
 }
