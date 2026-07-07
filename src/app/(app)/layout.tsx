@@ -6,6 +6,7 @@ import Navigation from '@/components/Navigation';
 import MessagePopup from '@/components/MessagePopup';
 import InstallPrompt from '@/components/InstallPrompt';
 import UnreadSync from '@/components/UnreadSync';
+import OfflineBanner from '@/components/OfflineBanner';
 import { useAppStore } from '@/lib/store';
 import { useSSE } from '@/lib/useSSE';
 import { useReminderScheduler } from '@/lib/useReminderScheduler';
@@ -47,6 +48,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-dvh pb-[160px]">
+      <OfflineBanner />
       <UnreadSync />
       <MessagePopup />
       <main className="max-w-lg mx-auto px-4 pt-4 safe-top">
