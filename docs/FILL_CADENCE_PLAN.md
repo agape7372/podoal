@@ -1,6 +1,6 @@
 # podoal 채움 텀 설계 — 숙성 시스템 (FILL_CADENCE_PLAN)
 
-> 상태: **기획(구현 전)** — 이 문서는 설계 정본, 코드 0줄. 실행은 ROADMAP 백로그 → 카드 변환 후에만.
+> 상태: **C1 구현(2026-07-08)** — 스키마 §8 전량(마이그레이션 `20260708000000_add_cadence_fields`) + 생성 플로우(`W2-cadence-create` 카드) + 숙성 연출·소프트 가드(`W3-cadence-ripen` 카드) 반영. C2(서버 판정·경계 통일)~C4는 §9대로 잔여. C1 노트: 클라 판정만(서버는 earlyFill 기록 필드 수용) — 클라·서버 판정 불일치 창은 §8 설계대로 존재. "완전히 익을 때 반짝 1회"(§3)는 C2 이월.
 > 근거: `docs/PERSONA_REVIEW_2026-07.md` ABS-07(단일 태그 최다 불만, 5명)·GAP-13·GAP-14·REQ-03(요청 1위, 5명)·REQ-11(3명).
 > 게이트: 스키마 변경은 **additive + 단독 웨이브**(PRINCIPLES §3·§4, `docs/MIGRATIONS.md`). 카피 신설 표면은 §7 예외 아님 — 신규 문구는 신규 표면에만.
 > 전략 위치: `docs/PRODUCT_PLAN.md` WS3 간판 항목.
