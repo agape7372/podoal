@@ -38,6 +38,23 @@ export default function SettingsPage() {
         ))}
       </section>
 
+      {/* 데이터 내보내기 — 탈퇴(계정 삭제)와 짝인 신뢰 장치. 라우터 이동이 아니라 파일
+          다운로드라 <Link>가 아닌 <a download>를 쓴다(스펙 4항). */}
+      <section className="clay overflow-hidden mb-4">
+        <a
+          href="/api/export"
+          download
+          onClick={feedbackTap}
+          className="w-full flex items-center gap-3 p-4 text-left transition-transform active:scale-[0.98]"
+        >
+          <EmojiIcon emoji="💾" size={20} />
+          <span className="flex-1 min-w-0">
+            <span className="block text-sm font-medium text-warm-text">내 데이터 내보내기</span>
+            <span className="block text-xs text-warm-sub mt-0.5 truncate">지금까지의 기록을 JSON 파일로 받아요</span>
+          </span>
+        </a>
+      </section>
+
       {/* App info */}
       <section className="clay p-5">
         <h2 className="text-sm font-semibold text-warm-sub mb-3">앱 정보</h2>
