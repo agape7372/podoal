@@ -32,6 +32,7 @@
 ├─ 새 기능을 제안·설계한다
 │   → docs/ROADMAP.md에서 위치 확인(P0~P4·백로그). 백로그 항목은 카드 변환 후에만 착수.
 │     수익화·구독·스킨이면 docs/MONETIZATION_PLAN.md 가드레일 필수.
+│     전략적 우선순위·페르소나 근거는 docs/PRODUCT_PLAN.md.
 └─ 감사·리뷰를 한다
     → PRINCIPLES §8 트리아지 + §10. 발견은 ①수정 카드 ②의도적 동작(근거) ③제안, 셋 중 하나로만.
 ```
@@ -70,5 +71,8 @@
 | `docs/ROADMAP.md` | P0(현재)~P4 + 백로그 — "다음 할 일"은 여기서 |
 | `docs/cards/` | 실행 단위 태스크 카드 (상태 헤더 참조) |
 | `docs/MONETIZATION_PLAN.md` | 결제·구독·스킨 — 가드레일 6항 |
+| `docs/PRODUCT_PLAN.md` | 전략층(비전·WS·KPI·확장 게이트) — phase 정본은 ROADMAP |
+| `docs/PERSONA_REVIEW_2026-07.md` | 페르소나 22명 리뷰 — 불변 시뮬레이션 스냅샷 |
+| `docs/FILL_CADENCE_PLAN.md` | 채움 텀·숙성 시스템 기획(구현 전) |
 | `docs/MIGRATIONS.md` | 스키마 변경 절차 |
 | `docs/audit/` | 감사 스냅샷 (불변 리포트) |

@@ -1,0 +1,430 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>포도알 페르소나 리뷰 2026-07</title>
+</head>
+<body>
+<style>
+  :root{
+    --bg:#F7F4FB; --card:#FFFFFF; --ink:#3D3450; --ink-2:#6B6180; --ink-3:#9A91AC;
+    --line:#E9E3F2; --accent:#8A63C9; --accent-soft:#EFE8F9;
+    --abs:#8A63C9; --gap:#2F9C63; --pol:#AD7E16;
+    --good:#2F9C63; --warn:#AD7E16; --bad:#C0504E;
+    --shadow:0 2px 10px rgba(73,50,100,.08), 0 1px 3px rgba(73,50,100,.06);
+    --r:14px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#221A2E; --card:#2C2338; --ink:#EDE8F5; --ink-2:#B4A9C8; --ink-3:#847A99;
+      --line:#3C3149; --accent:#9C7DD6; --accent-soft:#372B4A;
+      --abs:#9C7DD6; --gap:#3FA36F; --pol:#B5872A;
+      --good:#3FA36F; --warn:#B5872A; --bad:#D06B69;
+      --shadow:0 2px 10px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="light"]{
+    --bg:#F7F4FB; --card:#FFFFFF; --ink:#3D3450; --ink-2:#6B6180; --ink-3:#9A91AC;
+    --line:#E9E3F2; --accent:#8A63C9; --accent-soft:#EFE8F9;
+    --abs:#8A63C9; --gap:#2F9C63; --pol:#AD7E16;
+    --good:#2F9C63; --warn:#AD7E16; --bad:#C0504E;
+    --shadow:0 2px 10px rgba(73,50,100,.08), 0 1px 3px rgba(73,50,100,.06);
+  }
+  :root[data-theme="dark"]{
+    --bg:#221A2E; --card:#2C2338; --ink:#EDE8F5; --ink-2:#B4A9C8; --ink-3:#847A99;
+    --line:#3C3149; --accent:#9C7DD6; --accent-soft:#372B4A;
+    --abs:#9C7DD6; --gap:#3FA36F; --pol:#B5872A;
+    --good:#3FA36F; --warn:#B5872A; --bad:#D06B69;
+    --shadow:0 2px 10px rgba(0,0,0,.35);
+  }
+  html{background:var(--bg)}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:"Noto Sans KR","Malgun Gothic","Apple SD Gothic Neo",sans-serif;
+    line-height:1.55; word-break:keep-all; -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1060px; margin:0 auto; padding:28px 20px 64px; display:flex; flex-direction:column; gap:28px}
+  h1,h2,h3{margin:0; text-wrap:balance}
+  h1{font-size:26px; font-weight:800; letter-spacing:-.02em}
+  h2{font-size:17px; font-weight:700; letter-spacing:-.01em}
+  .sub{color:var(--ink-2); font-size:13.5px; margin-top:6px}
+  .eyebrow{font-size:11px; font-weight:700; letter-spacing:.12em; color:var(--ink-3); text-transform:uppercase}
+  .badge{display:inline-block; font-size:11.5px; font-weight:700; padding:3px 10px; border-radius:999px;
+    background:var(--accent-soft); color:var(--accent); vertical-align:3px; margin-left:8px}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:var(--r); box-shadow:var(--shadow); padding:20px}
+  .num{font-variant-numeric:tabular-nums}
+  a{color:var(--accent)}
+
+  /* KPI strip */
+  .kpis{display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:12px}
+  .kpi{background:var(--card); border:1px solid var(--line); border-radius:var(--r); box-shadow:var(--shadow); padding:16px 18px}
+  .kpi .v{font-size:26px; font-weight:800; letter-spacing:-.02em; margin-top:2px}
+  .kpi .d{font-size:12.5px; color:var(--ink-2); margin-top:2px}
+
+  /* histogram */
+  .grid2{display:grid; grid-template-columns:1.25fr 1fr; gap:20px}
+  @media(max-width:760px){.grid2{grid-template-columns:1fr}}
+  .hist{display:flex; align-items:flex-end; gap:10px; height:180px; padding-top:18px}
+  .hist .col{flex:1; display:flex; flex-direction:column; align-items:center; gap:6px; min-width:0}
+  .hist .bar{width:100%; max-width:52px; background:var(--accent); border-radius:4px 4px 0 0; position:relative; transition:opacity .15s}
+  .hist .bar:hover{opacity:.85}
+  .hist .cnt{font-size:12px; font-weight:700; color:var(--ink-2)}
+  .hist .lb{font-size:11.5px; color:var(--ink-3)}
+  .axis{border-top:1px solid var(--line)}
+  .seglist{display:flex; flex-direction:column; gap:8px; margin-top:10px}
+  .segrow{display:flex; align-items:center; gap:10px; font-size:13px}
+  .segrow .nm{flex:0 0 148px; color:var(--ink-2)}
+  .segrow .tr{flex:1; height:8px; background:var(--accent-soft); border-radius:99px; overflow:hidden}
+  .segrow .fl{height:100%; background:var(--accent); border-radius:99px}
+  .segrow .vv{flex:0 0 40px; text-align:right; font-weight:700}
+
+  /* persona grid */
+  .filters{display:flex; flex-wrap:wrap; gap:8px; margin:14px 0 16px}
+  .chip{border:1px solid var(--line); background:var(--card); color:var(--ink-2); font-size:12.5px; font-weight:600;
+    padding:6px 12px; border-radius:999px; cursor:pointer; font-family:inherit}
+  .chip[aria-pressed="true"]{background:var(--accent); border-color:var(--accent); color:#fff}
+  .pgrid{display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:12px}
+  .pc{background:var(--card); border:1px solid var(--line); border-radius:var(--r); box-shadow:var(--shadow);
+    padding:14px 16px; cursor:pointer; text-align:left; font-family:inherit; color:var(--ink); transition:transform .12s}
+  .pc:hover{transform:translateY(-2px)}
+  .pc .top{display:flex; justify-content:space-between; align-items:baseline; gap:8px}
+  .pc .pid{font-size:11px; font-weight:700; color:var(--ink-3)}
+  .pc .stars{font-size:12.5px; font-weight:800; color:var(--accent); white-space:nowrap}
+  .pc .nm{font-size:14px; font-weight:700; margin-top:3px}
+  .pc .meta{font-size:12px; color:var(--ink-2); margin-top:2px}
+  .pc .quote{font-size:12.5px; color:var(--ink-2); margin-top:8px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden}
+  .tags{display:flex; flex-wrap:wrap; gap:5px; margin-top:9px}
+  .tg{font-size:10.5px; font-weight:700; padding:2px 8px; border-radius:999px; color:#fff}
+  .tg.abs{background:var(--abs)} .tg.gap{background:var(--gap)} .tg.pol{background:var(--pol)}
+  .churn{font-size:10.5px; font-weight:700; padding:2px 8px; border-radius:999px; border:1.5px solid}
+  .churn.h{color:var(--bad); border-color:var(--bad)}
+  .churn.m{color:var(--warn); border-color:var(--warn)}
+  .churn.l{color:var(--good); border-color:var(--good)}
+
+  /* modal */
+  dialog{border:none; border-radius:16px; background:var(--card); color:var(--ink); box-shadow:0 18px 60px rgba(0,0,0,.3);
+    max-width:560px; width:calc(100vw - 40px); padding:0}
+  dialog::backdrop{background:rgba(30,20,45,.45)}
+  .mbody{padding:24px; max-height:78vh; overflow-y:auto}
+  .mbody h3{font-size:17px; font-weight:800}
+  .review{background:var(--accent-soft); border-radius:12px; padding:14px 16px; font-size:13.5px; margin:14px 0}
+  .kv{font-size:13px; margin-top:10px}
+  .kv b{display:block; font-size:11.5px; letter-spacing:.08em; color:var(--ink-3); margin-bottom:3px}
+  .mclose{position:sticky; bottom:0; display:block; width:100%; border:none; border-top:1px solid var(--line);
+    background:var(--card); color:var(--accent); font-weight:700; font-size:14px; padding:13px; cursor:pointer; font-family:inherit}
+
+  /* theme bars */
+  .tbars{display:flex; flex-direction:column; gap:7px; margin-top:14px}
+  .tb{display:flex; align-items:center; gap:10px; font-size:13px}
+  .tb .nm{flex:0 0 172px; color:var(--ink-2)}
+  .tb .tr{flex:1; display:flex; align-items:center; gap:8px}
+  .tb .fl{height:16px; border-radius:3px 4px 4px 3px; min-width:4px}
+  .tb .vv{font-weight:700; font-size:12.5px}
+  .legend{display:flex; gap:14px; flex-wrap:wrap; font-size:12px; color:var(--ink-2); margin-top:6px}
+  .legend i{display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:5px; vertical-align:-1px}
+
+  /* heatmap */
+  .hm{overflow-x:auto; margin-top:14px}
+  .hm table{border-collapse:separate; border-spacing:3px; width:100%; min-width:640px}
+  .hm th{font-size:11.5px; font-weight:600; color:var(--ink-2); padding:4px 6px; text-align:center}
+  .hm th.row{text-align:right; white-space:nowrap}
+  .hm td{border-radius:6px; text-align:center; font-size:12px; font-weight:700; padding:9px 4px; min-width:64px}
+
+  /* churn board */
+  .cb{display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; margin-top:14px}
+  .cbcol{border:1px solid var(--line); border-radius:12px; padding:14px}
+  .cbcol h3{font-size:13px; font-weight:800; display:flex; align-items:center; gap:7px}
+  .dot{width:9px; height:9px; border-radius:99px; display:inline-block}
+  .cbp{font-size:12.5px; color:var(--ink-2); margin:8px 0 0; line-height:1.5}
+  .cbp b{color:var(--ink)}
+
+  /* table */
+  .twrap{overflow-x:auto; margin-top:14px}
+  table.req{border-collapse:collapse; width:100%; min-width:680px; font-size:13px}
+  table.req th{font-size:11.5px; letter-spacing:.06em; color:var(--ink-3); text-align:left; font-weight:700;
+    padding:8px 10px; border-bottom:1px solid var(--line)}
+  table.req td{padding:9px 10px; border-bottom:1px solid var(--line); vertical-align:top}
+  table.req tr.ng td{color:var(--ink-3)}
+  .pill{font-size:11px; font-weight:700; padding:2px 9px; border-radius:999px; white-space:nowrap}
+  .pill.acc{background:var(--accent-soft); color:var(--accent)}
+  .pill.hold{border:1px solid var(--line); color:var(--ink-2)}
+  .pill.ng{background:transparent; border:1px solid var(--bad); color:var(--bad)}
+  footer{color:var(--ink-3); font-size:12px; line-height:1.7}
+  code{background:var(--accent-soft); border-radius:5px; padding:1px 6px; font-size:.92em}
+  :focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+  @media (prefers-reduced-motion: reduce){ *{transition:none !important} }
+</style>
+
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">podoal · 2026-07-07</div>
+    <h1>🍇 포도알 페르소나 리뷰 총 레포트<span class="badge">시뮬레이션</span></h1>
+    <div class="sub">가상 사용자 22명이 현재 코드 표면 기준으로 2주 사용했다고 가정한 사고 실험 · 실제 친구 베타를 대체하지 않음 · 수치 정본 <code>docs/PERSONA_REVIEW_2026-07.md</code></div>
+  </header>
+
+  <section class="kpis" aria-label="핵심 지표">
+    <div class="kpi"><div class="eyebrow">평균 별점</div><div class="v num">3.5<span style="font-size:15px;color:var(--ink-3)"> / 5</span></div><div class="d">22명 · 분포 2.0~5.0</div></div>
+    <div class="kpi"><div class="eyebrow">이탈 고위험</div><div class="v num" style="color:var(--bad)">5명</div><div class="d">P04 P10 P12 P18 P22</div></div>
+    <div class="kpi"><div class="eyebrow">최다 불만</div><div class="v" style="font-size:19px">설치·로그인 마찰</div><div class="d num">6명 · POL-01/02/04</div></div>
+    <div class="kpi"><div class="eyebrow">최다 요청</div><div class="v" style="font-size:19px">채움 페이스 조절</div><div class="d num">5명 · REQ-03 → FILL_CADENCE_PLAN</div></div>
+  </section>
+
+  <section class="grid2">
+    <div class="card">
+      <h2>별점 분포</h2>
+      <div class="hist" id="hist"></div>
+      <div class="axis"></div>
+    </div>
+    <div class="card">
+      <h2>세그먼트 평균</h2>
+      <div class="seglist" id="segavg"></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>페르소나 22명</h2>
+    <div class="sub">카드를 누르면 리뷰 전문 · 칩으로 필터</div>
+    <div class="filters" id="filters" role="group" aria-label="세그먼트 필터"></div>
+    <div class="pgrid" id="pgrid"></div>
+  </section>
+
+  <section class="card">
+    <h2>불만 테마 빈도</h2>
+    <div class="legend">
+      <span><i style="background:var(--abs)"></i>ABS 기능 부재</span>
+      <span><i style="background:var(--gap)"></i>GAP UX 갭</span>
+      <span><i style="background:var(--pol)"></i>POL 정책·플랫폼 마찰</span>
+    </div>
+    <div class="tbars" id="tbars"></div>
+    <div class="sub" style="margin-top:14px">칭찬 Top 5 — 채우기 촉감·연출(10) · 관계 기능: 선물/캡슐/릴레이(7) · 통계·히트맵(5) · 공유 카드·완성 연출(5) · 무압박 톤(3)</div>
+  </section>
+
+  <section class="card">
+    <h2>세그먼트 × 불만 테마</h2>
+    <div class="sub">테마 6군 재분류 · 셀 = 언급 페르소나 수</div>
+    <div class="hm" id="hm"></div>
+  </section>
+
+  <section class="card">
+    <h2>이탈 위험 보드</h2>
+    <div class="cb">
+      <div class="cbcol">
+        <h3><span class="dot" style="background:var(--bad)"></span>높음 · 5명</h3>
+        <p class="cbp"><b>P04</b> 저사양 성능+로그인 혼동 · <b>P10</b> 코치 도구 요건 미충족 · <b>P12</b> 설치·재로그인 벽 · <b>P18</b> 기본기 3종 부재 · <b>P22</b> 알림 이미 껐음(전조)</p>
+      </div>
+      <div class="cbcol">
+        <h3><span class="dot" style="background:var(--warn)"></span>중간 · 9명</h3>
+        <p class="cbp"><b>P01</b> 오프라인 실패 반복 시 · <b>P05</b> 위젯 경쟁앱 발견 시 · <b>P06</b> 페이스 회의감 · <b>P09</b> 유스케이스 미지원 · <b>P11</b> 계정 불안 · <b>P14</b> 루프 붕괴 반복 · <b>P15</b> 색 구분 피로 · <b>P19</b> 시차 버그 체감 · <b>P20</b> 데이터 접근 불가</p>
+      </div>
+      <div class="cbcol">
+        <h3><span class="dot" style="background:var(--good)"></span>낮음 · 8명</h3>
+        <p class="cbp"><b>P02 P17</b> 관계 락인 · <b>P03 P16</b> 콘텐츠 가치 · <b>P07 P08</b> 대체재 우위 · <b>P13</b> 자녀 지원 · <b>P21</b> 무압박 톤(단 피드 숨김 필요)</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>요청 기능 → 계획 매핑</h2>
+    <div class="twrap">
+      <table class="req">
+        <thead><tr><th>REQ</th><th>요청</th><th class="num">인원</th><th>대응</th><th>ROADMAP 위치</th><th>판정</th></tr></thead>
+        <tbody id="reqbody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer>
+    방법론: 1차 축 = 생애단계·역할, 2차 축 = 디바이스/과금/접근성/환경 quota. 별점 현실성 규칙(평균 3.5~4.0, 2.5↓ ≥2명, 5.0 ≤2명) 적용.<br>
+    이 문서는 불변 스냅샷의 파생 뷰 — 수치가 어긋나면 <code>docs/PERSONA_REVIEW_2026-07.md</code>가 이긴다. 전략 반영: <code>docs/PRODUCT_PLAN.md</code> · 간판 후속: <code>docs/FILL_CADENCE_PLAN.md</code>
+  </footer>
+</div>
+
+<dialog id="pmodal" aria-label="페르소나 상세">
+  <div class="mbody" id="mbody"></div>
+  <button class="mclose" id="mclose">닫기</button>
+</dialog>
+
+<script>
+const P = [
+ {id:"P01",nm:"고2 남 · 수능 플래너",seg:"학생·수험",dev:"갤럭시 중급 · 지하철 통학",pay:"무과금",r:3.5,ch:"m",
+  q:"지하철에선 안 채워지는데 아무 말도 없어서 버그인 줄 알았어요.",
+  rv:"포도알 채우는 손맛이 진짜 좋아요. 근데 지하철에선 안 채워지는데 아무 말도 없어서 버그인 줄 알았어요. 그리고 밀린 거 한 번에 다 눌러버리니까 그냥 클리커 게임 같아짐;; 하루 한 알만 되게 잠그는 모드 있으면 좋겠어요.",
+  lk:"채우기 촉감(F-11) · 공부 템플릿(F-09) · 스트릭(F-05)",tags:["ABS-05","GAP-07","ABS-07"],req:"REQ-03 · REQ-04",tr:"지하철 실패 반복 시 종이 플래너 회귀"},
+ {id:"P02",nm:"중3 여 · 공부+덕질",seg:"학생·수험",dev:"아이폰(부모 명의)",pay:"무과금",r:4.5,ch:"l",
+  q:"친구랑 릴레이로 도는 게 진짜 재밌어요!!",
+  rv:"친구랑 릴레이로 도는 게 진짜 재밌어요!! 포도 다 채우면 빵 터지는 것도 귀엽고요. 근데 아이폰은 설치하는 게 좀 복잡해서 친구한테 설명해주기 힘들었어요. 친구들끼리 누가 더 많이 했나 순위도 보여주면 좋겠어요.",
+  lk:"릴레이(F-20) · 응원 이모지(F-17) · 완성 연출(F-14)",tags:["POL-02","GAP-05"],req:"NG-01(랭킹, 거절) · REQ-12",tr:"친구 관계 락인 — 낮음"},
+ {id:"P03",nm:"대학생 여 24 · 미라클모닝",seg:"2030 자기관리",dev:"아이폰 사파리→PWA",pay:"소액",r:4.0,ch:"l",
+  q:"홈 화면에 추가하니까 알림이 되더라고요? 처음부터 알려줬으면.",
+  rv:"공유 카드가 예뻐서 스토리에 올리기 딱이에요. 처음에 알림이 안 와서 지울 뻔했는데 홈 화면에 추가하니까 되더라고요? 그걸 처음부터 더 크게 알려줬으면… 아침마다 포도 한 알씩 커지는 맛에 일어나요.",
+  lk:"공유 카드(F-16) · 아침 인사말(F-04) · 푸시(F-22)",tags:["POL-03","POL-02"],req:"REQ-14",tr:"낮음"},
+ {id:"P04",nm:"취준생 남 27 · 자격증",seg:"2030 자기관리",dev:"저가 안드로이드",pay:"무과금",r:2.0,ch:"h",
+  q:"폰이 구려서 그런지 누를 때마다 좀 끊겨요.",
+  rv:"폰이 구려서 그런지 누를 때마다 좀 끊겨요. 이쁜 건 알겠는데 공부 기록 앱은 가벼운 게 먼저 아닌가. 카카오 로그인 눌렀는데 체험 계정이라고 떠서 내 계정이 어떻게 된 건지 한참 헷갈렸어요. 정 붙이기 전에 접을 듯.",
+  lk:"템플릿 자동 채움(F-09) · 통계 요약(F-23)",tags:["GAP-11","POL-01","ABS-01"],req:"REQ-01 · 저사양 모드",tr:"성능 체감+신뢰 마찰 이중 — 높음"},
+ {id:"P05",nm:"직장인 여 29 · 운동·식단",seg:"2030 자기관리",dev:"아이폰 · 워치 사용자",pay:"구독 수용",r:3.5,ch:"m",
+  q:"위젯이 없어서 자꾸 까먹어요.",
+  rv:"디자인은 요즘 쓰는 앱 중 제일 예뻐요. 히트맵 보는 재미도 있고. 근데 위젯이 없어서 자꾸 까먹어요. 잠금화면에서 오늘 몇 알인지 보이면 진짜 완벽할 텐데. 그거 나오면 유료여도 쓸 의향 있어요.",
+  lk:"히트맵(F-23) · 클레이 디자인 · 리마인더(F-22)",tags:["ABS-01","POL-03"],req:"REQ-01 · REQ-13",tr:"위젯 있는 경쟁앱 발견 시 이동"},
+ {id:"P06",nm:"직장인 남 34 · 금연·재테크",seg:"2030 자기관리",dev:"갤럭시 · 지하철 통근",pay:"소액",r:3.0,ch:"m",
+  q:"어제 것까지 오늘 눌러도 아무렇지 않게 채워지니까 스스로 속이는 기분?",
+  rv:"금연 하루 버틸 때마다 한 알 채우는 게 은근 힘이 돼요. 근데 어제 것까지 오늘 눌러도 아무렇지 않게 채워지니까 스스로 속이는 기분? 하루 지나면 그날 알은 잠기는 옵션이 있으면 좋겠어요. 지하철에서 안 되는 것도 아쉽고.",
+  lk:"리마인더(F-22) · 스트릭(F-05) · 수확 보관(F-31)",tags:["ABS-07","ABS-05","GAP-07"],req:"REQ-03(엄격 모드) · REQ-04 · NG-02(벌금, 거절)",tr:"페이스 회의감 누적"},
+ {id:"P07",nm:"육아맘 36 · 아이 둘",seg:"가족·양육",dev:"아이패드 공용+폰",pay:"실용 과금",r:4.5,ch:"l",
+  q:"애들은 재밌으면 막 눌러버려서 하루 한 알 제한이 꼭 필요해요.",
+  rv:"종이 스티커판 졸업했어요. 애가 포도 누르는 맛에 정리를 해요(!) 근데 애들은 재밌으면 막 눌러버려서 하루 한 알 제한이 꼭 필요해요. 보상에 사진도 넣게 해주세요. 아빠 얼굴로 소원권 만들어주고 싶어요ㅋㅋ",
+  lk:"채우기 촉감(F-11) · 소원권 보상(F-09) · 깜짝 선물(F-13)",tags:["ABS-07","ABS-08"],req:"REQ-03 · REQ-05",tr:"낮음 — 종이 대비 우위 뚜렷"},
+ {id:"P08",nm:"육아대디 41",seg:"가족·양육",dev:"갤럭시",pay:"무과금",r:4.0,ch:"l",
+  q:"깜짝 선물 기능이 물건입니다.",
+  rv:"깜짝 선물 기능이 물건입니다. 8번째 포도알에 '주말에 낚시 가자' 심어놨는데 애가 열고 소리 지름ㅋㅋ 보상에 사진 첨부만 되면 별 다섯 개.",
+  lk:"깜짝 선물(F-13) · 개봉 연출(F-14) · 시간캡슐(F-15)",tags:["ABS-08","GAP-09"],req:"REQ-05",tr:"낮음"},
+ {id:"P09",nm:"초등교사 33",seg:"교육·코칭 B2B",dev:"데스크톱+폰",pay:"학교 예산",r:3.0,ch:"m",
+  q:"반 아이들을 초대할 방법이 없네요.",
+  rv:"교실 칭찬판이랑 완전히 같은 은유라서 심장이 뛰었는데, 반 아이들을 초대할 방법이 없네요. 선생님 계정 하나로 학생 이름만 붙인 보드 여러 개를 크게 띄워놓고 쓰는 걸 상상했어요. 그게 되면 학급운영비로 결제합니다.",
+  lk:"포도송이 은유(F-11) · 큰 화면 표시",tags:["ABS-09","POL-01"],req:"REQ-10",tr:"유스케이스 미지원 — 잠재 B2B"},
+ {id:"P10",nm:"필라테스 강사 30",seg:"교육·코칭 B2B",dev:"아이폰",pay:"사업 도구",r:2.5,ch:"h",
+  q:"한 명씩 들어가 봐야 해서 12명이면 노동이에요.",
+  rv:"회원님들 숙제 관리로 쓰려 했는데 한 명씩 들어가 봐야 해서 12명이면 노동이에요. 코치 대시보드 하나만 있으면 바로 결제할 텐데. 지금은 예쁜 개인 앱이지 도구는 아니네요.",
+  lk:"보드 선물(F-10) · 응원 메시지(F-17)",tags:["ABS-09","ABS-10"],req:"REQ-10 · REQ-06",tr:"도구 요건 미충족 — 대안 탐색 중"},
+ {id:"P11",nm:"주부 45 · 갱년기 운동",seg:"중장년·시니어",dev:"갤럭시 · 카카오 익숙",pay:"무과금",r:3.0,ch:"m",
+  q:"카카오로 시작했는데 체험이라고 떠서 걱정됐어요.",
+  rv:"포도가 한 알씩 차는 게 보람 있어요. 근데 카카오로 시작했는데 체험이라고 떠서 지워지는 건 아닌지 걱정됐어요. 글씨도 좀 키우는 기능이 있으면 좋겠어요. 딸이 없으면 설정을 잘 못 만지겠어요.",
+  lk:"채움 보람(F-11) · 딸의 응원(F-17)",tags:["POL-01","ABS-11"],req:"REQ-08 · REQ-12",tr:"계정 불안 → 신뢰 문제화 가능"},
+ {id:"P12",nm:"자영업 남 52 · 혈압·걷기",seg:"중장년·시니어",dev:"저가 안드로이드",pay:"무과금",r:2.5,ch:"h",
+  q:"설치가 어디서 하는 건지 몰라서 아들 없었으면 시작도 못 했어요.",
+  rv:"앱 자체는 단순해서 좋아요. 포도 누르는 것만 하면 되니까. 근데 설치가 어디서 하는 건지 몰라서 아들 없었으면 시작도 못 했어요. 글자도 조금 크면 좋겠고.",
+  lk:"조작 단순성(F-11) · 리마인더(F-22)",tags:["POL-04","POL-01","ABS-11"],req:"REQ-12 · REQ-08",tr:"재설치·재로그인 상황 = 복귀 불가"},
+ {id:"P13",nm:"시니어 여 67 · 필사",seg:"중장년·시니어",dev:"아이폰(자녀 설치)",pay:"무과금",r:3.5,ch:"l",
+  q:"다 채우니 포도주 병이 생기던데 그게 참 좋아요.",
+  rv:"하루 한 장 쓰고 포도 한 알 채우는 게 낙이에요. 다 채우니 포도주 병이 생기던데 그게 참 좋아요. 글씨가 좀 더 컸으면 하는 것 말고는 불편한 걸 모르겠어요. 딸이 다 해줘서 그런가.",
+  lk:"와이너리 병(F-24) · 시간캡슐(F-15)",tags:["ABS-11"],req:"REQ-08",tr:"낮음 — 단 기기 변경 시 자녀 의존"},
+ {id:"P14",nm:"ADHD 성향 28 · 새벽 사용",seg:"파워·비표준 리듬",dev:"아이폰",pay:"소액",r:4.0,ch:"m",
+  q:"꽂힌 날 한 번에 다 눌러버리고 다음날 현타 오는 걸 세 번 반복했어요.",
+  rv:"ADHD한테 이 앱 손맛은 거의 치트키예요. 근데 그래서 더 위험함ㅋㅋ 꽂힌 날 한 번에 다 눌러버리고 다음날 현타 오는 걸 세 번 반복했어요. 다음 알이 익을 때까지 기다리게 한다든지 뭔가 브레이크를 주세요. 새벽엔 눈아파요, 다크모드 좀요.",
+  lk:"채움 보상 루프(F-11+F-14) · 과하지 않은 알림(F-22)",tags:["ABS-07","ABS-02","GAP-13"],req:"REQ-03(숙성) · REQ-02 · REQ-11",tr:"루프 붕괴 반복 시 앱 회피"},
+ {id:"P15",nm:"색각 이상 남 31",seg:"파워·비표준 리듬",dev:"갤럭시",pay:"소액",r:3.0,ch:"m",
+  q:"채운 포도랑 빈 포도가 얼핏 비슷하게 보여서 숫자로 확인해요.",
+  rv:"색약인데요, 채운 포도랑 빈 포도가 얼핏 비슷하게 보여서 숫자로 확인해요. 채운 알에 작은 체크 표시라도 넣어주면 해결될 것 같아요. 기능은 다 좋은데 이거 하나가 계속 걸려요.",
+  lk:"진행률 숫자 병기(F-11) · 통계(F-23)",tags:["ABS-12"],req:"REQ-09",tr:"색 구분 피로 누적"},
+ {id:"P16",nm:"갓생 인플루언서 26",seg:"소셜·감성",dev:"아이폰",pay:"협찬 관점",r:4.0,ch:"l",
+  q:"링크 미리보기가 밋밋해서 클릭율이 아까워요.",
+  rv:"공유 카드는 진짜 잘 만들었어요. 감성 미쳤음. 근데 링크 미리보기가 밋밋해서 클릭율이 아까워요. 내 포도밭 구경하는 링크 하나만 만들어주면 팔로워들 다 데려올 수 있는데.",
+  lk:"공유 카드(F-16) · 와이너리 자랑(F-24) · 완성 연출(F-14)",tags:["GAP-12","ABS-10"],req:"REQ-06 · NG-01(랭킹, 거절)",tr:"낮음 — 콘텐츠 가치 유지되는 한"},
+ {id:"P17",nm:"장거리 커플 25",seg:"소셜·감성",dev:"아이폰",pay:"소액(선물)",r:5.0,ch:"l",
+  q:"몰래 심어둔 선물을 걔가 여는 순간 전화가 와요.",
+  rv:"장거리 커플에게 이만한 앱이 없어요. 걔가 채우면 소식이 오고, 몰래 심어둔 선물을 걔가 여는 순간 전화가 와요. 시간캡슐로 편지 걸어두는 건 진짜 낭만 그 자체. 유료 기능 나오면 뭐든 사줄게요 개발자님.",
+  lk:"깜짝 선물(F-13) · 시간캡슐(F-15) · 릴레이(F-20) · 실시간 메시지(F-19)",tags:["GAP-05"],req:"REQ-05",tr:"최저 — 관계 락인"},
+ {id:"P18",nm:"앱 파워유저 35",seg:"파워·비표준 리듬",dev:"갤럭시+태블릿",pay:"가치 검증형",r:3.0,ch:"h",
+  q:"위젯, 다크모드, 데이터 내보내기 셋 다 없는 건 기본기 미달입니다.",
+  rv:"완성도 있는 UI에 진심인 건 알겠어요. 근데 위젯, 다크모드, 데이터 내보내기 셋 다 없는 건 2026년 습관앱 기본기 미달입니다. 물 마시기처럼 하루 여러 번짜리 습관 설정도 안 되고요. 뼈대는 최고라서 더 아쉬움.",
+  lk:"드래그 정렬(F-03) · 수확 아카이브(F-31) · 히트맵(F-23)",tags:["ABS-01","ABS-02","ABS-03","ABS-07"],req:"REQ-01 · REQ-02 · REQ-07 · REQ-03(하루 N알)",tr:"기본기 갖춘 경쟁앱으로 즉시 이동 가능"},
+ {id:"P19",nm:"해외거주 한국인 29 · LA",seg:"파워·비표준 리듬",dev:"아이폰",pay:"소액",r:3.5,ch:"m",
+  q:"디데이 캡슐이 열릴 듯 안 열려서 김샜어요.",
+  rv:"미국에서 한국 엄마랑 매일 포도 채우는 맛에 살아요. 근데 날짜가 한국 기준인지 뭔지, 디데이 캡슐이 열릴 듯 안 열려서 김샜어요. 시차 있는 사용자 생각도 해주세요. 남편도 시키고 싶은데 영어가 없네요.",
+  lk:"릴레이(F-20) · 시간캡슐 컨셉(F-15) · 실시간 메시지(F-19)",tags:["GAP-03","GAP-13"],req:"REQ-11 · 영어판(장기)",tr:"시차 버그 반복 = 신뢰 하락"},
+ {id:"P20",nm:"대학원생 30 · 논문 루틴",seg:"파워·비표준 리듬",dev:"데스크톱 크롬 병행",pay:"무과금",r:3.5,ch:"m",
+  q:"제 데이터인데 내보낼 방법이 없다는 건 좀.",
+  rv:"히트맵 보는 맛에 씁니다. 근데 셀을 눌러도 아무 일도 안 일어나요. 그날의 기록이 궁금한데. 그리고 제 데이터인데 내보낼 방법이 없다는 건 좀. CSV 하나면 별 다섯 줄게요.",
+  lk:"히트맵(F-23) · 요일 분석(F-23) · 데스크톱 호환",tags:["ABS-13","ABS-03"],req:"REQ-13 · REQ-07",tr:"데이터 접근 불가 지속 시"},
+ {id:"P21",nm:"우울 회복기 32 여",seg:"소셜·감성",dev:"아이폰",pay:"무과금",r:4.5,ch:"l",
+  q:"못 한 날에 아무 말도 안 하는 앱은 처음이에요.",
+  rv:"못 한 날에 아무 말도 안 하는 앱은 처음이에요. 그게 저를 계속 돌아오게 해요. 포도 한 알이 제겐 하루를 버텼다는 뜻이거든요. 딱 하나, 남들 잘하는 소식이 첫 화면에 보이는 건 끌 수 있게 해주세요.",
+  lk:"마음건강 템플릿(F-09) · 무압박 톤(F-22) · 정서 보상(F-11)",tags:["ABS-14"],req:"REQ-15",tr:"낮음 — 단 피드 비교감이 악화 트리거"},
+ {id:"P22",nm:"3교대 간호사 28",seg:"파워·비표준 리듬",dev:"갤럭시",pay:"소액",r:3.0,ch:"h",
+  q:"교대근무자는 자정이 하루 기준이 아니에요.",
+  rv:"교대근무자는 자정이 하루 기준이 아니에요. 나이트 끝나고 아침에 채우면 어제 건지 오늘 건지… 알림도 매주 근무표 바뀔 때마다 다시 맞춰야 해서 그냥 꺼놨어요. 하루 시작 시간을 정하게 해주세요. 앱 자체는 예쁘고 위로가 돼요.",
+  lk:"채움 위로감(F-11) · 수확 보관(F-31)",tags:["GAP-13","GAP-14"],req:"REQ-11 · REQ-03",tr:"알림 이미 껐음 — 이탈 전조"}
+];
+
+const HIST=[["2.0",1],["2.5",2],["3.0",6],["3.5",5],["4.0",4],["4.5",3],["5.0",1]];
+const SEG=[["소셜·감성",4.50],["가족·양육",4.25],["학생·수험",4.00],["파워·비표준 리듬",3.33],["2030 자기관리",3.13],["중장년·시니어",3.00],["교육·코칭 B2B",2.75]];
+const THEMES=[["설치·로그인 마찰","pol",6],["채움 페이스 부재","abs",5],["하루 경계·시간대","gap",3],["홈화면 위젯 부재","abs",3],["글자 크기 조절 부재","abs",3],["오프라인 채우기·안내","abs",2],["보상 이미지 업로드","abs",2],["그룹·관리 뷰(B2B)","abs",2],["공개 링크 부재","abs",2],["다크모드 부재","abs",2],["데이터 내보내기","abs",2],["보상 팝업 지연 체감","gap",2],["색각 이중 부호화","abs",1],["소셜 숨김 설정","abs",1],["저사양 성능(추정)","gap",1],["OG 미리보기 미완","gap",1],["히트맵 드릴다운","abs",1],["필터 스크롤 리셋","gap",1]];
+const HM={cols:["설치·로그인","페이스","하루 경계","기본기·오프라인","접근성","소셜·표현"],
+ rows:[["학생·수험",[1,1,0,1,0,0]],["2030 자기관리",[2,1,0,4,0,0]],["가족·양육",[0,1,0,0,0,2]],["교육·코칭 B2B",[1,0,0,0,0,3]],["중장년·시니어",[3,0,0,0,3,0]],["소셜·감성",[0,0,0,0,0,3]],["파워·비표준 리듬",[0,2,3,5,1,0]]]};
+const REQS=[
+ ["REQ-03","채움 페이스 조절(하루 1알·N알·엄격·숙성)",5,"WS3","백로그 신설 → FILL_CADENCE_PLAN","acc","수용 · 간판"],
+ ["REQ-01","홈화면 위젯",3,"WS6","P2 (WIDGETS_NATIVE_PLAN)","acc","수용 · 기존 계획"],
+ ["REQ-08","글자 크기 조절·큰 글씨",3,"WS7","§8 제안-3","acc","수용 검토"],
+ ["REQ-05","보상 사진 업로드",3,"WS3/4","백로그(보상 이미지)","acc","수용"],
+ ["REQ-11","하루 시작 시각·시간대",3,"WS3","FILL_CADENCE §4 흡수","acc","수용"],
+ ["REQ-02","다크모드",2,"WS3","백로그(별도 마라톤)","hold","수용 · 순번 대기"],
+ ["REQ-12","스토어 등재",2,"WS6","P2 선행조건","acc","수용 · 기존 계획"],
+ ["REQ-07","데이터 내보내기",2,"WS7","백로그","hold","수용 · 순번 대기"],
+ ["REQ-06","공개 링크·프로필",2,"WS2","백로그(공개 링크)","hold","수용 · 설계 상위"],
+ ["REQ-10","학급·코치 그룹 모드",2,"§6 옵션","미등재 — go/no-go","hold","보류 · 베팅"],
+ ["REQ-04","오프라인 채우기",2,"WS6","백로그(위험 高)","hold","보류 · 설계 선행"],
+ ["REQ-13","히트맵 드릴다운·통계 심화",2,"WS3","P4","hold","수용 · 순번 대기"],
+ ["REQ-09","색각 이중 부호화",1,"WS7","§8 제안-3","acc","수용 검토"],
+ ["REQ-15","소셜 피드 숨김",1,"WS4/7","§8 제안-3","acc","수용 검토"],
+ ["REQ-14","커스텀 템플릿 저장",1,"WS2","백로그","hold","수용 · 순번 대기"],
+ ["NG-01","친구·팔로워 랭킹",2,"—","Non-goals(비교·경쟁 배제)","ng","거절"],
+ ["NG-02","실패 벌금 챌린지",1,"—","Non-goals(처벌 배제) — 대안: 엄격 모드","ng","거절"]];
+
+const $=(s)=>document.querySelector(s);
+const starTxt=(r)=>"★"+r.toFixed(1);
+const famOf=(t)=>t.startsWith("ABS")?"abs":t.startsWith("GAP")?"gap":"pol";
+
+// histogram
+$("#hist").innerHTML=HIST.map(([lb,c])=>`<div class="col"><span class="cnt num">${c}</span><div class="bar" style="height:${c/6*130+8}px" title="${lb}점 ${c}명"></div><span class="lb num">${lb}</span></div>`).join("");
+
+// segment averages
+$("#segavg").innerHTML=SEG.map(([nm,v])=>`<div class="segrow"><span class="nm">${nm}</span><div class="tr"><div class="fl" style="width:${(v/5)*100}%"></div></div><span class="vv num">${v.toFixed(2)}</span></div>`).join("");
+
+// theme bars
+const maxT=Math.max(...THEMES.map(t=>t[2]));
+$("#tbars").innerHTML=THEMES.map(([nm,f,c])=>`<div class="tb"><span class="nm">${nm}</span><div class="tr"><div class="fl" style="width:${c/maxT*72}%;background:var(--${f})" title="${nm} ${c}명"></div><span class="vv num">${c}</span></div></div>`).join("");
+
+// heatmap (sequential grape ramp)
+const hmMax=5;
+const cell=(v)=>{
+  if(v===0) return `<td style="background:var(--accent-soft);color:var(--ink-3)">·</td>`;
+  const a=0.25+(v/hmMax)*0.75;
+  return `<td style="background:color-mix(in srgb, var(--accent) ${Math.round(a*100)}%, transparent);color:${v>=3?'#fff':'var(--ink)'}" title="${v}명">${v}</td>`;
+};
+$("#hm").innerHTML=`<table><thead><tr><th></th>${HM.cols.map(c=>`<th>${c}</th>`).join("")}</tr></thead><tbody>${HM.rows.map(([nm,vs])=>`<tr><th class="row">${nm}</th>${vs.map(cell).join("")}</tr>`).join("")}</tbody></table>`;
+
+// request table
+$("#reqbody").innerHTML=REQS.map(([id,nm,n,ws,loc,cls,vd])=>`<tr class="${cls==='ng'?'ng':''}"><td class="num" style="font-weight:700">${id}</td><td>${nm}</td><td class="num">${n}</td><td>${ws}</td><td>${loc}</td><td><span class="pill ${cls}">${vd}</span></td></tr>`).join("");
+
+// persona grid + filters
+const segs=["전체",...new Set(P.map(p=>p.seg))];
+let cur="전체";
+function renderFilters(){
+  $("#filters").innerHTML=segs.map(s=>`<button class="chip" aria-pressed="${s===cur}" data-s="${s}">${s}</button>`).join("");
+}
+function renderGrid(){
+  const list=P.filter(p=>cur==="전체"||p.seg===cur);
+  $("#pgrid").innerHTML=list.map(p=>`
+   <button class="pc" data-id="${p.id}">
+     <span class="top"><span class="pid num">${p.id} · ${p.seg}</span><span class="stars num">${starTxt(p.r)}</span></span>
+     <span class="nm">${p.nm}</span>
+     <span class="meta">${p.dev} · ${p.pay}</span>
+     <span class="quote">“${p.q}”</span>
+     <span class="tags">${p.tags.map(t=>`<span class="tg ${famOf(t)}">${t}</span>`).join("")}<span class="churn ${p.ch}">${p.ch==="h"?"이탈 높음":p.ch==="m"?"이탈 중간":"이탈 낮음"}</span></span>
+   </button>`).join("");
+}
+renderFilters(); renderGrid();
+$("#filters").addEventListener("click",e=>{
+  const b=e.target.closest(".chip"); if(!b) return;
+  cur=b.dataset.s; renderFilters(); renderGrid();
+});
+$("#pgrid").addEventListener("click",e=>{
+  const c=e.target.closest(".pc"); if(!c) return;
+  const p=P.find(x=>x.id===c.dataset.id);
+  $("#mbody").innerHTML=`
+    <div class="eyebrow">${p.id} · ${p.seg} · ${p.dev} · ${p.pay}</div>
+    <h3>${p.nm} <span class="stars num" style="color:var(--accent)">${starTxt(p.r)}</span></h3>
+    <div class="review">“${p.rv}”</div>
+    <div class="kv"><b>좋았던 것</b>${p.lk}</div>
+    <div class="kv"><b>핵심 불만 태그</b>${p.tags.map(t=>`<span class="tg ${famOf(t)}" style="margin-right:4px">${t}</span>`).join("")}</div>
+    <div class="kv"><b>요청</b>${p.req}</div>
+    <div class="kv"><b>이탈 트리거</b>${p.tr}</div>`;
+  document.getElementById("pmodal").showModal();
+});
+$("#mclose").addEventListener("click",()=>document.getElementById("pmodal").close());
+document.getElementById("pmodal").addEventListener("click",e=>{ if(e.target.tagName==="DIALOG") e.target.close(); });
+</script>
+</body>
+</html>

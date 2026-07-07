@@ -1,7 +1,7 @@
 # podoal 로드맵
 
 > 미래 phase의 상위 인덱스. 각 phase: 목표 / 선행조건 / 완료 정의 / 착수 전 필독. 상세 스펙은 링크된 문서에 있고, 이 파일은 순서와 조건을 잡는다.
-> 원칙 `docs/PRINCIPLES.md` · 운영 `docs/PLAYBOOK.md` · 감사 `docs/audit/AUDIT-2026-07-05.md`.
+> 원칙 `docs/PRINCIPLES.md` · 운영 `docs/PLAYBOOK.md` · 전략 `docs/PRODUCT_PLAN.md` · 감사 `docs/audit/AUDIT-2026-07-05.md`.
 
 ## 현황 스냅샷 (2026-07-06)
 
@@ -64,6 +64,8 @@
 | 다크모드 | 클레이 팔레트 다크 변형 | 토큰 전면 재설계 — 별도 마라톤 | 최상위 |
 | 오프라인 채우기 | SW에 fill 큐 영속화 → 복귀 동기화 | 직렬 큐·409 정합 충돌 위험 高 — 설계 문서 선행 | 최상위 |
 | 주간 리포트 푸시 | 주 1회 요약, opt-in (알림 총량 불변 — ADHD 가드레일) | NotificationSetting 확장 additive | sonnet |
+| 계측(애널리틱스) 도입 | 이벤트 사전+수집 배선 — **P3 R1 완료 정의("리텐션 반응 측정")의 선행 기반** | 개인정보 동의 선결 · 상세 `docs/PRODUCT_PLAN.md` WS1 | 설계 상위, 배선 sonnet |
+| 채움 텀·숙성 시스템 | 보드별 페이스(하루 1알 등)+"익는 중" 연출 — 페르소나 리뷰 요청 1위 | 상세 `docs/FILL_CADENCE_PLAN.md` · 스키마 additive+단독 웨이브 | C1 sonnet, C2+ 설계 상위 |
 | i18n(영어) | 키 추출부터 | §7 카피 동결 예외 승인 필요 | 보류 |
 
 ## Non-goals (명시적으로 안 하는 것)
