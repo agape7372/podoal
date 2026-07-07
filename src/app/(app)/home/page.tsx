@@ -59,6 +59,7 @@ const NAV_INSET = 80;       // 하단 고정 네비/홈인디케이터가 가리
 export default function HomePage() {
   const router = useRouter();
   const user = useAppStore((s) => s.user);
+  const settings = useAppStore((s) => s.settings);
   // SWR 캐시: 재방문 시 직전 보드 목록으로 즉시 렌더 + 무음 재검증.
   // (loadBoards/loadError 이름은 기존 호출처 호환을 위해 유지.)
   const {
@@ -858,8 +859,10 @@ export default function HomePage() {
         </>
       )}
 
-      {/* 친구 소식 — 최근 7일 내 친구가 완성한 포도판. 활동 0건/친구 0명이면 통째로 숨김. */}
-      {friendActivities.length > 0 && (
+      {/* 친구 소식 — 최근 7일 내 친구가 완성한 포도판. 활동 0건/친구 0명이거나 설정에서
+          숨긴 경우(hideFriendFeed, ABS-14) 통째로 숨김. fetch(useCachedApi)는 그대로 유지
+          — 조건부 훅 호출 금지, 여기서는 렌더만 가린다. */}
+      {!settings.hideFriendFeed && friendActivities.length > 0 && (
         <section className="mt-8" aria-label="친구 소식">
           <h2 className="font-display text-lg font-bold text-warm-text mb-3">친구 소식</h2>
           <ul className="space-y-2.5">

@@ -12,6 +12,8 @@ export interface AppSettings {
   fillSoundId: number;
   showMessagePopup: boolean;
   realtimeNotifications: boolean;
+  /** 홈 "친구 소식" 피드 숨김(ABS-14 심리 안전). 기본 false = 표시. */
+  hideFriendFeed: boolean;
 }
 
 const SETTINGS_STORAGE_KEY = 'podoal-app-settings';
@@ -23,6 +25,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   fillSoundId: 13,
   showMessagePopup: true,
   realtimeNotifications: true,
+  hideFriendFeed: false,
 };
 
 function loadSettings(): AppSettings {

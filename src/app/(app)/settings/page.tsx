@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { feedbackTap } from '@/lib/feedback';
+import { useAppStore } from '@/lib/store';
 import EmojiIcon from '@/components/EmojiIcon';
 import Chevron from '@/components/Chevron';
 
@@ -12,7 +13,34 @@ const settingLinks = [
   { path: '/notifications', icon: '🔔', label: '알림', desc: '팝업·방해금지·리마인더 설정' },
 ];
 
+// /settings/sound 페이지의 토글 스위치 마크업을 그대로 모방(신규 토글 컴포넌트 발명 금지 — W3 스펙).
+function Toggle({ enabled, onToggle, ariaLabel }: { enabled: boolean; onToggle: () => void; ariaLabel: string }) {
+  return (
+    <button
+      role="switch"
+      aria-checked={enabled}
+      aria-label={ariaLabel}
+      onClick={onToggle}
+      className={`w-12 h-7 shrink-0 rounded-full transition-colors duration-200 relative ${
+        enabled ? 'bg-linear-to-r from-grape-400 to-grape-500' : 'bg-warm-border'
+      }`}
+    >
+      {/* sound 페이지 원본은 transition-all이지만 신규 코드 반입 금지(리뷰 게이트 3) — 변하는 속성만 명시. */}
+      <div className={`w-5 h-5 rounded-full bg-white shadow-md absolute top-1 transition-[left] duration-200 ${enabled ? 'left-6' : 'left-1'}`} />
+    </button>
+  );
+}
+
 export default function SettingsPage() {
+  const settings = useAppStore((s) => s.settings);
+  const updateSettings = useAppStore((s) => s.updateSettings);
+
+  // 표시=on 이 직관적 라벨이라 토글 상태는 hideFriendFeed의 반전으로 노출한다(ABS-14).
+  const handleFriendFeedToggle = () => {
+    feedbackTap();
+    updateSettings({ hideFriendFeed: !settings.hideFriendFeed });
+  };
+
   return (
     <div className="pb-4">
       <h1 className="font-display text-2xl font-bold text-grape-700 mb-6">설정</h1>
@@ -36,6 +64,23 @@ export default function SettingsPage() {
             <Chevron />
           </Link>
         ))}
+      </section>
+
+      {/* 표시 — 홈 "친구 소식" 피드 노출 토글. 남의 완성 소식이 비교감을 유발할 수 있어
+          숨길 수 있게 한다(마음건강 세그먼트 악화 트리거, ABS-14/PERSONA_REVIEW). */}
+      <section className="clay p-5 mb-4">
+        <h2 className="text-sm font-semibold text-warm-sub mb-3">표시</h2>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-warm-text">홈 친구 소식</p>
+            <p className="text-xs text-warm-sub">친구의 완성 소식을 홈에 보여줘요</p>
+          </div>
+          <Toggle
+            enabled={!settings.hideFriendFeed}
+            onToggle={handleFriendFeedToggle}
+            ariaLabel="홈 친구 소식"
+          />
+        </div>
       </section>
 
       {/* 데이터 내보내기 — 탈퇴(계정 삭제)와 짝인 신뢰 장치. 라우터 이동이 아니라 파일
