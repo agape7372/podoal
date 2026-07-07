@@ -1,6 +1,9 @@
 export type RewardType = 'letter' | 'giftcard' | 'wish';
 export type MessageType = 'cheer' | 'celebration' | 'gift';
 export type FriendStatus = 'pending' | 'accepted';
+/** 채움 텀(FILL_CADENCE_PLAN §2). FREE = 현행 무제한(기본). */
+export type CadenceType = 'FREE' | 'DAILY_1' | 'DAILY_N' | 'WEEKLY_N';
+export const CADENCE_TYPES: readonly CadenceType[] = ['FREE', 'DAILY_1', 'DAILY_N', 'WEEKLY_N'];
 
 export interface UserProfile {
   id: string;
@@ -33,6 +36,9 @@ export interface BoardSummary {
   harvestedAt?: string | null;
   /** True when this board belongs to a 포도동(group) relay — drives the home source badge. */
   podong?: boolean;
+  /** 채움 텀(additive, C1). 없으면 FREE로 취급 — 기존 응답과의 하위호환. */
+  cadenceType?: CadenceType | string;
+  cadenceN?: number | null;
 }
 
 export interface BoardDetail extends BoardSummary {

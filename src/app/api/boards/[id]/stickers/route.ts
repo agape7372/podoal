@@ -12,6 +12,9 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
   const { id: boardId } = params;
   const body = await request.json();
   const { position } = body;
+  // 채움 텀 C1: "그래도 채우기" 소프트 오버라이드 플래그(FILL_CADENCE §8) — 정확히
+  // true일 때만 기록(그 외 타입은 방어적으로 false 취급). 채움 자체는 200 정상 경로.
+  const earlyFill = body.earlyFill === true;
 
   if (position === undefined || position === null) {
     return authResponse('칸 정보가 없어요', 400);
@@ -68,7 +71,7 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
   // 채우기 트랜잭션은 src/lib/fillBoard.ts로 추출(통합테스트와 로직 공유). Serializable +
   // 재시도로 마지막 칸 동시 채움 race를 처리한다. 같은 칸 동시 채움은 PositionTakenError → 409.
   try {
-    const result = await fillBoardGrape(prisma, board, position, userId);
+    const result = await fillBoardGrape(prisma, board, position, userId, { earlyFill });
     return Response.json(result, { status: 201 });
   } catch (e) {
     if (e instanceof PositionTakenError) return authResponse('이미 채워진 칸이에요', 409);

@@ -37,6 +37,15 @@ CI integration 잡이 `prisma migrate deploy`로 스키마를 적용한다.
 `npm run db:push`는 **로컬 실험 전용**으로만 남겨둔다 (이력을 남기지 않으므로
 공유 DB·프로덕션에는 사용 금지).
 
+## 오프라인 생성 예외 기록 (2026-07-08)
+
+- `20260708000000_add_cadence_fields`는 로컬 Docker 엔진 불능(WSL docker-desktop 기동 실패) 상태에서
+  `prisma migrate diff --from-schema <HEAD schema> --to-schema <신 schema> --script`로 **오프라인 생성**했다
+  (순수 additive 3 ALTER — User.timezone/dayResetHour, Board.cadence*/strictMode, Sticker.isBackfill/earlyFill).
+- 전제: migrations 디렉토리 == HEAD schema(drift 0 — 위 검증 기록의 규율 유지 시 안전).
+  적용 검증은 CI integration 잡(`migrate deploy` on fresh PG)이 수행. 로컬 DB는 Docker 복구 후
+  `npx prisma migrate dev`가 아니라 `npx prisma migrate deploy`로 따라잡을 것(이미 디렉토리가 존재하므로).
+
 ## 검증 기록 (도입 시)
 
 - fresh Postgres 16에 `migrate deploy` → 0_init 적용 성공

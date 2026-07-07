@@ -55,6 +55,9 @@ export async function fillBoardGrape(
   board: { id: string; totalStickers: number },
   position: number,
   userId: string,
+  // 채움 텀 C1(FILL_CADENCE §8): 소프트 오버라이드 기록 — 아너 시스템, 막지 않고 기록만.
+  // additive optional이라 기존 호출(통합테스트 포함) 무영향.
+  opts?: { earlyFill?: boolean },
 ) {
   const boardId = board.id;
   for (let attempt = 0; ; attempt++) {
@@ -65,6 +68,7 @@ export async function fillBoardGrape(
             boardId,
             position,
             filledBy: userId,
+            earlyFill: opts?.earlyFill === true,
           },
           include: {
             filler: {
