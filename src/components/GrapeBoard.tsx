@@ -1,6 +1,6 @@
 'use client';
 
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { forwardRef, memo, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import GrapeSticker from './GrapeSticker';
 import GrapeStem from './illustrations/GrapeStem';
 import Sparkle from './illustrations/Sparkle';
@@ -30,6 +30,21 @@ interface GrapeBoardProps {
   /** Fired (synced to the confetti beat) when a fill reaches a MID reward, so
    *  the board page can pop the reward open immediately. */
   onMidRewardReached?: (reward: RewardInfo) => void;
+  /** 채움 텀 C1(FILL_CADENCE_PLAN §3, W3): 다음 알(next position)의 익음 상태 — null/
+   *  미전달이면 텀 없음(FREE)과 동일하게 현행 동작 그대로(회귀 0의 계약). owner 뷰에서만
+   *  전달된다(canFill과 동일 조건, 페이지가 게이팅). */
+  paceState?: { ripe: boolean; progress: number } | null;
+  /** 아직 안 익은 next 칸을 탭했을 때(오버라이드 아님) — 페이지가 RipeningSheet를 연다.
+   *  paceState가 null이면 handleFill 가드 자체가 발동하지 않아 절대 호출되지 않는다. */
+  onRipeningTap?: () => void;
+}
+
+/** GrapeBoard 임퍼러티브 오버라이드 진입점 — RipeningSheet의 "그래도 채우기"가 pace
+ *  게이트만 우회하고 나머지(연출·onFill 호출)는 일반 탭(handleFill)과 동일 경로를 타게
+ *  한다. 완성 연출 등이 이 컴포넌트 내부 상태(clusterRef 등)에 묶여 있어 우회 진입점이
+ *  ref로 노출돼야 한다(카드 스펙 — 낙관 큐·연출 코드 자체는 무수정). */
+export interface GrapeBoardHandle {
+  fillNow: (position: number) => void;
 }
 
 interface GrapeCellProps {
@@ -44,6 +59,9 @@ interface GrapeCellProps {
    *  'pending' = still hidden (I planted it, not yet revealed); 'revealed' =
    *  the owner already filled this grape and saw it. Never set for the owner. */
   myPlantedGiftStatus?: 'pending' | 'revealed' | null;
+  /** 채움 텀 C1: isNext 칸에서만 의미 있다(GrapeSticker가 isNext와 함께 AND 처리). */
+  ripening?: boolean;
+  ripenProgress?: number;
   grapeSize: number;
   hMargin: number;
   sizeClass: 'sm' | 'md' | 'lg';
@@ -69,6 +87,8 @@ const GrapeCell = memo(function GrapeCell({
   dimmed,
   rewardEmoji,
   myPlantedGiftStatus,
+  ripening,
+  ripenProgress,
   grapeSize,
   hMargin,
   sizeClass,
@@ -107,6 +127,8 @@ const GrapeCell = memo(function GrapeCell({
         canFill={isNext}
         isNext={isNext}
         dimmed={dimmed}
+        ripening={ripening}
+        ripenProgress={ripenProgress}
         size={sizeClass}
         onClick={() => {
           // A long-press just fired on this grape → it planted a reward, not a
@@ -355,7 +377,10 @@ function burstSparkles(container: HTMLElement): HTMLElement[] {
 }
 // ── 완성 연출 끝 ─────────────────────────────────────────────────────────────
 
-function GrapeBoardInner({ board, onFill, canFill, onCelebrate, isOwner, onPlantReward, onPlantGift, onMidRewardReached }: GrapeBoardProps) {
+const GrapeBoardInner = forwardRef<GrapeBoardHandle, GrapeBoardProps>(function GrapeBoardInner(
+  { board, onFill, canFill, onCelebrate, isOwner, onPlantReward, onPlantGift, onMidRewardReached, paceState, onRipeningTap },
+  ref,
+) {
   const [fillingPos, setFillingPos] = useState<number | null>(null);
   const [justFilled, setJustFilled] = useState<number | null>(null);
 
@@ -494,8 +519,17 @@ function GrapeBoardInner({ board, onFill, canFill, onCelebrate, isOwner, onPlant
     return m;
   }, [board.myPlantedGifts]);
 
-  const handleFill = useCallback(async (position: number) => {
+  // opts.bypassPaceGate: 채움 텀 오버라이드("그래도 채우기") 전용 우회 — fillNow(ref)만
+  // true로 호출한다. 일반 탭(GrapeCell onClick)은 인자를 안 넘기므로 항상 게이트가 선다.
+  const handleFill = useCallback(async (position: number, opts?: { bypassPaceGate?: boolean }) => {
     if (!canFill || filledPositions.has(position) || position !== nextPosition) return;
+    // 채움 텀 C1 소프트 가드(FILL_CADENCE §1.5): 탭 허용 "앞단"에서만 판정 — 사운드·
+    // 히트스톱·낙관 반영·onFill 전부 이전이라 mergeServerBoard/applyFillResult/isJustFilled
+    // 600ms 창과 무관하다. RipeningSheet가 열리고 여기서 즉시 return(연출 미발동).
+    if (!opts?.bypassPaceGate && paceState && !paceState.ripe) {
+      onRipeningTap?.();
+      return;
+    }
 
     setJustFilled(position);
     feedbackFill();
@@ -522,7 +556,16 @@ function GrapeBoardInner({ board, onFill, canFill, onCelebrate, isOwner, onPlant
     } finally {
       setFillingPos((p) => (p === position ? null : p));
     }
-  }, [canFill, filledPositions, filledCount, board.totalStickers, board.rewards, onFill, nextPosition, onCelebrate, onMidRewardReached, playCompletionSequence]);
+  }, [canFill, filledPositions, filledCount, board.totalStickers, board.rewards, onFill, nextPosition, onCelebrate, onMidRewardReached, playCompletionSequence, paceState, onRipeningTap]);
+
+  // "그래도 채우기" 오버라이드 진입점 — pace 게이트만 우회하고 나머지(연출·onFill 호출)는
+  // handleFill과 완전히 동일한 경로(§ 카드 스펙: 완성 연출이 이 컴포넌트 내부에 있어
+  // 페이지가 직접 handleFill을 호출할 수 없다 — ref로만 배관).
+  useImperativeHandle(ref, () => ({
+    fillNow: (position: number) => {
+      void handleFill(position, { bypassPaceGate: true });
+    },
+  }), [handleFill]);
 
   // Size grapes from the widest row so the whole bunch fits the card without
   // clipping. Card inner width ≈ 280px on a ~360px phone; target ~270px for a
@@ -622,6 +665,8 @@ function GrapeBoardInner({ board, onFill, canFill, onCelebrate, isOwner, onPlant
                         dimmed={canFill && !filled && !isNext}
                         rewardEmoji={rewardMarkers.get(position) ?? null}
                         myPlantedGiftStatus={myPlantedGiftMarkers.get(position) ?? null}
+                        ripening={isNext && !!paceState && !paceState.ripe}
+                        ripenProgress={isNext ? (paceState?.progress ?? 1) : undefined}
                         grapeSize={grapeSize}
                         hMargin={hMargin}
                         sizeClass={sizeClass}
@@ -653,6 +698,6 @@ function GrapeBoardInner({ board, onFill, canFill, onCelebrate, isOwner, onPlant
       )}
     </div>
   );
-}
+});
 
 export default memo(GrapeBoardInner);

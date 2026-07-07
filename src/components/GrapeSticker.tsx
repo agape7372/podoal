@@ -8,6 +8,11 @@ interface GrapeStickerProps {
   canFill: boolean;
   isNext?: boolean;   // the next-in-sequence grape (sequential fill) — highlighted & tappable
   dimmed?: boolean;   // an unfilled grape that's locked until earlier ones are filled
+  /** 채움 텀 C1(FILL_CADENCE_PLAN §3): 다음 알이 텀 대기 중("익는 중")이면 true —
+   *  청포도→라벤더 색 전이(grape-ripening, globals.css 선반영)를 켠다. isNext 전용. */
+  ripening?: boolean;
+  /** 익음 정도 0~1 — CSS 변수 --ripen-p로 전달(ripening=false면 무시). */
+  ripenProgress?: number;
   size: 'sm' | 'md' | 'lg';
   onClick: () => void;
 }
@@ -20,6 +25,8 @@ export default function GrapeSticker({
   canFill,
   isNext = false,
   dimmed = false,
+  ripening = false,
+  ripenProgress,
   size,
   onClick,
 }: GrapeStickerProps) {
@@ -37,9 +44,11 @@ export default function GrapeSticker({
         }
         ${canFill ? 'cursor-pointer active:scale-90' : ''}
         ${isNext ? 'grape-next' : ''}
+        ${isNext && ripening ? 'grape-ripening' : ''}
         ${dimmed ? 'opacity-70' : ''}
         ${!canFill || isFilling ? 'pointer-events-none' : ''}
       `}
+      style={isNext && ripening ? ({ '--ripen-p': ripenProgress ?? 0 } as React.CSSProperties) : undefined}
       aria-label={isFilled ? '채워진 포도알' : `포도알 ${position + 1}`}
     >
       {!isFilled && (

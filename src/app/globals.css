@@ -579,6 +579,22 @@
     background-position: 180% 0;
     animation: grapeNextSheen 2.8s ease-in-out infinite;
   }
+
+  /* 1-b) RIPENING — 채움 텀 '익는 중' 상태(FILL_CADENCE_PLAN §3, C1).
+     다음 알이 아직 안 익었으면 청포도(파스텔 라임) 톤에서 시작해 --ripen-p(0~1)에
+     비례해 본래 라벤더로 전이한다. 키프레임 없음 — 정적 색 보간(리렌더 시 갱신)이라
+     reduced-motion 영향권 밖. 텐션 펄스·sheen은 grape-next 것을 그대로 상속. */
+  .grape-empty.grape-next.grape-ripening {
+    --ripen-p: 0;
+    background:
+      radial-gradient(120% 120% at 32% 26%, rgba(255,255,255,0.55), rgba(255,255,255,0) 46%),
+      linear-gradient(150deg,
+        color-mix(in srgb, #eaf4dd calc((1 - var(--ripen-p)) * 100%), #efe6f8),
+        color-mix(in srgb, #d6e9c4 calc((1 - var(--ripen-p)) * 100%), #e0d0f4));
+    box-shadow:
+      0 1px 5px color-mix(in srgb, rgba(116, 167, 126, 0.20) calc((1 - var(--ripen-p)) * 100%), rgba(155, 112, 200, 0.20)),
+      inset 0 1px 1px rgba(255, 255, 255, 0.45);
+  }
 }
 @keyframes grapeNextTension {
   0%, 100% { transform: translateZ(0) scale(1); }

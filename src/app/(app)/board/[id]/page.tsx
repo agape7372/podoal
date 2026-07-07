@@ -5,13 +5,16 @@ import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { api, ApiError } from '@/lib/api';
 import { useAppStore } from '@/lib/store';
-import GrapeBoard from '@/components/GrapeBoard';
+import GrapeBoard, { type GrapeBoardHandle } from '@/components/GrapeBoard';
 import Confetti from '@/components/Confetti';
 import GiftUnboxModal from '@/components/GiftUnboxModal';
 import SurpriseRevealModal from '@/components/SurpriseRevealModal';
 import MidRewardModal from '@/components/MidRewardModal';
 import PlantGiftModal from '@/components/PlantGiftModal';
 import RewardRevealModal from '@/components/RewardRevealModal';
+// 채움 텀 C1(RipeningSheet) — 탭 즉시 반응이 중요한 소프트 가드라 위 보상 모달들과
+// 같은 이유로 정적 유지(지연로딩 대상 아님).
+import RipeningSheet from '@/components/RipeningSheet';
 import Avatar from '@/components/Avatar';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import EmojiIcon from '@/components/EmojiIcon';
@@ -34,6 +37,7 @@ import type { BoardDetail, BoardSummary, PlantedGiftInfo, RewardInfo, RewardType
 import { REWARD_TYPE_ICON, ICON } from '@/lib/icons';
 import { feedbackTap } from '@/lib/feedback';
 import { stripTitleEmoji } from '@/lib/title';
+import { computePaceState, type PaceState } from '@/lib/cadence';
 
 // ── 채움 POST 직렬화 큐 (보드 단위, 모듈 레벨) ──────────────────────────────
 // 연타 시 낙관적 UI는 즉시 반영하되 서버 POST는 한 번에 1개씩 순차 발송한다.
@@ -334,6 +338,47 @@ export default function BoardDetailPage() {
     setCapsuleTeaser(text ? { text, glow: !!openable } : null);
   }, [capsules]);
 
+  // 채움 텀 C1(FILL_CADENCE_PLAN §3, W3) — 탭 허용 "앞단" 판정. paceNow는 그 판정에
+  // 쓰인 시각을 RipeningSheet의 문구 포맷팅에 그대로 넘겨주기 위한 것(렌더 중
+  // new Date() 금지 — 위 캡슐 티저와 동일하게 effect에서만 시각을 읽는다).
+  // board.stickers/cadenceType/cadenceN이 바뀔 때마다(채움·재검증) 재계산되므로,
+  // 텀 소진 직후 다음 알이 즉시 "익는 중"으로 전환된다(카드 스펙 7).
+  const [paceState, setPaceState] = useState<PaceState | null>(null);
+  const [paceNow, setPaceNow] = useState<Date | null>(null);
+  useEffect(() => {
+    if (!board) { setPaceState(null); setPaceNow(null); return; }
+    const now = new Date();
+    const stickerTimes = board.stickers.map((s) => new Date(s.filledAt));
+    setPaceState(
+      computePaceState({ cadenceType: board.cadenceType, cadenceN: board.cadenceN }, stickerTimes, now),
+    );
+    setPaceNow(now);
+  }, [board]);
+  // "그래도 채우기" 오버라이드 배관 — GrapeBoard의 낙관 큐/handleFill 코드는 무수정,
+  // ref로만 연결한다(카드 제약). fillNow는 GrapeBoard가 노출하는 임퍼러티브 핸들.
+  const grapeBoardRef = useRef<GrapeBoardHandle>(null);
+  // postFillSticker가 전송 직전 여기 있으면 POST body에 earlyFill:true를 얹고 제거한다
+  // (함수 시그니처 변경 없이 배관 — 낙관 큐 코드 무수정 원칙). 인스턴스 단위 ref라서
+  // (fillPendingPositions 등 모듈 Map과 달리 id로 구분되지 않음) App Router가 /board/A →
+  // /board/B 전환에서 인스턴스를 재사용하면 이전 보드의 잔여 플래그가 새 보드로 샐 수
+  // 있다 — id가 바뀔 때마다 비워 교차 오염을 차단한다(적대 검증 기록 참조).
+  const earlyPositionsRef = useRef(new Set<number>());
+  useEffect(() => {
+    earlyPositionsRef.current.clear();
+  }, [id]);
+  const [showRipeningSheet, setShowRipeningSheet] = useState(false);
+  const handleRipeningTap = useCallback(() => setShowRipeningSheet(true), []);
+  const handleRipeningOverride = useCallback(() => {
+    if (!board) return;
+    // ConfirmDialog의 확인 버튼과 동일 패턴 — 이탈 애니 없이 즉시 언마운트(부모가 open
+    // 상태를 직접 끄는 경로, Modal.tsx 주석 참조). fillNow가 곧장 그래프 히트 연출을
+    // 태우므로 시트가 먼저 사라져야 자연스럽다.
+    setShowRipeningSheet(false);
+    const position = board.stickers.length; // 순차 채움 — 다음 칸은 항상 현재 채움 수.
+    earlyPositionsRef.current.add(position);
+    grapeBoardRef.current?.fillNow(position);
+  }, [board]);
+
   // 실제 서버 POST + reconcile/rollback. 보드 단위 모듈 큐 체인에서 한 번에
   // 하나씩 실행된다. 에러는 내부에서 처리(롤백+배너)하고 reject하지 않되, 실패
   // 시 그 position을 재개 지점으로 기록해 더 높은 position의 항목은 발사 전에
@@ -356,6 +401,13 @@ export default function BoardDetailPage() {
         // 실패 지점(이하)을 다시 채우러 온 발사 — 재개.
         fillResumeAt.delete(id);
       }
+      // 채움 텀 C1(FILL_CADENCE §8): RipeningSheet의 "그래도 채우기"가 기록해둔 칸이면
+      // 전송 직전 POST body에 earlyFill:true를 얹고 제거한다 — 함수 시그니처 변경 없이
+      // ref로만 배관(낙관 큐 코드 무수정 원칙). 위 재개-지점 가드로 발사가 폐기(return)된
+      // 경우엔 이 줄에 도달하지 않아 플래그가 보존되고, 사용자가 재탭한 실제 재시도에서
+      // 그대로 적용된다.
+      const isEarlyFill = earlyPositionsRef.current.has(position);
+      if (isEarlyFill) earlyPositionsRef.current.delete(position);
       const result = await api<{
         sticker: BoardDetail['stickers'][number];
         filledCount: number;
@@ -373,7 +425,7 @@ export default function BoardDetailPage() {
         relayAdvanced?: boolean;
       }>(`/api/boards/${id}/stickers`, {
         method: 'POST',
-        json: { position },
+        json: isEarlyFill ? { position, earlyFill: true } : { position },
         // 모바일 라디오 핸드오프 등으로 fetch가 무기한 행하면 직렬 큐 전체가
         // 정지한다(후속 발사도 멈춤) — 시한을 걸어 실패(롤백+배너) 경로로 합류.
         // Neon 콜드 + Serializable 재시도 백오프(최악 ~9.6s)를 여유 있게 덮는 값.
@@ -841,6 +893,9 @@ export default function BoardDetailPage() {
   }
 
   const isOwner = user?.id === board.owner.id;
+  // GrapeBoard의 canFill과 동일 조건 — 채움 텀 paceState/onRipeningTap도 이 조건에서만
+  // 전달한다(카드 스펙: "owner 뷰에서만 — canFill과 동일 조건").
+  const canFill = isOwner && !board.isCompleted;
   const allowPlant = board.allowFriendPlant ?? true;
   // 포도동 연결 보드는 선물 불가(서버도 gift POST에서 차단). inRelay가 없는 구버전
   // 캐시 응답은 홈 요약의 podong(그룹 전용)으로 폴백.
@@ -1026,14 +1081,17 @@ export default function BoardDetailPage() {
       {/* Grape Board */}
       <div className="clay-float p-6 mb-6">
         <GrapeBoard
+          ref={grapeBoardRef}
           board={board}
           onFill={handleFillSticker}
-          canFill={isOwner && !board.isCompleted}
+          canFill={canFill}
           onCelebrate={handleCelebrate}
           isOwner={isOwner}
           onPlantReward={isOwner && !board.isCompleted && canManageRewards ? handlePlantReward : undefined}
           onPlantGift={!isOwner && !board.isCompleted ? handlePlantGift : undefined}
           onMidRewardReached={handleMidRewardReached}
+          paceState={canFill ? paceState : null}
+          onRipeningTap={canFill ? handleRipeningTap : undefined}
         />
       </div>
 
@@ -1189,6 +1247,18 @@ export default function BoardDetailPage() {
           loading={rewardPopup.loading}
           loadingNote={rewardPopup.savingFills ? '포도알을 저장하고 있어요…' : undefined}
           onClose={() => setRewardPopup(null)}
+        />
+      )}
+
+      {/* 채움 텀 C1 소프트 가드 — 다음 알이 아직 안 익었을 때 탭하면 뜬다(GrapeBoard의
+          onRipeningTap). paceNow는 paceState와 같은 effect에서 캡처된 시각(문구 포맷용). */}
+      {showRipeningSheet && paceState?.nextRipeAt && paceNow && (
+        <RipeningSheet
+          cadenceType={board.cadenceType ?? 'FREE'}
+          nextRipeAt={paceState.nextRipeAt}
+          now={paceNow}
+          onOverride={handleRipeningOverride}
+          onClose={() => setShowRipeningSheet(false)}
         />
       )}
 

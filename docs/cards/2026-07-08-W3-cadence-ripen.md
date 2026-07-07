@@ -1,4 +1,4 @@
-상태: 대기
+상태: 검증대기
 
 ## W3-cadence-ripen: 채움 텀 C1 — 숙성 연출 + 소프트 가드 (탭 앞단 판정)
 
@@ -60,3 +60,48 @@ C1 핵심 장치: 텀이 있는 보드에서 오늘 몫을 다 채우면 다음 
 
 ### 산출
 diff + 검증 로그 + 카드 상태 갱신(진행→검증대기). **커밋 금지.**
+
+### 검증 로그 (2026-07-08)
+
+**수정/신규 파일**
+- `src/lib/dayBoundary.ts` (신규) — `dayStart`/`nextDayStart`/`weekStart`/`nextWeekStart`, 전 함수 JSDoc에 "C2에서 서버 판정과 통일 예정" 명시.
+- `src/lib/cadence.ts` (신규) — `computePaceState` + `PaceState` export. FREE/미지정/인식 못하는 cadenceType 전부 null(실패 열림).
+- `src/components/GrapeSticker.tsx` — `ripening?`/`ripenProgress?` 추가, `isNext && ripening`일 때만 `grape-ripening` 클래스 + `--ripen-p` 인라인 스타일. 기존 클래스 조합 무변경.
+- `src/components/GrapeBoard.tsx` — `forwardRef<GrapeBoardHandle, GrapeBoardProps>`로 전환, `paceState`/`onRipeningTap` props 추가, `handleFill` 최상단에 pace 가드(`opts.bypassPaceGate`로만 우회), `useImperativeHandle`로 `fillNow` 노출, isNext 셀에 ripening/ripenProgress 배선.
+- `src/components/RipeningSheet.tsx` (신규) — 시트 UI. "기다릴게요"는 `requestClose`(이탈 애니), "그래도 채우기"는 `onOverride` 직접 호출(ConfirmDialog 확인 버튼과 동일 패턴 — 부모가 즉시 언마운트).
+- `src/app/(app)/board/[id]/page.tsx` — `paceState`/`paceNow` state(effect에서 계산, `new Date()`는 effect 안에서만), `grapeBoardRef`/`earlyPositionsRef`/`showRipeningSheet` 추가, `handleRipeningTap`/`handleRipeningOverride`, `postFillSticker`가 전송 직전 `earlyPositionsRef` 확인 후 body에 `earlyFill:true` 동봉, `canFill` 로컬 상수 도입(GrapeBoard prop과 paceState 게이팅에 공용), RipeningSheet 조건부 렌더.
+- `scripts/repro/cadence-check.mjs` (신규, 소유 허용) — dayBoundary/computePaceState 순수 함수 단위검증(서버 불필요, 날짜 전부 하드코딩이라 결정적).
+
+**diff 요지**: 총 4파일 수정 + 4파일 신규(스크립트 포함). `globals.css`·`prisma/schema.prisma`·`src/lib/boardFillState.ts`는 `git diff --stat` 확인 결과 완전 무변경(0 diff). 신규 `transition-all`/`window.confirm`/`@keyframes` 0건(grep 확인).
+
+**cadence-check.mjs 실행 결과**
+```
+$ npx tsx scripts/repro/cadence-check.mjs
+① DAILY_1 — 오늘 몫 소진 (6 PASS)
+② 자정 직전/직후 경계 (7 PASS, resetHour=4 새벽 리셋 포함)
+③ WEEKLY_N 주 경계 (9 PASS, 월요일 시작·일요일 귀속·기간 밖 배제 포함)
+④ FREE → null (3 PASS, FREE·미지정·인식불가 cadenceType 포함)
+⑤ progress 단조증가 (5 PASS)
+
+30 passed, 0 failed
+RESULT: PASS
+```
+
+**정적 검증**
+```
+$ npx tsc --noEmit
+EXIT_CODE=0 (에러 0건)
+
+$ npm run lint
+✖ 23 problems (0 errors, 23 warnings)
+✓ check-icons: 모든 이모지가 플랫 SVG로 커버됨 · JSX 생이모지 없음 · 선택지 배열 커버됨
+```
+23개 warning은 전부 이 카드가 건드리지 않은 기존 파일(MessagePopup/OfflineBanner/PodongList/ShareCardModal/StreakCard/WeeklyRecapModal/cachedApi.ts)의 `react-hooks/set-state-in-effect`(warn 등급, CLAUDE.md에 문서화된 기존 정책) — 이 카드가 만지거나 새로 발생시킨 warning/error 0건(파일별 grep으로 확인).
+
+**적대 검증 (PRINCIPLES §10, 2개 이상)**
+
+1. **경합 — 시트가 열린 채 낙관 큐가 드레인되는 동안**: `handleRipeningOverride`가 오버라이드 대상 position을 시트가 *열릴 때*가 아니라 "그래도 채우기"를 *누르는 순간* `board.stickers.length`에서 새로 읽는다(클로저가 아니라 최신 렌더의 `board` 상태 참조). 따라서 시트가 떠 있는 동안 다른 경로(재검증·좀비 큐 reconcile 등)로 next position이 앞서가도, override는 항상 "지금" 실제 next인 칸을 겨눈다. 이중 방어로 `GrapeBoard.handleFill`이 `bypassPaceGate:true`에서도 `position !== nextPosition`이면 그대로 return(no-op)하므로, 혹시 어긋난 값이 들어와도 실채움·잘못된 POST로 새지 않는다(둘 다 같은 `board` prop을 공유하므로 실제로 어긋날 수도 없음을 코드로 확인). "그래도 채우기" 버튼은 `onOverride`를 직접 호출하고 페이지가 `setShowRipeningSheet(false)`를 동기로 먼저 실행하므로(ConfirmDialog 확인 버튼과 동일 패턴), 물리적 더블탭이 버튼을 두 번 맞힐 수 없다(두 번째 실제 클릭 이벤트 도달 전에 이미 언마운트).
+   - 부가 발견: `earlyPositionsRef`가 인스턴스 단위 ref라 `/board/A`→`/board/B` 재사용 시 잔여 플래그가 샐 수 있는 이론적 틈을 찾아 `useEffect(() => earlyPositionsRef.current.clear(), [id])`로 막음(1줄, 기존 파일의 교차보드 방어 관례와 동일 축).
+2. **경계값 — `totalStickers`의 마지막 알**: `filledCount = totalStickers - 1`인 보드에서 마지막 칸이 ripening 상태일 때 오버라이드 채움을 추적. `handleFill(N-1, {bypassPaceGate:true})`는 pace 체크만 건너뛰고 `newFilledCount >= board.totalStickers` 분기(완성 연출 `playCompletionSequence`)는 그대로 타므로 일반 채움과 동일한 액체 차오름 연출이 재생됨을 코드 경로로 확인. 서버 `fillBoardGrape`도 `earlyFill`이 `Sticker.earlyFill` 필드 세팅에만 관여하고 완성/보상 로직과는 완전히 독립(코드 확인). 완성 후 `canFill`이 false로 떨어져 `paceState`/`onRipeningTap`이 GrapeBoard에 `null`/`undefined`로 전달되므로 텀 UI가 자연 소거됨. 추가로 "override 대상이 이미 꽉 찬 보드"(동시에 다른 곳에서 마지막 칸까지 채워짐) 레이스를 상정하면 `board.stickers.length`가 `totalStickers`가 되어 `nextPosition`이 `-1`을 반환 → `position !== nextPosition` 가드가 즉시 no-op시켜 범위 밖 POST가 나가지 않음을 확인.
+
+**스펙 이탈**: 없음. RipeningSheet에 `now: Date` prop을 추가로 도입(카드 스펙엔 명시 없음) — `nextRipeAt`의 같은 날/다음날 분기(§3 문구)에 필요한 "판정 시각"을 컴포넌트 렌더 중 `new Date()`로 직접 읽으면 `react-hooks/purity`(CLAUDE.md 명시 error 등급) 위반이라, 페이지의 effect가 캡처해 내려주는 값으로 배관했다(캡슐 티저와 동일한 기존 관례). 문구·버튼 2개·오버라이드 배관 등 스펙 문면은 그대로 구현.
