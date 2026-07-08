@@ -1,6 +1,7 @@
 import type { PrismaClient } from '@prisma/client';
 import { PUBLIC_USER_SELECT } from './userSelect';
 import { advanceRelayOnBoardComplete } from './relay';
+import { computeFillPace } from './pace';
 
 /** 동시에 같은 칸을 채우려 해 unique 충돌(P2002)이 난 경우. 라우트가 409로 매핑한다. */
 export class PositionTakenError extends Error {
@@ -8,6 +9,16 @@ export class PositionTakenError extends Error {
   constructor() {
     super('이미 채워진 칸이에요');
     this.name = 'PositionTakenError';
+  }
+}
+
+/** 엄격 모드(strictMode) 보드에서 익지 않은 채움 시도 — 라우트가 422로 매핑한다(FILL_CADENCE §8).
+ *  소프트 모드는 절대 이 에러를 내지 않는다(200 + earlyFill 기록). */
+export class StrictPaceError extends Error {
+  readonly strictPace = true;
+  constructor() {
+    super('아직 익는 중이에요. 다 익으면 채울 수 있어요.');
+    this.name = 'StrictPaceError';
   }
 }
 
@@ -55,20 +66,56 @@ export async function fillBoardGrape(
   board: { id: string; totalStickers: number },
   position: number,
   userId: string,
-  // 채움 텀 C1(FILL_CADENCE §8): 소프트 오버라이드 기록 — 아너 시스템, 막지 않고 기록만.
-  // additive optional이라 기존 호출(통합테스트 포함) 무영향.
-  opts?: { earlyFill?: boolean },
+  // 채움 텀(FILL_CADENCE §8): C1 = 소프트 오버라이드 클라 플래그 기록. C2 = pace 컨텍스트가
+  // 오면 서버 판정(트랜잭션 내 키 비교) — 소프트는 200 + earlyFill 기록(클라 플래그 OR 서버
+  // 판정), strictMode만 StrictPaceError(라우트 422). additive optional이라 기존 호출
+  // (통합테스트 포함) 무영향 — pace 미전달 = 판정 없음(FREE와 동일).
+  opts?: {
+    earlyFill?: boolean;
+    pace?: {
+      cadenceType: string;
+      cadenceN: number | null;
+      strictMode: boolean;
+      timezone: string;
+      dayResetHour: number;
+    };
+  },
 ) {
   const boardId = board.id;
   for (let attempt = 0; ; attempt++) {
     try {
       return await prisma.$transaction(async (tx) => {
+        // 채움 텀 서버 판정(C2) — 스티커 생성 "전"의 기간 내 채움 수로 익음을 판정한다.
+        // Serializable이라 동시 채움도 정확히 센다(한쪽이 재시도하며 상대 커밋을 본다).
+        let paceState: 'ripe' | 'early' | undefined;
+        let serverEarly = false;
+        if (opts?.pace) {
+          const existing = await tx.sticker.findMany({
+            where: { boardId },
+            select: { filledAt: true },
+          });
+          const pace = computeFillPace(
+            opts.pace,
+            existing.map((s) => s.filledAt),
+            new Date(),
+            opts.pace.timezone,
+            opts.pace.dayResetHour,
+          );
+          if (pace) {
+            if (!pace.ripe && opts.pace.strictMode) throw new StrictPaceError();
+            serverEarly = !pace.ripe;
+            paceState = pace.ripe ? 'ripe' : 'early';
+          }
+        }
+
         const sticker = await tx.sticker.create({
           data: {
             boardId,
             position,
             filledBy: userId,
-            earlyFill: opts?.earlyFill === true,
+            // 아너 시스템: 클라가 자진 신고했거나(오버라이드 시트) 서버가 판정했거나 —
+            // 어느 쪽이든 기록만 하고 막지 않는다(소프트 모드).
+            earlyFill: opts?.earlyFill === true || serverEarly,
           },
           include: {
             filler: {
@@ -207,6 +254,9 @@ export async function fillBoardGrape(
           plantedGift: plantedGifts[0] ?? null, // back-compat: first gift
           plantedGifts,
           relayAdvanced,
+          // 채움 텀 C2(additive): FREE·pace 미전달이면 undefined — JSON 직렬화에서
+          // 필드 자체가 빠져 기존 클라 무영향.
+          paceState,
         };
       }, { isolationLevel: 'Serializable' });
     } catch (e) {

@@ -650,6 +650,31 @@
   100% { opacity: 0; }
 }
 
+/* 3-b) 채움 텀 C2(FILL_CADENCE_PLAN §3 이월) — next 알이 익는 중(unripe)에서
+   완전히 익는 순간(ripe) 전이할 때만 1회 반짝(sunshine 톤). grape-hit/flash와는
+   서로 다른 시점(탭 vs 익음 전이)이라 겹치지 않지만, 안전하게 별도 absolute
+   자식 span·고유 키프레임 이름으로 분리(grape-flash 패턴 그대로 재사용).
+   reduced-motion은 전역 백스톱(9)이 처리 — 여기 별도 가드 추가 안 함. */
+.grape-ripe-sparkle {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  pointer-events: none;
+  z-index: 5;
+  background: radial-gradient(circle,
+              rgba(249, 224, 130, 0) 40%,
+              rgba(249, 224, 130, 0.9) 62%,
+              rgba(242, 201, 76, 0) 82%);
+  opacity: 0;
+  animation: grapeRipeSparkle 0.7s ease-out both;
+  will-change: opacity;
+}
+@keyframes grapeRipeSparkle {
+  0%   { opacity: 0; transform: scale(0.7); }
+  35%  { opacity: 1; transform: scale(1.15); }
+  100% { opacity: 0; transform: scale(1.3); }
+}
+
 /* 4) 접근성: 무한·큰 모션 정지 — 채워짐 결과색은 유지
    (grape-next 규칙은 본체와 같은 utilities 레이어에 — 위 ⚠ 주석 참조.
     grape-hit/grape-flash는 본체가 unlayered이므로 여기 그대로 둔다.) */

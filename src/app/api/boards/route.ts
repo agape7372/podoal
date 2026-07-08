@@ -2,6 +2,8 @@ import { prisma } from '@/lib/prisma';
 import { getCurrentUserId, authResponse } from '@/lib/auth';
 import { PUBLIC_USER_SELECT as userProfileSelect } from '@/lib/userSelect';
 import { validateRewards } from '@/lib/rewardValidation';
+import { zonedDateKey, weekStartKey } from '@/lib/streak';
+import { computeFillPace } from '@/lib/pace';
 import { CADENCE_TYPES } from '@/types';
 
 // 채움 텀(FILL_CADENCE_PLAN §2·§8 C1) — additive. 미지정 시 스키마 기본값 "FREE"와
@@ -14,22 +16,61 @@ export async function GET() {
     return authResponse('Unauthorized');
   }
 
-  const boards = await prisma.board.findMany({
-    where: {
-      OR: [
-        { ownerId: userId },
-        { giftedToId: userId },
-      ],
-    },
-    include: {
-      owner: { select: userProfileSelect },
-      giftedTo: { select: userProfileSelect },
-      giftedFrom: { select: userProfileSelect },
-      relayParticipants: { select: { relay: { select: { mode: true } } } },
-      _count: { select: { stickers: true, rewards: true } },
-    },
-    orderBy: { createdAt: 'desc' },
-  });
+  const [boards, boundaryUser] = await Promise.all([
+    prisma.board.findMany({
+      where: {
+        OR: [
+          { ownerId: userId },
+          { giftedToId: userId },
+        ],
+      },
+      include: {
+        owner: { select: userProfileSelect },
+        giftedTo: { select: userProfileSelect },
+        giftedFrom: { select: userProfileSelect },
+        relayParticipants: { select: { relay: { select: { mode: true } } } },
+        _count: { select: { stickers: true, rewards: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    }),
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: { timezone: true, dayResetHour: true },
+    }),
+  ]);
+
+  // 채움 텀 C2: 홈 카드 "오늘 몫 완료" 배지용 paceDone(additive). 텀 있는 미완성 보드만
+  // 이번 기간(오늘/이번 주) 채움 수를 세서 quota 도달 여부를 서버 기준으로 판정한다.
+  // 인스턴트 경계 대신 넉넉한 하한으로 오버페치 후 computeFillPace의 키 비교가 정확히
+  // 거른다(streak.ts 설계 노트 참조).
+  const timezone = boundaryUser?.timezone || 'Asia/Seoul';
+  const resetHour = boundaryUser?.dayResetHour ?? 0;
+  const paceBoards = boards.filter(
+    (b) => b.cadenceType && b.cadenceType !== 'FREE' && !b.isCompleted,
+  );
+  const paceDoneByBoard = new Map<string, boolean>();
+  if (paceBoards.length > 0) {
+    const now = new Date();
+    const todayKey = zonedDateKey(now, timezone, resetHour);
+    // 주간 보드까지 커버하는 가장 이른 필요 날짜 = 이번 주 시작. 시간대 오프셋·resetHour
+    // 여유로 48시간 버퍼를 빼서 UTC 하한을 잡는다(경계 바깥 행은 키 비교가 걸러냄).
+    const lowerKey = weekStartKey(todayKey);
+    const lowerBound = new Date(Date.parse(`${lowerKey}T00:00:00Z`) - 48 * 3_600_000);
+    const recent = await prisma.sticker.findMany({
+      where: { boardId: { in: paceBoards.map((b) => b.id) }, filledAt: { gte: lowerBound } },
+      select: { boardId: true, filledAt: true },
+    });
+    const filledByBoard = new Map<string, Date[]>();
+    for (const s of recent) {
+      const list = filledByBoard.get(s.boardId);
+      if (list) list.push(s.filledAt);
+      else filledByBoard.set(s.boardId, [s.filledAt]);
+    }
+    for (const b of paceBoards) {
+      const pace = computeFillPace(b, filledByBoard.get(b.id) ?? [], now, timezone, resetHour);
+      if (pace) paceDoneByBoard.set(b.id, !pace.ripe);
+    }
+  }
 
   const result = boards.map((board) => ({
     id: board.id,
@@ -51,6 +92,8 @@ export async function GET() {
     // 채움 텀(additive, C1) — 없던 시절 보드도 스키마 기본값 "FREE"라 항상 채워져 있다.
     cadenceType: board.cadenceType,
     cadenceN: board.cadenceN,
+    // 채움 텀 C2(additive): 이번 기간 몫 완료 여부 — FREE·완성 보드는 undefined(필드 생략).
+    paceDone: paceDoneByBoard.get(board.id),
   }));
 
   return Response.json({ boards: result });

@@ -28,6 +28,9 @@ export default function BoardCard({ board, asStatic = false, reserveTopRight = f
   const progress = progressPercent(board.filledCount, board.totalStickers);
   const badge = sourceBadge(board);
   const harvested = !!board.harvestedAt;
+  // 채움 텀 C2(FILL_CADENCE_PLAN §3): "오늘 몫 완료" 배지 — 리스트 과밀 방지 위해
+  // 카드당 배지 총량 2개 상한(harvested + source). 이미 2개면 paceDone은 생략(우선순위 낮음).
+  const showPaceDone = board.paceDone === true && (harvested ? 1 : 0) + (badge ? 1 : 0) < 2;
 
   const inner = (
     <>
@@ -47,6 +50,12 @@ export default function BoardCard({ board, asStatic = false, reserveTopRight = f
             <span className="shrink-0 h-6 inline-flex items-center gap-1 pl-1.5 pr-2 rounded-full bg-white/85 clay-sm" title={badge.label}>
               <EmojiIcon emoji={badge.emoji} size={13} />
               <span className="text-[11px] font-semibold text-warm-sub leading-none">{badge.text}</span>
+            </span>
+          )}
+          {showPaceDone && (
+            <span className="shrink-0 h-6 inline-flex items-center gap-1 pl-2 pr-1.5 rounded-full bg-white/85 clay-sm" title="오늘 몫 완료">
+              <span className="text-[11px] font-semibold text-warm-sub leading-none">오늘 몫 완료</span>
+              <EmojiIcon emoji="🍇" size={13} />
             </span>
           )}
         </div>
