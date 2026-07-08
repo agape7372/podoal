@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { getCurrentUserId, authResponse } from '@/lib/auth';
-import { fillBoardGrape, isSerializationConflict, PositionTakenError } from '@/lib/fillBoard';
+import { fillBoardGrape, isSerializationConflict, PositionTakenError, StrictPaceError } from '@/lib/fillBoard';
 
 export async function POST(request: Request, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
@@ -32,6 +32,11 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
       isCompleted: true,
       ownerId: true,
       giftedToId: true,
+      // 채움 텀 C2: 서버 판정 컨텍스트(FILL_CADENCE §8). 경계는 보드 주인의 시간대 기준.
+      cadenceType: true,
+      cadenceN: true,
+      strictMode: true,
+      owner: { select: { timezone: true, dayResetHour: true } },
     },
   });
 
@@ -71,10 +76,25 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
   // 채우기 트랜잭션은 src/lib/fillBoard.ts로 추출(통합테스트와 로직 공유). Serializable +
   // 재시도로 마지막 칸 동시 채움 race를 처리한다. 같은 칸 동시 채움은 PositionTakenError → 409.
   try {
-    const result = await fillBoardGrape(prisma, board, position, userId, { earlyFill });
+    const result = await fillBoardGrape(prisma, board, position, userId, {
+      earlyFill,
+      // FREE(및 미인식)는 pace 자체를 안 넘겨 판정을 건너뛴다 — 회귀 0 계약.
+      pace:
+        board.cadenceType && board.cadenceType !== 'FREE'
+          ? {
+              cadenceType: board.cadenceType,
+              cadenceN: board.cadenceN,
+              strictMode: board.strictMode,
+              timezone: board.owner.timezone,
+              dayResetHour: board.owner.dayResetHour,
+            }
+          : undefined,
+    });
     return Response.json(result, { status: 201 });
   } catch (e) {
     if (e instanceof PositionTakenError) return authResponse('이미 채워진 칸이에요', 409);
+    // 엄격 모드(옵트인) 방어선 — 클라가 선차단하므로 정상 UI에선 도달하지 않는다(FILL_CADENCE §8).
+    if (e instanceof StrictPaceError) return authResponse(e.message, 422);
     // 재시도(백오프 포함) 소진 — 극단적 동시 채움. 일시 오류로 해요체 안내.
     // (클라 배너가 "— 잠시 후 다시 시도해주세요."를 덧붙이므로 여기선 원인만.)
     if (isSerializationConflict(e)) {

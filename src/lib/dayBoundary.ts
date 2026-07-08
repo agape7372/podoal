@@ -1,8 +1,10 @@
-// 채움 텀(FILL_CADENCE_PLAN §4) 하루/주 경계 계산 — 단일 유틸(이중 구현 금지의 기점).
-// 스트릭·히트맵·시간캡슐 D-day 판정도 장기적으로 이 유틸에 합류할 예정(§4 리스크 레지스터).
+// 채움 텀(FILL_CADENCE_PLAN §4) 하루/주 경계 계산 — **클라 즉답 UI 전용**(기기 로컬 시간).
 //
-// C1은 기기 로컬 시간을 사용한다(resetHour 기본 0 = 자정 경계). User.timezone/User.dayResetHour
-// 서버 판정과의 통일은 C2에서 진행 — 그 전까지 클라 판정만 이 함수를 소비한다(computePaceState).
+// C2(2026-07-08)부터 서버 경계의 정본은 src/lib/streak.ts의 zonedDateKey/weekStartKey다
+// (User.timezone/dayResetHour 기준 — 텀 판정·스트릭·히트맵 통일). 이 파일은 클라 탭 허용
+// 판정(computePaceState)의 즉답용으로만 남는다 — 한국 유저(기기=Asia/Seoul, resetHour 0)
+// 에선 두 판정이 일치하고, 어긋나는 극단 케이스(여행 중 등)에도 서버가 authoritative라
+// 소프트 모드에선 earlyFill 기록 차이일 뿐 채움 자체는 막히지 않는다.
 
 /**
  * now가 속한 "하루"의 시작 시각 = 로컬 자정 + resetHour. now의 로컬 시각이 resetHour

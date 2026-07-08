@@ -62,6 +62,8 @@ interface GrapeCellProps {
   /** 채움 텀 C1: isNext 칸에서만 의미 있다(GrapeSticker가 isNext와 함께 AND 처리). */
   ripening?: boolean;
   ripenProgress?: number;
+  /** 채움 텀 C2(§3 이월): unripe→ripe 전이 순간 1회만 true(GrapeBoardInner가 감지·타이머로 되돌림). */
+  showRipeSparkle?: boolean;
   grapeSize: number;
   hMargin: number;
   sizeClass: 'sm' | 'md' | 'lg';
@@ -71,6 +73,8 @@ interface GrapeCellProps {
   onFill: (position: number) => void;
   onPlantReward?: (position: number) => void;
   onPlantGift?: (position: number) => void;
+  /** 커스텀 알 사진(보드 단위) — GrapeSticker로 그대로 전달. */
+  customImageUrl?: string | null;
 }
 
 // One grape + its 🎁 marker. Extracted so `useLongPress` is called exactly once
@@ -89,6 +93,7 @@ const GrapeCell = memo(function GrapeCell({
   myPlantedGiftStatus,
   ripening,
   ripenProgress,
+  showRipeSparkle,
   grapeSize,
   hMargin,
   sizeClass,
@@ -97,6 +102,7 @@ const GrapeCell = memo(function GrapeCell({
   onFill,
   onPlantReward,
   onPlantGift,
+  customImageUrl,
 }: GrapeCellProps) {
   const lp = useLongPress(() => (isOwner ? onPlantReward?.(position) : onPlantGift?.(position)), { threshold: 500 });
   const pointerProps = canPlant
@@ -130,6 +136,7 @@ const GrapeCell = memo(function GrapeCell({
         ripening={ripening}
         ripenProgress={ripenProgress}
         size={sizeClass}
+        customImageUrl={customImageUrl}
         onClick={() => {
           // A long-press just fired on this grape → it planted a reward, not a
           // fill. Swallow the synthetic click so the next grape isn't filled too.
@@ -137,6 +144,10 @@ const GrapeCell = memo(function GrapeCell({
           onFill(position);
         }}
       />
+      {/* 채움 텀 C2(§3 이월): unripe→ripe 전이 1회 반짝. GrapeSticker(비소유 파일) 내부가
+          아니라 여기(소유 파일 wrapper)에 별도 absolute 자식으로 얹는다 — grape-hit/
+          grape-flash(GrapeSticker 내부)와 시점이 다르고 겹치지 않는다. */}
+      {showRipeSparkle && <span className="grape-ripe-sparkle" aria-hidden="true" />}
       {rewardEmoji && (
         <span className="absolute -top-1 -right-1 z-20 pointer-events-none drop-shadow-xs">
           <EmojiIcon emoji={rewardEmoji} size={Math.round(grapeSize * 0.4)} />
@@ -383,6 +394,23 @@ const GrapeBoardInner = forwardRef<GrapeBoardHandle, GrapeBoardProps>(function G
 ) {
   const [fillingPos, setFillingPos] = useState<number | null>(null);
   const [justFilled, setJustFilled] = useState<number | null>(null);
+
+  // 채움 텀 C2(FILL_CADENCE_PLAN §3 이월): next 알이 unripe→ripe로 "전이하는 순간"에만
+  // 1회 반짝. prevRipeRef의 초기값은 관측 전(null)으로 둬 마운트 시 이미 ripe인
+  // 경우에는 발동하지 않는다(전이만 감지 — "익는 걸 지켜보다 익은 순간"). paceState가
+  // 없거나(FREE) null로 돌아오면 다음 관측을 위해 다시 미관측 상태로 리셋한다.
+  const prevRipeRef = useRef<boolean | null>(null);
+  const [justRipened, setJustRipened] = useState(false);
+  useEffect(() => {
+    const ripeNow = paceState ? paceState.ripe : null;
+    if (prevRipeRef.current === false && ripeNow === true) {
+      setJustRipened(true);
+      const timer = setTimeout(() => setJustRipened(false), 700);
+      prevRipeRef.current = ripeNow;
+      return () => clearTimeout(timer);
+    }
+    prevRipeRef.current = ripeNow;
+  }, [paceState]);
 
   // 완성 연출용: 포도 클러스터 div(액체 레이어·glow·스파클의 부착 지점)와,
   // 진행 중 시퀀스의 취소 함수(타이머 해제 + imperative 노드 제거).
@@ -667,6 +695,7 @@ const GrapeBoardInner = forwardRef<GrapeBoardHandle, GrapeBoardProps>(function G
                         myPlantedGiftStatus={myPlantedGiftMarkers.get(position) ?? null}
                         ripening={isNext && !!paceState && !paceState.ripe}
                         ripenProgress={isNext ? (paceState?.progress ?? 1) : undefined}
+                        showRipeSparkle={isNext && justRipened}
                         grapeSize={grapeSize}
                         hMargin={hMargin}
                         sizeClass={sizeClass}
@@ -679,6 +708,7 @@ const GrapeBoardInner = forwardRef<GrapeBoardHandle, GrapeBoardProps>(function G
                         onFill={handleFill}
                         onPlantReward={onPlantReward}
                         onPlantGift={onPlantGift}
+                        customImageUrl={board.customImageUrl}
                       />
                     );
                   })}
