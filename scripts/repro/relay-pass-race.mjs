@@ -47,28 +47,33 @@ if (r.status !== 200) throw new Error(`seed-friends failed: ${r.status} ${JSON.s
 const friendEmails = (r.body.friends ?? r.body.created ?? []).map((f) => f.email ?? f);
 if (friendEmails.length < 2) throw new Error(`need 2 friends, got: ${JSON.stringify(r.body)}`);
 
-// 친구 id 확보 (relay 생성 payload용)
-r = await call(a, 'GET', '/api/friends');
-const friendIds = (r.body.friends ?? []).map((f) => f.friend?.id ?? f.id).filter(Boolean).slice(0, 2);
-if (friendIds.length < 2) throw new Error(`friend ids missing: ${JSON.stringify(r.body)}`);
+// 친구 id 확보 — seed 응답엔 email뿐이라, 각자 로그인해 /api/auth/me로 id를 짝 맞춘다
+// (초대 대상 id와 수락 계정이 반드시 동일 인물이 되도록).
+const friends = [];
+for (const email of friendEmails.slice(0, 2)) {
+  const j = new Jar();
+  let fr = await call(j, 'POST', '/api/auth/login', { email, password: 'test1234' });
+  if (fr.status !== 200) throw new Error(`friend login failed: ${email} ${fr.status}`);
+  fr = await call(j, 'GET', '/api/auth/me');
+  const fid = fr.body.user?.id;
+  if (!fid) throw new Error(`friend me failed: ${email} ${JSON.stringify(fr.body)}`);
+  friends.push({ email, id: fid, jar: j });
+}
 
 // 2) 릴레이 생성 (순차 모드, 2알 — 빠른 완성)
 r = await call(a, 'POST', '/api/relays', {
   title: `레이스검증 ${process.pid}`,
   totalStickers: 2,
-  friendIds,
+  friendIds: friends.map((f) => f.id),
   mode: 'relay',
 });
 if (r.status !== 200 && r.status !== 201) throw new Error(`relay create failed: ${r.status} ${JSON.stringify(r.body)}`);
 const relayId = r.body.relay?.id ?? r.body.id;
 
 // 3) 친구 2명 수락(pending 대기열 형성)
-for (const email of friendEmails.slice(0, 2)) {
-  const j = new Jar();
-  let fr = await call(j, 'POST', '/api/auth/login', { email, password: 'test1234' });
-  if (fr.status !== 200) throw new Error(`friend login failed: ${email} ${fr.status}`);
-  fr = await call(j, 'POST', `/api/relays/${relayId}/accept`);
-  if (fr.status >= 400) throw new Error(`accept failed: ${email} ${fr.status} ${JSON.stringify(fr.body)}`);
+for (const f of friends) {
+  const fr = await call(f.jar, 'POST', `/api/relays/${relayId}/accept`);
+  if (fr.status >= 400) throw new Error(`accept failed: ${f.email} ${fr.status} ${JSON.stringify(fr.body)}`);
 }
 
 // 4) 내 릴레이 보드 찾기

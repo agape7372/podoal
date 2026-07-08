@@ -1,4 +1,4 @@
-상태: 보류 (재현 대기 — 로컬 DB 불능으로 실행 재현 미수행, 수정 없음)
+상태: 완료 (유령 확정 — 2026-07-08 실행 재현으로 반증, 수정 불필요)
 
 ## relay-race-analysis: 릴레이 차례 이중 진행 레이스 (GAP-08) — 페이블 직접 분석
 
@@ -13,7 +13,12 @@
 - 수동 `/pass`: `src/app/api/relays/[id]/pass/route.ts:14-51` 가드가 tx 밖(기본 격리)인 것은 사실. **그러나** 가드의 두 조건(`participant.status==='active'`·`board.isCompleted`)은 `findUnique` **단일 쿼리 스냅샷**이고, 이 두 상태는 자동 진행 tx가 **원자적으로 동시에** 뒤집는다(완성=isCompleted=true 커밋 순간 participant는 completed). 즉 "active인데 보드 완성"인 /pass-합법 상태가 현행 생성 경로(relays POST는 새 보드, join은 완성 보드 부착 거부 `join/route.ts:51`, 선완성 pending은 advance가 completed로 스킵 `relay.ts:72-78`)에서 **도달 불가** — 이중 /pass의 전제 자체가 성립하지 않는다.
 - 판정(§8 3분류): **② 유령 의심(방어 이미 충분)** — 2026-07-05 감사의 탐색 "High 2건" 무효 패턴과 동형. 단 §10 2단계(실행 재현)를 로컬 DB 불능(Docker 엔진 좀비 소켓 — PLAYBOOK 참고)으로 못 돌렸으므로 **확정하지 않고 보류**.
 
-### 후속 (로컬 DB 복구 시)
-1. `docker start podoal-pg` + `npx prisma migrate deploy` + dev 서버 → `node scripts/repro/relay-pass-race.mjs`.
-2. `NO_RACE`면 이 카드 상태를 "완료(유령 확정)"로 닫고 ROADMAP P1 라인에서 제거.
-3. `RACE_DETECTED`면(예상 밖) /pass 가드를 tx 내부 재검사 + Serializable로 승격하는 수정 카드 신설(자동 경로 fillBoard.ts 패턴 미러링).
+### 실행 재현 결과 (2026-07-08 — Docker 복구 후 §10 2단계 완료)
+```
+$ node scripts/repro/relay-pass-race.mjs   # 로컬 dev + podoal-pg, 마이그레이션 적용 후
+volley statuses: 201,400,400,400,400,400   # 마지막 알 채움 1건 성공 + 동시 /pass 5연발 전부 400
+participants: 0:completed 1:active 2:pending
+NO_RACE — active 1
+```
+- 판정 확정: **② 유령(방어 충분)** — 자동 진행(Serializable tx)과 /pass 가드(단일 스냅샷)가 실제 동시성에서도 active 1명 불변식을 지켰다. 수정 없음(§10: 재현 안 되는 수정은 추측 수정).
+- 재현 스크립트는 회귀 자산으로 유지(`scripts/repro/relay-pass-race.mjs` — friends 응답 형태 파싱 수정 포함).
