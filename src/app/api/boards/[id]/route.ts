@@ -131,6 +131,8 @@ export async function GET(request: Request, props: { params: Promise<{ id: strin
     // Gifter's private note → owner/recipient only, never a visiting friend.
     giftMessage: isViewerPrivileged ? board.giftMessage : '',
     giftOpenedAt: board.giftOpenedAt ? board.giftOpenedAt.toISOString() : null,
+    // 커스텀 알 사진 — 사용자 요청 "본인만" 노출. giftMessage와 동일 게이팅.
+    customImageUrl: isViewerPrivileged ? board.customImageUrl : null,
     // 목록 API의 podong(그룹 전용 배지 의미)과 달리 순차 릴레이 보드도 포함한다.
     inRelay: board.relayParticipants.length > 0,
     // 보상 심기/편집(작성자 행위) 가능 여부 — 선물 복사본·비창시자 포도동 보드는

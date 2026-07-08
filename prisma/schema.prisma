@@ -61,6 +61,7 @@ model Board {
   order         Int?      // 홈 목록 사용자 지정 정렬(null=createdAt 폴백)
   harvestedAt   DateTime? // 수확(숨김) 시각. null=노출
   cellarNote    String?   // 소믈리에 노트 — 완성 습관 회고 메모(와이너리 상세 패널, ≤200자)
+  customImageUrl String? // 커스텀 알 사진(Vercel Blob URL). null=기본 보라. 소유자에게만 GET에서 노출.
   // 채움 텀(FILL_CADENCE_PLAN §2·§8, additive). FREE = 현행 무제한 — 기존 보드 무변화.
   cadenceType   String   @default("FREE") // FREE | DAILY_1 | DAILY_N | WEEKLY_N
   cadenceN      Int?      // DAILY_N(2~10) / WEEKLY_N(1~7)의 N

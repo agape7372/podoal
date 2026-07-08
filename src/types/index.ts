@@ -28,6 +28,8 @@ export interface BoardSummary {
   giftedTo: UserProfile | null;
   giftedFrom: UserProfile | null;
   rewardCount: number;
+  /** 채움 텀 C2(additive): 이번 기간(오늘/이번 주) 몫 완료 여부 — 서버 판정. FREE·완성 보드는 undefined. */
+  paceDone?: boolean;
   /** Owner toggle: may friends plant surprise gifts here? Surfaced by board detail + friend boards. */
   allowFriendPlant?: boolean;
   /** User-defined sort order on the home list (null = fall back to createdAt). */
@@ -52,6 +54,8 @@ export interface BoardDetail extends BoardSummary {
   canManageRewards?: boolean;
   /** 뷰어 본인이 이 보드에 심은 깜짝 선물의 위치·공개 상태(W2-A, additive). 타인 것은 절대 포함되지 않는다. */
   myPlantedGifts?: { position: number; revealedAt: string | null }[];
+  /** 커스텀 알 사진(Vercel Blob URL). null=기본 보라. giftMessage와 동일하게 소유자/선물수신자에게만 값이 오고, 방문 친구에겐 항상 null. */
+  customImageUrl?: string | null;
 }
 
 export interface PlantedGiftInfo {
