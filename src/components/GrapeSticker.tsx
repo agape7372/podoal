@@ -15,6 +15,8 @@ interface GrapeStickerProps {
   ripenProgress?: number;
   size: 'sm' | 'md' | 'lg';
   onClick: () => void;
+  /** 커스텀 알 사진(보드 단위, 소유자 전용 업로드) — 채워진 알에만 적용. null/미전달이면 기본 보라. */
+  customImageUrl?: string | null;
 }
 
 export default function GrapeSticker({
@@ -29,7 +31,14 @@ export default function GrapeSticker({
   ripenProgress,
   size,
   onClick,
+  customImageUrl,
 }: GrapeStickerProps) {
+  const photoStyle: React.CSSProperties | undefined =
+    isFilled && customImageUrl
+      ? { backgroundImage: `url(${customImageUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+      : undefined;
+  const ripenStyle: React.CSSProperties | undefined =
+    isNext && ripening ? ({ '--ripen-p': ripenProgress ?? 0 } as React.CSSProperties) : undefined;
   return (
     <button
       onClick={onClick}
@@ -48,7 +57,7 @@ export default function GrapeSticker({
         ${dimmed ? 'opacity-70' : ''}
         ${!canFill || isFilling ? 'pointer-events-none' : ''}
       `}
-      style={isNext && ripening ? ({ '--ripen-p': ripenProgress ?? 0 } as React.CSSProperties) : undefined}
+      style={{ ...ripenStyle, ...photoStyle }}
       aria-label={isFilled ? '채워진 포도알' : `포도알 ${position + 1}`}
     >
       {!isFilled && (

@@ -25,6 +25,7 @@ const ShareCardModal = dynamic(() => import('@/components/ShareCardModal'), { ss
 const CapsuleModal = dynamic(() => import('@/components/CapsuleModal'), { ssr: false });
 const GiftBoardModal = dynamic(() => import('@/components/GiftBoardModal'), { ssr: false });
 const EditBoardInfoModal = dynamic(() => import('@/components/EditBoardInfoModal'), { ssr: false });
+const CustomImageModal = dynamic(() => import('@/components/CustomImageModal'), { ssr: false });
 import { invalidateCachedApi, invalidateCachedApiPrefix, readCachedApi, writeCachedApi } from '@/lib/cachedApi';
 import {
   applyOptimisticFill,
@@ -157,6 +158,7 @@ export default function BoardDetailPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showEditInfo, setShowEditInfo] = useState(false);
+  const [showCustomImage, setShowCustomImage] = useState(false);
   // Burst counter for the shared <Confetti>. Bumped both when a fill unlocks a
   // reward (via GrapeBoard's onCelebrate) and when a reward is opened.
   const [confettiTrigger, setConfettiTrigger] = useState(0);
@@ -741,6 +743,21 @@ export default function BoardDetailPage() {
     }
   };
 
+  const handleSaveCustomImage = async (image: Blob) => {
+    const form = new FormData();
+    form.append('file', image, 'custom-image.jpg');
+    const res = await api<{ customImageUrl: string }>(`/api/boards/${id}/custom-image`, {
+      method: 'POST',
+      body: form,
+    });
+    setBoard((b) => (b ? { ...b, customImageUrl: res.customImageUrl } : b));
+  };
+
+  const handleRemoveCustomImage = async () => {
+    await api(`/api/boards/${id}/custom-image`, { method: 'DELETE' });
+    setBoard((b) => (b ? { ...b, customImageUrl: null } : b));
+  };
+
   const handleGift = async (friendId: string, message: string) => {
     try {
       await api(`/api/boards/${id}/gift`, {
@@ -1022,6 +1039,15 @@ export default function BoardDetailPage() {
               className="text-warm-sub hover:text-grape-700 p-1 transition-colors"
             >
               <EmojiIcon emoji="✏️" size={15} />
+            </button>
+          )}
+          {isOwner && (
+            <button
+              onClick={() => { feedbackTap(); setShowCustomImage(true); }}
+              aria-label="알 사진 바꾸기"
+              className="text-warm-sub hover:text-grape-700 p-1 transition-colors"
+            >
+              <EmojiIcon emoji="📸" size={15} />
             </button>
           )}
         </div>
@@ -1323,6 +1349,16 @@ export default function BoardDetailPage() {
           initialDescription={board.description ?? ''}
           onSave={handleEditInfo}
           onClose={() => setShowEditInfo(false)}
+        />
+      )}
+
+      {/* Owner: custom grape photo (사용자 요청, docs/cards/2026-07-08-custom-grape-photo.md) */}
+      {showCustomImage && (
+        <CustomImageModal
+          initialImageUrl={board.customImageUrl ?? null}
+          onSave={handleSaveCustomImage}
+          onRemove={handleRemoveCustomImage}
+          onClose={() => setShowCustomImage(false)}
         />
       )}
     </div>
