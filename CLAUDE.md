@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 > **About this project (podoal)** — This is **podoal**, a habit-tracking PWA with a claymorphism visual redesign. Data layer (Prisma schema, all `/api/*` routes, `src/lib/auth.ts`, `src/lib/oauth.ts`, `src/lib/store.ts` keys, `src/lib/feedback.ts` function signatures, `prisma/seed.ts`, env var names) was originally frozen at redesign time. **As of 2026-07-05 the freeze is relaxed to a gate, not a ban** — verified real bugs (input-validation 500s, missing authZ, races) and additive fields ARE fixable; renames / key changes / response-field removals still need explicit approval. Before touching the data layer, follow the gate in [`docs/PRINCIPLES.md`](docs/PRINCIPLES.md) §3 (reproduction required, guard patterns, migration procedure). Visual layer (`src/app/globals.css`, all `src/components/**`, all page components, manifest brand strings) was redesigned.
 >
-> **Companion docs (read these — they carry the operating knowledge)**: [`docs/ONBOARDING.md`](docs/ONBOARDING.md) (**start here** — 작업유형→읽기경로 트리, 세션 시작/종료 체크) · [`docs/PRINCIPLES.md`](docs/PRINCIPLES.md) (change classifier, data-layer gate, UI checklist, "건드리면 부서지는 곳" map, triage, §10 사고 프로토콜) · [`docs/PLAYBOOK.md`](docs/PLAYBOOK.md) (local bootstrap, incident trees + bug-class catalog, env ledger, subagent protocol + card rules, §8 debugging protocol) · [`docs/cards/`](docs/cards/) (task cards — 실행 단위·상태 정본) · [`docs/ROADMAP.md`](docs/ROADMAP.md) (phases P1~P4 + backlog — P0 done 2026-07-06) · [`docs/PRODUCT_PLAN.md`](docs/PRODUCT_PLAN.md) (strategy layer — 비전·워크스트림·KPI·확장 게이트; phase 정본은 ROADMAP) · [`docs/PERSONA_REVIEW_2026-07.md`](docs/PERSONA_REVIEW_2026-07.md) (페르소나 22명 시뮬레이션 리뷰 — 불변 스냅샷) · [`docs/FILL_CADENCE_PLAN.md`](docs/FILL_CADENCE_PLAN.md) (채움 텀·숙성 시스템 기획, 구현 전) · [`docs/REVIEW_CHECKLIST.md`](docs/REVIEW_CHECKLIST.md) (pre-commit 7 gates) · [`docs/MONETIZATION_PLAN.md`](docs/MONETIZATION_PLAN.md) (incl. §8 구독) · [`docs/audit/`](docs/audit/) (adversarial audits). CLAUDE.md is the convention source; PRINCIPLES is the decision procedure.
+> **Companion docs (read these — they carry the operating knowledge)**: [`docs/ONBOARDING.md`](docs/ONBOARDING.md) (**start here** — 작업유형→읽기경로 트리, 세션 시작/종료 체크) · [`docs/PRINCIPLES.md`](docs/PRINCIPLES.md) (change classifier, data-layer gate, UI checklist, "건드리면 부서지는 곳" map, triage, §10 사고 프로토콜) · [`docs/PLAYBOOK.md`](docs/PLAYBOOK.md) (local bootstrap, incident trees + bug-class catalog, env ledger, subagent protocol + card rules, §8 debugging protocol) · [`docs/cards/`](docs/cards/) (task cards — 실행 단위·상태 정본) · [`docs/ROADMAP.md`](docs/ROADMAP.md) (phases P1~P4 + backlog — P0 done 2026-07-06) · [`docs/PRODUCT_PLAN.md`](docs/PRODUCT_PLAN.md) (strategy layer — 비전·워크스트림·KPI·확장 게이트; phase 정본은 ROADMAP) · [`docs/PERSONA_REVIEW_2026-07.md`](docs/PERSONA_REVIEW_2026-07.md) (페르소나 22명 시뮬레이션 리뷰 — 불변 스냅샷) · [`docs/FILL_CADENCE_PLAN.md`](docs/FILL_CADENCE_PLAN.md) (채움 텀·숙성 — **C1 구현됨 2026-07-08**, C2 서버판정~C4 잔여) · [`docs/ANALYTICS_PLAN.md`](docs/ANALYTICS_PLAN.md) (계측 설계 — WS1, 배선 전) · [`docs/A11Y_PLAN.md`](docs/A11Y_PLAN.md) (접근성 팩 설계) · [`docs/REVIEW_CHECKLIST.md`](docs/REVIEW_CHECKLIST.md) (pre-commit 7 gates) · [`docs/MONETIZATION_PLAN.md`](docs/MONETIZATION_PLAN.md) (incl. §8 구독) · [`docs/audit/`](docs/audit/) (adversarial audits). CLAUDE.md is the convention source; PRINCIPLES is the decision procedure.
 >
 > **podoal design tokens**
 > - Brand purple (ACTUAL values): `tailwind grape-500` = `#B28CDC`, `--grape-primary` = `#DCC4F2`. The `#9B7ED8` accent now lives **only** in the `grape-glow` shadow token — the winery Lv badge gradient was unified to `grape-700 → grape-800` utilities (for AA-contrast white text; the old inline `#9B7ED8 → #7B5FB8` hex is gone)
@@ -22,7 +22,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 > - `src/components/illustrations/*.tsx` — 1 single-export SVG component (`Sparkle`, used by GrapeBoard) + `GrapeStem.tsx` (used by GrapeBoard). Gradient/defs ids use `useId()` for instance-uniqueness (no cross-instance fill bleed). Unused `Star`/`Heart`/`CloudPuff`/`Ribbon`/`Sun`/`WaterDrop` were removed; `VineLeaf` was also removed (became orphaned — zero importers). Use sparingly: at most one illustration per page section.
 > - `GrapeStem.tsx` is now **two flat curved leaves, no stem/tendril** — a borderless sage-green (`#74A77E`) silhouette vectorized (pixel-traced + smoothed) from a reference, `viewBox="0 0 200 117"`. Props: `size` (= rendered width; height = `size*0.585`). `GrapeBoard` sizes it from `grapeSize` and keeps a gap above the bunch (see layout invariants 6–7). Do **not** ship the original watermarked stock image — keep the redrawn vector (license-safe).
 >
-> **Content untouched** — `src/lib/templates.ts` (7 categories, 38 templates), `src/lib/winery.ts` (포도알 새싹 → 포도 마스터 tier names), `src/lib/sounds.ts` (30 sounds), `src/types/index.ts` (3 reward types), nav labels all kept verbatim at redesign time (the tab lineup itself has since changed: 릴레이 was folded into 친구, and the 만들기 tab was removed in favor of the home FAB — the current 4-tab set is the Navigation section below, which is authoritative). The redesign deliberately does not touch copy/naming — design carries the change. (One later exception: `REWARD_TYPE_LABELS` had its **leading emoji stripped** so labels are name-only — 편지/기프티콘/소원권 — and the icon moved to `src/lib/icons.ts` `REWARD_TYPE_ICON`; the names themselves are unchanged. This was a deliberate copy change to stop raw-emoji leakage — see `scripts/check-icons.mjs`, which since 2026-07-07 also guards emoji-choice arrays (CheerModal 등) ↔ `public/icons/fluent/` asset sync.)
+> **Content untouched** — `src/lib/templates.ts` (7 categories, 38 templates — copy verbatim; cadence C1 added an **additive `recommendedCadence` field** to 26 templates, titles/descriptions unchanged), `src/lib/winery.ts` (포도알 새싹 → 포도 마스터 tier names), `src/lib/sounds.ts` (30 sounds), `src/types/index.ts` (3 reward types), nav labels all kept verbatim at redesign time (the tab lineup itself has since changed: 릴레이 was folded into 친구, and the 만들기 tab was removed in favor of the home FAB — the current 4-tab set is the Navigation section below, which is authoritative). The redesign deliberately does not touch copy/naming — design carries the change. (One later exception: `REWARD_TYPE_LABELS` had its **leading emoji stripped** so labels are name-only — 편지/기프티콘/소원권 — and the icon moved to `src/lib/icons.ts` `REWARD_TYPE_ICON`; the names themselves are unchanged. This was a deliberate copy change to stop raw-emoji leakage — see `scripts/check-icons.mjs`, which since 2026-07-07 also guards emoji-choice arrays (CheerModal 등) ↔ `public/icons/fluent/` asset sync.)
 
 ## Commands
 
@@ -72,7 +72,9 @@ src/app/(app)/
                      #   the separate stat-pill row was merged in (no duplicate counts). Boards
                      #   long-press to drag-reorder (order field), swipe to harvest (harvestedAt
                      #   = hidden). Completed boards get a 소믈리에 노트 (cellarNote) in winery.
-  board/create/      # Board creation form (4-step: template → info → size → reward)
+  board/create/      # Board creation form (4-step: template → info → size → reward). The size
+                     #   step embeds 채우는 리듬 selection (CadencePicker — cadence C1; 템플릿
+                     #   recommendedCadence가 기본값 제안, 스텝 수는 4 유지)
   board/[id]/        # Board detail with grape cluster, share card, capsule, gift
   friends/           # Friends list
   friends/[id]/      # Friend detail + their boards
@@ -89,7 +91,9 @@ src/app/(app)/
   relay/[id]/        # Relay detail with chain visualization
   relay/create/      # Create relay with friend selector
   rewards/           # 포도밭 — gallery of earned rewards across boards
-  settings/          # Settings hub — link rows to 소리 및 진동(/settings/sound)·알림(/notifications) + app info
+  settings/          # Settings hub — link rows to 소리 및 진동(/settings/sound)·알림(/notifications)
+                     #   + 홈 친구 소식 토글(ABS-14 심리 안전) + 내 데이터 내보내기(GET /api/export,
+                     #   JSON 다운로드 — 탈퇴와 짝인 신뢰 장치) + app info
   settings/sound/    # 소리 및 진동: sound/haptic toggles, volume slider, fill-sound link
   sound-test/        # '포도알 소리' — all 30 fill sounds preview & selection
   stats/             # Statistics (summary, heatmap, analysis tabs + weekly recap modal)
@@ -129,15 +133,18 @@ API routes mirror the resource pattern under `src/app/api/` (auth, boards, capsu
 | `src/lib/templates.ts` | 38 Korean habit templates in 7 categories with helpers |
 | `src/lib/shareCard.ts` | Canvas API share card image generator (1080x1350 Instagram ratio) |
 | `src/lib/winery.ts` | 7-tier winery system, bottle size utilities |
+| `src/lib/cadence.ts` | 채움 텀 판정(`computePaceState`) — 클라 "탭 허용 앞단" 전용 순수 함수. `FREE`/미인식 값이면 `null` = 현행 동작(회귀 0 계약). 낙관 큐·`isJustFilled`와 완전 분리 |
+| `src/lib/dayBoundary.ts` | 하루/주 경계 단일 유틸(`dayStart`·`nextDayStart`·`weekStart`…) — 이중 구현 금지의 기점. C1은 기기 로컬 기준, C2에서 서버(User.timezone/dayResetHour)와 통일 예정 |
+| `src/lib/authErrors.ts` | 인증 API 영문 에러 → 한국어 안내 매핑(`describeAuthError`) — 가입/로그인/비번 변경 공용 |
 | `src/lib/prisma.ts` | Prisma client singleton — v7 Rust-free client + `@prisma/adapter-pg` driver adapter (connect timeout 5s) |
 | `src/lib/useSSE.ts` | SSE hook for real-time message delivery (server polls DB every 10s; stream is capped at 4 min then the client auto-reconnects with backoff) |
 | `src/types/index.ts` | All shared TypeScript interfaces and const arrays |
 
 ### Database Models (Prisma + PostgreSQL/Neon)
 
-- **User** — `email` unique. `password String?` (nullable, OAuth-only users have no password). `provider String?` + `providerId String?` with `@@unique([provider, providerId])`; `provider` values: `null` (email), `"google"`/`"kakao"`/`"naver"` (real OAuth), `"google_guest"` / `"kakao_guest"` / `"naver_guest"` (guest fallback).
-- **Board** — grape sticker board (2–60 slots; 10/15/20/30 presets), can be gifted between users (`giftedTo`/`giftedFrom`, `giftMessage`, `giftOpenedAt`), `allowFriendPlant` toggle gates friend surprise gifts, optional `templateId`
-- **Sticker** — individual filled position on a board, unique per `[boardId, position]`
+- **User** — `email` unique. `password String?` (nullable, OAuth-only users have no password). `provider String?` + `providerId String?` with `@@unique([provider, providerId])`; `provider` values: `null` (email), `"google"`/`"kakao"`/`"naver"` (real OAuth), `"google_guest"` / `"kakao_guest"` / `"naver_guest"` (guest fallback). Cadence C1 additive: `timezone`(IANA, default `Asia/Seoul`), `dayResetHour`(0~6, default 0) — 서버 판정은 C2부터 소비.
+- **Board** — grape sticker board (2–60 slots; 10/15/20/30 presets), can be gifted between users (`giftedTo`/`giftedFrom`, `giftMessage`, `giftOpenedAt`), `allowFriendPlant` toggle gates friend surprise gifts, optional `templateId`. Cadence C1 additive: `cadenceType`(`FREE`|`DAILY_1`|`DAILY_N`|`WEEKLY_N`, default FREE), `cadenceN`, `strictMode` — 상세 `docs/FILL_CADENCE_PLAN.md` §8.
+- **Sticker** — individual filled position on a board, unique per `[boardId, position]`. Cadence C1 additive: `isBackfill`, `earlyFill`(소프트 가드 오버라이드 기록 — 서버는 수용만, 판정은 C2).
 - **Reward** — hidden reward unlocked at `triggerAt` sticker count, unique per `[boardId, triggerAt]`. Single-shot via `unlockedAt`, content revealed via `revealedAt`.
 - **Friendship** — pending/accepted status, isFavorite flag, unique per `[requesterId, receiverId]`
 - **Message** — types: cheer/celebration/gift, with emoji and isRead tracking
@@ -159,7 +166,7 @@ The visual side of a fill is the hit-stop impact freeze (see Styling → grape c
 
 ### PWA
 
-The app is a Progressive Web App with `public/manifest.json`, `public/sw.js`, and `src/components/InstallPrompt.tsx` for the install banner. Service Worker is registered in the `(app)` layout. Icons are in `public/icons/`.
+The app is a Progressive Web App with `public/manifest.json`, `public/sw.js`, and `src/components/InstallPrompt.tsx` for the install banner — on iOS the banner opens a **가치 카피 + 3단계 설치 안내 시트** (POL-02 완화, 2026-07-08) instead of the Android native prompt. Service Worker is registered in the `(app)` layout, which also mounts `src/components/OfflineBanner.tsx` (오프라인 상태 배너 — 채움 실패가 버그로 오인되는 것 차단, GAP-07). Icons are in `public/icons/`.
 
 **`sw.js` fetch strategy** (bump `CACHE_VERSION` on any caching change): hash-named `/_next/static/*` → always network; `/api/*` → network-first; **HTML navigations (`request.mode === 'navigate'`) → network-first** (so a previously-visited page like an old board URL never gets stuck on a stale cached document referencing old chunks — this was why UI updates appeared only on newly-created boards); other static (icons/manifest/images) → cache-first. A new SW must activate (reopen the app / refresh) before the fix takes effect.
 
@@ -193,6 +200,7 @@ Bottom nav is **4 tabs**: 홈 | 친구 | 와이너리 | 더보기 — there is *
 - `.grape-filled` / `.grape-empty` — individual grape sticker states. `.grape-empty:hover` has `scale(1.08)`, `:active` `scale(0.93)`.
 - Grape fill motion is **"히트스톱 임팩트 프리즈"** (final pick from `public/anim-pick.html`, candidate 40): `.grape-hit` (`grapeHit` keyframe — fast squash that HOLDs on the contact frame, then snaps back) + `.grape-flash` (`grapeImpactFlash` ring synced to the freeze). The old juice-fill / jelly-pop / particle-burst are **removed**. Durations are `0.6s` to match the 600ms `isJustFilled` window in `GrapeBoard`.
 - `.grape-empty.grape-next` (next tappable grape) idles with `grapeNextTension` (micro 1.018↔1.015 pulse); it's paused on `:hover`/`:active` so the hover/active scale still shows.
+- `.grape-empty.grape-next.grape-ripening` — cadence C1 "익는 중" state: 청포도→보라 color transition driven by `--ripen-p` (0~1, from `computePaceState().progress`). Tapping an unripe grape opens `RipeningSheet` (소프트 가드 — "그래도 채우기" 2-tap override records `earlyFill`); never a hard lock unless the board opts into `strictMode`.
 - **Board-completion celebration is "액체 차오름 v2 (출렁)"** (user-picked, podoal-grape-anim gallery #10): an imperative WAAPI sequence in `GrapeBoard` — bunch-silhouette liquid rise (overshoot slosh) with the sound/confetti/shine beat at impact+1650ms (liquid starts at +150ms — '누르자마자' feedback); mask geometry in `src/lib/liquidMask.ts`, colors = `lime-600/500/200` + `sunshine-300` tokens, and it carries its own `prefers-reduced-motion` guard (WAAPI is outside the global CSS backstop).
 - `.clay-input` — form input styling
 - `.vine-line` — vertical timeline line for grape vine
@@ -221,7 +229,7 @@ These are the rules that the codebase encodes — breaking them caused the visib
 - Board operations use `_count: { select: { stickers: true } }` Prisma pattern for `filledCount`
 - Board responses include `rewardCount` (number of rewards) rather than full reward data in list views
 - `GrapeBoard` uses hex-packing row layouts with vertical overlap for realistic grape bunch appearance
-- Filling a grape is **optimistic** — `board/[id]/page.tsx` inserts a temp sticker on click, then reconciles with the POST response (which already returns `sticker + filledCount + isCompleted + unlockedReward`). Re-fetches the board only when a reward unlocks. Rolls back on failure.
+- Filling a grape is **optimistic** — `board/[id]/page.tsx` inserts a temp sticker on click, then reconciles with the POST response (which already returns `sticker + filledCount + isCompleted + unlockedReward`). Re-fetches the board only when a reward unlocks. Rolls back on failure. **Cadence guard sits strictly in front of this pipeline** (탭 허용 판정, `src/lib/cadence.ts`) — it must never touch the serial queue, `mergeServerBoard`/`applyFillResult`, or the 600ms `isJustFilled` window. C1 is client-judgment only; the server merely accepts `earlyFill`/`isBackfill` (server-side `paceState` lands in C2).
 - Relay system uses ordered participants with baton-passing (current active → next pending)
 - Statistics page uses 3 tabs: summary (overview), heatmap (90-day GitHub-style grid), analysis (charts)
 - Share cards generated client-side with Canvas API, shareable via Web Share API or download
