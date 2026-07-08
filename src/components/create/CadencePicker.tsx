@@ -77,10 +77,13 @@ export default function CadencePicker({ cadenceType, cadenceN, onChange }: Caden
         </div>
       )}
 
+      {/* 선택지별 설명 — "하루 1알×7알 판"과 "일주일 목표"의 혼동을 여기서 가른다
+          (하루 계열=매일 리셋, 주간=요일 자유·총량 약속). N은 실제 선택값으로 살아있게. */}
       <p className="text-xs text-warm-sub text-center text-balance">
-        {cadenceType === 'FREE'
-          ? '언제든 자유롭게 채워요'
-          : '포도는 하루아침에 익지 않아요 · 리듬을 정하면 다음 알이 익을 때까지 기다렸다 채워요'}
+        {cadenceType === 'FREE' && '언제든 자유롭게 채워요'}
+        {cadenceType === 'DAILY_1' && '매일 하는 습관에 — 오늘 몫을 채우면 다음 알은 내일 익어요'}
+        {cadenceType === 'DAILY_N' && `물 마시기처럼 하루 여러 번 — 오늘 ${cadenceN}알을 채우면 다음 알은 내일 익어요`}
+        {cadenceType === 'WEEKLY_N' && `요일은 자유롭게, 일주일에 ${cadenceN}번만 — 이번 주 몫을 채우면 다음 주에 다시 익어요`}
       </p>
     </div>
   );
