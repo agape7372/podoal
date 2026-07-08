@@ -1038,6 +1038,24 @@ export default function BoardDetailPage() {
             </span>
           </div>
         )}
+
+        {/* Owner-only persistent status chip: "깜짝선물 받기 꺼짐" (GAP-04,
+            W3-surprise-gift-badge). The "친구가 깜짝 선물 심기" toggle switch further up
+            this page already reflects on/off via switch position, but a small switch is
+            easy to glance past — this is an always-visible reminder so the owner doesn't
+            have to re-check it. Non-interactive by design: the toggle already lives inline
+            on this same page (not behind a separate menu/settings sheet), so wiring a tap
+            here to "open" it would just re-trigger the same mutation with no real
+            navigation benefit — see 검증 로그 for the decision trace. Same !isCompleted gate
+            as that toggle / the friend-view caption below / GrapeBoard's onPlantReward·
+            onPlantGift props — a completed board has no empty grape left to plant on, so
+            the setting is moot there. */}
+        {isOwner && !board.isCompleted && !allowPlant && (
+          <div className="inline-flex items-center gap-1 clay-sm px-3 py-1.5 mt-2">
+            <EmojiIcon emoji="🎁" size={12} />
+            <span className="text-xs text-warm-sub">깜짝선물 받기 꺼짐</span>
+          </div>
+        )}
       </div>
 
       {/* Friend view: discoverability caption for the long-press plant-gift gesture
