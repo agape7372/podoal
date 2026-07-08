@@ -53,3 +53,9 @@ diff + 검증 로그 + 카드 상태 갱신(진행→검증대기). **커밋 금
 **스펙 이탈 사유 (1건)**
 - 스펙 §2의 `EmojiIcon 📡 또는 ☁` 미채택. 두 이모지 모두 `public/icons/fluent/`에 대응 SVG가 없음(`1f4e1.svg`, `2601.svg` 부재 확인) → `EmojiIcon` 경유 시 `check-icons.mjs`가 커버리지 실패로 `npm run lint`를 실패시킴(검증법에 명시된 필수 게이트). 아이콘 SVG 자산 추가는 이 카드의 소유 파일 목록 밖이라 이번 스코프에서 생성 불가. 대체로 `InstallPrompt.tsx`의 닫기 아이콘과 동일한 관례(인라인 stroke SVG, `currentColor`)로 "신호 없음" 막대+사선 아이콘을 자체 구현(`aria-hidden="true"`, 텍스트가 실제 접근성 콘텐츠). 문구 자체는 스펙 그대로 사용(자체 창작 없음). 후속 조치로 `mcp__ccd_session__spawn_task`에 아이콘 자산 추가 작업을 별도 플래그함.
 - 모션(스펙 §6)은 미적용하지 않고 기존 `.animate-fade-in`(`fadeInUp` 키프레임, opacity+translateY만 사용, 전역 reduced-motion 백스톱 적용 대상)으로 마운트 진입 모션만 부여 — `transition-*` 유틸리티는 상태 전환이 아닌 mount/unmount라 데드 클래스가 되어 추가하지 않음. 퇴장은 스펙 §4대로 즉시 unmount(간단 제거).
+
+### 후속: 아이콘 자산 추가 + EmojiIcon 전환 (2026-07-08, 별도 세션 — 위 이탈 해소)
+
+- `public/icons/fluent/1f4e1.svg`(📡)·`2601.svg`(☁) 자체 제작 추가 — 타 라이브러리 복사 아님. 32×32 flat, 세트에서 관측된 팔레트만 사용(파동 `#83CBFF` = 1f50a 스피커 음파와 동일 hex, 본체 `#CDC4D6`/`#B4ACBC`, 구조부 `#9B9B9B`, ☁는 1f4ac 말풍선과 같은 "외곽 톤 + 흰 inset" 구성).
+- `OfflineBanner.tsx`를 스펙 §2대로 `<EmojiIcon emoji="📡" size={15} />` 사용으로 전환(장식 아이콘 — label 생략 = aria-hidden, 접근성 콘텐츠는 텍스트). 임시 인라인 stroke SVG와 이탈 주석 제거.
+- 검증: `node scripts/check-icons.mjs` ✓ / `npx tsc --noEmit` ✓ / `npm run lint` 0 errors(경고는 기존 계열만) / 갤러리 스크린샷으로 64·24·15px + clay-lavender 배경 판독성 확인.
