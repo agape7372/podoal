@@ -112,6 +112,14 @@ export default function SettingsPage() {
             <span className="text-sm text-warm-text">포도알</span>
             <span className="text-sm text-warm-sub inline-flex items-center gap-1"><EmojiIcon emoji="🍇" size={14} /> Podoal</span>
           </div>
+          <Link
+            href="/settings/privacy"
+            onClick={feedbackTap}
+            className="flex items-center justify-between pt-1 transition-transform active:scale-[0.98]"
+          >
+            <span className="text-sm text-warm-text">개인정보처리방침</span>
+            <Chevron />
+          </Link>
         </div>
       </section>
     </div>
