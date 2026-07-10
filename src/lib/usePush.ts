@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { api } from './api';
+import { track } from './analytics';
 
 const VAPID = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || '';
 
@@ -96,6 +97,7 @@ export function usePush() {
       });
       const json = sub.toJSON();
       await api('/api/push/subscribe', { method: 'POST', json: { endpoint: json.endpoint, keys: json.keys } });
+      track('push_subscribed');
       setState((s) => ({ ...s, permission: 'granted', subscribed: true, busy: false }));
       return true;
     } catch {

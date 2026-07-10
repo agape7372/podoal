@@ -39,6 +39,7 @@ import { REWARD_TYPE_ICON, ICON } from '@/lib/icons';
 import { feedbackTap } from '@/lib/feedback';
 import { stripTitleEmoji } from '@/lib/title';
 import { computePaceState, type PaceState } from '@/lib/cadence';
+import { track, trackFirst } from '@/lib/analytics';
 
 // ── 채움 POST 직렬화 큐 (보드 단위, 모듈 레벨) ──────────────────────────────
 // 연타 시 낙관적 UI는 즉시 반영하되 서버 POST는 한 번에 1개씩 순차 발송한다.
@@ -378,8 +379,9 @@ export default function BoardDetailPage() {
     setShowRipeningSheet(false);
     const position = board.stickers.length; // 순차 채움 — 다음 칸은 항상 현재 채움 수.
     earlyPositionsRef.current.add(position);
+    track('fill_early_override', { boardId: id }); // 오버라이드율 — 텀 적정성 역지표(§2)
     grapeBoardRef.current?.fillNow(position);
-  }, [board]);
+  }, [board, id]);
 
   // 실제 서버 POST + reconcile/rollback. 보드 단위 모듈 큐 체인에서 한 번에
   // 하나씩 실행된다. 에러는 내부에서 처리(롤백+배너)하고 reject하지 않되, 실패
@@ -441,6 +443,8 @@ export default function BoardDetailPage() {
       if (result.isCompleted || result.relayAdvanced) {
         invalidateCachedApiPrefix('/api/relays');
       }
+      // 계측(A3) — 동기 fire-and-forget, 큐/reconcile 파이프라인 무간섭.
+      if (result.isCompleted) track('board_completed', { boardId: id, totalStickers });
 
       // Reconcile: temp를 서버 확정 스티커로 교체. 카운트는 길이 유도, 완성은
       // 단조, 같은 position 중복 삽입 방지 — 산식은 applyFillResult 참조.
@@ -455,6 +459,7 @@ export default function BoardDetailPage() {
       // reward card can update from "locked" to "tap to reveal".
       if (result.unlockedReward) {
         const u = result.unlockedReward;
+        track('reward_unlocked', { type: u.type, isMid: u.triggerAt < totalStickers });
         // 중간 보상: GrapeBoard가 컨페티와 같은 비트에 팝업을 이미 열었음
         // (onMidRewardReached). unlock 응답에 실려 온 내용으로 **즉시** 채운다 —
         // 예전엔 reveal 왕복을 한 번 더 기다렸고(직렬 큐를 그만큼 또 막음),
@@ -544,6 +549,8 @@ export default function BoardDetailPage() {
       fillResumeAt.set(id, Math.min(fillResumeAt.get(id) ?? Infinity, position));
       // Rollback the optimistic sticker on failure.
       applyBoardUpdate(id, (prev) => rollbackFill(prev, tempId, position));
+      // 품질 지표(§3-4) — 409(사실상 성공)는 위에서 이미 return, 진짜 실패만 계측.
+      track('grape_fill_failed', { boardId: id, position });
       if (aliveRef.current) {
         // 이 실패가 낙관 근거였던 '본문 대기 중' 팝업만 닫는다 — 이미 내용이
         // 확정 표시된 무관한 보상 팝업(읽는 중일 수 있음)은 건드리지 않는다.
@@ -587,6 +594,15 @@ export default function BoardDetailPage() {
     } as BoardDetail['stickers'][number];
 
     setBoard((prev) => (prev ? applyOptimisticFill(prev, optimisticSticker) : prev));
+
+    // 계측(A3) — 낙관 삽입 직후, 직렬 큐 밖에서 동기 발사(파이프라인 무간섭).
+    track('grape_filled', {
+      boardId: id,
+      position,
+      earlyFill: earlyPositionsRef.current.has(position),
+      cadenceType: board.cadenceType,
+    });
+    trackFirst(user.id, 'fill', 'first_fill');
 
     // 서버 POST는 보드 단위 모듈 큐 체인에 연결 — 이전 요청 완료 후 발송. 페이지
     // 이탈 시에도 이미 시작된 체인은 계속 진행되고(좀비 큐), 그 결과는 liveBoards/
@@ -764,6 +780,7 @@ export default function BoardDetailPage() {
         method: 'POST',
         json: { friendId, message },
       });
+      track('gift_sent');
       setErrorMessage(null);
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : '선물 전송에 실패했어요';
@@ -805,6 +822,10 @@ export default function BoardDetailPage() {
       reward = { ...reward, ...buffered };
     }
     rewardSeenRef.current.add(reward.id); // 완성 자동 개봉의 재개봉 방지 표식
+    // 첫 열람만 계측(revealedAt이 이미 있으면 재열람) — 사전 §2 reward_revealed.
+    if (!reward.revealedAt && board) {
+      track('reward_revealed', { type: reward.type, isMid: reward.triggerAt < board.totalStickers });
+    }
     // 내용이 로컬에 없으면 로딩 — revealedAt이 있어도 stale 마스킹('')일 수 있어
     // (완성 직전 GET 캐시 등) 본문 없는 모달 대신 reveal 재발사로 회복한다(멱등, W1-B ③).
     // 내용이 정말 빈 보상도 이 경로를 타지만 응답의 ''가 loading을 곧 끈다(제목만 표시).

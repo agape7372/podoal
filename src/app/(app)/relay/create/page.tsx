@@ -14,6 +14,7 @@ import EmojiIcon from '@/components/EmojiIcon';
 import { useAppStore } from '@/lib/store';
 import type { FriendInfo, RewardType, RelayMode } from '@/types';
 import type { HabitTemplate } from '@/lib/templates';
+import { track } from '@/lib/analytics';
 import { feedbackSuccess, feedbackTap } from '@/lib/feedback';
 
 const SIZE_PRESETS = [5, 10, 15, 20, 25, 30];
@@ -111,6 +112,7 @@ export default function CreatePodongPage() {
           ],
         },
       });
+      track('relay_started'); // 소셜 KPI(§3-3) — 관계 이벤트, 속성 없음
       feedbackSuccess();
       router.replace(`/relay/${data.relay.id}`);
     } catch (e) {

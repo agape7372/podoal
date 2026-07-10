@@ -7,6 +7,7 @@ import { ellipsizeName } from '@/lib/title';
 import Modal, { useModalClose } from './Modal';
 import ClayButton from './ClayButton';
 import EmojiIcon from './EmojiIcon';
+import { track } from '@/lib/analytics';
 
 interface CheerModalProps {
   recipientName: string;
@@ -38,6 +39,7 @@ export default function CheerModal({ recipientName, onSend, onClose }: CheerModa
     setError('');
     try {
       await onSend(selectedMsg, selectedEmoji);
+      track('cheer_sent'); // 메시지 내용·이모지는 계측 안 함(PII 원칙 §2)
       feedbackCheer();
       requestClose();
     } catch (e) {

@@ -20,6 +20,7 @@ import type { BoardSummary, BoardDetail } from '@/types';
 import { feedbackTap, feedbackCheer } from '@/lib/feedback';
 import { formatRelativeTime, type FriendActivity } from '@/lib/activity';
 import { arrayMove, computeTargetIndex, clampLiftDy, shiftFor, rowFootprint, inferRowGap, edgeScrollVelocity, type SlotSnapshot } from '@/lib/reorder';
+import { track, markFirstDone } from '@/lib/analytics';
 
 // order 우선, 없으면 createdAt 내림차순 폴백. 외부 클로저 의존이 없어 모듈 레벨에
 // 둔다 — 컴포넌트 내 함수면 매 렌더 새 참조라 displayBoards useMemo를 매번 무효화한다.
@@ -209,6 +210,15 @@ export default function HomePage() {
         longestStreak: statsData.stats.longestStreak,
       }
     : null;
+
+  // 계측(A3) — 기존 유저 비관적 시딩: 보드/채움이 이미 있으면 first_* 플래그만 기록
+  // (이벤트 미발화) — first_board_created/first_fill이 진짜 신규 유저에게서만 발사되게.
+  useEffect(() => {
+    if (!user || !boardsValidated) return;
+    const list = boardsData?.boards ?? [];
+    if (list.length > 0) markFirstDone(user.id, 'board');
+    if (list.some((b) => b.filledCount > 0)) markFirstDone(user.id, 'fill');
+  }, [user, boardsValidated, boardsData]);
 
   // 첫 방문(보드 0개 + 미온보딩) 시 환영 온보딩 — "빈 홈에서 뭘 해야 하지?" 이탈 완화.
   // boardsValidated: 캐시의 빈 배열만 보고 서버 재검증 전에 오발하지 않게 확정값을 기다린다.
@@ -630,6 +640,8 @@ export default function HomePage() {
       prev && { ...prev, boards: prev.boards.map((b) => (b.id === board.id ? { ...b, harvestedAt: harvested ? new Date().toISOString() : null } : b)) });
     try {
       await api(`/api/boards/${board.id}`, { method: 'PATCH', json: { harvested } });
+      // 수확(true)만 계측 — 되돌리기(un-harvest) 토글은 지표 아님(§2).
+      if (harvested) track('board_harvested', { boardId: board.id, totalStickers: board.totalStickers });
     } catch {
       mutateBoards((prev) =>
         prev && { ...prev, boards: prev.boards.map((b) => (b.id === board.id ? { ...b, harvestedAt: harvested ? null : board.harvestedAt ?? null } : b)) });

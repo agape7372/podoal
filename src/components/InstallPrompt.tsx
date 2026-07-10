@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Podo from './mascot/Podo';
 import EmojiIcon from './EmojiIcon';
 import Modal, { useModalClose } from './Modal';
 import ClayButton from './ClayButton';
+import { track } from '@/lib/analytics';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
@@ -28,6 +29,14 @@ export default function InstallPrompt({ avoidFab = false }: InstallPromptProps) 
   // (스누즈는 X만), requestClose는 이탈 애니 종료 후 이 state를 꺼 언마운트한다.
   const [showGuide, setShowGuide] = useState(false);
   const { closeRef, requestClose } = useModalClose(() => setShowGuide(false));
+  // 계측(A3) — beforeinstallprompt가 드물게 재발화해도 노출 이벤트는 마운트당 1회만.
+  const shownTracked = useRef(false);
+
+  const trackShown = (mode: 'prompt' | 'ios') => {
+    if (shownTracked.current) return;
+    shownTracked.current = true;
+    track('install_banner_shown', { mode });
+  };
 
   useEffect(() => {
     const isStandalone =
@@ -48,6 +57,7 @@ export default function InstallPrompt({ avoidFab = false }: InstallPromptProps) 
     const isSafari = /safari/i.test(ua) && !/crios|fxios|edgios/i.test(ua);
     if (isIOS && isSafari) {
       setMode('ios');
+      trackShown('ios');
       return;
     }
 
@@ -55,6 +65,7 @@ export default function InstallPrompt({ avoidFab = false }: InstallPromptProps) 
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
       setMode('prompt');
+      trackShown('prompt');
     };
     window.addEventListener('beforeinstallprompt', handler);
     return () => window.removeEventListener('beforeinstallprompt', handler);
@@ -64,7 +75,10 @@ export default function InstallPrompt({ avoidFab = false }: InstallPromptProps) 
     if (!deferredPrompt) return;
     await deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === 'accepted') setMode(null);
+    if (outcome === 'accepted') {
+      track('install_banner_accepted', { mode: 'prompt' });
+      setMode(null);
+    }
     setDeferredPrompt(null);
   };
 
@@ -114,7 +128,11 @@ export default function InstallPrompt({ avoidFab = false }: InstallPromptProps) 
               </button>
               {mode === 'ios' ? (
                 <button
-                  onClick={() => setShowGuide(true)}
+                  onClick={() => {
+                    // iOS는 네이티브 수락 신호가 없다 — "방법 보기" 탭을 수락 대용으로 계측.
+                    track('install_banner_accepted', { mode: 'ios' });
+                    setShowGuide(true);
+                  }}
                   className="clay-button bg-linear-to-br from-grape-500 to-lime-300 text-white px-3 py-2 rounded-2xl text-sm font-semibold border-transparent"
                 >
                   방법 보기

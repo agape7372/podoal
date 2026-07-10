@@ -29,6 +29,9 @@ export async function GET() {
       email: user.email,
       avatar: user.avatar,
       provider: user.provider,
+      // additive(2026-07-10) — 계측 동의 기기 간 동기화 + OAuth 복귀 시 가입/로그인 판별용.
+      analyticsConsentAt: user.analyticsConsentAt,
+      createdAt: user.createdAt,
     };
 
     return Response.json({ user: profile });

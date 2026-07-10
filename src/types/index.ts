@@ -13,6 +13,10 @@ export interface UserProfile {
   avatar: string;
   /** null = email account; "google"/"kakao"/"naver" (+ "_guest" fallback) = OAuth. Optional: only surfaced by /api/auth/me. */
   provider?: string | null;
+  /** 익명 통계 동의 시각(ISO) — null = 미동의/철회. /api/auth/me만 내려준다 (additive 2026-07-10). */
+  analyticsConsentAt?: string | null;
+  /** 가입 시각(ISO) — OAuth 복귀 시 가입/로그인 판별용. /api/auth/me만 내려준다 (additive 2026-07-10). */
+  createdAt?: string;
 }
 
 export interface BoardSummary {

@@ -49,7 +49,7 @@
 - **저장**: 동의 상태는 localStorage + User 테이블 additive 필드(`analyticsConsentAt DateTime?`) — 기기 간 일관성. 스키마 변경은 §4 단독 웨이브 규칙.
 - **사용자 결정 3건 — ✅ 전부 확정(2026-07-08)**:
   1. 리전: **PostHog Cloud EU 확정** — 개인정보처리방침에 국외 이전(EU) 고지 포함.
-  2. 개인정보처리방침: 초안 `docs/PRIVACY_POLICY_DRAFT.md` — **사용자 최종 승인 후 앱 게시**(초안 존재 ≠ 게시 승인).
+  2. 개인정보처리방침: `docs/PRIVACY_POLICY_DRAFT.md` — **게시 완료(2026-07-10 승인·시행)**, 앱 내 `/settings/privacy`.
   3. 동의 UX 문구: 권고안 그대로 확정 — "서비스 개선을 위해 익명 사용 통계를 수집해요" + [좋아요]/[안 할래요].
 - 잔여 게이트: A1(PostHog 계정·키 발급 — 사용자) + 방침 초안 최종 승인 → 이후 A2 배선 가능.
 

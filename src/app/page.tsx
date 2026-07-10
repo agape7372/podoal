@@ -12,6 +12,7 @@ import { api, fetchUser } from '@/lib/api';
 import { clearPageCache } from '@/lib/cachedApi';
 import { useAppStore } from '@/lib/store';
 import { describeAuthError } from '@/lib/authErrors';
+import { track, markOAuthStart } from '@/lib/analytics';
 
 type Mode = 'welcome' | 'login' | 'register';
 
@@ -114,12 +115,14 @@ function AuthPageInner() {
           json: { name: name.trim(), email: email.trim(), password, avatar },
         });
         setUser(data.user);
+        track('signup_completed', { method: 'email' });
       } else {
         const data = await api<{ user: { id: string; name: string; email: string; avatar: string } }>('/api/auth/login', {
           method: 'POST',
           json: { email: email.trim(), password },
         });
         setUser(data.user);
+        track('login_completed', { method: 'email' });
       }
       // 사용자 전환 가능 지점 — 이전 계정의 페이지 캐시가 새 계정 화면에 비치지 않게 비움.
       clearPageCache();
@@ -167,6 +170,7 @@ function AuthPageInner() {
             {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
             <a
               href="/api/auth/oauth/kakao"
+              onClick={() => markOAuthStart(providerStatus.kakao?.real ? 'kakao' : 'guest')}
               className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl font-semibold transition-transform active:scale-[0.97] shadow-clay-sm relative"
               style={{ background: '#FEE500', color: '#191919' }}
             >
@@ -180,6 +184,7 @@ function AuthPageInner() {
             {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
             <a
               href="/api/auth/oauth/naver"
+              onClick={() => markOAuthStart(providerStatus.naver?.real ? 'naver' : 'guest')}
               className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl font-semibold text-white transition-transform active:scale-[0.97] shadow-clay-sm relative"
               style={{ background: '#03C75A' }}
             >
@@ -193,6 +198,7 @@ function AuthPageInner() {
             {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
             <a
               href="/api/auth/oauth/google"
+              onClick={() => markOAuthStart(providerStatus.google?.real ? 'google' : 'guest')}
               className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl font-semibold transition-transform active:scale-[0.97] shadow-clay-sm border border-warm-border/60 relative"
               style={{ background: '#ffffff', color: '#3c4043' }}
             >
