@@ -32,6 +32,7 @@ export const ANALYTICS_EVENTS = [
   // 채움 텀
   'cadence_selected',
   'fill_early_override',
+  'fill_backfill',
   // 품질 (§3-4 — 사전 외 유일한 에러 이벤트)
   'grape_fill_failed',
 ] as const;

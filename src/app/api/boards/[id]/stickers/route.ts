@@ -15,6 +15,8 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
   // 채움 텀 C1: "그래도 채우기" 소프트 오버라이드 플래그(FILL_CADENCE §8) — 정확히
   // true일 때만 기록(그 외 타입은 방어적으로 false 취급). 채움 자체는 200 정상 경로.
   const earlyFill = body.earlyFill === true;
+  // 채움 텀 C3: "어제 몫 채우기" 보충 플래그(§5) — 자격은 서버가 재판정(fillBoard).
+  const backfill = body.backfill === true;
 
   if (position === undefined || position === null) {
     return authResponse('칸 정보가 없어요', 400);
@@ -36,6 +38,7 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
       cadenceType: true,
       cadenceN: true,
       strictMode: true,
+      createdAt: true, // C3 backfill 자격 조건 4(어제 존재했던 보드만)
       owner: { select: { timezone: true, dayResetHour: true } },
     },
   });
@@ -78,6 +81,7 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
   try {
     const result = await fillBoardGrape(prisma, board, position, userId, {
       earlyFill,
+      backfill,
       // FREE(및 미인식)는 pace 자체를 안 넘겨 판정을 건너뛴다 — 회귀 0 계약.
       pace:
         board.cadenceType && board.cadenceType !== 'FREE'
@@ -87,6 +91,7 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
               strictMode: board.strictMode,
               timezone: board.owner.timezone,
               dayResetHour: board.owner.dayResetHour,
+              createdAt: board.createdAt,
             }
           : undefined,
     });

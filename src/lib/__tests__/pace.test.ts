@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { computeFillPace } from '../pace';
+import { computeFillPace, computeBackfillEligibility } from '../pace';
 import { zonedDateKey, weekStartKey, kstDateKey } from '../streak';
 
 const SEOUL = 'Asia/Seoul';
@@ -54,7 +54,9 @@ test('weekStartKey: 월요일 시작, 일요일은 그 주의 마지막 날', ()
 
 // 기준 시각: 2026-06-10 12:00 KST (수요일) = 03:00 UTC
 const NOW = new Date('2026-06-10T03:00:00Z');
-const at = (iso: string) => new Date(iso);
+// C3: computeFillPace 입력은 PaceFill(귀속 반영) — 일반 채움/보충 채움 헬퍼.
+const at = (iso: string) => ({ filledAt: new Date(iso) });
+const bf = (iso: string) => ({ filledAt: new Date(iso), isBackfill: true });
 
 test('computeFillPace: FREE·미지정·미인식이면 null(회귀 0 계약)', () => {
   assert.equal(computeFillPace({ cadenceType: 'FREE' }, [], NOW, SEOUL, 0), null);
@@ -102,4 +104,62 @@ test('computeFillPace WEEKLY_N: 이번 주(월~) 소속만 센다', () => {
 test('computeFillPace: cadenceN 결측은 1로 방어(quota 최소 1)', () => {
   const r = computeFillPace({ cadenceType: 'DAILY_N', cadenceN: null }, [], NOW, SEOUL, 0);
   assert.deepEqual(r, { ripe: true, quota: 1, used: 0 });
+});
+
+// ─── C3 보충(backfill) 귀속·자격 ───────────────────────────────────────────
+
+test('computeFillPace: 오늘 채운 backfill 스티커는 전날 귀속 — 오늘 quota를 잠식하지 않는다', () => {
+  // 오늘(06-10) 채웠지만 isBackfill → 06-09 귀속. DAILY_1 오늘 used=0 → ripe 유지.
+  const r = computeFillPace({ cadenceType: 'DAILY_1' }, [bf('2026-06-10T01:00:00Z')], NOW, SEOUL, 0);
+  assert.deepEqual(r, { ripe: true, quota: 1, used: 0 });
+});
+
+test('computeBackfillEligibility: DAILY 계열만 — FREE/WEEKLY/미인식은 null', () => {
+  assert.equal(computeBackfillEligibility({ cadenceType: 'FREE' }, [], NOW, SEOUL, 0), null);
+  assert.equal(computeBackfillEligibility({ cadenceType: 'WEEKLY_N', cadenceN: 3 }, [], NOW, SEOUL, 0), null);
+  assert.equal(computeBackfillEligibility({}, [], NOW, SEOUL, 0), null);
+});
+
+test('computeBackfillEligibility DAILY_1: 어제 미달이면 eligible, 어제 채웠으면 미제공', () => {
+  const empty = computeBackfillEligibility({ cadenceType: 'DAILY_1' }, [], NOW, SEOUL, 0);
+  assert.deepEqual(empty, { eligible: true, targetDateKey: '2026-06-09' });
+
+  const filledYesterday = computeBackfillEligibility(
+    { cadenceType: 'DAILY_1' }, [at('2026-06-09T03:00:00Z')], NOW, SEOUL, 0,
+  );
+  assert.equal(filledYesterday?.eligible, false);
+});
+
+test('computeBackfillEligibility DAILY_N: 어제 quota 미달이면 eligible', () => {
+  const board = { cadenceType: 'DAILY_N', cadenceN: 3 };
+  const twoYesterday = [at('2026-06-09T01:00:00Z'), at('2026-06-09T02:00:00Z')];
+  assert.equal(computeBackfillEligibility(board, twoYesterday, NOW, SEOUL, 0)?.eligible, true);
+  const threeYesterday = [...twoYesterday, at('2026-06-09T03:00:00Z')];
+  assert.equal(computeBackfillEligibility(board, threeYesterday, NOW, SEOUL, 0)?.eligible, false);
+});
+
+test('computeBackfillEligibility: 어제 몫 보충은 1알만 — 이미 backfill 귀속이 있으면 미제공', () => {
+  // 오늘 채운 backfill(어제 귀속) 존재 + DAILY_N(2)라 어제 used=1 < 2지만 보충은 1알 한정.
+  const board = { cadenceType: 'DAILY_N', cadenceN: 2 };
+  const r = computeBackfillEligibility(board, [bf('2026-06-10T01:00:00Z')], NOW, SEOUL, 0);
+  assert.equal(r?.eligible, false);
+});
+
+test('computeBackfillEligibility: 오늘 만든 보드엔 "어제 몫"이 없다(조건 4) — createdAt 미전달은 관대 통과', () => {
+  // 오늘(06-10) 생성 → 미제공. 어제(06-09) 생성 → 제공. 미전달(레거시) → 제공(실패 열림).
+  const todayBoard = { cadenceType: 'DAILY_1', createdAt: new Date('2026-06-10T01:00:00Z') };
+  assert.equal(computeBackfillEligibility(todayBoard, [], NOW, SEOUL, 0)?.eligible, false);
+  const yesterdayBoard = { cadenceType: 'DAILY_1', createdAt: new Date('2026-06-09T01:00:00Z') };
+  assert.equal(computeBackfillEligibility(yesterdayBoard, [], NOW, SEOUL, 0)?.eligible, true);
+  assert.equal(computeBackfillEligibility({ cadenceType: 'DAILY_1' }, [], NOW, SEOUL, 0)?.eligible, true);
+});
+
+test('computeBackfillEligibility: 그저께·그그저께 연속 보충이면 3일째 미제공(§5 남용 방어)', () => {
+  // 06-08 귀속 backfill(06-09에 채움) + 06-07 귀속 backfill(06-08에 채움) → 오늘(06-09 대상) 차단.
+  const fills = [bf('2026-06-09T01:00:00Z'), bf('2026-06-08T01:00:00Z')];
+  const r = computeBackfillEligibility({ cadenceType: 'DAILY_1' }, fills, NOW, SEOUL, 0);
+  assert.equal(r?.eligible, false);
+  // 하루만 보충 이력이면 허용.
+  const one = computeBackfillEligibility({ cadenceType: 'DAILY_1' }, [bf('2026-06-09T01:00:00Z')], NOW, SEOUL, 0);
+  assert.equal(one?.eligible, true);
 });

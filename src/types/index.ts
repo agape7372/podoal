@@ -60,6 +60,8 @@ export interface BoardDetail extends BoardSummary {
   myPlantedGifts?: { position: number; revealedAt: string | null }[];
   /** 커스텀 알 사진(Vercel Blob URL). null=기본 보라. giftMessage와 동일하게 소유자/선물수신자에게만 값이 오고, 방문 친구에겐 항상 null. */
   customImageUrl?: string | null;
+  /** 채움 텀 C3(additive) — "어제 몫 채우기" 노출 여부(서버 판정, computeBackfillEligibility). */
+  backfillAvailable?: boolean;
 }
 
 export interface PlantedGiftInfo {
@@ -74,6 +76,8 @@ export interface StickerInfo {
   position: number;
   filledAt: string;
   filledBy: UserProfile;
+  /** 보충 채우기(C3)로 기록된 스티커 — 전날 귀속(pace.ts fillDateKey와 동일 취지). */
+  isBackfill?: boolean;
 }
 
 export interface RewardInfo {

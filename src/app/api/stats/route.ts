@@ -57,9 +57,14 @@ export async function GET() {
   // 날짜 — zonedDateKey(JS)와 동치(AT TIME ZONE은 IANA명 처리, DST 포함). 기본값
   // (Asia/Seoul, 0)에서는 종전 `+ interval '9 hours'`와 완전 동일한 키를 준다.
   // (filledBy, filledAt) 복합 인덱스가 이 GROUP BY를 인덱스만으로 처리한다.
+  // C3 보충(isBackfill): 귀속일이 채운 날의 전날 — pace.ts fillDateKey와 같은 산식을
+  // SQL로(하루 시프트). 스트릭·히트맵·요일 집계가 전부 이 day 키에서 파생되므로 여기
+  // 한 곳으로 통일된다.
   const dateCounts = await prisma.$queryRaw<{ day: string; cnt: bigint }[]>`
     SELECT to_char((("filledAt" AT TIME ZONE 'UTC') AT TIME ZONE ${timezone})
-                   - make_interval(hours => ${resetHour}), 'YYYY-MM-DD') AS day,
+                   - make_interval(hours => ${resetHour})
+                   - (CASE WHEN "isBackfill" THEN interval '1 day' ELSE interval '0' END),
+           'YYYY-MM-DD') AS day,
            COUNT(*) AS cnt
     FROM "Sticker"
     WHERE "filledBy" = ${userId}

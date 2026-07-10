@@ -1,7 +1,7 @@
 import type { PrismaClient } from '@prisma/client';
 import { PUBLIC_USER_SELECT } from './userSelect';
 import { advanceRelayOnBoardComplete } from './relay';
-import { computeFillPace } from './pace';
+import { computeFillPace, computeBackfillEligibility } from './pace';
 
 /** 동시에 같은 칸을 채우려 해 unique 충돌(P2002)이 난 경우. 라우트가 409로 매핑한다. */
 export class PositionTakenError extends Error {
@@ -72,12 +72,18 @@ export async function fillBoardGrape(
   // (통합테스트 포함) 무영향 — pace 미전달 = 판정 없음(FREE와 동일).
   opts?: {
     earlyFill?: boolean;
+    /** C3 보충 채우기(§5) — 클라가 "어제 몫 채우기"를 선택. 서버가 자격을 재판정해
+     *  충족 시에만 isBackfill 기록·전날 귀속. 미충족이면 일반 채움으로 관대하게 수용
+     *  (절대 막지 않음 — 아너 시스템). pace 미전달(FREE)이면 무시. */
+    backfill?: boolean;
     pace?: {
       cadenceType: string;
       cadenceN: number | null;
       strictMode: boolean;
       timezone: string;
       dayResetHour: number;
+      /** 보드 생성 시각 — backfill 자격 조건 4(어제 존재했던 보드만). 미전달=관대 통과. */
+      createdAt?: Date;
     };
   },
 ) {
@@ -87,24 +93,43 @@ export async function fillBoardGrape(
       return await prisma.$transaction(async (tx) => {
         // 채움 텀 서버 판정(C2) — 스티커 생성 "전"의 기간 내 채움 수로 익음을 판정한다.
         // Serializable이라 동시 채움도 정확히 센다(한쪽이 재시도하며 상대 커밋을 본다).
-        let paceState: 'ripe' | 'early' | undefined;
+        let paceState: 'ripe' | 'early' | 'backfill' | undefined;
         let serverEarly = false;
+        let serverBackfill = false;
         if (opts?.pace) {
           const existing = await tx.sticker.findMany({
             where: { boardId },
-            select: { filledAt: true },
+            select: { filledAt: true, isBackfill: true },
           });
-          const pace = computeFillPace(
-            opts.pace,
-            existing.map((s) => s.filledAt),
-            new Date(),
-            opts.pace.timezone,
-            opts.pace.dayResetHour,
-          );
-          if (pace) {
-            if (!pace.ripe && opts.pace.strictMode) throw new StrictPaceError();
-            serverEarly = !pace.ripe;
-            paceState = pace.ripe ? 'ripe' : 'early';
+          const now = new Date();
+          // C3 보충(§5): 클라 요청 + 서버 자격 재판정. 자격 충족이면 이 채움은 "어제 몫" —
+          // 오늘 quota를 잠식하지 않고(귀속이 전날) strict 검사도 건너뛴다(보충은 관대 장치).
+          if (opts.backfill) {
+            const bf = computeBackfillEligibility(
+              { ...opts.pace, createdAt: opts.pace.createdAt ?? null },
+              existing,
+              now,
+              opts.pace.timezone,
+              opts.pace.dayResetHour,
+            );
+            if (bf?.eligible) {
+              serverBackfill = true;
+              paceState = 'backfill';
+            }
+          }
+          if (!serverBackfill) {
+            const pace = computeFillPace(
+              opts.pace,
+              existing,
+              now,
+              opts.pace.timezone,
+              opts.pace.dayResetHour,
+            );
+            if (pace) {
+              if (!pace.ripe && opts.pace.strictMode) throw new StrictPaceError();
+              serverEarly = !pace.ripe;
+              paceState = pace.ripe ? 'ripe' : 'early';
+            }
           }
         }
 
@@ -116,6 +141,8 @@ export async function fillBoardGrape(
             // 아너 시스템: 클라가 자진 신고했거나(오버라이드 시트) 서버가 판정했거나 —
             // 어느 쪽이든 기록만 하고 막지 않는다(소프트 모드).
             earlyFill: opts?.earlyFill === true || serverEarly,
+            // C3: 서버 자격 판정을 통과한 보충만 기록 — 통계·스트릭·텀 판정이 전날로 귀속한다.
+            isBackfill: serverBackfill,
           },
           include: {
             filler: {

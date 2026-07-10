@@ -31,6 +31,7 @@ test('ANALYTICS_EVENTS: 사전과 정확히 일치', () => {
     'push_subscribed',
     'cadence_selected',
     'fill_early_override',
+    'fill_backfill',
     'grape_fill_failed',
   ];
   assert.deepEqual([...ANALYTICS_EVENTS], canonical);

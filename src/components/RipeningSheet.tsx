@@ -17,6 +17,12 @@ interface RipeningSheetProps {
   /** "그래도 채우기" — earlyFill 오버라이드. 정상 채움과 동일 연출·낙관 경로를 타고
    *  차이는 서버 기록 플래그뿐(FILL_CADENCE §8, 아너 시스템 — 막지 않고 기록만). */
   onOverride: () => void;
+  /** 서버 판정(computeBackfillEligibility, FILL_CADENCE §5) — 어제 몫이 비어 있고
+   *  아직 보충을 안 썼을 때만 true. false/undefined면 보조 버튼 자체를 숨긴다. */
+  backfillAvailable?: boolean;
+  /** "어제 몫 채우기" — onOverride와 동일 패턴(이탈 애니 없이 직접 호출, 부모가 즉시
+   *  언마운트). backfillAvailable일 때만 쓰인다. */
+  onBackfill?: () => void;
   onClose: () => void;
 }
 
@@ -42,13 +48,22 @@ function formatRipeningBody(cadenceType: string, nextRipeAt: Date | null, now: D
  * 금지(§1 처벌 금지) — 두 선택지 모두 긍정적 어조.
  *
  * 버튼 우선순위는 ConfirmDialog와 대칭이 아니라 GiftUnboxModal형: "기다릴게요"가
- * 주 버튼(ClayButton), "그래도 채우기"는 보조 텍스트 링크 — 기다림을 은근히 권하되
- * 막지는 않는다. "그래도 채우기"는 ConfirmDialog의 확인 버튼과 같은 패턴으로 이탈
- * 애니를 거치지 않고 onOverride를 직접 호출한다(부모가 즉시 언마운트 — Modal.tsx
- * 주석의 "부모가 open 상태를 직접 끄는 경로" 케이스). "기다릴게요"/백드롭/Escape는
- * requestClose로 이탈 애니를 거친다(CLAUDE.md 모달 규약).
+ * 주 버튼(ClayButton), 그 아래 "어제 몫 채우기"(C3, backfillAvailable일 때만) 보조
+ * 버튼, 맨 아래 "그래도 채우기"는 보조 텍스트 링크 — 기다림을 은근히 권하되 막지는
+ * 않는다. "그래도 채우기"·"어제 몫 채우기" 둘 다 ConfirmDialog의 확인 버튼과 같은
+ * 패턴으로 이탈 애니를 거치지 않고 각각 onOverride/onBackfill을 직접 호출한다(부모가
+ * 즉시 언마운트 — Modal.tsx 주석의 "부모가 open 상태를 직접 끄는 경로" 케이스).
+ * "기다릴게요"/백드롭/Escape는 requestClose로 이탈 애니를 거친다(CLAUDE.md 모달 규약).
  */
-export default function RipeningSheet({ cadenceType, nextRipeAt, now, onOverride, onClose }: RipeningSheetProps) {
+export default function RipeningSheet({
+  cadenceType,
+  nextRipeAt,
+  now,
+  onOverride,
+  backfillAvailable,
+  onBackfill,
+  onClose,
+}: RipeningSheetProps) {
   const { closeRef, requestClose } = useModalClose(onClose);
   const body = formatRipeningBody(cadenceType, nextRipeAt, now);
 
@@ -71,6 +86,16 @@ export default function RipeningSheet({ cadenceType, nextRipeAt, now, onOverride
         <ClayButton variant="primary" onClick={requestClose} fullWidth>
           기다릴게요
         </ClayButton>
+        {backfillAvailable && onBackfill && (
+          <>
+            <p className="text-xs text-warm-sub text-center">
+              어제 한 알이 비어 있어요 — 지금 채우면 어제로 기록돼요
+            </p>
+            <ClayButton variant="ghost" onClick={onBackfill} fullWidth>
+              어제 몫 채우기
+            </ClayButton>
+          </>
+        )}
         <button onClick={onOverride} className="text-xs text-warm-sub underline py-1">
           그래도 채우기
         </button>
