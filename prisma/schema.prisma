@@ -25,6 +25,9 @@ model User {
   timezone     String @default("Asia/Seoul") // IANA 시간대. 클라가 접속 시 갱신 예정(C2)
   dayResetHour Int    @default(0)            // "하루의 시작" 시각(0~6) — 새벽 채움의 날짜 귀속
 
+  // 익명 사용 통계 동의(ANALYTICS_PLAN §4) — null = 미동의/철회. 기기 간 동의 동기화용.
+  analyticsConsentAt DateTime?
+
   boards              Board[]              @relation("BoardOwner")
   receivedBoards      Board[]              @relation("BoardReceiver")
   giftedBoards        Board[]              @relation("BoardGifter")
