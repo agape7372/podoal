@@ -351,9 +351,11 @@ export default function BoardDetailPage() {
   useEffect(() => {
     if (!board) { setPaceState(null); setPaceNow(null); return; }
     const now = new Date();
-    const stickerTimes = board.stickers.map((s) => new Date(s.filledAt));
+    // isBackfill을 실어 보내야 C3 보충 채움이 전날 귀속으로 평가된다(cadence.ts 참조) —
+    // 빼먹으면 보충 채움 직후 오늘 몫을 잠식한 것으로 오판해 unripe로 보인다.
+    const fills = board.stickers.map((s) => ({ filledAt: new Date(s.filledAt), isBackfill: s.isBackfill }));
     setPaceState(
-      computePaceState({ cadenceType: board.cadenceType, cadenceN: board.cadenceN }, stickerTimes, now),
+      computePaceState({ cadenceType: board.cadenceType, cadenceN: board.cadenceN }, fills, now),
     );
     setPaceNow(now);
   }, [board]);
@@ -366,8 +368,12 @@ export default function BoardDetailPage() {
   // /board/B 전환에서 인스턴스를 재사용하면 이전 보드의 잔여 플래그가 새 보드로 샐 수
   // 있다 — id가 바뀔 때마다 비워 교차 오염을 차단한다(적대 검증 기록 참조).
   const earlyPositionsRef = useRef(new Set<number>());
+  // "어제 몫 채우기"(C3) — earlyPositionsRef와 대칭 배관. postFillSticker 전송 직전
+  // 여기 있으면 body에 backfill:true를 얹고 제거한다(같은 id 교차오염 방지도 동일).
+  const backfillPositionsRef = useRef(new Set<number>());
   useEffect(() => {
     earlyPositionsRef.current.clear();
+    backfillPositionsRef.current.clear();
   }, [id]);
   const [showRipeningSheet, setShowRipeningSheet] = useState(false);
   const handleRipeningTap = useCallback(() => setShowRipeningSheet(true), []);
@@ -381,6 +387,18 @@ export default function BoardDetailPage() {
     earlyPositionsRef.current.add(position);
     track('fill_early_override', { boardId: id }); // 오버라이드율 — 텀 적정성 역지표(§2)
     grapeBoardRef.current?.fillNow(position);
+  }, [board, id]);
+  const handleRipeningBackfill = useCallback(() => {
+    if (!board) return;
+    // onOverride와 동일 패턴(이탈 애니 없이 즉시 언마운트).
+    setShowRipeningSheet(false);
+    const position = board.stickers.length; // 순차 채움 — 다음 칸은 항상 현재 채움 수.
+    backfillPositionsRef.current.add(position);
+    track('fill_backfill', { boardId: id });
+    grapeBoardRef.current?.fillNow(position);
+    // 보충은 1알 한정 — 소비 즉시 낙관 소거해 시트 재진입 시 재노출을 막는다(서버
+    // 재판정이 정본이라 실패 롤백은 신경 쓰지 않는다 — 다음 보드 fetch가 수렴).
+    setBoard((b) => (b ? { ...b, backfillAvailable: false } : b));
   }, [board, id]);
 
   // 실제 서버 POST + reconcile/rollback. 보드 단위 모듈 큐 체인에서 한 번에
@@ -410,7 +428,11 @@ export default function BoardDetailPage() {
       // ref로만 배관(낙관 큐 코드 무수정 원칙). 위 재개-지점 가드로 발사가 폐기(return)된
       // 경우엔 이 줄에 도달하지 않아 플래그가 보존되고, 사용자가 재탭한 실제 재시도에서
       // 그대로 적용된다.
-      const isEarlyFill = earlyPositionsRef.current.has(position);
+      // 한 요청에 earlyFill과 backfill이 동시에 실리는 일은 없다(시트에서 한 버튼만
+      // 택함) — 방어적으로 backfill을 먼저 확인해, 있으면 earlyFill 쪽은 아예 보지 않는다.
+      const isBackfill = backfillPositionsRef.current.has(position);
+      if (isBackfill) backfillPositionsRef.current.delete(position);
+      const isEarlyFill = !isBackfill && earlyPositionsRef.current.has(position);
       if (isEarlyFill) earlyPositionsRef.current.delete(position);
       const result = await api<{
         sticker: BoardDetail['stickers'][number];
@@ -429,7 +451,11 @@ export default function BoardDetailPage() {
         relayAdvanced?: boolean;
       }>(`/api/boards/${id}/stickers`, {
         method: 'POST',
-        json: isEarlyFill ? { position, earlyFill: true } : { position },
+        json: isBackfill
+          ? { position, backfill: true }
+          : isEarlyFill
+            ? { position, earlyFill: true }
+            : { position },
         // 모바일 라디오 핸드오프 등으로 fetch가 무기한 행하면 직렬 큐 전체가
         // 정지한다(후속 발사도 멈춤) — 시한을 걸어 실패(롤백+배너) 경로로 합류.
         // Neon 콜드 + Serializable 재시도 백오프(최악 ~9.6s)를 여유 있게 덮는 값.
@@ -1322,7 +1348,9 @@ export default function BoardDetailPage() {
           cadenceType={board.cadenceType ?? 'FREE'}
           nextRipeAt={paceState.nextRipeAt}
           now={paceNow}
+          backfillAvailable={board.backfillAvailable}
           onOverride={handleRipeningOverride}
+          onBackfill={handleRipeningBackfill}
           onClose={() => setShowRipeningSheet(false)}
         />
       )}

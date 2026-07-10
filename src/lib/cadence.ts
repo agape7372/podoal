@@ -4,6 +4,15 @@
 // (호출측이 이 결과를 어디에 쓰든 boardFillState.ts의 산식은 무관하게 그대로 작동).
 import { dayStart, nextDayStart, weekStart, nextWeekStart } from './dayBoundary';
 
+/** computePaceState 입력 채움 1건 — isBackfill이면 filledAt - 24h로 평가해 전날 귀속시킨다
+ *  (서버 pace.ts fillDateKey와 같은 취지의 근사 — 날짜키 대신 시각 이동으로 단순화). */
+export interface PaceFill {
+  filledAt: Date;
+  isBackfill?: boolean;
+}
+
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+
 export interface PaceState {
   /** 다음 알이 지금 채울 수 있는 상태인가(익음). false면 소프트 가드 대상(RipeningSheet). */
   ripe: boolean;
@@ -24,13 +33,16 @@ const clamp01 = (n: number): number => Math.min(1, Math.max(0, n));
  * null — 호출측은 null이면 현행 동작 그대로 유지한다(회귀 0의 계약, FREE 보드·릴레이·
  * 선물 보드는 이 함수를 거치지 않은 것과 동일하게 동작).
  *
- * stickerTimes는 이 보드의 전체 Sticker.filledAt(오름차순 불필요, 내부에서 기간 필터링).
+ * fills는 이 보드의 전체 스티커(오름차순 불필요, 내부에서 기간 필터링). isBackfill인
+ * 채움은 filledAt - 24h로 평가돼 전날 귀속으로 취급된다(C3, 판정 산식 자체는 무변경 —
+ * 기간 필터링에 들어가는 시각만 이동). 이걸 빼먹으면 보충 채움 직후 클라가 오늘 몫을
+ * 잠식한 것으로 오판해 서버는 ripe인데 UI가 unripe로 보인다(회귀 포인트).
  * now는 호출측이 (컴포넌트 렌더가 아닌) 이벤트 핸들러/effect에서 캡처해 넘겨야 한다
  * (react-hooks/purity — 이 함수 자체는 인자로만 시각을 받는 순수 함수).
  */
 export function computePaceState(
   board: { cadenceType?: string; cadenceN?: number | null },
-  stickerTimes: Date[],
+  fills: PaceFill[],
   now: Date,
 ): PaceState | null {
   const { cadenceType } = board;
@@ -60,8 +72,10 @@ export function computePaceState(
 
   const periodStartMs = periodStart.getTime();
   const periodEndMs = periodEnd.getTime();
-  const inPeriod = stickerTimes.filter((t) => {
-    const ms = t.getTime();
+  // backfill 채움은 -24h로 이동한 시각으로 기간 필터링에 들어간다(전날 귀속).
+  const effectiveMs = (f: PaceFill) => f.filledAt.getTime() - (f.isBackfill ? ONE_DAY_MS : 0);
+  const inPeriod = fills.filter((f) => {
+    const ms = effectiveMs(f);
     return ms >= periodStartMs && ms < periodEndMs;
   });
   const used = inPeriod.length;
@@ -73,7 +87,7 @@ export function computePaceState(
     progress = 1;
   } else {
     // ripe=false ⇒ used>=quota>=1 ⇒ inPeriod에 최소 1개 존재(아래 Math.max 안전).
-    const lastFillMs = Math.max(...inPeriod.map((t) => t.getTime()));
+    const lastFillMs = Math.max(...inPeriod.map(effectiveMs));
     const span = periodEndMs - lastFillMs;
     progress = span <= 0 ? 1 : clamp01((now.getTime() - lastFillMs) / span);
   }
