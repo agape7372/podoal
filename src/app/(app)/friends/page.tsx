@@ -14,6 +14,7 @@ import EmptyState from '@/components/EmptyState';
 import PodongList from '@/components/PodongList';
 import type { FriendInfo, SearchedUser } from '@/types';
 import { feedbackSuccess, feedbackTap } from '@/lib/feedback';
+import { track } from '@/lib/analytics';
 import { DEV_TOOLS } from '@/lib/devtools';
 
 export default function FriendsPage() {
@@ -101,6 +102,7 @@ export default function FriendsPage() {
 
   const handleAccept = async (id: string) => {
     await api(`/api/friends/${id}`, { method: 'PATCH', json: { action: 'accept' } });
+    track('friend_accepted'); // 소셜 KPI(§3-3) — 관계 이벤트, 속성 없음
     fetchFriends();
   };
 
