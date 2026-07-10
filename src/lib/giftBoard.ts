@@ -1,4 +1,5 @@
 import type { PrismaClient } from '@prisma/client';
+import { copy } from '@vercel/blob';
 import { PUBLIC_USER_SELECT } from './userSelect';
 
 /** 선물받은 포도판(giftedFromId != null)을 다시 선물하려 한 경우. 라우트가 400으로 매핑한다. */
@@ -17,6 +18,8 @@ export interface GiftSourceBoard {
   description: string;
   totalStickers: number;
   giftedFromId: string | null;
+  /** 커스텀 알 사진 — 선물 복사본에도 딸려 보낸다(사용자 결정 A, 2026-07-10). null이면 기본 포도알. */
+  customImageUrl: string | null;
   rewards: Array<{
     type: string;
     title: string;
@@ -47,6 +50,23 @@ export async function giftBoardCopy(
     throw new RegiftBlockedError();
   }
 
+  // 커스텀 알 사진은 별도 blob으로 **복제**한다(URL 공유 아님) — 원본 소유자가 나중에
+  // 사진을 교체/삭제하면 그 URL이 del되는데, 공유했다면 친구 복사본까지 깨진다.
+  // 독립 blob이라 원본 수명과 무관. 트랜잭션 밖에서(외부 I/O가 DB 잠금을 잡지 않게).
+  // 복제 실패해도 선물 자체는 진행한다 — 사진만 빠진 기본 포도알로 degrade.
+  let copiedImageUrl: string | null = null;
+  if (board.customImageUrl) {
+    try {
+      const copied = await copy(board.customImageUrl, 'boards/gift/custom-image', {
+        access: 'public',
+        addRandomSuffix: true,
+      });
+      copiedImageUrl = copied.url;
+    } catch {
+      // BLOB 토큰 없음/원본 삭제됨 등 — 사진 없이 선물 진행(부분 성공 허용).
+    }
+  }
+
   return prisma.$transaction(async (tx) => {
     const newBoard = await tx.board.create({
       data: {
@@ -57,6 +77,7 @@ export async function giftBoardCopy(
         giftedToId: friendId,
         giftedFromId: senderId,
         giftMessage: giftNote,
+        customImageUrl: copiedImageUrl,
       },
     });
 
