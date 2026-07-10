@@ -1,6 +1,6 @@
 # podoal 채움 텀 설계 — 숙성 시스템 (FILL_CADENCE_PLAN)
 
-> 상태: **C2 서버부 구현(2026-07-08)** — C1(스키마·생성 플로우·숙성 연출) 위에 서버 판정 합류(`C2-server-pace` 카드): 채움 응답 `paceState` additive, `earlyFill` 서버 판정 OR 기록, strictMode 422 방어선, 경계 통일(`streak.ts zonedDateKey/weekStartKey` = 서버 정본 — 스트릭·히트맵·텀 판정 동일 함수, User.timezone/dayResetHour 소비 시작, 기본값 KST 등가 실측 133/133). 홈 목록 `paceDone` additive. **캡슐은 의도적 미통일**(개봉은 정밀 타임스탬프 비교라 하루 경계 무관 — C2 카드 설계 결정 3). C2 UI(홈 "오늘 몫 완료" 배지·unripe→ripe 전이 반짝 1회)도 완료(`C2-ui-badge` 카드, sonnet 반려 0회) — **C2 전체 완료(실기기 확인·배포 잔여)**. C3~C4는 §9대로 잔여. 클라 판정(cadence.ts, 기기 로컬)은 즉답 UI용으로 유지 — 서버가 authoritative.
+> 상태: **C3 보충 채우기 구현(2026-07-10)** — C2 위에 보충 합류(`C3-backfill-server`·`C3-backfill-ui` 카드): 자격 판정(`computeBackfillEligibility` — 어제 미달·1알 한정·연속 2일 남용 방어), `isBackfill` 전날 귀속(텀 판정 `pace.ts fillDateKey` + 통계 SQL 시프트), paceState `'backfill'`, 상세 GET `backfillAvailable` additive, RipeningSheet "어제 몫 채우기". **사용자 결정(2026-07-10): 스트릭 유예 부활은 보류**(보충 사용률 데이터 후 재검토 — §5의 유예 합류 항목은 동결), **빈티지 서사(§6)는 C3에서 제외**. C2까지의 이력: 서버 판정 paceState·경계 통일(`streak.ts` 정본, KST 등가 실측 133/133)·홈 paceDone·배지·전이 반짝(카드 `2026-07-08-C2-*`). 캡슐은 의도적 미통일(C2 설계 결정 3). C4는 §9대로 잔여. 클라 판정(cadence.ts)은 즉답 UI용 — 서버가 authoritative.
 > 근거: `docs/PERSONA_REVIEW_2026-07.md` ABS-07(단일 태그 최다 불만, 5명)·GAP-13·GAP-14·REQ-03(요청 1위, 5명)·REQ-11(3명).
 > 게이트: 스키마 변경은 **additive + 단독 웨이브**(PRINCIPLES §3·§4, `docs/MIGRATIONS.md`). 카피 신설 표면은 §7 예외 아님 — 신규 문구는 신규 표면에만.
 > 전략 위치: `docs/PRODUCT_PLAN.md` WS3 간판 항목.

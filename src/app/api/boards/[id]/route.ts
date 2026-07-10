@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { getCurrentUserId, authResponse } from '@/lib/auth';
 import { checkRewardAuthorship } from '@/lib/rewardAccess';
+import { computeBackfillEligibility } from '@/lib/pace';
 
 // Board detail never renders email — and this board GET is now reachable by an
 // accepted friend (read-only), so DON'T expose other users' email to them.
@@ -77,6 +78,29 @@ export async function GET(request: Request, props: { params: Promise<{ id: strin
 
   const filledCount = board.stickers.length;
 
+  // 채움 텀 C3(§5): "어제 몫 채우기" 자격 — DAILY 계열·미완성 보드만 서버 기준으로
+  // 판정해 additive로 내려준다(RipeningSheet가 노출 여부에 소비). 경계는 보드 주인의
+  // 시간대(stickers 라우트의 pace 컨텍스트와 동일 기준). FREE/WEEKLY/완성 보드는 false.
+  let backfillAvailable = false;
+  if (
+    !board.isCompleted &&
+    filledCount < board.totalStickers &&
+    (board.cadenceType === 'DAILY_1' || board.cadenceType === 'DAILY_N')
+  ) {
+    const boundary = await prisma.user.findUnique({
+      where: { id: board.ownerId },
+      select: { timezone: true, dayResetHour: true },
+    });
+    const bf = computeBackfillEligibility(
+      board, // include 전체라 createdAt 포함 — 조건 4(어제 존재했던 보드만) 자동 적용
+      board.stickers.map((s) => ({ filledAt: s.filledAt, isBackfill: s.isBackfill })),
+      new Date(),
+      boundary?.timezone || 'Asia/Seoul',
+      boundary?.dayResetHour ?? 0,
+    );
+    backfillAvailable = bf?.eligible === true;
+  }
+
   // 내가 이 보드에 심어둔 깜짝 선물(W2-A, additive) — 위치는 심은 본인에게만 돌려준다.
   // 주인이 자기 보드의 심긴 위치를 미리 알면 서프라이즈가 죽으므로, 소유자 여부와
   // 무관하게 "plantedById = 뷰어" 조건만으로 조회한다(타인 것은 절대 포함되지 않음).
@@ -145,6 +169,8 @@ export async function GET(request: Request, props: { params: Promise<{ id: strin
     // 채움 텀(additive, C1) — W3(숙성 연출·탭 판정)가 이 필드를 소비한다.
     cadenceType: board.cadenceType,
     cadenceN: board.cadenceN,
+    // 채움 텀 C3(additive) — "어제 몫 채우기" 노출 여부(서버 판정).
+    backfillAvailable,
     stickers: board.stickers,
     rewards,
     myPlantedGifts,

@@ -33,8 +33,9 @@
 | 알림 | `push_subscribed` | — |
 | 텀(§11 연동) | `cadence_selected` | type, n (FILL_CADENCE §11) |
 | 텀 | `fill_early_override` | boardId (오버라이드율 — 텀 적정성 역지표) |
+| 텀 | `fill_backfill` | boardId (보충률 — C3 도입 2026-07-10, §11) |
 
-- C3 도입 시 `fill_backfill` 추가. 스킨(P3 R1) 시 `skin_applied` 추가 — **v1에 선반영하지 않는다**(좁게 시작, 스키마 재작업 비용 절감).
+- ~~C3 도입 시 `fill_backfill` 추가~~ → **추가됨(2026-07-10, C3 보충 채우기)**. 스킨(P3 R1) 시 `skin_applied` 추가 — v1에 선반영하지 않는다(좁게 시작, 스키마 재작업 비용 절감).
 
 ## 3. 퍼널·지표 매핑 (PRODUCT_PLAN §5 KPI와 1:1)
 

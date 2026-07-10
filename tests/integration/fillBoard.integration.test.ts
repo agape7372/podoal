@@ -50,6 +50,39 @@ async function freshBoard() {
   return board;
 }
 
+// ─── C3 보충 채우기 — 서버 자격 재판정·isBackfill 기록·관대 폴백 ─────────────
+
+test('backfill: 어제 미달 DAILY_1 보드에서 자격 통과 — isBackfill 기록 + paceState backfill', { skip }, async () => {
+  const board = await prisma.board.create({
+    data: { title: '보충 보드', description: '', totalStickers: 5, ownerId: userId, cadenceType: 'DAILY_1' },
+  });
+  createdBoardIds.push(board.id);
+
+  const pace = { cadenceType: 'DAILY_1', cadenceN: null, strictMode: false, timezone: 'Asia/Seoul', dayResetHour: 0 };
+  const r = await fillBoardGrape(prisma, board, 0, userId, { backfill: true, pace });
+  assert.equal(r.paceState, 'backfill');
+  const sticker = await prisma.sticker.findFirst({ where: { boardId: board.id, position: 0 } });
+  assert.equal(sticker?.isBackfill, true);
+
+  // 보충은 전날 귀속 — 오늘 quota를 잠식하지 않아 다음 채움도 ripe(정상 채움).
+  const r2 = await fillBoardGrape(prisma, board, 1, userId, { pace });
+  assert.equal(r2.paceState, 'ripe');
+  // 오늘 몫을 채운 뒤의 backfill 재요청 — 어제 귀속 backfill이 이미 있어 자격 탈락 →
+  // 관대 폴백(일반 채움, 오늘 quota 초과라 early). 절대 막지 않는다.
+  const r3 = await fillBoardGrape(prisma, board, 2, userId, { backfill: true, pace });
+  assert.equal(r3.paceState, 'early');
+  const s3 = await prisma.sticker.findFirst({ where: { boardId: board.id, position: 2 } });
+  assert.equal(s3?.isBackfill, false);
+});
+
+test('backfill: FREE 보드(pace 미전달)에서는 플래그가 무시된다', { skip }, async () => {
+  const board = await freshBoard();
+  const r = await fillBoardGrape(prisma, board, 0, userId, { backfill: true });
+  assert.equal(r.paceState, undefined);
+  const sticker = await prisma.sticker.findFirst({ where: { boardId: board.id, position: 0 } });
+  assert.equal(sticker?.isBackfill, false);
+});
+
 test('마지막 두 칸을 동시에 채워도 보드 완료 + 완성보상이 누락되지 않는다 (race)', { skip }, async () => {
   // 반복으로 race를 압박 — Serializable이 없으면 일부 반복에서 isCompleted=false가 새어나온다.
   for (let i = 0; i < 8; i++) {

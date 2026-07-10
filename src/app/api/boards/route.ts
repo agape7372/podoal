@@ -58,13 +58,15 @@ export async function GET() {
     const lowerBound = new Date(Date.parse(`${lowerKey}T00:00:00Z`) - 48 * 3_600_000);
     const recent = await prisma.sticker.findMany({
       where: { boardId: { in: paceBoards.map((b) => b.id) }, filledAt: { gte: lowerBound } },
-      select: { boardId: true, filledAt: true },
+      // isBackfill: 보충 채움은 전날 귀속(C3) — 오늘 quota를 잠식하지 않는다(pace.ts).
+      select: { boardId: true, filledAt: true, isBackfill: true },
     });
-    const filledByBoard = new Map<string, Date[]>();
+    const filledByBoard = new Map<string, { filledAt: Date; isBackfill: boolean }[]>();
     for (const s of recent) {
       const list = filledByBoard.get(s.boardId);
-      if (list) list.push(s.filledAt);
-      else filledByBoard.set(s.boardId, [s.filledAt]);
+      const fill = { filledAt: s.filledAt, isBackfill: s.isBackfill };
+      if (list) list.push(fill);
+      else filledByBoard.set(s.boardId, [fill]);
     }
     for (const b of paceBoards) {
       const pace = computeFillPace(b, filledByBoard.get(b.id) ?? [], now, timezone, resetHour);
