@@ -90,6 +90,10 @@ test('선물 성공: 복사본의 owner/giftedFrom/giftedTo/메모와 보상이 
   assert.equal(copy._count.stickers, 0);
   assert.equal(copy.isCompleted, false);
 
+  // 커스텀 사진 없는 원본 → 복사본도 없음(null 경로 크래시 방지 계약). 사진 있는
+  // 원본의 blob 복제는 실 BLOB 토큰이 필요해 여기선 검증 못 함(수동/실기기 확인).
+  assert.equal(copy.customImageUrl, null);
+
   // 보상 전체 복사(내용·트리거 위치 보존)
   assert.equal(copy._count.rewards, source.rewards.length);
   const copiedRewards = await prisma.reward.findMany({
