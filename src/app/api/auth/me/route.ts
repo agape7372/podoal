@@ -1,3 +1,4 @@
+import { del } from "@vercel/blob";
 import { prisma } from "@/lib/prisma";
 import { buildClearAuthCookie, getCurrentUserId } from "@/lib/auth";
 
@@ -81,6 +82,13 @@ export async function DELETE() {
     return Response.json({ error: "Not authenticated." }, { status: 401 });
   }
 
+  // 커스텀 알 사진 고아 정리(additive) — 트랜잭션이 내 보드를 지우기 전에 URL을
+  // 먼저 수집해둔다. 트랜잭션이 실패하면 이 목록은 버리고 blob은 건드리지 않는다.
+  const boardsWithImage = await prisma.board.findMany({
+    where: { ownerId: userId, customImageUrl: { not: null } },
+    select: { customImageUrl: true },
+  });
+
   try {
     await prisma.$transaction(async (tx) => {
       await tx.plantedGift.deleteMany({ where: { plantedById: userId } });
@@ -126,6 +134,14 @@ export async function DELETE() {
       { error: "탈퇴 처리에 실패했어요. 잠시 후 다시 시도해주세요." },
       { status: 500 }
     );
+  }
+
+  // 트랜잭션 성공 후에만 blob 삭제 — 실패는 무시(고아 잔존 수용, 탈퇴 자체는 성공).
+  const imageUrls = boardsWithImage
+    .map((b) => b.customImageUrl)
+    .filter((url): url is string => url !== null);
+  if (imageUrls.length > 0) {
+    await del(imageUrls).catch(() => {});
   }
 
   const response = Response.json({ ok: true });

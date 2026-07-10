@@ -1,3 +1,4 @@
+import { del } from '@vercel/blob';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUserId, authResponse } from '@/lib/auth';
 import { checkRewardAuthorship } from '@/lib/rewardAccess';
@@ -233,7 +234,7 @@ export async function DELETE(request: Request, props: { params: Promise<{ id: st
 
   const board = await prisma.board.findUnique({
     where: { id },
-    select: { ownerId: true },
+    select: { ownerId: true, customImageUrl: true },
   });
 
   if (!board) {
@@ -247,6 +248,12 @@ export async function DELETE(request: Request, props: { params: Promise<{ id: st
   await prisma.board.delete({
     where: { id },
   });
+
+  // 커스텀 알 사진 고아 정리 — DB 삭제 성공 후에만 지운다(순서 반대로 하면 blob
+  // 삭제 후 DB 실패 시 살아있는 보드의 사진이 깨진다). 실패는 무시(고아 1건 잔존 수용).
+  if (board.customImageUrl) {
+    await del(board.customImageUrl).catch(() => {});
+  }
 
   return Response.json({ message: 'Board deleted successfully' });
 }
