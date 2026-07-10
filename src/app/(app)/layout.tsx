@@ -1,20 +1,29 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Navigation from '@/components/Navigation';
 import MessagePopup from '@/components/MessagePopup';
 import InstallPrompt from '@/components/InstallPrompt';
+import AnalyticsConsentBanner from '@/components/AnalyticsConsentBanner';
 import UnreadSync from '@/components/UnreadSync';
 import OfflineBanner from '@/components/OfflineBanner';
 import { useAppStore } from '@/lib/store';
 import { useSSE } from '@/lib/useSSE';
 import { useReminderScheduler } from '@/lib/useReminderScheduler';
 import { fetchUser } from '@/lib/api';
+import { consentUnset, identifyUser, seedConsentFromServer } from '@/lib/analytics';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const setUser = useAppStore((s) => s.setUser);
+  // 동의 미응답 동안 InstallPrompt 슬롯을 동의 배너가 차지한다(상호 배타 — 하단 배너
+  // 두 장이 겹치면 z-30 한 층에서 서로를 가린다). localStorage 판정이라 effect에서 세팅.
+  const [consentPending, setConsentPending] = useState(false);
+
+  useEffect(() => {
+    setConsentPending(consentUnset());
+  }, []);
 
   // 인증 확인은 자식 렌더와 병렬로 진행한다. 예전처럼 user 로딩 완료까지 자식을
   // 막으면 "렌더 → auth/me → DB → 자식 fetch 시작"의 3홉 직렬 워터폴이 생긴다.
@@ -34,6 +43,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       if (!cur || cur.id !== u.id || cur.name !== u.name || cur.email !== u.email || cur.avatar !== u.avatar) {
         setUser(u);
       }
+      // 계측(ANALYTICS_PLAN §4·§5) — 다른 기기에서 이미 동의했으면 배너 생략,
+      // 식별은 내부 cuid만. 둘 다 동의 게이트 뒤에서 no-op 가능한 안전 호출.
+      seedConsentFromServer(u.analyticsConsentAt);
+      setConsentPending(consentUnset());
+      identifyUser(u.id);
     });
   }, [router, setUser]);
 
@@ -54,7 +68,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <main className="max-w-lg mx-auto px-4 pt-4 safe-top">
         {children}
       </main>
-      <InstallPrompt avoidFab />
+      {consentPending ? (
+        <AnalyticsConsentBanner avoidFab onDecided={() => setConsentPending(false)} />
+      ) : (
+        <InstallPrompt avoidFab />
+      )}
       <Navigation />
     </div>
   );

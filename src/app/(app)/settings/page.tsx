@@ -1,8 +1,11 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { feedbackTap } from '@/lib/feedback';
 import { useAppStore } from '@/lib/store';
+import { getConsent, setConsent } from '@/lib/analytics';
+import { api } from '@/lib/api';
 import EmojiIcon from '@/components/EmojiIcon';
 import Chevron from '@/components/Chevron';
 
@@ -34,11 +37,25 @@ function Toggle({ enabled, onToggle, ariaLabel }: { enabled: boolean; onToggle: 
 export default function SettingsPage() {
   const settings = useAppStore((s) => s.settings);
   const updateSettings = useAppStore((s) => s.updateSettings);
+  // 익명 통계 동의(ANALYTICS_PLAN §4 철회 UI) — localStorage 판정이라 effect에서 읽는다.
+  const [analyticsOn, setAnalyticsOn] = useState(false);
+
+  useEffect(() => {
+    setAnalyticsOn(getConsent() === 'granted');
+  }, []);
 
   // 표시=on 이 직관적 라벨이라 토글 상태는 hideFriendFeed의 반전으로 노출한다(ABS-14).
   const handleFriendFeedToggle = () => {
     feedbackTap();
     updateSettings({ hideFriendFeed: !settings.hideFriendFeed });
+  };
+
+  const handleAnalyticsToggle = () => {
+    feedbackTap();
+    const next = !analyticsOn;
+    setAnalyticsOn(next);
+    setConsent(next); // 끄는 즉시 수집 중단(opt_out + reset)
+    api('/api/auth/consent', { method: 'PATCH', json: { granted: next } }).catch(() => {});
   };
 
   return (
@@ -79,6 +96,22 @@ export default function SettingsPage() {
             enabled={!settings.hideFriendFeed}
             onToggle={handleFriendFeedToggle}
             ariaLabel="홈 친구 소식"
+          />
+        </div>
+      </section>
+
+      {/* 개인정보 — 익명 통계 동의 철회(ANALYTICS_PLAN §4: "설정에서 언제든 철회"). */}
+      <section className="clay p-5 mb-4">
+        <h2 className="text-sm font-semibold text-warm-sub mb-3">개인정보</h2>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-warm-text">익명 사용 통계</p>
+            <p className="text-xs text-warm-sub">서비스 개선을 위한 익명 통계 수집이에요</p>
+          </div>
+          <Toggle
+            enabled={analyticsOn}
+            onToggle={handleAnalyticsToggle}
+            ariaLabel="익명 사용 통계"
           />
         </div>
       </section>

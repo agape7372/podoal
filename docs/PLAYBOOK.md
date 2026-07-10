@@ -81,6 +81,8 @@ npm run dev                            # localhost:3000
 | `ENABLE_DEV_LOGIN` | prod에서 dev 로그인 허용 | prod에서 /api/auth/dev 404 |
 | `NEXT_PUBLIC_DEV_TOOLS` | prod에서 dev 도구(seed-friends·dev-unlock) | prod에서 dev 라우트 403/404 |
 | `UPSTASH_REDIS_REST_URL/TOKEN` | rate-limit 공유 스토어(선택) | 인메모리 rate-limit(단일 인스턴스) |
+| `BLOB_READ_WRITE_TOKEN` | 커스텀 알 사진 업로드 (Vercel Blob, 스토어 연결 시 자동 주입) | 업로드 500 (조회·삭제 UI는 동작) |
+| `NEXT_PUBLIC_POSTHOG_KEY` / `NEXT_PUBLIC_POSTHOG_HOST` | 계측 (analytics.ts — EU 기본 https://eu.i.posthog.com) | 계측 전면 no-op(배너도 미노출) |
 | (수익화, 미래) `TOSS_SECRET_KEY`/`TOSS_CLIENT_KEY` | PG 결제 (MONETIZATION_PLAN) | 결제 비활성 |
 
 **규칙**: 코드가 새 env를 읽으면 `.env.example` + 이 표를 **동시 갱신**(감사 사례: VAPID·CRON_SECRET가 .env.example에서 누락돼 있었음 — 조용한 기능 정지 위험).
