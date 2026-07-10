@@ -14,6 +14,8 @@ import type { RewardType, CadenceType } from '@/types';
 import type { HabitTemplate } from '@/lib/templates';
 import EmojiIcon from '@/components/EmojiIcon';
 import { feedbackSuccess, feedbackTap } from '@/lib/feedback';
+import { track, trackFirst } from '@/lib/analytics';
+import { useAppStore } from '@/lib/store';
 
 // 빠른 선택용 포도알 개수 프리셋. NumberStepper로 이후 미세조정 가능.
 const SIZE_PRESETS = [5, 10, 15, 20, 25, 30];
@@ -97,6 +99,21 @@ function CreateBoardInner() {
           rewards: rewardsPayload,
         },
       });
+      // 계측(A3) — 동기 fire-and-forget 한 줄, 흐름 무간섭. 속성은 사전(§2)의 것만.
+      track('board_created', {
+        templateId,
+        size: totalStickers,
+        cadenceType: effectiveCadenceType,
+        cadenceN: effectiveCadenceN ?? null,
+      });
+      const uid = useAppStore.getState().user?.id;
+      if (uid) {
+        trackFirst(uid, 'board', 'first_board_created', {
+          templateId,
+          size: totalStickers,
+          cadenceType: effectiveCadenceType,
+        });
+      }
       if (giftTo) {
         // "선물하기": gift the freshly-made board to the friend (creates their
         // copy), then remove our own copy so only the friend receives it —
@@ -106,6 +123,7 @@ function CreateBoardInner() {
             method: 'POST',
             json: { friendId: giftTo },
           });
+          track('gift_sent');
         } catch (e) {
           setError(e instanceof Error ? e.message : '선물 전송에 실패했어요');
           setLoading(false);
@@ -216,7 +234,7 @@ function CreateBoardInner() {
             <CadencePicker
               cadenceType={cadenceType}
               cadenceN={cadenceN}
-              onChange={(type, n) => { setCadenceType(type); setCadenceN(n); }}
+              onChange={(type, n) => { setCadenceType(type); setCadenceN(n); track('cadence_selected', { type, n }); }}
             />
           )}
         </div>

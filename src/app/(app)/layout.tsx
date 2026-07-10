@@ -12,7 +12,7 @@ import { useAppStore } from '@/lib/store';
 import { useSSE } from '@/lib/useSSE';
 import { useReminderScheduler } from '@/lib/useReminderScheduler';
 import { fetchUser } from '@/lib/api';
-import { consentUnset, identifyUser, seedConsentFromServer } from '@/lib/analytics';
+import { consentUnset, consumeOAuthPending, identifyUser, seedConsentFromServer } from '@/lib/analytics';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -48,6 +48,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       seedConsentFromServer(u.analyticsConsentAt);
       setConsentPending(consentUnset());
       identifyUser(u.id);
+      // OAuth 복귀(전체 리다이렉트) 시 웰컴에서 남긴 method 플래그를 여기서 1회 소비.
+      consumeOAuthPending(u);
     });
   }, [router, setUser]);
 

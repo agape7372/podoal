@@ -165,6 +165,36 @@ export function seedConsentFromServer(analyticsConsentAt: string | null | undefi
   if (analyticsConsentAt) setConsent(true);
 }
 
+// ── OAuth 가입/로그인 판별 (A3) ──────────────────────────────────────────
+// OAuth는 전체 페이지 리다이렉트라 클릭 지점에서 이벤트를 쏠 수 없다 — 시작 시
+// sessionStorage에 method를 남기고, /home 복귀 후 (app) 레이아웃이 1회 소비한다.
+const OAUTH_PENDING_KEY = 'podoal-oauth-pending';
+const SIGNUP_WINDOW_MS = 5 * 60_000; // createdAt이 이 안이면 방금 가입한 계정으로 본다
+
+export function markOAuthStart(method: string): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.sessionStorage.setItem(OAUTH_PENDING_KEY, method);
+  } catch {
+    /* no-op */
+  }
+}
+
+export function consumeOAuthPending(user: { createdAt?: string }): void {
+  if (typeof window === 'undefined') return;
+  let method: string | null = null;
+  try {
+    method = window.sessionStorage.getItem(OAUTH_PENDING_KEY);
+    if (method) window.sessionStorage.removeItem(OAUTH_PENDING_KEY);
+  } catch {
+    return;
+  }
+  if (!method) return;
+  const created = user.createdAt ? Date.parse(user.createdAt) : NaN;
+  const isSignup = Number.isFinite(created) && Date.now() - created < SIGNUP_WINDOW_MS;
+  track(isSignup ? 'signup_completed' : 'login_completed', { method });
+}
+
 // ── first_* 1회성 이벤트 (활성화 퍼널) ───────────────────────────────────
 // 유저별 localStorage 플래그. 기존 유저는 홈 보드 로드 시 markFirstDone으로 비관적 시딩
 // (이벤트 미발화) — first_*가 신규 유저에게서만 발사되게 한다. 기기 간 중복은 PostHog
