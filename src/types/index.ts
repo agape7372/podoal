@@ -17,6 +17,8 @@ export interface UserProfile {
   analyticsConsentAt?: string | null;
   /** 가입 시각(ISO) — OAuth 복귀 시 가입/로그인 판별용. /api/auth/me만 내려준다 (additive 2026-07-10). */
   createdAt?: string;
+  /** 하루의 시작 시각(0~6, C4-b additive) — 스트릭·히트맵·텀 판정의 날짜 경계. /api/auth/me만 내려준다. */
+  dayResetHour?: number;
 }
 
 export interface BoardSummary {
@@ -45,6 +47,8 @@ export interface BoardSummary {
   /** 채움 텀(additive, C1). 없으면 FREE로 취급 — 기존 응답과의 하위호환. */
   cadenceType?: CadenceType | string;
   cadenceN?: number | null;
+  /** 엄격 모드(C4-a additive): true면 익기 전 채움을 서버가 422로 거부(소프트 오버라이드 없음). 없으면 false 취급. */
+  strictMode?: boolean;
 }
 
 export interface BoardDetail extends BoardSummary {
@@ -225,12 +229,16 @@ export interface NotificationSettingInfo {
   relayEnabled: boolean;
   reminderEnabled: boolean;
   dailyNudgeEnabled: boolean;
+  /** 주간 결산 푸시 opt-in(additive) — 기본 켜짐. 없으면 true 취급(하위호환). */
+  weeklyRecapEnabled?: boolean;
 }
 
 export interface ReminderInfo {
   id: string;
   boardId: string | null;
   boardTitle?: string;
+  /** "time"(시각 지정) | "ripe"(익으면 알림, C4-c additive). 없으면 "time" 취급. */
+  type?: 'time' | 'ripe' | string;
   time: string;
   days: string;
   message: string;

@@ -224,6 +224,8 @@ model NotificationSetting {
   dailyNudgeEnabled Boolean   @default(false)
   // 데일리 넛지 일일 중복발송 가드(KST 날짜 비교) — Reminder.lastSentAt 패턴 재사용
   lastNudgeSentAt   DateTime?
+  // 주간 결산 푸시 전용 opt-in — 기본 켜짐(기존 reminder 편승 수신자 행동 무변화, 사용자 결정 2026-07-11)
+  weeklyRecapEnabled Boolean @default(true)
 
   user User @relation(fields: [userId], references: [id])
 }
@@ -232,6 +234,8 @@ model Reminder {
   id        String   @id @default(cuid())
   userId    String
   boardId   String?
+  // "time"(시각 지정) | "ripe"(익으면 알림 — cadence 보드 전용, boardId 필수). 미인식 값은 cron이 "time" 취급(fail-open)
+  type      String   @default("time")
   time      String
   days      String   @default("1,2,3,4,5,6,7")
   message   String   @default("")
