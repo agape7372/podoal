@@ -354,11 +354,18 @@ export default function BoardDetailPage() {
     // isBackfill을 실어 보내야 C3 보충 채움이 전날 귀속으로 평가된다(cadence.ts 참조) —
     // 빼먹으면 보충 채움 직후 오늘 몫을 잠식한 것으로 오판해 unripe로 보인다.
     const fills = board.stickers.map((s) => ({ filledAt: new Date(s.filledAt), isBackfill: s.isBackfill }));
+    // dayResetHour(C4-b) — me 응답이 흐르는 store user에서 그대로 소비. 클라 판정을
+    // 서버 판정(같은 필드 기준)과 같은 경계로 맞춘다. 값 없으면 기존 자정 경계(0).
     setPaceState(
-      computePaceState({ cadenceType: board.cadenceType, cadenceN: board.cadenceN }, fills, now),
+      computePaceState(
+        { cadenceType: board.cadenceType, cadenceN: board.cadenceN },
+        fills,
+        now,
+        user?.dayResetHour ?? 0,
+      ),
     );
     setPaceNow(now);
-  }, [board]);
+  }, [board, user?.dayResetHour]);
   // "그래도 채우기" 오버라이드 배관 — GrapeBoard의 낙관 큐/handleFill 코드는 무수정,
   // ref로만 연결한다(카드 제약). fillNow는 GrapeBoard가 노출하는 임퍼러티브 핸들.
   const grapeBoardRef = useRef<GrapeBoardHandle>(null);

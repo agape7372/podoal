@@ -44,6 +44,9 @@ export function computePaceState(
   board: { cadenceType?: string; cadenceN?: number | null },
   fills: PaceFill[],
   now: Date,
+  // "하루의 시작"(C4-b additive) — User.dayResetHour(0~6). 기본 0 = 회귀 0 계약(미전달
+  // 호출부는 기존 자정 경계 그대로). dayBoundary.ts의 동명 인자에 그대로 흘려보낸다.
+  resetHour: number = 0,
 ): PaceState | null {
   const { cadenceType } = board;
   if (!cadenceType || cadenceType === 'FREE') return null;
@@ -54,16 +57,16 @@ export function computePaceState(
 
   if (cadenceType === 'DAILY_1') {
     quota = 1;
-    periodStart = dayStart(now);
-    periodEnd = nextDayStart(now);
+    periodStart = dayStart(now, resetHour);
+    periodEnd = nextDayStart(now, resetHour);
   } else if (cadenceType === 'DAILY_N') {
     quota = Math.max(1, board.cadenceN ?? 1);
-    periodStart = dayStart(now);
-    periodEnd = nextDayStart(now);
+    periodStart = dayStart(now, resetHour);
+    periodEnd = nextDayStart(now, resetHour);
   } else if (cadenceType === 'WEEKLY_N') {
     quota = Math.max(1, board.cadenceN ?? 1);
-    periodStart = weekStart(now);
-    periodEnd = nextWeekStart(now);
+    periodStart = weekStart(now, resetHour);
+    periodEnd = nextWeekStart(now, resetHour);
   } else {
     // 인식하지 못하는 cadenceType — 실패 열림(FREE 취급). 처벌 금지 원칙(§1): 알 수
     // 없는 데이터로 채움을 잠그지 않는다.

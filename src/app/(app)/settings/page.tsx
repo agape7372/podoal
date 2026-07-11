@@ -16,6 +16,10 @@ const settingLinks = [
   { path: '/notifications', icon: '🔔', label: '알림', desc: '팝업·방해금지·리마인더 설정' },
 ];
 
+// "하루의 시작"(FILL_CADENCE_PLAN §4, C4-b) — 0~6시 중 선택. 스트릭·통계·텀 판정의
+// 날짜 경계라 알림이 아닌 여기 소속.
+const DAY_RESET_HOURS = [0, 1, 2, 3, 4, 5, 6];
+
 // /settings/sound 페이지의 토글 스위치 마크업을 그대로 모방(신규 토글 컴포넌트 발명 금지 — W3 스펙).
 function Toggle({ enabled, onToggle, ariaLabel }: { enabled: boolean; onToggle: () => void; ariaLabel: string }) {
   return (
@@ -37,8 +41,12 @@ function Toggle({ enabled, onToggle, ariaLabel }: { enabled: boolean; onToggle: 
 export default function SettingsPage() {
   const settings = useAppStore((s) => s.settings);
   const updateSettings = useAppStore((s) => s.updateSettings);
+  const user = useAppStore((s) => s.user);
+  const setUser = useAppStore((s) => s.setUser);
   // 익명 통계 동의(ANALYTICS_PLAN §4 철회 UI) — localStorage 판정이라 effect에서 읽는다.
   const [analyticsOn, setAnalyticsOn] = useState(false);
+  const [savingHour, setSavingHour] = useState(false);
+  const [hourError, setHourError] = useState('');
 
   useEffect(() => {
     setAnalyticsOn(getConsent() === 'granted');
@@ -56,6 +64,33 @@ export default function SettingsPage() {
     setAnalyticsOn(next);
     setConsent(next); // 끄는 즉시 수집 중단(opt_out + reset)
     api('/api/auth/consent', { method: 'PATCH', json: { granted: next } }).catch(() => {});
+  };
+
+  const dayResetHour = user?.dayResetHour ?? 0;
+
+  // 다른 토글들과 같은 즉시반영 관례(낙관 적용 → 실패 시만 되돌림 + rose 경고).
+  // setUser(data.user)로 통째로 갈아끼우지 않고 병합하는 이유: profile PATCH 응답이
+  // 변경 필드만 담은 부분 객체라 그대로 덮으면 store의 analyticsConsentAt·createdAt
+  // 등 다른 additive 필드가 사라진다(store.ts 무접촉 제약이라 여기서 병합으로 방어).
+  const handleDayResetHourChange = async (hour: number) => {
+    if (!user || hour === dayResetHour || savingHour) return;
+    feedbackTap();
+    setHourError('');
+    setSavingHour(true);
+    const prevUser = user;
+    setUser({ ...user, dayResetHour: hour });
+    try {
+      const data = await api<{ user: { dayResetHour?: number } }>('/api/auth/profile', {
+        method: 'PATCH',
+        json: { dayResetHour: hour },
+      });
+      setUser({ ...prevUser, dayResetHour: data.user.dayResetHour ?? hour });
+    } catch {
+      setUser(prevUser);
+      setHourError('저장하지 못했어요. 다시 시도해주세요.');
+    } finally {
+      setSavingHour(false);
+    }
   };
 
   return (
@@ -98,6 +133,34 @@ export default function SettingsPage() {
             ariaLabel="홈 친구 소식"
           />
         </div>
+      </section>
+
+      {/* 하루의 시작(FILL_CADENCE_PLAN §4, C4-b) — 스트릭·통계·텀 판정의 날짜 경계라
+          알림 설정이 아닌 여기 소속(카드 스펙 1항). */}
+      <section className="clay p-5 mb-4">
+        <h2 className="text-sm font-semibold text-warm-sub mb-1">하루의 시작</h2>
+        <p className="text-xs text-warm-sub mb-3 text-balance">
+          새벽 활동이 많다면, 하루가 시작되는 시각을 늦춰보세요 — 새벽 2시 채움이 어제로 기록돼요
+        </p>
+        <div className="grid grid-cols-7 gap-1.5" role="group" aria-label="하루의 시작 시각">
+          {DAY_RESET_HOURS.map((hour) => (
+            <button
+              key={hour}
+              type="button"
+              onClick={() => handleDayResetHourChange(hour)}
+              disabled={!user || savingHour}
+              aria-pressed={dayResetHour === hour}
+              className={`clay-button py-2.5 rounded-xl text-xs font-medium text-center disabled:opacity-60 ${
+                dayResetHour === hour ? 'ring-2 ring-grape-400 clay-pressed text-grape-700' : 'text-warm-sub'
+              }`}
+            >
+              {hour}시
+            </button>
+          ))}
+        </div>
+        {hourError && (
+          <p role="alert" className="text-rose-700 text-xs mt-2">{hourError}</p>
+        )}
       </section>
 
       {/* 개인정보 — 익명 통계 동의 철회(ANALYTICS_PLAN §4: "설정에서 언제든 철회"). */}

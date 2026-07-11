@@ -33,6 +33,8 @@ export async function GET() {
       // additive(2026-07-10) — 계측 동의 기기 간 동기화 + OAuth 복귀 시 가입/로그인 판별용.
       analyticsConsentAt: user.analyticsConsentAt,
       createdAt: user.createdAt,
+      // additive(C4-b) — "하루의 시작" 시각(0~6). 스트릭·히트맵·텀 판정 클라 즉답용.
+      dayResetHour: user.dayResetHour,
     };
 
     return Response.json({ user: profile });

@@ -13,13 +13,13 @@ export async function PATCH(request: Request) {
     if (!userId) return authResponse('Unauthorized');
 
     const body = (await request.json().catch(() => null)) as
-      | { name?: unknown; avatar?: unknown }
+      | { name?: unknown; avatar?: unknown; dayResetHour?: unknown }
       | null;
     if (!body || typeof body !== 'object') {
       return Response.json({ error: '잘못된 요청이에요.' }, { status: 400 });
     }
 
-    const data: { name?: string; avatar?: string } = {};
+    const data: { name?: string; avatar?: string; dayResetHour?: number } = {};
 
     if (body.name !== undefined) {
       const name = typeof body.name === 'string' ? body.name.trim() : '';
@@ -36,6 +36,14 @@ export async function PATCH(request: Request) {
       data.avatar = body.avatar;
     }
 
+    if (body.dayResetHour !== undefined) {
+      const hour = body.dayResetHour;
+      if (typeof hour !== 'number' || !Number.isInteger(hour) || hour < 0 || hour > 6) {
+        return Response.json({ error: '하루의 시작 시각은 0~6시 사이의 정수여야 해요.' }, { status: 400 });
+      }
+      data.dayResetHour = hour;
+    }
+
     if (Object.keys(data).length === 0) {
       return Response.json({ error: '변경할 내용이 없어요.' }, { status: 400 });
     }
@@ -49,6 +57,8 @@ export async function PATCH(request: Request) {
         email: user.email,
         avatar: user.avatar,
         provider: user.provider,
+        // additive(C4-b) — 설정 UI가 저장 직후 반영 확인에 쓴다.
+        dayResetHour: user.dayResetHour,
       },
     });
   } catch (error) {
