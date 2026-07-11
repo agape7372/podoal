@@ -96,6 +96,8 @@ export async function GET() {
     cadenceN: board.cadenceN,
     // 채움 텀 C2(additive): 이번 기간 몫 완료 여부 — FREE·완성 보드는 undefined(필드 생략).
     paceDone: paceDoneByBoard.get(board.id),
+    // 엄격 모드(C4-a additive) — 없던 시절 보드도 스키마 기본값 false라 항상 채워져 있다.
+    strictMode: board.strictMode,
   }));
 
   return Response.json({ boards: result });
@@ -108,7 +110,7 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
-  const { title, description, totalStickers, rewards, templateId, cadenceType, cadenceN } = body;
+  const { title, description, totalStickers, rewards, templateId, cadenceType, cadenceN, strictMode } = body;
 
   if (
     typeof title !== 'string' ||
@@ -146,6 +148,12 @@ export async function POST(request: Request) {
     resolvedCadenceN = cadenceN;
   }
 
+  // 엄격 모드(C4-a additive) — boolean 검증. cadenceType이 FREE면 텀 자체가 없어 무시(false 저장).
+  if (strictMode !== undefined && typeof strictMode !== 'boolean') {
+    return authResponse('엄격 모드 값이 올바르지 않아요.', 400);
+  }
+  const resolvedStrictMode = resolvedCadenceType !== 'FREE' && strictMode === true;
+
   const rewardError = validateRewards(rewards, totalStickers);
   if (rewardError) {
     return authResponse(rewardError, 400);
@@ -161,6 +169,7 @@ export async function POST(request: Request) {
         ownerId: userId,
         cadenceType: resolvedCadenceType,
         cadenceN: resolvedCadenceN,
+        strictMode: resolvedStrictMode,
       },
     });
 
@@ -208,6 +217,7 @@ export async function POST(request: Request) {
     rewardCount: board._count.rewards,
     cadenceType: board.cadenceType,
     cadenceN: board.cadenceN,
+    strictMode: board.strictMode,
   };
 
   return Response.json({ board: result }, { status: 201 });

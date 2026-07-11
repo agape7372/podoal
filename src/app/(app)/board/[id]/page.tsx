@@ -1348,6 +1348,7 @@ export default function BoardDetailPage() {
           cadenceType={board.cadenceType ?? 'FREE'}
           nextRipeAt={paceState.nextRipeAt}
           now={paceNow}
+          strictMode={board.strictMode}
           backfillAvailable={board.backfillAvailable}
           onOverride={handleRipeningOverride}
           onBackfill={handleRipeningBackfill}

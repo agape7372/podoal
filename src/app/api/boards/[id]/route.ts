@@ -170,6 +170,8 @@ export async function GET(request: Request, props: { params: Promise<{ id: strin
     // 채움 텀(additive, C1) — W3(숙성 연출·탭 판정)가 이 필드를 소비한다.
     cadenceType: board.cadenceType,
     cadenceN: board.cadenceN,
+    // 엄격 모드(C4-a additive) — true면 서버가 익기 전 채움을 422로 거부(RipeningSheet가 소비).
+    strictMode: board.strictMode,
     // 채움 텀 C3(additive) — "어제 몫 채우기" 노출 여부(서버 판정).
     backfillAvailable,
     stickers: board.stickers,

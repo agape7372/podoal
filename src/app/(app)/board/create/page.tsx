@@ -34,6 +34,8 @@ function CreateBoardInner() {
   // 자체를 숨기고(JSX), 제출 시에도 아래 payload에서 한 번 더 강제한다(이중 방어).
   const [cadenceType, setCadenceType] = useState<CadenceType>('FREE');
   const [cadenceN, setCadenceN] = useState(3);
+  // 엄격 모드(C4-a additive) — cadenceType과 동일한 giftTo/FREE 이중 방어(아래 handleCreate).
+  const [strictMode, setStrictMode] = useState(false);
   const [rewardType, setRewardType] = useState<RewardType>('letter');
   const [rewardTitle, setRewardTitle] = useState('');
   const [rewardContent, setRewardContent] = useState('');
@@ -52,6 +54,7 @@ function CreateBoardInner() {
     const rec = !giftTo ? template.recommendedCadence : undefined;
     setCadenceType(rec?.type ?? 'FREE');
     setCadenceN(rec?.n ?? 3);
+    setStrictMode(false);
     setStep(1);
   };
 
@@ -62,6 +65,7 @@ function CreateBoardInner() {
     setTotalStickers(10);
     setCadenceType('FREE');
     setCadenceN(3);
+    setStrictMode(false);
     setRewardTitle('');
     setRewardContent('');
     setStep(1);
@@ -83,6 +87,8 @@ function CreateBoardInner() {
     const effectiveCadenceType: CadenceType = giftTo ? 'FREE' : cadenceType;
     const effectiveCadenceN =
       !giftTo && (cadenceType === 'DAILY_N' || cadenceType === 'WEEKLY_N') ? cadenceN : undefined;
+    // 엄격 모드(C4-a) — giftTo/FREE는 이중 방어로 강제 false(cadenceType과 동일 패턴).
+    const effectiveStrictMode = !giftTo && effectiveCadenceType !== 'FREE' ? strictMode : false;
 
     setLoading(true);
     setError('');
@@ -96,6 +102,7 @@ function CreateBoardInner() {
           templateId,
           cadenceType: effectiveCadenceType,
           cadenceN: effectiveCadenceN,
+          strictMode: effectiveStrictMode,
           rewards: rewardsPayload,
         },
       });
@@ -235,6 +242,8 @@ function CreateBoardInner() {
               cadenceType={cadenceType}
               cadenceN={cadenceN}
               onChange={(type, n) => { setCadenceType(type); setCadenceN(n); track('cadence_selected', { type, n }); }}
+              strictMode={strictMode}
+              onStrictModeChange={setStrictMode}
             />
           )}
         </div>

@@ -15,8 +15,12 @@ interface RipeningSheetProps {
    *  포맷팅만 한다). */
   now: Date;
   /** "그래도 채우기" — earlyFill 오버라이드. 정상 채움과 동일 연출·낙관 경로를 타고
-   *  차이는 서버 기록 플래그뿐(FILL_CADENCE §8, 아너 시스템 — 막지 않고 기록만). */
+   *  차이는 서버 기록 플래그뿐(FILL_CADENCE §8, 아너 시스템 — 막지 않고 기록만). strictMode일
+   *  땐 이 버튼 자체를 렌더하지 않는다(서버가 422로 거부하므로 호출부는 유지해도 안전). */
   onOverride: () => void;
+  /** 엄격 모드(C4-a additive) — true면 "그래도 채우기" 버튼을 제거하고 대기 안내 문구로
+   *  대체한다. "어제 몫 채우기"(backfill)는 서버가 strict 검사를 건너뛰므로 그대로 유지. */
+  strictMode?: boolean;
   /** 서버 판정(computeBackfillEligibility, FILL_CADENCE §5) — 어제 몫이 비어 있고
    *  아직 보충을 안 썼을 때만 true. false/undefined면 보조 버튼 자체를 숨긴다. */
   backfillAvailable?: boolean;
@@ -43,9 +47,12 @@ function formatRipeningBody(cadenceType: string, nextRipeAt: Date | null, now: D
 }
 
 /**
- * 채움 텀 C1 소프트 가드 시트(FILL_CADENCE_PLAN §3) — 잠그지 않는다: 다음 알이 아직
- * 안 익었을 때 탭하면 뜨고, "그래도 채우기"로 언제든 오버라이드할 수 있다. 질책 문구
- * 금지(§1 처벌 금지) — 두 선택지 모두 긍정적 어조.
+ * 채움 텀 C1 소프트 가드 시트(FILL_CADENCE_PLAN §3) — 기본은 잠그지 않는다: 다음 알이
+ * 아직 안 익었을 때 탭하면 뜨고, "그래도 채우기"로 언제든 오버라이드할 수 있다. 질책 문구
+ * 금지(§1 처벌 금지) — 두 선택지 모두 긍정적 어조. 보드가 strictMode(C4-a)면 예외적으로
+ * 오버라이드 버튼을 제거하고 대기 문구만 보여준다(서버가 어차피 422로 거부하는 조합을
+ * UI에서 먼저 숨기는 것 — "어제 몫 채우기"는 서버가 strict 검사를 건너뛰는 별도 경로라
+ * 계속 노출).
  *
  * 버튼 우선순위는 ConfirmDialog와 대칭이 아니라 GiftUnboxModal형: "기다릴게요"가
  * 주 버튼(ClayButton), 그 아래 "어제 몫 채우기"(C3, backfillAvailable일 때만) 보조
@@ -60,6 +67,7 @@ export default function RipeningSheet({
   nextRipeAt,
   now,
   onOverride,
+  strictMode,
   backfillAvailable,
   onBackfill,
   onClose,
@@ -96,9 +104,13 @@ export default function RipeningSheet({
             </ClayButton>
           </>
         )}
-        <button onClick={onOverride} className="text-xs text-warm-sub underline py-1">
-          그래도 채우기
-        </button>
+        {strictMode ? (
+          <p className="text-xs text-warm-sub text-center py-1">엄격 모드예요 — 익을 때까지 기다려요</p>
+        ) : (
+          <button onClick={onOverride} className="text-xs text-warm-sub underline py-1">
+            그래도 채우기
+          </button>
+        )}
       </div>
     </Modal>
   );

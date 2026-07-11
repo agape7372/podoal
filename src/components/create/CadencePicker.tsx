@@ -1,7 +1,9 @@
 'use client';
 
 import NumberStepper from '@/components/NumberStepper';
+import EmojiIcon from '@/components/EmojiIcon';
 import { feedbackTap } from '@/lib/feedback';
+import { ICON } from '@/lib/icons';
 import type { CadenceType } from '@/types';
 
 interface CadencePickerProps {
@@ -9,6 +11,10 @@ interface CadencePickerProps {
   /** DAILY_N/WEEKLY_N일 때만 의미 있음 — FREE/DAILY_1에서는 부모가 무시하고 null로 저장. */
   cadenceN: number;
   onChange: (type: CadenceType, n: number) => void;
+  /** 엄격 모드(C4-a additive) — cadenceType !== 'FREE'일 때만 노출, 기본 OFF. 생략 시(기존
+   *  호출부) 서브 토글 자체가 렌더되지 않는다 — props additive, 계약 불변. */
+  strictMode?: boolean;
+  onStrictModeChange?: (next: boolean) => void;
 }
 
 const OPTIONS: { type: CadenceType; label: string }[] = [
@@ -30,7 +36,13 @@ const N_RANGE: Record<'DAILY_N' | 'WEEKLY_N', { min: number; max: number }> = {
  * giftTo(선물 생성) 플로우에서는 부모가 이 컴포넌트를 아예 렌더하지 않고 FREE로 고정한다
  * (board/create/page.tsx: `{!giftTo && <CadencePicker .../>}` + 제출 payload 이중 고정).
  */
-export default function CadencePicker({ cadenceType, cadenceN, onChange }: CadencePickerProps) {
+export default function CadencePicker({
+  cadenceType,
+  cadenceN,
+  onChange,
+  strictMode,
+  onStrictModeChange,
+}: CadencePickerProps) {
   const select = (type: CadenceType) => {
     feedbackTap();
     if (type === 'DAILY_N' || type === 'WEEKLY_N') {
@@ -85,6 +97,32 @@ export default function CadencePicker({ cadenceType, cadenceN, onChange }: Caden
         {cadenceType === 'DAILY_N' && `물 마시기처럼 하루 여러 번 — 오늘 ${cadenceN}알을 채우면 다음 알은 내일 익어요`}
         {cadenceType === 'WEEKLY_N' && `요일은 자유롭게, 일주일에 ${cadenceN}번만 — 이번 주 몫을 채우면 다음 주에 다시 익어요`}
       </p>
+
+      {/* 엄격 모드(C4-a) — FREE에는 텀 자체가 없어 의미가 없으므로 숨긴다. 기본 OFF —
+          현행 소프트 가드(RipeningSheet "그래도 채우기")가 그대로 유지된다. */}
+      {cadenceType !== 'FREE' && onStrictModeChange && (
+        <button
+          type="button"
+          onClick={() => { feedbackTap(); onStrictModeChange(!strictMode); }}
+          role="switch"
+          aria-checked={!!strictMode}
+          aria-label="엄격 모드"
+          className="w-full clay-sm px-4 py-3 flex items-center justify-between transition-[transform] active:scale-[0.99]"
+        >
+          <span className="inline-flex items-center gap-2 text-sm text-warm-text">
+            <EmojiIcon emoji={ICON.lock} size={16} />
+            <span className="text-left">
+              엄격 모드
+              <span className="block text-[11px] text-warm-sub text-balance">
+                {strictMode ? '익기 전엔 채울 수 없어요' : '익기 전에도 원하면 채울 수 있어요'}
+              </span>
+            </span>
+          </span>
+          <span className={`relative w-11 h-6 rounded-full shrink-0 transition-colors ${strictMode ? 'bg-grape-400' : 'bg-warm-border'}`}>
+            <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform ${strictMode ? 'translate-x-5' : ''}`} />
+          </span>
+        </button>
+      )}
     </div>
   );
 }
