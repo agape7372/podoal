@@ -25,11 +25,14 @@ function sameInstant(a, b) {
   return a instanceof Date && b instanceof Date && a.getTime() === b.getTime();
 }
 
+// C3(7bb92a7)부터 computePaceState 입력은 Date[]가 아니라 PaceFill[]({filledAt, isBackfill?}).
+const fills = (dates) => dates.map((d) => ({ filledAt: d }));
+
 // ── ① DAILY_1: 오늘 1알 채움 → ripe false, nextRipeAt = 내일 0시 ──────────────
 console.log('① DAILY_1 — 오늘 몫 소진');
 {
   const now = new Date(2026, 6, 8, 14, 0, 0); // 2026-07-08 14:00
-  const stickerTimes = [new Date(2026, 6, 8, 9, 0, 0)]; // 오늘 09:00 채움
+  const stickerTimes = fills([new Date(2026, 6, 8, 9, 0, 0)]); // 오늘 09:00 채움
   const result = computePaceState({ cadenceType: 'DAILY_1' }, stickerTimes, now);
   assert(result !== null, 'null이 아님');
   assert(result?.ripe === false, 'ripe=false(오늘 몫 소진)');
@@ -87,7 +90,7 @@ console.log('③ WEEKLY_N 주 경계');
   const thisWeekFills = [new Date(2026, 6, 7, 9, 0, 0), new Date(2026, 6, 8, 9, 0, 0)]; // 이번 주 2회
   const weekly = computePaceState(
     { cadenceType: 'WEEKLY_N', cadenceN: 3 },
-    [lastWeekFill, ...thisWeekFills],
+    fills([lastWeekFill, ...thisWeekFills]),
     wednesday,
   );
   assert(weekly?.used === 2, '지난주 채움은 이번 주 used에서 제외(경계 밖)');
@@ -96,7 +99,7 @@ console.log('③ WEEKLY_N 주 경계');
   // 주 quota 소진 시 nextRipeAt = 다음 주 월요일 0시.
   const weeklyDone = computePaceState(
     { cadenceType: 'WEEKLY_N', cadenceN: 2 },
-    thisWeekFills,
+    fills(thisWeekFills),
     wednesday,
   );
   assert(weeklyDone?.ripe === false, '주 2회 quota 소진 → ripe false');
@@ -123,7 +126,7 @@ console.log('⑤ progress 단조증가');
     new Date(2026, 6, 8, 23, 59, 0),
   ];
   const progressValues = checkpoints.map(
-    (now) => computePaceState({ cadenceType: 'DAILY_1' }, [lastFill], now)?.progress ?? -1,
+    (now) => computePaceState({ cadenceType: 'DAILY_1' }, fills([lastFill]), now)?.progress ?? -1,
   );
   console.log('    progress 시퀀스:', progressValues.map((p) => p.toFixed(4)).join(' → '));
   let monotonic = true;
@@ -134,14 +137,14 @@ console.log('⑤ progress 단조증가');
   assert(progressValues[0] > 0 && progressValues[progressValues.length - 1] < 1, '기간 중간에는 0과 1 사이(경계 미도달)');
 
   // 익음 순간(now == nextRipeAt) progress는 1에 도달(클램프 상한 확인).
-  const atBoundary = computePaceState({ cadenceType: 'DAILY_1' }, [lastFill], new Date(2026, 6, 9, 0, 0, 0));
+  const atBoundary = computePaceState({ cadenceType: 'DAILY_1' }, fills([lastFill]), new Date(2026, 6, 9, 0, 0, 0));
   // now가 다음 하루 경계에 정확히 도달하면 dayStart(now) 자체가 다음 날로 넘어가(§2 참조),
   // 그 시점부터는 "새 하루"의 미채움 상태(ripe=true)가 된다 — 그 전 순간(23:59:59.999)이
   // 이전 기간의 진짜 상한이므로 별도로 확인한다.
   assert(atBoundary?.ripe === true, '경계 시각 자체는 이미 새 하루(ripe=true)');
   const justBeforeBoundary = computePaceState(
     { cadenceType: 'DAILY_1' },
-    [lastFill],
+    fills([lastFill]),
     new Date(2026, 6, 8, 23, 59, 59, 999),
   );
   assert((justBeforeBoundary?.progress ?? 0) > progressValues[progressValues.length - 1], '경계 직전이 체크포인트 중 가장 높은 progress');

@@ -1,4 +1,4 @@
-상태: 검증대기 (sonnet 구현 완료)
+상태: 완료 (2026-07-10 sonnet 구현·검증 로그 완비 — 2026-07-11 fable 최종 확인, 실기기 항목은 device-checklist로 이관)
 
 ## blob-orphan-cleanup: 보드 삭제·회원 탈퇴 시 커스텀 사진 blob 정리
 

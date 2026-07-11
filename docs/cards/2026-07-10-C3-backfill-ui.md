@@ -1,4 +1,4 @@
-상태: 검증대기 (sonnet 구현 완료)
+상태: 완료 (2026-07-10 sonnet 구현·검증 로그 완비 — 2026-07-11 fable 최종 확인, 실기기 항목은 device-checklist로 이관)
 
 ## C3-backfill-ui: "어제 몫 채우기" — RipeningSheet 선택지 + 채움 배관
 
