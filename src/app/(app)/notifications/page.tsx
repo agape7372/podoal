@@ -312,6 +312,25 @@ export default function NotificationsPage() {
         </div>
       </section>
 
+      {/* Weekly recap — opt-out, 일요일 저녁 1회 (기본 켜짐) */}
+      <section className={`clay p-5 mb-4 transition-opacity ${!settings.globalEnabled ? 'opacity-50 pointer-events-none' : ''}`}>
+        <h2 className="text-sm font-semibold text-warm-sub mb-4">주간 결산</h2>
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <EmojiIcon emoji="📊" size={20} />
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-warm-text">일요일 저녁 포도 농사 결산</p>
+              <p className="text-xs text-warm-sub">이번 주 채운 포도알을 정리해서 알려드려요</p>
+            </div>
+          </div>
+          <Toggle
+            enabled={settings.weeklyRecapEnabled !== false}
+            onToggle={() => updateSetting('weeklyRecapEnabled', settings.weeklyRecapEnabled === false)}
+            ariaLabel="일요일 저녁 포도 농사 결산"
+          />
+        </div>
+      </section>
+
       {/* Reminders section */}
       <section className={`clay p-5 mb-4 transition-opacity ${!settings.globalEnabled ? 'opacity-50 pointer-events-none' : ''}`}>
         <div className="flex items-center justify-between mb-4">

@@ -6,7 +6,11 @@ import { sendPushToUser } from '@/lib/push';
 // "이번 주 N개" 결산을 보내 /stats의 주간 카드로 유도한다. reminders.yml과
 // 동일하게 GitHub Actions(weekly-recap.yml, 일요일 저녁 KST)가 CRON_SECRET
 // 베어러로 호출한다(Hobby는 Vercel Cron 일 1회 한도 — vercel.json에 크론 금지).
-// 카테고리 'reminder'라 NotificationSetting(global/reminder/DND)으로 게이팅된다.
+// 카테고리 'weeklyRecap'이라 NotificationSetting(global/weeklyRecap/DND)으로
+// 게이팅된다. 기본 켜짐(default true)이라 daily-nudge와 반대로 "옵트아웃"만
+// 배치 조회해 후보에서 뺀다 — sendPushToUser의 카테고리 게이트는 발송 성공
+// 여부를 반환하지 않아(fire-and-forget) sent 카운트에 반영되지 않으므로,
+// 크론 응답으로 게이팅을 증명하려면 후보 산출 단계에서 걸러야 한다.
 const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
 
 export async function GET(request: Request) {
@@ -31,8 +35,17 @@ export async function GET(request: Request) {
     _count: { _all: true },
   });
 
+  // 옵트아웃 사용자만 배치 조회 — 기본 켜짐(weeklyRecapEnabled default true)이라
+  // 행이 없거나 true면 수신 대상, false로 명시한 사용자만 후보에서 제외한다.
+  const optedOut = await prisma.notificationSetting.findMany({
+    where: { userId: { in: weekly.map((w) => w.filledBy) }, weeklyRecapEnabled: false },
+    select: { userId: true },
+  });
+  const optedOutIds = new Set(optedOut.map((o) => o.userId));
+
   let sent = 0;
   for (const w of weekly) {
+    if (optedOutIds.has(w.filledBy)) continue;
     await sendPushToUser(
       w.filledBy,
       {
@@ -41,10 +54,16 @@ export async function GET(request: Request) {
         url: '/stats',
         tag: `weekly-recap-${date}`,
       },
-      'reminder',
+      'weeklyRecap',
     );
     sent++;
   }
 
-  return NextResponse.json({ ok: true, candidates: weekly.length, sent, at: `${date} KST` });
+  return NextResponse.json({
+    ok: true,
+    candidates: weekly.length,
+    optedOut: optedOutIds.size,
+    sent,
+    at: `${date} KST`,
+  });
 }

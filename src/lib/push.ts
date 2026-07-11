@@ -24,7 +24,8 @@ export type PushCategory =
   | 'gift'
   | 'reward'
   | 'relay'
-  | 'reminder';
+  | 'reminder'
+  | 'weeklyRecap';
 
 export interface PushPayload {
   title: string;
@@ -42,6 +43,7 @@ interface ToggleSetting {
   rewardEnabled: boolean;
   relayEnabled: boolean;
   reminderEnabled: boolean;
+  weeklyRecapEnabled: boolean;
 }
 
 function toMinutes(hhmm: string): number {
@@ -76,6 +78,8 @@ function categoryAllowed(setting: ToggleSetting | null, category?: PushCategory)
       return setting.relayEnabled;
     case 'reminder':
       return setting.reminderEnabled;
+    case 'weeklyRecap':
+      return setting.weeklyRecapEnabled;
     case 'gift':
       return true; // gifts always notify — it's a transfer, not spam
     default:
