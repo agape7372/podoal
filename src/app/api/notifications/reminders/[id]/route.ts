@@ -1,6 +1,8 @@
 import { prisma } from '@/lib/prisma';
 import { getCurrentUserId, authResponse } from '@/lib/auth';
 
+const VALID_REMINDER_TYPES = new Set(['time', 'ripe']);
+
 export async function PUT(request: Request, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
   const userId = await getCurrentUserId();
@@ -14,7 +16,7 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
 
   const body = await request.json();
 
-  const allowedKeys = ['time', 'days', 'boardId', 'message', 'isActive'];
+  const allowedKeys = ['time', 'days', 'boardId', 'message', 'isActive', 'type'];
   const updateData: Record<string, unknown> = {};
 
   for (const key of allowedKeys) {
@@ -39,16 +41,49 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
     }
   }
 
+  // 알림 방식(C4-c additive) — 화이트리스트 외 값은 400.
+  if (updateData.type !== undefined) {
+    if (typeof updateData.type !== 'string' || !VALID_REMINDER_TYPES.has(updateData.type)) {
+      return authResponse('type은 time 또는 ripe여야 해요', 400);
+    }
+  }
+
   // Validate boardId if provided
+  let validatedBoard: { id: string; cadenceType: string | null } | null = null;
   if (updateData.boardId) {
     const board = await prisma.board.findFirst({
       where: {
         id: updateData.boardId as string,
         OR: [{ ownerId: userId }, { giftedToId: userId }],
       },
+      select: { id: true, cadenceType: true },
     });
     if (!board) {
       return authResponse('Board not found or unauthorized', 404);
+    }
+    validatedBoard = board;
+  }
+
+  // ripe는 boardId 필수 + 채우는 리듬(cadence) 보드 전용 — PUT은 부분 갱신이라 effective
+  // type/boardId(갱신값 우선, 없으면 기존값)로 조합을 확인한다.
+  const effectiveType = (updateData.type as string | undefined) ?? existing.type;
+  const effectiveBoardId =
+    'boardId' in updateData ? (updateData.boardId as string | null) : existing.boardId;
+  if (effectiveType === 'ripe') {
+    if (!effectiveBoardId) {
+      return authResponse('익으면 알림은 보드 지정이 필요해요', 400);
+    }
+    const board =
+      validatedBoard ??
+      (await prisma.board.findFirst({
+        where: { id: effectiveBoardId, OR: [{ ownerId: userId }, { giftedToId: userId }] },
+        select: { id: true, cadenceType: true },
+      }));
+    if (!board) {
+      return authResponse('Board not found or unauthorized', 404);
+    }
+    if (!board.cadenceType || board.cadenceType === 'FREE') {
+      return authResponse('채우는 리듬이 설정된 보드만 익으면 알림을 쓸 수 있어요', 400);
     }
   }
 
@@ -69,6 +104,7 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
       id: reminder.id,
       boardId: reminder.boardId,
       boardTitle: reminder.board?.title ?? undefined,
+      type: reminder.type,
       time: reminder.time,
       days: reminder.days,
       message: reminder.message,

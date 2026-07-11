@@ -57,7 +57,12 @@ function nowKstMinutes(): number {
   return kst.getUTCHours() * 60 + kst.getUTCMinutes();
 }
 
-function inDnd(start: string, end: string): boolean {
+/**
+ * 방해금지(DND) 시간대 판정 — cron의 ripe 리마인더 분기(C4-c)가 사전 체크용으로 재사용한다
+ * (이중 구현 금지). `sendPushToUser` 내부에서도 같은 함수로 게이트하므로, 호출측이 DND 여부를
+ * 미리 알아 "발송 스킵 시 lastSentAt도 마킹하지 않는다" 같은 판단을 내릴 수 있다.
+ */
+export function inDnd(start: string, end: string): boolean {
   const s = toMinutes(start);
   const e = toMinutes(end);
   if (s === e) return false;

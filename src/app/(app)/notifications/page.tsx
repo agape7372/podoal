@@ -63,7 +63,7 @@ function Toggle({
 export default function NotificationsPage() {
   const [settings, setSettings] = useState<NotificationSettingInfo | null>(null);
   const [reminders, setReminders] = useState<ReminderInfo[]>([]);
-  const [boards, setBoards] = useState<{ id: string; title: string }[]>([]);
+  const [boards, setBoards] = useState<{ id: string; title: string; cadenceType?: string | null }[]>([]);
   const [loading, setLoading] = useState(true);
   const [showReminderModal, setShowReminderModal] = useState(false);
   const [editingReminder, setEditingReminder] = useState<ReminderInfo | undefined>(undefined);
@@ -82,7 +82,7 @@ export default function NotificationsPage() {
       setBoards(
         boardsRes.boards
           .filter((b) => !b.isCompleted)
-          .map((b) => ({ id: b.id, title: b.title }))
+          .map((b) => ({ id: b.id, title: b.title, cadenceType: b.cadenceType }))
       );
     } catch {
       // silently fail
@@ -392,7 +392,13 @@ export default function NotificationsPage() {
                 <div className="flex items-start justify-between">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1.5">
-                      <span className="font-display text-lg font-bold text-grape-600 tabular-nums">{reminder.time}</span>
+                      {reminder.type === 'ripe' ? (
+                        <span className="font-display text-lg font-bold text-grape-600 flex items-center gap-1">
+                          익으면 <EmojiIcon emoji="🍇" size={16} />
+                        </span>
+                      ) : (
+                        <span className="font-display text-lg font-bold text-grape-600 tabular-nums">{reminder.time}</span>
+                      )}
                       <span className="text-xs text-warm-sub px-2 py-0.5 rounded-full bg-grape-50">
                         {reminder.boardTitle ? stripTitleEmoji(reminder.boardTitle) : '전체'}
                       </span>

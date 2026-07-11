@@ -17,6 +17,7 @@ export async function GET() {
     id: r.id,
     boardId: r.boardId,
     boardTitle: r.board?.title ?? undefined,
+    type: r.type,
     time: r.time,
     days: r.days,
     message: r.message,
@@ -26,15 +27,26 @@ export async function GET() {
   return Response.json({ reminders: result });
 }
 
+const VALID_REMINDER_TYPES = new Set(['time', 'ripe']);
+
 export async function POST(request: Request) {
   const userId = await getCurrentUserId();
   if (!userId) return authResponse('Unauthorized');
 
   const body = await request.json();
-  const { time, days, boardId, message } = body;
+  const { time, days, boardId, message, type } = body;
 
   if (!time || typeof time !== 'string') {
     return authResponse('time is required (format: HH:mm)', 400);
+  }
+
+  // 알림 방식(C4-c additive) — 화이트리스트 외 값은 400. 미지정은 "time"(기존 동작).
+  const resolvedType = type === undefined ? 'time' : type;
+  if (typeof resolvedType !== 'string' || !VALID_REMINDER_TYPES.has(resolvedType)) {
+    return authResponse('type은 time 또는 ripe여야 해요', 400);
+  }
+  if (resolvedType === 'ripe' && !boardId) {
+    return authResponse('익으면 알림은 보드 지정이 필요해요', 400);
   }
 
   // Validate time format HH:mm
@@ -63,9 +75,14 @@ export async function POST(request: Request) {
         id: boardId,
         OR: [{ ownerId: userId }, { giftedToId: userId }],
       },
+      select: { id: true, cadenceType: true },
     });
     if (!board) {
       return authResponse('Board not found or unauthorized', 404);
+    }
+    // ripe는 채우는 리듬(cadence)이 있는 보드만 — FREE 보드는 "익음" 개념이 없다.
+    if (resolvedType === 'ripe' && (!board.cadenceType || board.cadenceType === 'FREE')) {
+      return authResponse('채우는 리듬이 설정된 보드만 익으면 알림을 쓸 수 있어요', 400);
     }
   }
 
@@ -78,6 +95,7 @@ export async function POST(request: Request) {
   const reminder = await prisma.reminder.create({
     data: {
       userId,
+      type: resolvedType,
       time,
       days: days || '1,2,3,4,5,6,7',
       boardId: boardId || null,
@@ -94,6 +112,7 @@ export async function POST(request: Request) {
         id: reminder.id,
         boardId: reminder.boardId,
         boardTitle: reminder.board?.title ?? undefined,
+        type: reminder.type,
         time: reminder.time,
         days: reminder.days,
         message: reminder.message,
