@@ -17,6 +17,32 @@ function getColorClass(count: number): string {
   return 'bg-grape-700';
 }
 
+// Dot size mirrors the color bucket above (same scale, not a second one) so
+// color-blind users get a monotonically growing shape cue. Dot color flips
+// dark→light at the grape-700 bucket because a single dot color can't clear
+// the 3:1 non-text contrast ratio (WCAG 1.4.11) against every bucket's bg:
+// grape-900 on grape-{300,400,500} = 7.9:1/6.2:1/4.6:1, but only 2.3:1 on
+// grape-700; white on grape-700 = 5.5:1, but only 1.6-2.7:1 on the lighter ones.
+function getDotSpec(count: number): { size: number; colorClass: string } | null {
+  if (count === 0) return null;
+  if (count === 1) return { size: 3, colorClass: 'bg-grape-900' };
+  if (count <= 3) return { size: 5, colorClass: 'bg-grape-900' };
+  if (count <= 6) return { size: 7, colorClass: 'bg-grape-900' };
+  return { size: 9, colorClass: 'bg-white' };
+}
+
+function HeatmapDot({ count }: { count: number }) {
+  const dot = getDotSpec(count);
+  if (!dot) return null;
+  return (
+    <span
+      aria-hidden="true"
+      className={`absolute inset-0 m-auto rounded-full ${dot.colorClass}`}
+      style={{ width: dot.size, height: dot.size }}
+    />
+  );
+}
+
 function formatDate(dateStr: string): string {
   const d = new Date(dateStr);
   return `${d.getMonth() + 1}/${d.getDate()}`;
@@ -146,27 +172,37 @@ export default function Heatmap({ data }: HeatmapProps) {
               // Inset ring on any active day = a non-color cue distinguishing
               // "filled" from "empty" (the container is role="img", so a per-cell
               // aria-label would be ignored by SR — the title is the hover tooltip).
+              // The center dot (HeatmapDot) is a second non-color cue: its size
+              // grows with the same bucket the fill color uses.
               return (
                 <div
                   key={idx}
-                  className={`w-3 h-3 rounded-xs ${getColorClass(cell.count)}${
+                  className={`relative w-3 h-3 rounded-xs ${getColorClass(cell.count)}${
                     cell.count > 0 ? ' ring-1 ring-inset ring-grape-900/10' : ''
                   } transition-colors`}
                   title={`${formatDate(cell.date)}: ${cell.count}개`}
-                />
+                >
+                  <HeatmapDot count={cell.count} />
+                </div>
               );
             })}
           </div>
         </div>
 
-        {/* Legend */}
+        {/* Legend — representative counts (0/1/2/4/7) hit the same 5 buckets
+            getColorClass/getDotSpec use, so the swatches always match the grid. */}
         <div className="flex items-center justify-end gap-1.5 mt-2" aria-hidden="true">
           <span className="text-[9px] text-warm-sub">적음</span>
-          <div className="w-3 h-3 rounded-xs bg-warm-border/40" />
-          <div className="w-3 h-3 rounded-xs bg-grape-300 ring-1 ring-inset ring-grape-900/10" />
-          <div className="w-3 h-3 rounded-xs bg-grape-400 ring-1 ring-inset ring-grape-900/10" />
-          <div className="w-3 h-3 rounded-xs bg-grape-500 ring-1 ring-inset ring-grape-900/10" />
-          <div className="w-3 h-3 rounded-xs bg-grape-700 ring-1 ring-inset ring-grape-900/10" />
+          {[0, 1, 2, 4, 7].map((count) => (
+            <div
+              key={count}
+              className={`relative w-3 h-3 rounded-xs ${getColorClass(count)}${
+                count > 0 ? ' ring-1 ring-inset ring-grape-900/10' : ''
+              }`}
+            >
+              <HeatmapDot count={count} />
+            </div>
+          ))}
           <span className="text-[9px] text-warm-sub">많음</span>
         </div>
       </div>
