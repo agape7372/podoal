@@ -1,4 +1,4 @@
-상태: 검증대기 (마이그레이션 생성·로컬 적용 완료 — PR CI integration 녹색 대기)
+상태: 완료 (2026-07-13 — PR #128 CI check+integration 녹색, squash 머지. CREATE INDEX 6건 프로드 적용은 다음 배포의 migrate deploy)
 
 ## BE-3: 핫패스 인덱스 마이그레이션 (B5 — additive-only, 단독 웨이브)
 
