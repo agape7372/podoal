@@ -10,6 +10,12 @@ const loginLimit = rateLimit({
   message: "잠시 후 다시 시도해주세요.",
 });
 
+// 열거 타이밍 오라클 봉쇄용 고정 더미 해시(register와 동일 cost=10).
+// 유저 부재 경로에서도 존재 계정과 동일하게 bcrypt.compare를 1회 수행해
+// 응답 시간 프로파일을 평준화한다. 리터럴 상수 — 빌드타임 생성 금지.
+const DUMMY_PASSWORD_HASH =
+  "$2b$10$Sj0zDm/pVtDRkCpsSaEbDer3emTXhS2csV0KAJ6xwg7qj/JkaFVkC";
+
 export async function POST(request: NextRequest) {
   try {
     const blocked = await loginLimit(clientKey(request));
@@ -32,6 +38,8 @@ export async function POST(request: NextRequest) {
     });
 
     if (!user) {
+      // 존재 계정과 응답 시간을 맞추기 위해 더미 해시로 compare 1회 수행(결과는 버림).
+      await bcrypt.compare(password, DUMMY_PASSWORD_HASH);
       return Response.json(
         { error: "Invalid email or password." },
         { status: 401 }

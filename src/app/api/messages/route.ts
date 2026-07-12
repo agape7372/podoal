@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { PUBLIC_USER_SELECT } from '@/lib/userSelect';
 import { getCurrentUserId, authResponse } from '@/lib/auth';
-import { clientKey, rateLimit } from '@/lib/rateLimit';
+import { rateLimit } from '@/lib/rateLimit';
 import { sendPushToUser } from '@/lib/push';
 
 export async function GET() {
@@ -46,7 +46,9 @@ export async function POST(request: Request) {
   const userId = await getCurrentUserId();
   if (!userId) return authResponse('Unauthorized');
 
-  const blocked = await sendMessageLimit(clientKey(request));
+  // 인증 후 엔드포인트 — RL 키는 IP가 아닌 userId 기준(공유 NAT 사용자 간
+  // 한도 소진 방지, custom-image/route.ts 패턴 동일). 한도값(20/m)은 불변.
+  const blocked = await sendMessageLimit(userId);
   if (blocked) return blocked;
 
   try {
