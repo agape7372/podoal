@@ -12,6 +12,7 @@ import Avatar from '@/components/Avatar';
 import EmojiIcon from '@/components/EmojiIcon';
 import EmptyState from '@/components/EmptyState';
 import PodongList from '@/components/PodongList';
+import RetryButton from '@/components/RetryButton';
 import type { FriendInfo, SearchedUser } from '@/types';
 import { feedbackSuccess, feedbackTap } from '@/lib/feedback';
 import { track } from '@/lib/analytics';
@@ -194,7 +195,7 @@ export default function FriendsPage() {
           />
         </div>
 
-        {searchError && <p className="text-grape-700 text-xs mt-2">{searchError}</p>}
+        {searchError && <p className="text-rose-500 text-xs mt-2">{searchError}</p>}
 
         {query.trim() && (
           <div className="mt-3 space-y-2">
@@ -303,7 +304,7 @@ export default function FriendsPage() {
         <div className="text-center py-12">
           <p className="font-display text-base text-warm-text mb-1.5">불러오지 못했어요</p>
           <p className="text-sm text-warm-sub mb-5">잠시 후 다시 시도해주세요</p>
-          <button onClick={fetchFriends} className="clay-button px-5 py-2.5 rounded-2xl text-sm font-semibold text-grape-700">다시 불러오기</button>
+          <RetryButton onRetry={fetchFriends} />
         </div>
       ) : displayed.length === 0 ? (
         <EmptyState

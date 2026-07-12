@@ -11,6 +11,7 @@ import RewardEditor from '@/components/create/RewardEditor';
 import StepProgress from '@/components/create/StepProgress';
 import Avatar from '@/components/Avatar';
 import EmojiIcon from '@/components/EmojiIcon';
+import RetryButton from '@/components/RetryButton';
 import { useAppStore } from '@/lib/store';
 import type { FriendInfo, RewardType, RelayMode } from '@/types';
 import type { HabitTemplate } from '@/lib/templates';
@@ -37,14 +38,18 @@ export default function CreatePodongPage() {
   const [friends, setFriends] = useState<FriendInfo[]>([]);
   const [selectedFriendIds, setSelectedFriendIds] = useState<string[]>([]);
   const [loadingFriends, setLoadingFriends] = useState(true);
+  const [friendsError, setFriendsError] = useState(false);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
 
   const fetchFriends = useCallback(async () => {
+    setFriendsError(false);
     try {
       const data = await api<{ friends: FriendInfo[] }>('/api/friends');
       setFriends((data.friends || []).filter((f) => f.status === 'accepted'));
-    } catch { /* 빈 목록으로 둠 */ }
+    } catch {
+      setFriendsError(true);
+    }
     setLoadingFriends(false);
   }, []);
 
@@ -200,7 +205,7 @@ export default function CreatePodongPage() {
             value={description}
             onChange={(e) => setDescription(e.target.value)}
           />
-          {error && <p role="alert" className="text-grape-700 text-sm text-center">{error}</p>}
+          {error && <p role="alert" className="text-rose-500 text-sm text-center">{error}</p>}
         </div>
       )}
 
@@ -244,7 +249,7 @@ export default function CreatePodongPage() {
             <span className="block"><span className="text-grape-400 font-bold mr-0.5">*</span>각자의 포도판에 같은 보상이 들어가요</span>
             <span className="block">포도알을 꾹 눌러 중간 보상도 추가할 수 있어요!</span>
           </p>
-          {error && <p role="alert" className="text-grape-700 text-sm text-center">{error}</p>}
+          {error && <p role="alert" className="text-rose-500 text-sm text-center">{error}</p>}
         </div>
       )}
 
@@ -255,6 +260,11 @@ export default function CreatePodongPage() {
             <label className="block text-sm font-medium text-warm-sub mb-3 ml-1">함께할 친구 선택</label>
             {loadingFriends ? (
               <div className="space-y-2">{[1, 2].map((i) => <div key={i} className="skeleton h-14 w-full" />)}</div>
+            ) : friendsError ? (
+              <div className="clay-sm p-6 text-center">
+                <p className="text-sm text-warm-sub mb-3">친구 목록을 불러오지 못했어요</p>
+                <RetryButton onRetry={fetchFriends} />
+              </div>
             ) : friends.length === 0 ? (
               <div className="clay-sm p-6 text-center">
                 <p className="text-sm text-warm-sub mb-1">아직 친구가 없어요</p>
@@ -305,14 +315,14 @@ export default function CreatePodongPage() {
                         <button
                           onClick={() => moveFriend(p.id, -1)}
                           disabled={idx <= 1}
-                          className={`w-7 h-7 rounded-lg flex items-center justify-center text-sm transition-all ${idx <= 1 ? 'text-warm-light bg-warm-border/40' : 'text-grape-500 clay-button'}`}
+                          className={`w-7 h-7 rounded-lg flex items-center justify-center text-sm transition-colors ${idx <= 1 ? 'text-warm-sub bg-warm-border/40' : 'text-grape-500 clay-button'}`}
                         >
                           {'▲'}
                         </button>
                         <button
                           onClick={() => moveFriend(p.id, 1)}
                           disabled={idx >= orderedParticipants.length - 1}
-                          className={`w-7 h-7 rounded-lg flex items-center justify-center text-sm transition-all ${idx >= orderedParticipants.length - 1 ? 'text-warm-light bg-warm-border/40' : 'text-grape-500 clay-button'}`}
+                          className={`w-7 h-7 rounded-lg flex items-center justify-center text-sm transition-colors ${idx >= orderedParticipants.length - 1 ? 'text-warm-sub bg-warm-border/40' : 'text-grape-500 clay-button'}`}
                         >
                           {'▼'}
                         </button>
@@ -328,7 +338,7 @@ export default function CreatePodongPage() {
             <p className="text-xs text-warm-sub ml-1 text-balance">다 같이 동시에 시작해요. 친구는 각자 새 포도판을 만들거나 기존 포도판을 불러올 수 있어요.</p>
           )}
 
-          {error && <p className="text-grape-700 text-sm text-center">{error}</p>}
+          {error && <p className="text-rose-500 text-sm text-center">{error}</p>}
         </div>
       )}
 

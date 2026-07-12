@@ -208,7 +208,7 @@ function CreateBoardInner() {
             onChange={(e) => setDescription(e.target.value)}
           />
 
-          {error && <p role="alert" className="text-grape-700 text-sm text-center">{error}</p>}
+          {error && <p role="alert" className="text-rose-500 text-sm text-center">{error}</p>}
         </div>
       )}
 
@@ -265,7 +265,7 @@ function CreateBoardInner() {
             <span className="text-grape-400 font-bold mr-0.5">*</span>포도알을 꾹 눌러 중간 보상을 심을 수 있어요!
           </p>
 
-          {error && <p role="alert" className="text-grape-700 text-sm text-center">{error}</p>}
+          {error && <p role="alert" className="text-rose-500 text-sm text-center">{error}</p>}
         </div>
       )}
 

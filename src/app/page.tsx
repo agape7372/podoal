@@ -158,7 +158,7 @@ function AuthPageInner() {
           </p>
 
           {error && (
-            <div className="mb-4 p-3 rounded-2xl bg-grape-100/40 border border-grape-200/60 text-grape-700 text-sm">
+            <div className="mb-4 p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-sm">
               {error}
             </div>
           )}
