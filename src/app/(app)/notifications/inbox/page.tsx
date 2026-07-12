@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { invalidateCachedApi } from '@/lib/cachedApi';
@@ -9,11 +9,15 @@ import { useAppStore } from '@/lib/store';
 import { countUnread, refreshUnreadCount } from '@/lib/notifications';
 import Avatar from '@/components/Avatar';
 import EmojiIcon from '@/components/EmojiIcon';
+import EmptyState from '@/components/EmptyState';
+import RetryButton from '@/components/RetryButton';
 import { feedbackTap } from '@/lib/feedback';
 import type { NotificationEvent } from '@/types';
 
-function timeAgo(iso: string): string {
-  const diffMin = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
+// F8: react-hooks/purity — 렌더 중 Date.now() 호출 금지. now는 데이터 도착 시점에
+// 캡처된 시각을 호출부(fetchedAt)에서 받는다(home/page.tsx:680 패턴).
+function timeAgo(iso: string, now: number): string {
+  const diffMin = Math.floor((now - new Date(iso).getTime()) / 60000);
   if (diffMin < 1) return '방금';
   if (diffMin < 60) return `${diffMin}분 전`;
   const diffHr = Math.floor(diffMin / 60);
@@ -35,6 +39,12 @@ export default function NotificationInboxPage() {
   useEffect(() => {
     if (data) setUnreadCount(countUnread(data.events));
   }, [data, setUnreadCount]);
+
+  // F8: 상대시간 기준 시각 — 데이터 도착 시점에 고정(home/page.tsx:680 패턴).
+  const [fetchedAt, setFetchedAt] = useState(0);
+  useEffect(() => {
+    if (data) setFetchedAt(new Date().getTime());
+  }, [data]);
 
   // 알림함을 '열어서 봤으면' 응원·축하·선물 메시지는 읽음으로 간주 — 메시지함에서
   // 카드를 또 일일이 탭해야 배지가 안 빠지던 불일치를 해소한다(보상/친구요청/초대는
@@ -80,14 +90,15 @@ export default function NotificationInboxPage() {
         <div className="text-center py-12">
           <p className="font-display text-base text-warm-text mb-1.5">알림을 불러오지 못했어요</p>
           <p className="text-sm text-warm-sub mb-5">잠시 후 다시 시도해주세요</p>
-          <button onClick={refresh} className="clay-button px-5 py-2.5 rounded-2xl text-sm font-semibold text-grape-700">다시 불러오기</button>
+          <RetryButton onRetry={refresh} />
         </div>
       ) : events.length === 0 ? (
-        <div className="text-center py-16">
-          <EmojiIcon emoji="🔔" size={48} className="block mx-auto mb-4" />
-          <p className="text-warm-sub">아직 알림이 없어요</p>
-          <p className="text-xs text-warm-sub mt-1 text-balance">응원·보상·친구 요청·포도동 초대·깜짝 선물이 도착하면 여기에 모여요</p>
-        </div>
+        <EmptyState
+          fallbackEmoji="🔔"
+          artSize={96}
+          title="아직 알림이 없어요"
+          description="응원·보상·친구 요청·포도동 초대·깜짝 선물이 도착하면 여기에 모여요"
+        />
       ) : (
         <div className="space-y-2">
           {events.map((e) => (
@@ -116,7 +127,7 @@ export default function NotificationInboxPage() {
                   {!e.read && <span className="w-2 h-2 rounded-full bg-grape-500 shrink-0" />}
                 </div>
                 <p className="text-sm text-warm-sub truncate">{e.body}</p>
-                <p className="text-xs text-warm-sub mt-1">{timeAgo(e.createdAt)}</p>
+                <p className="text-xs text-warm-sub mt-1">{timeAgo(e.createdAt, fetchedAt)}</p>
               </div>
             </button>
           ))}

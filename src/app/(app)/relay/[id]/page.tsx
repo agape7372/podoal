@@ -9,6 +9,7 @@ import ClayButton from '@/components/ClayButton';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import Modal, { useModalClose } from '@/components/Modal';
 import Avatar from '@/components/Avatar';
+import RetryButton from '@/components/RetryButton';
 import type { RelayInfo, RelayMode, BoardSummary } from '@/types';
 import { feedbackRelay, feedbackSuccess, feedbackTap } from '@/lib/feedback';
 import { stripTitleEmoji } from '@/lib/title';
@@ -54,12 +55,22 @@ export default function RelayDetailPage() {
   const [joining, setJoining] = useState(false);
   const [responding, setResponding] = useState(false);
   const [confirmDecline, setConfirmDecline] = useState(false);
-  const [message, setMessage] = useState('');
+  // F6: 성공/실패를 색으로 구분하는 배너 — kind로 leaf(성공)/rose(실패) 분기.
+  const [message, setMessage] = useState<{ text: string; kind: 'success' | 'error' } | null>(null);
+
+  // F6: 배너 4초 자동 소멸 — 새 메시지가 오면(참조 변경) 이전 타이머를 정리하고 재시작.
+  useEffect(() => {
+    if (!message) return;
+    const timer = setTimeout(() => setMessage(null), 4000);
+    return () => clearTimeout(timer);
+  }, [message]);
 
   // 그룹: 기존 포도판 불러오기
   const [attachOpen, setAttachOpen] = useState(false);
   const [myBoards, setMyBoards] = useState<BoardSummary[]>([]);
   const [loadingMyBoards, setLoadingMyBoards] = useState(false);
+  // F10: openAttach의 fetch 실패를 '빈 목록'과 구별해서 보여주기 위한 상태.
+  const [myBoardsError, setMyBoardsError] = useState(false);
   // 첨부 시트의 '닫기' 버튼이 이탈 애니를 거쳐 닫히도록(조건부 호출 금지 — 페이지 최상위).
   // 참여 성공 경로(handleJoin)는 종전대로 setAttachOpen(false)로 즉시 언마운트.
   const { closeRef: attachCloseRef, requestClose: requestCloseAttach } = useModalClose(() =>
@@ -81,14 +92,14 @@ export default function RelayDetailPage() {
 
   const handleAccept = async () => {
     setResponding(true);
-    setMessage('');
+    setMessage(null);
     try {
       await api(`/api/relays/${relayId}/accept`, { method: 'POST' });
       feedbackSuccess();
-      setMessage('포도동에 참여했어요.');
+      setMessage({ text: '포도동에 참여했어요.', kind: 'success' });
       await fetchRelay();
     } catch (e) {
-      setMessage(e instanceof Error ? e.message : '수락에 실패했어요');
+      setMessage({ text: e instanceof Error ? e.message : '수락에 실패했어요', kind: 'error' });
     }
     setResponding(false);
   };
@@ -96,14 +107,14 @@ export default function RelayDetailPage() {
   // 거절은 비가역(참가자 행 삭제) — 오탭 방지로 ConfirmDialog를 거친다.
   const handleDecline = async () => {
     setResponding(true);
-    setMessage('');
+    setMessage(null);
     try {
       await api(`/api/relays/${relayId}/decline`, { method: 'POST' });
       feedbackTap();
       setConfirmDecline(false);
       router.replace('/relay');
     } catch (e) {
-      setMessage(e instanceof Error ? e.message : '거절에 실패했어요');
+      setMessage({ text: e instanceof Error ? e.message : '거절에 실패했어요', kind: 'error' });
       setResponding(false);
       setConfirmDecline(false);
     }
@@ -111,15 +122,15 @@ export default function RelayDetailPage() {
 
   const handleJoin = async (boardId?: string) => {
     setJoining(true);
-    setMessage('');
+    setMessage(null);
     try {
       await api(`/api/relays/${relayId}/join`, boardId ? { method: 'POST', json: { boardId } } : { method: 'POST' });
       feedbackSuccess();
       setAttachOpen(false);
-      setMessage('포도판을 연결했어요.');
+      setMessage({ text: '포도판을 연결했어요.', kind: 'success' });
       await fetchRelay();
     } catch (e) {
-      setMessage(e instanceof Error ? e.message : '참여에 실패했어요');
+      setMessage({ text: e instanceof Error ? e.message : '참여에 실패했어요', kind: 'error' });
     }
     setJoining(false);
   };
@@ -127,26 +138,30 @@ export default function RelayDetailPage() {
   const openAttach = async () => {
     setAttachOpen(true);
     setLoadingMyBoards(true);
+    setMyBoardsError(false);
     try {
       const data = await api<{ boards: BoardSummary[] }>('/api/boards');
       setMyBoards((data.boards || []).filter((b) => b.owner.id === user?.id && !b.isCompleted && !b.harvestedAt));
-    } catch { /* 빈 목록 */ }
+    } catch {
+      // F10: 실패를 무음 삼키지 않고 시트 내에서 에러+재시도로 노출(452의 진짜 '빈 목록'과 구별).
+      setMyBoardsError(true);
+    }
     setLoadingMyBoards(false);
   };
 
   const handlePass = async () => {
     setPassing(true);
-    setMessage('');
+    setMessage(null);
     try {
       const data = await api<{ message: string; relayCompleted: boolean }>(
         `/api/relays/${relayId}/pass`,
         { method: 'POST' },
       );
       feedbackRelay();
-      setMessage(data.message);
+      setMessage({ text: data.message, kind: 'success' });
       await fetchRelay();
     } catch (e) {
-      setMessage(e instanceof Error ? e.message : '바통 넘기기에 실패했어요');
+      setMessage({ text: e instanceof Error ? e.message : '바통 넘기기에 실패했어요', kind: 'error' });
     }
     setPassing(false);
   };
@@ -393,10 +408,17 @@ export default function RelayDetailPage() {
         )}
       </div>
 
-      {/* Action area */}
+      {/* Action area — F6: 성공(leaf)/실패(rose) 배너 분기, 4초 후 자동 소멸(위 effect) */}
       {message && (
-        <div className="clay-sm p-3 mb-4 text-center">
-          <p className="text-sm text-warm-text">{message}</p>
+        <div
+          role={message.kind === 'error' ? 'alert' : 'status'}
+          className={`clay-sm p-3 mb-4 text-center animate-bounce-in ${
+            message.kind === 'error' ? 'bg-rose-50 border border-rose-200' : 'bg-leaf-100/60'
+          }`}
+        >
+          <p className={`text-sm font-medium ${message.kind === 'error' ? 'text-rose-700' : 'text-leaf-700'}`}>
+            {message.text}
+          </p>
         </div>
       )}
 
@@ -448,6 +470,11 @@ export default function RelayDetailPage() {
           <div className="flex-1 overflow-y-auto pb-4">
             {loadingMyBoards ? (
               <div className="space-y-2">{[1, 2].map((i) => <div key={i} className="skeleton h-14 w-full" />)}</div>
+            ) : myBoardsError ? (
+              <div className="text-center py-8">
+                <p role="alert" className="text-sm text-rose-700 mb-3">불러오지 못했어요</p>
+                <RetryButton onRetry={openAttach} />
+              </div>
             ) : myBoards.length === 0 ? (
               <p className="text-sm text-warm-sub text-center py-8">불러올 진행중인 포도판이 없어요</p>
             ) : (

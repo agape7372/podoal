@@ -10,6 +10,7 @@ import Avatar from '@/components/Avatar';
 import EmojiIcon from '@/components/EmojiIcon';
 import EmptyState from '@/components/EmptyState';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import RetryButton from '@/components/RetryButton';
 import type { MessageInfo } from '@/types';
 
 export default function MessagesPage() {
@@ -23,6 +24,14 @@ export default function MessagesPage() {
   // 피드 도착 시 서버값으로 동기화한다(refreshUnreadCount가 store.unreadCount 갱신, 스로틀 있음).
   useEffect(() => {
     if (data) refreshUnreadCount();
+  }, [data]);
+
+  // F8: 상대시간 기준 시각 — 렌더 중 현재시각 호출 금지(react-hooks/purity)라 데이터
+  // 도착 시점에 고정(home/page.tsx:680 패턴). SSE 병합(아래 mutate)도 data를 갱신하므로
+  // 그때도 다시 캡처된다.
+  const [fetchedAt, setFetchedAt] = useState(0);
+  useEffect(() => {
+    if (data) setFetchedAt(new Date().getTime());
   }, [data]);
 
   // 실시간 반영: 메시지함에 머무는 중 SSE로 새 메시지가 도착하면 store.messages에
@@ -85,10 +94,9 @@ export default function MessagesPage() {
     router.push(`/board/${msg.boardId}`);
   };
 
-  const formatTime = (dateStr: string) => {
+  const formatTime = (dateStr: string, now: number) => {
     const d = new Date(dateStr);
-    const now = new Date();
-    const diffMs = now.getTime() - d.getTime();
+    const diffMs = now - d.getTime();
     const diffMin = Math.floor(diffMs / 60000);
     if (diffMin < 1) return '방금';
     if (diffMin < 60) return `${diffMin}분 전`;
@@ -130,7 +138,7 @@ export default function MessagesPage() {
         <div className="text-center py-12">
           <p className="font-display text-base text-warm-text mb-1.5">불러오지 못했어요</p>
           <p className="text-sm text-warm-sub mb-5">잠시 후 다시 시도해주세요</p>
-          <button onClick={refresh} className="clay-button px-5 py-2.5 rounded-2xl text-sm font-semibold text-grape-700">다시 불러오기</button>
+          <RetryButton onRetry={refresh} />
         </div>
       ) : messages.length === 0 ? (
         <EmptyState
@@ -171,7 +179,7 @@ export default function MessagesPage() {
                       {msg.content}
                     </p>
                     <p className="text-xs text-warm-sub mt-1">
-                      {formatTime(msg.createdAt)}
+                      {formatTime(msg.createdAt, fetchedAt)}
                     </p>
                   </div>
                 </div>

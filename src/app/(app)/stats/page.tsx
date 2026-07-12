@@ -8,6 +8,8 @@ import Heatmap from '@/components/Heatmap';
 import EmojiIcon from '@/components/EmojiIcon';
 import ClayButton from '@/components/ClayButton';
 import WeeklyRecapModal from '@/components/WeeklyRecapModal';
+import RetryButton from '@/components/RetryButton';
+import EmptyState from '@/components/EmptyState';
 import type { EnhancedStats } from '@/types';
 import { feedbackTap } from '@/lib/feedback';
 
@@ -73,7 +75,7 @@ export default function StatsPage() {
         <div className="text-center py-12">
           <p className="font-display text-base text-warm-text mb-1.5">불러오지 못했어요</p>
           <p className="text-sm text-warm-sub mb-5">잠시 후 다시 시도해주세요</p>
-          <button onClick={refresh} className="clay-button px-5 py-2.5 rounded-2xl text-sm font-semibold text-grape-700">다시 불러오기</button>
+          <RetryButton onRetry={refresh} />
         </div>
       </div>
     );
@@ -266,9 +268,13 @@ function StatCard({ icon, label, value, color }: { icon: string; label: string; 
 
 function DayOfWeekChart({ data }: { data: { day: string; count: number }[] }) {
   const maxCount = Math.max(...data.map((d) => d.count), 1);
+  // F14: 차트 자체엔 role/aria가 없어 스크린리더가 막대만으론 내용을 알 수 없었다 —
+  // 최다 활동 요일 요약을 aria-label로 제공(시각 변화 0).
+  const topDay = data.length > 0 ? data.reduce((best, d) => (d.count > best.count ? d : best), data[0]) : null;
+  const summary = topDay ? `요일별 활동, ${topDay.day}요일이 ${topDay.count}개로 가장 많음` : '요일별 활동';
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2" role="img" aria-label={summary}>
       {data.map((d) => (
         <div key={d.day} className="flex items-center gap-2">
           <span className="text-xs text-warm-sub w-5 text-right shrink-0">{d.day}</span>
@@ -293,7 +299,7 @@ function CircularProgress({ value }: { value: number }) {
   const strokeDashoffset = circumference - (value / 100) * circumference;
 
   return (
-    <div className="flex justify-center">
+    <div className="flex justify-center" role="img" aria-label={`완료율 ${value}%`}>
       <div className="relative w-32 h-32">
         <svg className="w-full h-full -rotate-90" viewBox={`0 0 ${radius * 2} ${radius * 2}`}>
           {/* Background circle */}
@@ -342,8 +348,12 @@ function MonthlyChart({ data }: { data: { month: string; count: number }[] }) {
     return `${parseInt(parts[1])}월`;
   };
 
+  // F14: 최다 월 요약을 aria-label로 제공(시각 변화 0).
+  const topMonth = data.length > 0 ? data.reduce((best, d) => (d.count > best.count ? d : best), data[0]) : null;
+  const summary = topMonth ? `월별 추이, ${formatMonth(topMonth.month)}에 ${topMonth.count}개로 가장 많음` : '월별 추이';
+
   return (
-    <div className="flex items-end justify-between gap-2 h-32">
+    <div className="flex items-end justify-between gap-2 h-32" role="img" aria-label={summary}>
       {data.map((d) => (
         <div key={d.month} className="flex flex-col items-center gap-1 flex-1">
           <span className="text-[10px] text-warm-sub tabular-nums">{d.count}</span>
@@ -364,9 +374,12 @@ function MonthlyChart({ data }: { data: { month: string; count: number }[] }) {
 function CategoryBreakdown({ data }: { data: { category: string; count: number }[] }) {
   if (data.length === 0) {
     return (
-      <p className="text-sm text-warm-sub text-center py-4">
-        아직 카테고리 데이터가 없어요
-      </p>
+      <EmptyState
+        fallbackEmoji="🍇"
+        artSize={64}
+        title="아직 카테고리 데이터가 없어요"
+        className="py-4"
+      />
     );
   }
 

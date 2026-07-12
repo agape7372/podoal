@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { api } from '@/lib/api';
 import { useCachedApi } from '@/lib/cachedApi';
 import EmojiIcon from './EmojiIcon';
+import EmptyState from './EmptyState';
+import RetryButton from './RetryButton';
 import RewardRevealModal from './RewardRevealModal';
 import { stripTitleEmoji } from '@/lib/title';
 import { REWARD_TYPE_ICON } from '@/lib/icons';
@@ -96,14 +98,15 @@ export default function RewardList() {
         <div className="text-center py-12">
           <p className="font-display text-base text-warm-text mb-1.5">불러오지 못했어요</p>
           <p className="text-sm text-warm-sub mb-5">잠시 후 다시 시도해주세요</p>
-          <button onClick={refresh} className="clay-button px-5 py-2.5 rounded-2xl text-sm font-semibold text-grape-700">다시 불러오기</button>
+          <RetryButton onRetry={refresh} />
         </div>
       ) : filtered.length === 0 ? (
-        <div className="text-center py-12">
-          <EmojiIcon emoji="🍇" size={40} className="block mx-auto mb-3" />
-          <p className="text-warm-sub">{filter === 'all' ? '아직 받은 보상이 없어요' : '이 종류의 보상이 없어요'}</p>
-          <p className="text-xs text-warm-sub mt-1 text-balance">포도판을 채워 보상을 모아보세요!</p>
-        </div>
+        <EmptyState
+          fallbackEmoji="🍇"
+          artSize={80}
+          title={filter === 'all' ? '아직 받은 보상이 없어요' : '이 종류의 보상이 없어요'}
+          description="포도판을 채워 보상을 모아보세요!"
+        />
       ) : (
         <div className="grid grid-cols-2 gap-3">
           {filtered.map((r) => {

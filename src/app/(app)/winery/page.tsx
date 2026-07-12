@@ -12,6 +12,7 @@ import Link from 'next/link';
 import WineBottle, { BOTTLE_BASELINE_H, BOTTLE_ROW_H } from '@/components/WineBottle';
 import EmojiIcon from '@/components/EmojiIcon';
 import EmptyState from '@/components/EmptyState';
+import RetryButton from '@/components/RetryButton';
 import Chevron from '@/components/Chevron';
 import Confetti from '@/components/Confetti';
 import { stripTitleEmoji } from '@/lib/title';
@@ -292,7 +293,7 @@ export default function WineryPage() {
         <div className="text-center py-12">
           <p className="font-display text-base text-warm-text mb-1.5">불러오지 못했어요</p>
           <p className="text-sm text-warm-sub mb-5">잠시 후 다시 시도해주세요</p>
-          <button onClick={refresh} className="clay-button px-5 py-2.5 rounded-2xl text-sm font-semibold text-grape-700">다시 불러오기</button>
+          <RetryButton onRetry={refresh} />
         </div>
       </div>
     );

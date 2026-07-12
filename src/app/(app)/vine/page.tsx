@@ -3,6 +3,7 @@
 import { useCachedApi } from '@/lib/cachedApi';
 import EmojiIcon from '@/components/EmojiIcon';
 import EmptyState from '@/components/EmptyState';
+import RetryButton from '@/components/RetryButton';
 
 interface ActivityItem {
   type: 'sticker' | 'board_complete' | 'capsule_open';
@@ -76,7 +77,7 @@ export default function VinePage() {
           <EmojiIcon emoji="😥" size={48} className="block mx-auto mb-4" />
           <p className="text-sm text-warm-text mb-1">불러오지 못했어요</p>
           <p className="text-xs text-warm-sub mb-5">잠시 후 다시 시도해주세요</p>
-          <button onClick={refresh} className="clay-button px-5 py-2.5 rounded-2xl text-sm font-semibold text-grape-700">다시 불러오기</button>
+          <RetryButton onRetry={refresh} />
         </div>
       </div>
     );
