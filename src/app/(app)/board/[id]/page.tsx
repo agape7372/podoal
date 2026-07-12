@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { api, ApiError } from '@/lib/api';
 import { useAppStore } from '@/lib/store';
-import GrapeBoard, { type GrapeBoardHandle } from '@/components/GrapeBoard';
+import GrapeBoard, { type GrapeBoardHandle, CELEBRATION_PEAK_MS } from '@/components/GrapeBoard';
 import Confetti from '@/components/Confetti';
 import GiftUnboxModal from '@/components/GiftUnboxModal';
 import SurpriseRevealModal from '@/components/SurpriseRevealModal';
@@ -554,7 +554,7 @@ export default function BoardDetailPage() {
             api(`/api/boards/${id}/rewards/${u.id}/reveal`, { method: 'POST' })
               .catch(() => {})
               .then(() => { if (aliveRef.current) fetchBoard(); });
-          }, 2400);
+          }, CELEBRATION_PEAK_MS + 750); // 완성 비트(임팩트+1650ms) 뒤 ~0.75초 = 종전 2400ms
         }
       }
 

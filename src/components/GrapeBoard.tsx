@@ -12,6 +12,12 @@ import { progressPercent } from '@/lib/format';
 import { composeBunchMask } from '@/lib/liquidMask';
 import type { BoardDetail, RewardInfo } from '@/types';
 
+/** 완성 축하 시퀀스의 '상승 피크' 비트가 임팩트(t=0)로부터 울리는 절대 시각(ms).
+ *  소리·컨페티·샤인·스파클이 이 시각에 한 박자로 터진다(playCompletionSequence 참조).
+ *  board/[id]의 완성 보상 자동개봉이 이 비트에서 파생되도록 export한다 — 비트 타이밍을
+ *  바꿔도 자동개봉이 조용히 어긋나지 않게 하는 단일 출처(F17). */
+export const CELEBRATION_PEAK_MS = 1650;
+
 interface GrapeBoardProps {
   board: BoardDetail;
   onFill: (position: number) => Promise<void>;
@@ -491,7 +497,7 @@ const GrapeBoardInner = forwardRef<GrapeBoardHandle, GrapeBoardProps>(function G
         }
         // 페이드(550ms)·glow(1000ms)·스파클(지연 220+350 + 900 = ~1470ms) 종료 후 일괄 제거
         timeouts.push(setTimeout(cleanup, 1550));
-      }, 1500));
+      }, CELEBRATION_PEAK_MS - 150)); // 비트 절대시각 − 액체 시작 오프셋(150ms) = 1500ms(종전과 동일)
     }, 150));
   }, [onCelebrate]);
 

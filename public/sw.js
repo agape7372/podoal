@@ -1,9 +1,15 @@
 // IMPORTANT: bump CACHE_VERSION whenever you change which assets you want to
 // invalidate on the next deploy. The activate handler deletes every cache
 // whose name doesn't match the current value, so users get a fresh shell.
-const CACHE_VERSION = '2026-07-03-art-infra';
+const CACHE_VERSION = '2026-07-13-shell-cleanup';
 const CACHE_NAME = `podoal-${CACHE_VERSION}`;
-const APP_SHELL = ['/', '/home', '/manifest.json'];
+// HTML navigations are network-first (see fetch handler), so precached documents
+// are never served on normal navigations. '/' was true dead code (nothing
+// references it) and is removed. '/home' MUST stay: the navigate handler's
+// offline fallback is `caches.match(request) || caches.match('/home')` — the
+// precache guarantees that fallback exists even before the first online visit
+// runtime-caches it.
+const APP_SHELL = ['/home', '/manifest.json'];
 
 // Install: cache app shell
 self.addEventListener('install', (event) => {
