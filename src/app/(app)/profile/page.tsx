@@ -26,8 +26,21 @@ export default function ProfilePage() {
   const user = useAppStore((s) => s.user);
   // 인증이 자식 렌더와 병렬로 진행되므로(레이아웃이 user 로딩을 기다리지 않음)
   // user가 아직 없을 때 폼이 마운트되면 useState 초기값이 빈값으로 굳는다 →
-  // user가 준비된 뒤에 폼 컴포넌트를 마운트해 초기값을 보장한다.
-  if (!user) return null;
+  // user가 준비된 뒤에 폼 컴포넌트를 마운트해 초기값을 보장한다. auth 리다이렉트는
+  // 레이아웃이 담당 — 여기서는 그 사이의 blank 화면만 헤더+아바타 스켈레톤으로 메운다.
+  if (!user) {
+    return (
+      <div className="pb-4">
+        <div className="flex items-center gap-3.5 mb-7">
+          <div className="skeleton w-20 h-20 rounded-full shrink-0" />
+          <div className="min-w-0 flex-1 space-y-2">
+            <div className="skeleton h-6 w-32" />
+            <div className="skeleton h-4 w-44" />
+          </div>
+        </div>
+      </div>
+    );
+  }
   return <ProfileView user={user} />;
 }
 

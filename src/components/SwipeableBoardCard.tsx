@@ -106,7 +106,7 @@ export default function SwipeableBoardCard({
                 ? 'text-leaf-700 hover:bg-leaf-100/40 active:bg-leaf-100/60 group-data-[commit=1]/tray:bg-leaf-100/70'
                 : canHarvest
                   ? 'text-grape-700 hover:bg-grape-300/15 active:bg-grape-300/25 group-data-[commit=1]/tray:bg-grape-300/30'
-                  : 'text-warm-light cursor-not-allowed'
+                  : 'text-warm-sub cursor-not-allowed'
             }`}
           >
             {/* 시안 v2 1번의 단색 포도(currentColor) — 컬러 fluent 이모지는 고스트 톤을 깸 */}

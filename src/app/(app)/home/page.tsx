@@ -826,8 +826,10 @@ export default function HomePage() {
           title={filter === 'all' ? '아직 포도판이 없어요' : filter === 'active' ? '진행중인 포도판이 없어요' : filter === 'completed' ? '완료한 포도판이 없어요' : '수확한 포도판이 없어요'}
           description={filter === 'all' ? '한 알씩 채워볼 첫 판을 만들어 보세요' : undefined}
         >
-          {filter === 'all' && (
-            /* href(<Link>): 보드 0개 신규 사용자 경로도 /board/create 프리페치를 받는다(FAB와 동일). */
+          {(filter === 'all' || boards.length === 0) && (
+            /* href(<Link>): 보드 0개 신규 사용자 경로도 /board/create 프리페치를 받는다(FAB와 동일).
+               boards.length === 0 분기: 필터가 '전체'가 아니어도(예: localStorage에 남은 이전
+               필터) 보드가 실제로 0개면 생성 진입점이 사라지면 안 된다(데드엔드 방지). */
             <ClayButton variant="joyful" href="/board/create" onClick={feedbackTap}>
               포도판 만들기
             </ClayButton>

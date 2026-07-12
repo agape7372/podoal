@@ -30,7 +30,7 @@ const variantStyles: Record<NonNullable<ClayButtonProps['variant']>, string> = {
   ghost:
     'bg-transparent text-warm-text border-transparent hover:bg-grape-100 shadow-none',
   danger:
-    'bg-grape-700 hover:bg-grape-800 text-white border-warm-border',
+    'bg-rose-500 hover:bg-rose-600 text-white border-warm-border',
   joyful:
     'text-warm-text border-warm-border ' +
     'bg-linear-to-br from-grape-300 via-grape-400 to-lime-300 ' +

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useAppStore } from '@/lib/store';
 import Avatar from './Avatar';
+import EmojiIcon from './EmojiIcon';
 
 export default function MessagePopup() {
   const popupMessage = useAppStore((s) => s.popupMessage);
@@ -32,7 +33,7 @@ export default function MessagePopup() {
               {popupMessage.sender.name}
             </p>
             <p className="text-warm-text mt-0.5 text-sm">
-              <span className="mr-1">{popupMessage.emoji}</span>
+              <EmojiIcon emoji={popupMessage.emoji} size={16} className="mr-1" />
               {popupMessage.content}
             </p>
           </div>
