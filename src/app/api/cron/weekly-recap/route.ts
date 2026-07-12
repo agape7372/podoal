@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { sendPushToUser } from '@/lib/push';
+import { verifyCronAuth } from '@/lib/cronAuth';
 
 // 주간 회고 결산 푸시 — 최근 7일(KST, 오늘 포함) 포도알을 채운 사용자에게만
 // "이번 주 N개" 결산을 보내 /stats의 주간 카드로 유도한다. reminders.yml과
@@ -12,13 +13,14 @@ import { sendPushToUser } from '@/lib/push';
 // 여부를 반환하지 않아(fire-and-forget) sent 카운트에 반영되지 않으므로,
 // 크론 응답으로 게이팅을 증명하려면 후보 산출 단계에서 걸러야 한다.
 const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
+// 푸시 발송 배치 크기(B6) — 순차 await 대신 이 크기의 Promise.allSettled 청크로 발송.
+const CRON_PUSH_CHUNK = 10;
 
 export async function GET(request: Request) {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) {
+  if (!process.env.CRON_SECRET) {
     return NextResponse.json({ error: 'CRON_SECRET not configured' }, { status: 503 });
   }
-  if (request.headers.get('authorization') !== `Bearer ${secret}`) {
+  if (!verifyCronAuth(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -43,20 +45,28 @@ export async function GET(request: Request) {
   });
   const optedOutIds = new Set(optedOut.map((o) => o.userId));
 
+  // 옵트아웃 제외한 대상만 발송 — weeklyRecapEnabled 필터 의미 불변(false만 제외).
+  const recipients = weekly.filter((w) => !optedOutIds.has(w.filledBy));
+
+  // 순차 await → 청크(CRON_PUSH_CHUNK) 단위 Promise.allSettled 배치(B6): 대상 증가 시
+  // 서버리스 타임아웃 방지. 개별 실패 격리(sendPushToUser는 throw 안 함 — push.ts).
   let sent = 0;
-  for (const w of weekly) {
-    if (optedOutIds.has(w.filledBy)) continue;
-    await sendPushToUser(
-      w.filledBy,
-      {
-        title: '이번 주 포도 농사 결산 🍇',
-        body: `이번 주 포도알 ${w._count._all}개를 모았어요. 주간 카드를 확인해보세요`,
-        url: '/stats',
-        tag: `weekly-recap-${date}`,
-      },
-      'weeklyRecap',
+  for (let i = 0; i < recipients.length; i += CRON_PUSH_CHUNK) {
+    const results = await Promise.allSettled(
+      recipients.slice(i, i + CRON_PUSH_CHUNK).map(async (w) => {
+        await sendPushToUser(
+          w.filledBy,
+          {
+            title: '이번 주 포도 농사 결산 🍇',
+            body: `이번 주 포도알 ${w._count._all}개를 모았어요. 주간 카드를 확인해보세요`,
+            url: '/stats',
+            tag: `weekly-recap-${date}`,
+          },
+          'weeklyRecap',
+        );
+      }),
     );
-    sent++;
+    sent += results.filter((x) => x.status === 'fulfilled').length;
   }
 
   return NextResponse.json({

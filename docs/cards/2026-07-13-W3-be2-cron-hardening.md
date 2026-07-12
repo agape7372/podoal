@@ -1,4 +1,4 @@
-상태: 대기
+상태: 완료 (2026-07-13 — 게이트 7항 + 라이브: 오인증 401 계약 확인(.env.local 시크릿 존재 환경). timingSafeEqual은 sha256 고정길이 해시 후 비교(길이 비노출). 배치·쿼리 dedupe 의미 불변 코드 리뷰 완료)
 
 ## BE-2: cron 경화 — timingSafeEqual·푸시 배치·쿼리측 dedupe (B2·B6·B9)
 

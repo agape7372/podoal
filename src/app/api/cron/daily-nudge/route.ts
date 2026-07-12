@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { sendPushToUser } from '@/lib/push';
 import { shouldSendNudge } from '@/lib/nudge';
+import { verifyCronAuth } from '@/lib/cronAuth';
 
 // 일일 넛지(위젯 대용) — 진행중(미완료·미수확) 포도판이 있고 **데일리 넛지를 켠(opt-in)**
 // 사용자에게 하루 1회 "아직 채울 한 알이 남았어요" 푸시. reminders.yml 과 동일하게
@@ -10,13 +11,14 @@ import { shouldSendNudge } from '@/lib/nudge';
 // - 중복 가드: lastNudgeSentAt이 오늘(KST)이면 스킵, 발송 후 갱신 (Reminder.lastSentAt 패턴)
 // - 카테고리 'reminder' 라 NotificationSetting(global/reminder/DND) 게이팅도 그대로 적용된다.
 const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
+// 푸시 발송 배치 크기(B6) — 순차 await 대신 이 크기의 Promise.allSettled 청크로 발송.
+const CRON_PUSH_CHUNK = 10;
 
 export async function GET(request: Request) {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) {
+  if (!process.env.CRON_SECRET) {
     return NextResponse.json({ error: 'CRON_SECRET not configured' }, { status: 503 });
   }
-  if (request.headers.get('authorization') !== `Bearer ${secret}`) {
+  if (!verifyCronAuth(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -40,33 +42,36 @@ export async function GET(request: Request) {
     select: { userId: true, dailyNudgeEnabled: true, lastNudgeSentAt: true },
   });
 
+  // 오늘(KST) 이미 발송한 사용자는 사전 제외(skipped, 크론 중복 실행 가드) — 나머지만 발송.
+  const toSend = optedIn.filter((setting) => shouldSendNudge(setting, now));
+  const skipped = optedIn.length - toSend.length;
+
+  // 순차 await → 청크(CRON_PUSH_CHUNK) 단위 Promise.allSettled 배치(B6): 대상 증가 시
+  // 서버리스 타임아웃 방지. 개별 실패 격리(현행 try/catch와 동등 — rejected=failed),
+  // 발송 후 lastNudgeSentAt 마킹 순서·의미 불변.
   let sent = 0;
-  let skipped = 0;
   let failed = 0;
-  for (const setting of optedIn) {
-    if (!shouldSendNudge(setting, now)) {
-      skipped++; // 오늘(KST) 이미 발송 — 크론 중복 실행 가드
-      continue;
-    }
-    try {
-      await sendPushToUser(
-        setting.userId,
-        {
-          title: '🍇 포도알',
-          body: '아직 채울 한 알이 남았어요. 오늘도 한 알 어때요?',
-          url: '/home',
-          tag: `daily-nudge-${date}`,
-        },
-        'reminder',
-      );
-      await prisma.notificationSetting.update({
-        where: { userId: setting.userId },
-        data: { lastNudgeSentAt: new Date() },
-      });
-      sent++;
-    } catch {
-      failed++; // 개별 실패가 나머지 발송을 막지 않게
-    }
+  for (let i = 0; i < toSend.length; i += CRON_PUSH_CHUNK) {
+    const results = await Promise.allSettled(
+      toSend.slice(i, i + CRON_PUSH_CHUNK).map(async (setting) => {
+        await sendPushToUser(
+          setting.userId,
+          {
+            title: '🍇 포도알',
+            body: '아직 채울 한 알이 남았어요. 오늘도 한 알 어때요?',
+            url: '/home',
+            tag: `daily-nudge-${date}`,
+          },
+          'reminder',
+        );
+        await prisma.notificationSetting.update({
+          where: { userId: setting.userId },
+          data: { lastNudgeSentAt: new Date() },
+        });
+      }),
+    );
+    sent += results.filter((x) => x.status === 'fulfilled').length;
+    failed += results.filter((x) => x.status === 'rejected').length;
   }
 
   return NextResponse.json({

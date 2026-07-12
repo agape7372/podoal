@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { sendPushToUser, inDnd } from '@/lib/push';
 import { computeFillPace } from '@/lib/pace';
 import { zonedDateKey } from '@/lib/streak';
+import { verifyCronAuth } from '@/lib/cronAuth';
 
 // Server-side reminder dispatcher. Hit on a schedule by the GitHub Actions
 // workflow (.github/workflows/reminders.yml, ~every 5 min) — this is what makes
@@ -12,6 +13,8 @@ import { zonedDateKey } from '@/lib/streak';
 //
 // Protect with CRON_SECRET env; the caller sends `Authorization: Bearer <CRON_SECRET>`.
 const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
+// 푸시 발송 배치 크기(B6) — 순차 await 대신 이 크기의 Promise.allSettled 청크로 발송.
+const CRON_PUSH_CHUNK = 10;
 
 function kstNowParts() {
   const shifted = new Date(Date.now() + KST_OFFSET_MS);
@@ -21,10 +24,6 @@ function kstNowParts() {
   const jsDow = shifted.getUTCDay(); // 0=Sun..6=Sat
   const dow = jsDow === 0 ? 7 : jsDow; // 1=Mon..7=Sun (matches schema `days`)
   return { date, hhmm: `${hh}:${mm}`, dow };
-}
-
-function kstDateOf(d: Date): string {
-  return new Date(d.getTime() + KST_OFFSET_MS).toISOString().split('T')[0];
 }
 
 // ripe 분기 전용 — 리마인더 `days`(1=월..7=일) 스키마와 맞춘 요일 계산. 오너 타임존 기준
@@ -40,41 +39,57 @@ export async function GET(request: Request) {
   if (!secret) {
     return NextResponse.json({ error: 'CRON_SECRET not configured' }, { status: 503 });
   }
-  if (request.headers.get('authorization') !== `Bearer ${secret}`) {
+  if (!verifyCronAuth(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const { date, hhmm, dow } = kstNowParts();
 
   // Due reminders: active + scheduled time already reached today (time <= now).
-  // Day-of-week match + once-per-day dedupe (lastSentAt) handled in JS below.
-  // Using `lte` (not exact-minute) so a coarse ~5-min cron still fires each
-  // reminder on its first run at/after the set time — no minute-precise hit needed.
+  // Day-of-week match handled in JS below; once-per-day dedupe (lastSentAt) is now
+  // pushed into the query (B9) so we don't load already-sent rows — leverages the
+  // @@index([isActive, time]) index. Using `lte` (not exact-minute) so a coarse
+  // ~5-min cron still fires each reminder on its first run at/after the set time.
   // type='ripe'는 별도 분기(아래)에서 처리 — 시간 무관이라 이 시간 임계 쿼리에 안 걸려야
   // 한다. 미인식 type은 fail-open으로 여기(time 취급)에 남는다.
+  // KST 당일 경계(weekly-recap과 동일 방식): 오늘 00:00 KST의 UTC 시각.
+  const nowKstMs = Date.now() + KST_OFFSET_MS;
+  const kstDayStart = new Date(Math.floor(nowKstMs / 86_400_000) * 86_400_000 - KST_OFFSET_MS);
   const candidates = await prisma.reminder.findMany({
-    where: { isActive: true, time: { lte: hhmm }, type: { not: 'ripe' } },
+    where: {
+      isActive: true,
+      time: { lte: hhmm },
+      type: { not: 'ripe' },
+      // 오늘(KST) 아직 안 보낸 것만: 미발송(null) 또는 당일 경계 이전 발송분.
+      OR: [{ lastSentAt: null }, { lastSentAt: { lt: kstDayStart } }],
+    },
     include: { board: { select: { title: true } } },
   });
 
-  let sent = 0;
-  for (const r of candidates) {
-    const days = r.days.split(',').map((d) => parseInt(d, 10));
-    if (!days.includes(dow)) continue;
-    if (r.lastSentAt && kstDateOf(r.lastSentAt) === date) continue; // already fired today
+  // 요일(days CSV) 필터만 JS 잔류(스키마가 CSV 문자열) — 당일 dedupe는 위 쿼리로 이관됨.
+  const due = candidates.filter((r) => r.days.split(',').map((d) => parseInt(d, 10)).includes(dow));
 
-    await sendPushToUser(
-      r.userId,
-      {
-        title: '🍇 포도알 리마인더',
-        body: r.message || (r.board?.title ? `${r.board.title} 시간이에요!` : '오늘의 포도알을 채워보세요!'),
-        url: '/home',
-        tag: `reminder-${r.id}-${date}`,
-      },
-      'reminder'
+  // 순차 await → 청크(CRON_PUSH_CHUNK) 단위 Promise.allSettled 배치(B6): 대상 증가 시
+  // 서버리스 타임아웃 방지. 발송 후 lastSentAt 마킹 순서·의미 불변, 개별 실패는 격리
+  // (sendPushToUser는 내부 try/catch로 throw 안 함 — push.ts).
+  let sent = 0;
+  for (let i = 0; i < due.length; i += CRON_PUSH_CHUNK) {
+    const results = await Promise.allSettled(
+      due.slice(i, i + CRON_PUSH_CHUNK).map(async (r) => {
+        await sendPushToUser(
+          r.userId,
+          {
+            title: '🍇 포도알 리마인더',
+            body: r.message || (r.board?.title ? `${r.board.title} 시간이에요!` : '오늘의 포도알을 채워보세요!'),
+            url: '/home',
+            tag: `reminder-${r.id}-${date}`,
+          },
+          'reminder'
+        );
+        await prisma.reminder.update({ where: { id: r.id }, data: { lastSentAt: new Date() } });
+      }),
     );
-    await prisma.reminder.update({ where: { id: r.id }, data: { lastSentAt: new Date() } });
-    sent++;
+    sent += results.filter((x) => x.status === 'fulfilled').length;
   }
 
   // ─── ripe 리마인더 분기(C4-c, FILL_CADENCE_PLAN §7) ─────────────────────────
@@ -102,8 +117,11 @@ export async function GET(request: Request) {
     },
   });
 
-  let ripeSent = 0;
   const now = new Date();
+  // 발송 대상 선별(순수 판정, 부작용 없음) — DND 사전판정·ripe 분기·dedupe 의미 불변.
+  // 발송/마킹만 아래에서 배치하고, 필터는 그대로 순차 판정한다(타임존이 유저별이라
+  // 쿼리 이관 불가). todayKey는 발송 tag에 쓰이므로 함께 실어둔다.
+  const ripeToSend: { r: (typeof ripeReminders)[number]; todayKey: string }[] = [];
   for (const r of ripeReminders) {
     if (!r.board) continue; // ripe는 boardId 필수 — 방어적 스킵(고아 데이터 대비)
     if (r.board.isCompleted || r.board.harvestedAt) continue; // 완료·수확 보드는 "익음" 없음
@@ -135,18 +153,29 @@ export async function GET(request: Request) {
     const setting = r.user.notificationSetting;
     if (setting && inDnd(setting.dndStart, setting.dndEnd)) continue;
 
-    await sendPushToUser(
-      r.userId,
-      {
-        title: '🍇 포도알 리마인더',
-        body: r.message || '포도알이 다 익었어요 🍇',
-        url: '/home',
-        tag: `reminder-${r.id}-${todayKey}`,
-      },
-      'reminder'
+    ripeToSend.push({ r, todayKey });
+  }
+
+  // 선별된 대상만 청크(CRON_PUSH_CHUNK) 배치 발송(B6) — 순차 await 제거, 발송 후 마킹
+  // 순서·의미 불변, 개별 실패 격리.
+  let ripeSent = 0;
+  for (let i = 0; i < ripeToSend.length; i += CRON_PUSH_CHUNK) {
+    const results = await Promise.allSettled(
+      ripeToSend.slice(i, i + CRON_PUSH_CHUNK).map(async ({ r, todayKey }) => {
+        await sendPushToUser(
+          r.userId,
+          {
+            title: '🍇 포도알 리마인더',
+            body: r.message || '포도알이 다 익었어요 🍇',
+            url: '/home',
+            tag: `reminder-${r.id}-${todayKey}`,
+          },
+          'reminder'
+        );
+        await prisma.reminder.update({ where: { id: r.id }, data: { lastSentAt: now } });
+      }),
     );
-    await prisma.reminder.update({ where: { id: r.id }, data: { lastSentAt: now } });
-    ripeSent++;
+    ripeSent += results.filter((x) => x.status === 'fulfilled').length;
   }
 
   return NextResponse.json({
