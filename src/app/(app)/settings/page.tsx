@@ -8,6 +8,8 @@ import { getConsent, setConsent } from '@/lib/analytics';
 import { api } from '@/lib/api';
 import EmojiIcon from '@/components/EmojiIcon';
 import Chevron from '@/components/Chevron';
+// 공용 `src/components/Toggle.tsx`가 정본 (2026-07-13 FE-1) — 이 페이지의 구현이 그 시각 정본의 원본.
+import Toggle from '@/components/Toggle';
 
 // 설정 허브 — 컨트롤은 하위 페이지가 갖는다. 사운드·진동 토글은 /settings/sound,
 // 알림 관련 컨트롤은 전부 알림 설정 탭으로 통합(REQ7).
@@ -19,24 +21,6 @@ const settingLinks = [
 // "하루의 시작"(FILL_CADENCE_PLAN §4, C4-b) — 0~6시 중 선택. 스트릭·통계·텀 판정의
 // 날짜 경계라 알림이 아닌 여기 소속.
 const DAY_RESET_HOURS = [0, 1, 2, 3, 4, 5, 6];
-
-// /settings/sound 페이지의 토글 스위치 마크업을 그대로 모방(신규 토글 컴포넌트 발명 금지 — W3 스펙).
-function Toggle({ enabled, onToggle, ariaLabel }: { enabled: boolean; onToggle: () => void; ariaLabel: string }) {
-  return (
-    <button
-      role="switch"
-      aria-checked={enabled}
-      aria-label={ariaLabel}
-      onClick={onToggle}
-      className={`w-12 h-7 shrink-0 rounded-full transition-colors duration-200 relative ${
-        enabled ? 'bg-linear-to-r from-grape-400 to-grape-500' : 'bg-warm-border'
-      }`}
-    >
-      {/* sound 페이지 원본은 transition-all이지만 신규 코드 반입 금지(리뷰 게이트 3) — 변하는 속성만 명시. */}
-      <div className={`w-5 h-5 rounded-full bg-white shadow-md absolute top-1 transition-[left] duration-200 ${enabled ? 'left-6' : 'left-1'}`} />
-    </button>
-  );
-}
 
 export default function SettingsPage() {
   const settings = useAppStore((s) => s.settings);
@@ -159,7 +143,7 @@ export default function SettingsPage() {
           ))}
         </div>
         {hourError && (
-          <p role="alert" className="text-rose-700 text-xs mt-2">{hourError}</p>
+          <p role="alert" className="text-rose-500 text-xs mt-2">{hourError}</p>
         )}
       </section>
 

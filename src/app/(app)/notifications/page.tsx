@@ -10,6 +10,9 @@ import type { NotificationSettingInfo, ReminderInfo, BoardSummary } from '@/type
 import { stripTitleEmoji } from '@/lib/title';
 import { usePush } from '@/lib/usePush';
 import { useAppStore } from '@/lib/store';
+// 공용 `src/components/Toggle.tsx`가 정본 (2026-07-13 FE-1) — size:'large' 변형은 그대로 지원.
+import Toggle from '@/components/Toggle';
+import RetryButton from '@/components/RetryButton';
 
 const DAY_LABELS: Record<string, string> = {
   '1': '월', '2': '화', '3': '수', '4': '목', '5': '금', '6': '토', '7': '일',
@@ -21,44 +24,6 @@ const CATEGORY_ITEMS = [
   { key: 'relayEnabled' as const, icon: '🔗', label: '릴레이 알림', desc: '릴레이 순서 및 완료 알림' },
   { key: 'reminderEnabled' as const, icon: '⏰', label: '리마인더 알림', desc: '설정한 리마인더 알림' },
 ];
-
-function Toggle({
-  enabled,
-  onToggle,
-  size = 'default',
-  ariaLabel,
-}: {
-  enabled: boolean;
-  onToggle: () => void;
-  size?: 'default' | 'large';
-  ariaLabel?: string;
-}) {
-  const isLarge = size === 'large';
-  return (
-    <button
-      role="switch"
-      aria-checked={enabled}
-      aria-label={ariaLabel}
-      onClick={onToggle}
-      className={`
-        ${isLarge ? 'w-14 h-8' : 'w-12 h-7'} shrink-0 rounded-full transition-all duration-200 relative
-        ${enabled
-          ? 'bg-linear-to-r from-grape-400 to-grape-500'
-          : 'bg-warm-border'
-        }
-      `}
-    >
-      <div className={`
-        ${isLarge ? 'w-6 h-6' : 'w-5 h-5'} rounded-full bg-white shadow-md absolute top-1
-        transition-all duration-200
-        ${enabled
-          ? isLarge ? 'left-7' : 'left-6'
-          : 'left-1'
-        }
-      `} />
-    </button>
-  );
-}
 
 export default function NotificationsPage() {
   const [settings, setSettings] = useState<NotificationSettingInfo | null>(null);
@@ -184,7 +149,7 @@ export default function NotificationsPage() {
         <div className="text-center py-12">
           <p className="text-sm text-warm-text mb-1">알림 설정을 불러오지 못했어요</p>
           <p className="text-xs text-warm-sub mb-5">잠시 후 다시 시도해주세요</p>
-          <button onClick={fetchData} className="clay-button px-5 py-2.5 rounded-2xl text-sm font-semibold text-grape-700">다시 불러오기</button>
+          <RetryButton onRetry={fetchData} />
         </div>
       </div>
     );
@@ -254,7 +219,7 @@ export default function NotificationsPage() {
               className="clay-input text-center text-sm font-medium"
             />
           </div>
-          <span className="text-warm-light mt-5">~</span>
+          <span className="text-warm-sub mt-5">~</span>
           <div className="flex-1">
             <label className="block text-xs text-warm-sub mb-1 ml-1">종료</label>
             <input
@@ -427,7 +392,7 @@ export default function NotificationsPage() {
                     <Toggle
                       enabled={reminder.isActive}
                       onToggle={() => toggleReminderActive(reminder)}
-                      ariaLabel={`${reminder.time} 리마인더 켜기`}
+                      ariaLabel={reminder.type === 'ripe' ? '익으면 알림 리마인더 켜기' : `${reminder.time} 리마인더 켜기`}
                     />
                   </div>
                 </div>

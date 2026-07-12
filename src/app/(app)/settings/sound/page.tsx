@@ -6,22 +6,8 @@ import { useAppStore } from '@/lib/store';
 import { feedbackTap } from '@/lib/feedback';
 import EmojiIcon from '@/components/EmojiIcon';
 import Chevron from '@/components/Chevron';
-
-function Toggle({ enabled, onToggle, ariaLabel }: { enabled: boolean; onToggle: () => void; ariaLabel: string }) {
-  return (
-    <button
-      role="switch"
-      aria-checked={enabled}
-      aria-label={ariaLabel}
-      onClick={onToggle}
-      className={`w-12 h-7 shrink-0 rounded-full transition-all duration-200 relative ${
-        enabled ? 'bg-linear-to-r from-grape-400 to-grape-500' : 'bg-warm-border'
-      }`}
-    >
-      <div className={`w-5 h-5 rounded-full bg-white shadow-md absolute top-1 transition-all duration-200 ${enabled ? 'left-6' : 'left-1'}`} />
-    </button>
-  );
-}
+// 공용 `src/components/Toggle.tsx`가 정본 (2026-07-13 FE-1)
+import Toggle from '@/components/Toggle';
 
 export default function SoundSettingsPage() {
   const router = useRouter();
