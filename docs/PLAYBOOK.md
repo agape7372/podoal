@@ -78,6 +78,7 @@ npm run dev                            # localhost:3000
 | `VAPID_SUBJECT` | 웹푸시 연락처 (기본 mailto:noreply@podoal.app) | 기본값 사용 |
 | `GOOGLE/KAKAO/NAVER_CLIENT_ID/SECRET` | OAuth (oauth.ts) | 해당 provider "체험(게스트)" 모드 폴백 |
 | `OAUTH_REDIRECT_BASE` | OAuth redirect 오버라이드 | 요청 host 사용 |
+| `NEXT_PUBLIC_APP_URL` | OG/shareCard 공유 URL (layout.tsx) | 요청 origin 폴백 |
 | `ENABLE_DEV_LOGIN` | prod에서 dev 로그인 허용 | prod에서 /api/auth/dev 404 |
 | `NEXT_PUBLIC_DEV_TOOLS` | prod에서 dev 도구(seed-friends·dev-unlock) | prod에서 dev 라우트 403/404 |
 | `UPSTASH_REDIS_REST_URL/TOKEN` | rate-limit 공유 스토어(선택) | 인메모리 rate-limit(단일 인스턴스) |
