@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { getCurrentUserId, authResponse } from '@/lib/auth';
+import { zonedDateKey } from '@/lib/streak';
 
 interface ActivityItem {
   type: 'sticker' | 'board_complete' | 'capsule_open';
@@ -19,6 +20,17 @@ export async function GET() {
   if (!userId) {
     return authResponse('Unauthorized');
   }
+
+  // 날짜 버킷팅은 사용자 시간대(User.timezone, 기본 Asia/Seoul) + 하루 시작 시각
+  // (User.dayResetHour, 기본 0) 기준 — stats/heatmap/streak과 같은 경계
+  // (src/lib/streak.ts zonedDateKey)로 통일한다(같은 활동이 화면마다 다른 날짜로
+  // 보이던 정합성 버그 치유). 기본값(Asia/Seoul, 0)에서는 종전 KST 달력 날짜와 동치.
+  const boundaryUser = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { timezone: true, dayResetHour: true },
+  });
+  const timezone = boundaryUser?.timezone || 'Asia/Seoul';
+  const resetHour = boundaryUser?.dayResetHour ?? 0;
 
   const ninetyDaysAgo = new Date();
   ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
@@ -74,7 +86,7 @@ export async function GET() {
   // Process stickers: group by board + date
   const stickerGroups = new Map<string, { count: number; boardTitle: string; date: string }>();
   for (const sticker of stickers) {
-    const dateStr = toDateString(sticker.filledAt);
+    const dateStr = zonedDateKey(sticker.filledAt, timezone, resetHour);
     const key = `${sticker.boardId}_${dateStr}`;
     const existing = stickerGroups.get(key);
     if (existing) {
@@ -103,7 +115,7 @@ export async function GET() {
     if (board.completedAt) {
       activities.push({
         type: 'board_complete',
-        date: toDateString(board.completedAt),
+        date: zonedDateKey(board.completedAt, timezone, resetHour),
         title: board.title,
         description: `${board.title} 포도판 완성! 🎉`,
         icon: '🎊',
@@ -115,7 +127,7 @@ export async function GET() {
   for (const capsule of openedCapsules) {
     activities.push({
       type: 'capsule_open',
-      date: toDateString(capsule.openAt),
+      date: zonedDateKey(capsule.openAt, timezone, resetHour),
       title: capsule.board.title,
       description: '동결건조 캡슐 개봉 💊',
       icon: '💊',
@@ -141,11 +153,4 @@ export async function GET() {
     }));
 
   return Response.json({ timeline });
-}
-
-function toDateString(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
 }
