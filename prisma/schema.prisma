@@ -159,6 +159,8 @@ model Message {
   // SSE가 접속 클라이언트당 10초마다 (receiverId, createdAt>) 조회 — 최다 빈도 쿼리.
   // 복합 인덱스라 receiverId 단독 조회(인박스)도 접두로 커버한다.
   @@index([receiverId, createdAt])
+  // 보드 삭제·계정 탈퇴 캐스케이드(onDelete: SetNull)가 boardId로 대상 행을 찾는다 — 풀스캔 방지.
+  @@index([boardId])
 }
 
 model TimeCapsule {
@@ -173,6 +175,10 @@ model TimeCapsule {
 
   board Board @relation(fields: [boardId], references: [id], onDelete: Cascade)
   user  User  @relation(fields: [userId], references: [id])
+
+  // capsules 라우트가 boardId로, vine(90일)·export가 (userId, openAt)로 조회 — 둘 다 풀스캔이었다.
+  @@index([boardId])
+  @@index([userId, openAt])
 }
 
 model Relay {
@@ -187,6 +193,9 @@ model Relay {
 
   creator      User               @relation("RelayCreator", fields: [creatorId], references: [id])
   participants RelayParticipant[]
+
+  // relays GET의 OR 좌항(creatorId = 나) — participants 측은 RelayParticipant [userId]가 커버.
+  @@index([creatorId])
 }
 
 model RelayParticipant {
@@ -195,7 +204,7 @@ model RelayParticipant {
   userId   String
   boardId  String?
   order    Int
-  status   String   @default("pending") // pending | active | completed
+  status   String   @default("pending") // pending(순차 대기) | invited(그룹 초대) | active | completed — 'invited'는 relays 라우트 실사용
   joinedAt DateTime @default(now())
 
   relay Relay  @relation(fields: [relayId], references: [id], onDelete: Cascade)
@@ -245,6 +254,11 @@ model Reminder {
 
   user  User   @relation(fields: [userId], references: [id])
   board Board? @relation(fields: [boardId], references: [id])
+
+  // cron/reminders가 5분마다 (isActive, time<=now) 형상으로 조회 — 풀스캔 방지.
+  // userId는 리마인더 목록·export 조회용.
+  @@index([isActive, time])
+  @@index([userId])
 }
 
 // Web Push (VAPID) subscription endpoints. One row per browser/device per user.
