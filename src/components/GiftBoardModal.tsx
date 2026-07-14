@@ -1,11 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Modal, { useModalClose } from './Modal';
 import Avatar from './Avatar';
 import ClayButton from './ClayButton';
 import EmojiIcon from './EmojiIcon';
+import RetryButton from './RetryButton';
 import type { FriendInfo } from '@/types';
+import { api } from '@/lib/api';
 import { feedbackSuccess, feedbackTap } from '@/lib/feedback';
 import { stripTitleEmoji } from '@/lib/title';
 
@@ -22,17 +24,29 @@ export default function GiftBoardModal({ boardTitle, onGift, onClose }: GiftBoar
   const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    fetch('/api/friends')
-      .then((r) => r.json())
-      .then((data) => {
-        const accepted = (data.friends || []).filter((f: FriendInfo) => f.status === 'accepted');
-        setFriends(accepted);
-      })
-      .finally(() => setLoading(false));
+  const loadFriends = useCallback(async (signal?: AbortSignal) => {
+    setLoading(true);
+    setLoadError(false);
+    try {
+      const data = await api<{ friends?: FriendInfo[] }>('/api/friends', { signal });
+      const accepted = (data.friends || []).filter((f) => f.status === 'accepted');
+      setFriends(accepted);
+    } catch (e) {
+      if (e instanceof DOMException && e.name === 'AbortError') return;
+      setLoadError(true);
+    } finally {
+      if (!signal?.aborted) setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void loadFriends(controller.signal);
+    return () => controller.abort();
+  }, [loadFriends]);
 
   const handleGift = async () => {
     if (!selectedFriend) return;
@@ -75,6 +89,11 @@ export default function GiftBoardModal({ boardTitle, onGift, onClose }: GiftBoar
               <div key={i} className="skeleton h-16 w-full" />
             ))}
           </div>
+        ) : loadError ? (
+          <div role="alert" className="flex flex-col items-center gap-3 py-8 text-center">
+            <p className="text-sm text-rose-700">친구 목록을 불러오지 못했어요</p>
+            <RetryButton onRetry={() => void loadFriends()} />
+          </div>
         ) : friends.length === 0 ? (
           <div className="text-center py-8 text-warm-sub">
             <EmojiIcon emoji="👥" size={32} className="block mx-auto mb-2" />
@@ -84,6 +103,7 @@ export default function GiftBoardModal({ boardTitle, onGift, onClose }: GiftBoar
           <div className="space-y-2 max-h-60 overflow-y-auto mb-5">
             {friends.map((friend) => (
               <button
+                type="button"
                 key={friend.id}
                 onClick={() => { feedbackTap(); setSelectedFriend(friend.user.id); }}
                 aria-pressed={selectedFriend === friend.user.id}
@@ -109,8 +129,9 @@ export default function GiftBoardModal({ boardTitle, onGift, onClose }: GiftBoar
         )}
 
         <div className="mb-4">
-          <label className="block text-xs text-warm-sub mb-1.5 ml-1">선물 메시지 (선택)</label>
+          <label htmlFor="gift-board-message" className="block text-xs text-warm-sub mb-1.5 ml-1">선물 메시지 (선택)</label>
           <textarea
+            id="gift-board-message"
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             placeholder="짧은 축하·응원 메시지를 적어보세요"

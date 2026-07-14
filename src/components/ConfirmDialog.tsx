@@ -53,6 +53,7 @@ export default function ConfirmDialog({
       {description && <p className="text-sm text-warm-sub mb-4 leading-relaxed">{description}</p>}
       <div className="flex gap-2.5 mt-2">
         <button
+          type="button"
           onClick={requestClose}
           disabled={loading}
           className="clay-button flex-1 py-3 rounded-2xl text-sm font-semibold text-warm-sub disabled:opacity-50"
@@ -60,6 +61,7 @@ export default function ConfirmDialog({
           {cancelLabel}
         </button>
         <button
+          type="button"
           onClick={onConfirm}
           disabled={loading}
           aria-busy={loading}

@@ -88,10 +88,12 @@ export default function ClayButton(props: ClayButtonProps) {
     loading: _loading,
     className: _className,
     disabled,
+    type,
     ...buttonProps
   } = props;
   return (
     <button
+      type={type ?? 'button'}
       disabled={disabled || loading}
       className={`
         ${visual}
