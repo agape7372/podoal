@@ -32,7 +32,7 @@ export function proxy(request: NextRequest) {
   return NextResponse.next();
 }
 
-function matchesHost(originOrReferer: string | null, host: string): boolean {
+export function matchesHost(originOrReferer: string | null, host: string): boolean {
   if (!originOrReferer) return false;
   try {
     const url = new URL(originOrReferer);
