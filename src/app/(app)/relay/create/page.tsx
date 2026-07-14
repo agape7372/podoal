@@ -205,7 +205,7 @@ export default function CreatePodongPage() {
             value={description}
             onChange={(e) => setDescription(e.target.value)}
           />
-          {error && <p role="alert" className="text-rose-500 text-sm text-center">{error}</p>}
+          {error && <p role="alert" className="text-rose-700 text-sm text-center">{error}</p>}
         </div>
       )}
 
@@ -249,7 +249,7 @@ export default function CreatePodongPage() {
             <span className="block"><span className="text-grape-400 font-bold mr-0.5">*</span>각자의 포도판에 같은 보상이 들어가요</span>
             <span className="block">포도알을 꾹 눌러 중간 보상도 추가할 수 있어요!</span>
           </p>
-          {error && <p role="alert" className="text-rose-500 text-sm text-center">{error}</p>}
+          {error && <p role="alert" className="text-rose-700 text-sm text-center">{error}</p>}
         </div>
       )}
 
@@ -338,7 +338,7 @@ export default function CreatePodongPage() {
             <p className="text-xs text-warm-sub ml-1 text-balance">다 같이 동시에 시작해요. 친구는 각자 새 포도판을 만들거나 기존 포도판을 불러올 수 있어요.</p>
           )}
 
-          {error && <p className="text-rose-500 text-sm text-center">{error}</p>}
+          {error && <p className="text-rose-700 text-sm text-center">{error}</p>}
         </div>
       )}
 

@@ -195,7 +195,7 @@ export default function FriendsPage() {
           />
         </div>
 
-        {searchError && <p className="text-rose-500 text-xs mt-2">{searchError}</p>}
+        {searchError && <p className="text-rose-700 text-xs mt-2">{searchError}</p>}
 
         {query.trim() && (
           <div className="mt-3 space-y-2">

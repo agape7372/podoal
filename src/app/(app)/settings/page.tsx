@@ -143,7 +143,7 @@ export default function SettingsPage() {
           ))}
         </div>
         {hourError && (
-          <p role="alert" className="text-rose-500 text-xs mt-2">{hourError}</p>
+          <p role="alert" className="text-rose-700 text-xs mt-2">{hourError}</p>
         )}
       </section>
 
