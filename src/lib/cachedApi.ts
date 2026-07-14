@@ -12,6 +12,7 @@
 // (PWA 재시작 첫 화면은 어차피 콜드 API 1회가 필요하다.)
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, ApiError } from '@/lib/api';
+import { createLatestGuard } from '@/lib/latestGuard';
 
 const cache = new Map<string, unknown>();
 
@@ -60,19 +61,27 @@ export function useCachedApi<T>(url: string) {
   // 마지막 재검증 발사 시각 — 복귀 재검증 스로틀의 기준점 (mount/수동 refresh 포함).
   const lastRefreshAtRef = useRef(0);
 
+  // 역순 응답 가드 — url 전환(friends/[id]·relay/[id])이나 복귀 재검증이 겹칠 때,
+  // 늦게 도착한 이전 요청이 새 화면 state를 덮어쓰지 않게 한다. 인스턴스당 하나 유지.
+  const guardRef = useRef(createLatestGuard());
+
   const refresh = useCallback(async () => {
+    const token = guardRef.current.begin();
     lastRefreshAtRef.current = Date.now();
     setError(false);
     setErrorStatus(undefined);
     try {
       const fresh = await api<T>(url);
+      // 캐시는 자기 url 키로 항상 갱신(정확) — 화면 state만 최신 요청일 때 반영한다.
       cache.set(url, fresh);
+      if (!guardRef.current.isLatest(token)) return;
       setData(fresh);
     } catch (e) {
+      if (!guardRef.current.isLatest(token)) return;
       setError(true);
       setErrorStatus(e instanceof ApiError ? e.status : undefined);
     } finally {
-      setFetched(true);
+      if (guardRef.current.isLatest(token)) setFetched(true);
     }
   }, [url]);
 
