@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { cookies } from 'next/headers';
 import {
+  decideAccountMerge,
   exchangeCodeForToken,
   fetchUserInfo,
   generateGuestIdentity,
@@ -113,15 +114,19 @@ async function finalizeLogin(
 
   if (!user && userInfo.email && !opts.guest) {
     const byEmail = await prisma.user.findUnique({ where: { email: userInfo.email } });
-    if (byEmail) {
-      if (byEmail.provider && byEmail.provider !== providerTag) {
-        return redirectWithError(origin, `oauth_email_taken_by_${byEmail.provider}`);
-      }
+    const decision = decideAccountMerge(byEmail, providerTag);
+    // 비밀번호 계정(provider=null)으로의 자동 병합은 계정 탈취 경로라 거부한다
+    // (decideAccountMerge 주석 참조). 다른 provider 소유 email도 동일하게 거부.
+    if (decision.action === 'reject') {
+      return redirectWithError(origin, `oauth_email_taken_by_${decision.reason}`);
+    }
+    if (decision.action === 'merge' && byEmail) {
       user = await prisma.user.update({
         where: { id: byEmail.id },
         data: { provider: providerTag, providerId: userInfo.id },
       });
     }
+    // decision.action === 'create' 는 아래 생성 블록으로 자연 낙하한다.
   }
 
   if (!user) {

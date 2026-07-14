@@ -25,6 +25,9 @@ function describeOAuthError(code: string): string {
     const ko = PROVIDER_KO[provider] ?? provider;
     return `${ko} 로그인이 아직 준비 중이에요. 잠시 후 다시 시도해주세요.`;
   }
+  if (code === 'oauth_email_taken_by_password') {
+    return '이 이메일은 비밀번호로 가입한 계정이에요. 비밀번호로 로그인해주세요.';
+  }
   if (code.startsWith('oauth_email_taken_by_')) {
     const provider = code.replace('oauth_email_taken_by_', '');
     const ko = PROVIDER_KO[provider] ?? provider;

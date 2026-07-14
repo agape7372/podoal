@@ -122,6 +122,31 @@ export function isProviderConfigured(provider: OAuthProvider): boolean {
   return isRealOAuth(provider) || true; // guest fallback always available
 }
 
+// ─── 계정 병합 정책 (OAuth 콜백) ─────────────────────────────
+// OAuth 신원을 "email이 같은 기존 계정"에 어떻게 연결할지 판정한다. 핵심 규칙:
+// 비밀번호 계정(provider=null)으로의 자동 병합은 금지한다. provider가 보고한
+// email은 검증되지 않을 수 있어(카카오/네이버는 미검증 이메일도 허용), 공격자가
+// 피해자의 가입 이메일을 자기 소셜 프로필 이메일로 설정해 OAuth를 완료하면 그
+// 피해자의 비밀번호 계정으로 로그인되는 계정 탈취 경로가 열린다. 안전한 기본은
+// 병합 거부이며, 의도적 계정 연결은 로그인 상태에서 명시적으로만 허용해야 한다.
+export type AccountMergeDecision =
+  | { action: 'create' } // 같은 email의 기존 계정 없음 → 새로 만든다
+  | { action: 'merge' } // 같은 provider 재로그인 → 기존 신원에 연결
+  | { action: 'reject'; reason: string }; // 자동 병합 불가 → 안내 후 거부
+
+export function decideAccountMerge(
+  existing: { provider: string | null } | null,
+  providerTag: string,
+): AccountMergeDecision {
+  if (!existing) return { action: 'create' };
+  // 같은 provider 태그의 재로그인 — 기존 신원 연결을 유지/갱신한다.
+  if (existing.provider === providerTag) return { action: 'merge' };
+  // 비밀번호 계정: 자동 병합 금지(계정 탈취 방지). 사유는 'password'로 표기한다.
+  if (!existing.provider) return { action: 'reject', reason: 'password' };
+  // 다른 provider가 이미 소유한 email.
+  return { action: 'reject', reason: existing.provider };
+}
+
 export function buildAuthorizeUrl(
   provider: OAuthProvider,
   state: string,
