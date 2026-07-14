@@ -109,7 +109,8 @@ export async function POST(request: Request) {
     return authResponse('Unauthorized');
   }
 
-  const body = await request.json();
+  const body = await request.json().catch(() => null);
+  if (body === null) return authResponse('잘못된 요청이에요.', 400);
   const { title, description, totalStickers, rewards, templateId, cadenceType, cadenceN, strictMode } = body;
 
   if (

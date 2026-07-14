@@ -11,7 +11,8 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
   if (!userId) return authResponse('Unauthorized');
 
   const { id: boardId } = params;
-  const body = await request.json();
+  const body = await request.json().catch(() => null);
+  if (body === null) return authResponse('잘못된 요청이에요.', 400);
   const position = body?.position;
   const message = typeof body?.message === 'string' ? body.message.trim().slice(0, 200) : '';
   const emoji = typeof body?.emoji === 'string' && body.emoji.length <= 16 ? body.emoji : '🎁';

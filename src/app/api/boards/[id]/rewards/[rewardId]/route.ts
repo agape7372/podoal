@@ -103,7 +103,8 @@ export async function PATCH(request: Request, props: Ctx) {
   // card shown) — it's effectively delivered, so freeze it from further edits.
   if (loaded.reward.unlockedAt) return authResponse('이미 잠금 해제된 보상은 수정할 수 없어요', 400);
 
-  const body = await request.json();
+  const body = await request.json().catch(() => null);
+  if (body === null) return authResponse('잘못된 요청이에요.', 400);
   const { type, title, content } = body;
   if (typeof type !== 'string' || !VALID_REWARD_TYPES.has(type)) {
     return authResponse('보상 형식이 올바르지 않습니다.', 400);

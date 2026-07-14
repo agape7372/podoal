@@ -14,7 +14,8 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
   if (!existing) return authResponse('Reminder not found', 404);
   if (existing.userId !== userId) return authResponse('Forbidden', 403);
 
-  const body = await request.json();
+  const body = await request.json().catch(() => null);
+  if (body === null) return authResponse('잘못된 요청이에요.', 400);
 
   const allowedKeys = ['time', 'days', 'boardId', 'message', 'isActive', 'type'];
   const updateData: Record<string, unknown> = {};

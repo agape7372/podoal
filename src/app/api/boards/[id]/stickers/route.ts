@@ -10,7 +10,8 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
   }
 
   const { id: boardId } = params;
-  const body = await request.json();
+  const body = await request.json().catch(() => null);
+  if (body === null) return authResponse('잘못된 요청이에요.', 400);
   const { position } = body;
   // 채움 텀 C1: "그래도 채우기" 소프트 오버라이드 플래그(FILL_CADENCE §8) — 정확히
   // true일 때만 기록(그 외 타입은 방어적으로 false 취급). 채움 자체는 200 정상 경로.

@@ -33,7 +33,8 @@ export async function POST(request: Request) {
   const userId = await getCurrentUserId();
   if (!userId) return authResponse('Unauthorized');
 
-  const body = await request.json();
+  const body = await request.json().catch(() => null);
+  if (body === null) return authResponse('잘못된 요청이에요.', 400);
   const { time, days, boardId, message, type } = body;
 
   if (!time || typeof time !== 'string') {
