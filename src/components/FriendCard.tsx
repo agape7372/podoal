@@ -67,7 +67,7 @@ export default function FriendCard({
   );
 
   return (
-    <div className={`clay-sm p-4 ${bg} transition-all`}>
+    <div className={`clay-sm p-4 ${bg} transition-colors`}>
       <div className="flex items-center gap-3">
         {canOpen ? (
           <button
@@ -96,7 +96,7 @@ export default function FriendCard({
               {onSendCheer && (
                 <button
                   onClick={() => { feedbackTap(); onSendCheer(friend.user.id); }}
-                  className="clay-button p-2 rounded-xl transition-all active:scale-95"
+                  className="clay-button p-2 rounded-xl transition-[transform] active:scale-95"
                   aria-label="응원 보내기"
                 >
                   <EmojiIcon emoji="💜" size={18} />
@@ -105,7 +105,7 @@ export default function FriendCard({
               {onToggleFavorite && (
                 <button
                   onClick={() => { feedbackTap(); onToggleFavorite(friend.id); }}
-                  className="clay-button p-2 rounded-xl transition-all active:scale-95"
+                  className="clay-button p-2 rounded-xl transition-[transform] active:scale-95"
                   aria-label={friend.isFavorite ? '즐겨찾기 해제' : '즐겨찾기'}
                 >
                   <EmojiIcon emoji="⭐" size={18} className={friend.isFavorite ? '' : 'opacity-30 grayscale'} />
@@ -114,7 +114,7 @@ export default function FriendCard({
               {onRemove && (
                 <button
                   onClick={() => onRemove(friend.id)}
-                  className="clay-button p-2 rounded-xl transition-all active:scale-95"
+                  className="clay-button p-2 rounded-xl transition-[transform] active:scale-95"
                   aria-label="삭제"
                 >
                   <EmojiIcon emoji="❌" size={16} />

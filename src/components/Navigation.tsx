@@ -55,14 +55,14 @@ export default function Navigation() {
                 onClick={feedbackTap}
                 className={`
                   relative flex flex-col items-center gap-0.5 py-1.5 px-3 rounded-2xl no-select
-                  transition-all duration-200
+                  transition-colors duration-200
                   ${isActive ? 'text-warm-text' : 'text-warm-sub hover:text-warm-text'}
                 `}
                 aria-current={isActive ? 'page' : undefined}
               >
                 {/* Active indicator dot */}
                 <span
-                  className={`absolute top-0 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full border-[1.5px] border-warm-text transition-all duration-200 ${
+                  className={`absolute top-0 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full border-[1.5px] border-warm-text transition-[background-color,opacity] duration-200 ${
                     isActive ? 'bg-grape-500 opacity-100' : 'opacity-0'
                   }`}
                   aria-hidden="true"

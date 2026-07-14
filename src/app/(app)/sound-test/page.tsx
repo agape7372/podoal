@@ -35,7 +35,7 @@ export default function SoundTestPage() {
               onClick={() => play(s.id)}
               className={`
                 clay-button shrink-0 w-16 h-16 rounded-2xl text-2xl
-                flex items-center justify-center transition-all
+                flex items-center justify-center transition-[transform,background-color,box-shadow]
                 ${playing === s.id ? 'scale-90 clay-pressed' : 'active:scale-90'}
                 ${settings.fillSoundId === s.id ? 'ring-2 ring-grape-400 bg-linear-to-br from-grape-100 to-grape-50' : ''}
               `}
@@ -54,7 +54,7 @@ export default function SoundTestPage() {
             <button
               onClick={() => select(s.id)}
               className={`
-                shrink-0 px-3 py-2 rounded-xl text-sm font-medium transition-all
+                shrink-0 px-3 py-2 rounded-xl text-sm font-medium transition-[background-color,color,box-shadow]
                 ${settings.fillSoundId === s.id
                   ? 'bg-linear-to-br from-grape-400 to-grape-500 text-white'
                   : 'clay-button text-warm-sub'

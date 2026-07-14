@@ -793,7 +793,7 @@ export default function HomePage() {
               }}
               aria-pressed={isActive}
               className={`
-                shrink-0 px-3.5 py-2 rounded-2xl text-sm font-medium transition-all inline-flex items-center gap-1.5
+                shrink-0 px-3.5 py-2 rounded-2xl text-sm font-medium transition-[background-color,color,box-shadow] inline-flex items-center gap-1.5
                 ${isActive ? 'clay-pressed text-grape-700' : 'clay-button text-warm-sub'}
               `}
             >
@@ -900,7 +900,7 @@ export default function HomePage() {
         <Link
           href="/board/create"
           onClick={feedbackTap}
-          className="fixed bottom-28 right-6 w-14 h-14 rounded-full flex items-center justify-center text-3xl text-white bg-grape-600 border-[1.3px] border-warm-border active:translate-x-[1.5px] active:translate-y-[2px] transition-all z-40 safe-bottom"
+          className="fixed bottom-28 right-6 w-14 h-14 rounded-full flex items-center justify-center text-3xl text-white bg-grape-600 border-[1.3px] border-warm-border active:translate-x-[1.5px] active:translate-y-[2px] transition-[transform] z-40 safe-bottom"
           style={{ boxShadow: '2px 3px 0 rgba(73, 50, 100, 0.12)' }}
           aria-label="새 포도판 만들기"
         >

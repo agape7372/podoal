@@ -93,7 +93,7 @@ export default function StatsPage() {
             role="tab"
             aria-selected={activeTab === tab.key}
             onClick={() => { feedbackTap(); setActiveTab(tab.key); }}
-            className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
+            className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-[transform,background-color,color,box-shadow] ${
               activeTab === tab.key
                 ? 'clay-button bg-white text-grape-700 shadow-xs'
                 : 'text-warm-sub hover:text-warm-text'

@@ -107,7 +107,7 @@ export default function FriendDetailPage() {
       {/* Back button */}
       <button
         onClick={() => router.push('/friends')}
-        className="clay-button px-3 py-2 rounded-xl text-sm text-warm-sub mb-4 transition-all active:scale-95"
+        className="clay-button px-3 py-2 rounded-xl text-sm text-warm-sub mb-4 transition-[transform] active:scale-95"
       >
         ← 친구 목록
       </button>
@@ -137,7 +137,7 @@ export default function FriendDetailPage() {
               onClick={handleToggleFavorite}
               aria-label={isFavorite ? '즐겨찾기 해제' : '즐겨찾기'}
               aria-pressed={isFavorite}
-              className={`clay-button px-4 flex items-center justify-center rounded-2xl shrink-0 transition-all active:scale-95 ${
+              className={`clay-button px-4 flex items-center justify-center rounded-2xl shrink-0 transition-[transform,background-color] active:scale-95 ${
                 isFavorite ? 'bg-amber-50/70' : ''
               }`}
             >

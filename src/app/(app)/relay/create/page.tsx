@@ -165,14 +165,14 @@ export default function CreatePodongPage() {
           <p className="text-sm text-warm-sub">어떤 방식으로 함께할까요?</p>
           <button
             onClick={() => { feedbackTap(); setMode('relay'); setStep(1); }}
-            className={`clay p-5 w-full text-left transition-all active:scale-[0.98] ${mode === 'relay' ? 'ring-2 ring-grape-400 bg-grape-50' : ''}`}
+            className={`clay p-5 w-full text-left transition-[transform,background-color,box-shadow] active:scale-[0.98] ${mode === 'relay' ? 'ring-2 ring-grape-400 bg-grape-50' : ''}`}
           >
             <p className="font-bold text-grape-700 mb-1"><EmojiIcon emoji={'🔗'} size={18} className="mr-1" />릴레이</p>
             <p className="text-sm text-warm-sub text-balance">순서대로 한 명씩, 바통을 이어받아요</p>
           </button>
           <button
             onClick={() => { feedbackTap(); setMode('group'); setStep(1); }}
-            className={`clay p-5 w-full text-left transition-all active:scale-[0.98] ${mode === 'group' ? 'ring-2 ring-grape-400 bg-grape-50' : ''}`}
+            className={`clay p-5 w-full text-left transition-[transform,background-color,box-shadow] active:scale-[0.98] ${mode === 'group' ? 'ring-2 ring-grape-400 bg-grape-50' : ''}`}
           >
             <p className="font-bold text-grape-700 mb-1"><EmojiIcon emoji={'👥'} size={18} className="mr-1" />그룹</p>
             <p className="text-sm text-warm-sub text-balance">다 같이 동시에! 각자 포도판을 채워요</p>
@@ -219,7 +219,7 @@ export default function CreatePodongPage() {
                 key={n}
                 onClick={() => { feedbackTap(); setTotalStickers(n); }}
                 aria-pressed={totalStickers === n}
-                className={`clay-button py-2.5 rounded-xl text-sm font-medium tabular-nums transition-all ${
+                className={`clay-button py-2.5 rounded-xl text-sm font-medium tabular-nums transition-[background-color,border-color,box-shadow,color] ${
                   totalStickers === n ? 'ring-2 ring-grape-400 clay-pressed text-grape-700' : 'text-warm-sub'
                 }`}
               >
@@ -281,9 +281,9 @@ export default function CreatePodongPage() {
                     <button
                       key={friend.id}
                       onClick={() => toggleFriend(friend.user.id)}
-                      className={`w-full flex items-center gap-3 p-3 rounded-2xl transition-all ${isSelected ? 'clay bg-grape-50 ring-2 ring-grape-300' : 'clay-sm'}`}
+                      className={`w-full flex items-center gap-3 p-3 rounded-2xl transition-[background-color,border-color,box-shadow] ${isSelected ? 'clay bg-grape-50 ring-2 ring-grape-300' : 'clay-sm'}`}
                     >
-                      <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all ${isSelected ? 'bg-grape-500 border-grape-500 text-white' : 'border-warm-border bg-white'}`}>
+                      <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-[background-color,border-color,color] ${isSelected ? 'bg-grape-500 border-grape-500 text-white' : 'border-warm-border bg-white'}`}>
                         {isSelected && (
                           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
@@ -306,7 +306,7 @@ export default function CreatePodongPage() {
               <p className="text-xs text-warm-sub mb-3 ml-1">버튼으로 친구 순서를 변경할 수 있어요</p>
               <div className="clay p-4 space-y-2">
                 {orderedParticipants.map((p, idx) => (
-                  <div key={p.id} className={`flex items-center gap-3 p-2.5 rounded-xl transition-all ${p.isCreator ? 'bg-grape-50' : 'bg-white/60'}`}>
+                  <div key={p.id} className={`flex items-center gap-3 p-2.5 rounded-xl transition-colors ${p.isCreator ? 'bg-grape-50' : 'bg-white/60'}`}>
                     <span className="text-xs font-bold text-grape-500 w-5 text-center shrink-0 tabular-nums">{idx + 1}</span>
                     <Avatar avatar={p.avatar} size="sm" />
                     <span className="text-sm font-medium text-warm-text flex-1">{p.isCreator ? `${p.name} (나)` : p.name}</span>

@@ -154,7 +154,7 @@ export default function MessagesPage() {
               <button
                 onClick={() => !msg.isRead && handleMarkRead(msg.id)}
                 className={`
-                  w-full clay-sm p-4 pr-11 text-left transition-all
+                  w-full clay-sm p-4 pr-11 text-left transition-[box-shadow,opacity]
                   ${msg.boardId ? 'pb-8' : ''}
                   ${typeBg(msg.type)}
                   ${!msg.isRead ? 'ring-2 ring-grape-300/50' : 'opacity-80'}

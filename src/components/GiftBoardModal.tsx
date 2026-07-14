@@ -109,7 +109,7 @@ export default function GiftBoardModal({ boardTitle, onGift, onClose }: GiftBoar
                 aria-pressed={selectedFriend === friend.user.id}
                 aria-label={`${friend.user.name}님에게 선물하기`}
                 className={`
-                  w-full clay-sm p-3 flex items-center gap-3 transition-all
+                  w-full clay-sm p-3 flex items-center gap-3 transition-[background-color,box-shadow]
                   ${selectedFriend === friend.user.id
                     ? 'ring-2 ring-grape-400 bg-grape-50'
                     : ''

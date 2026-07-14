@@ -168,7 +168,7 @@ export default function VinePage() {
                     key={`${group.date}-${actIndex}`}
                     className={`
                       clay-sm p-3.5 ${typeBgColors[activity.type] || ''}
-                      transition-all duration-300
+                      transition-[transform,background-color,box-shadow] duration-300
                     `}
                     style={{
                       animationDelay: `${groupIndex * 100 + actIndex * 50}ms`,

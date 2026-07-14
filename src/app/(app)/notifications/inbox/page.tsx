@@ -105,7 +105,7 @@ export default function NotificationInboxPage() {
             <button
               key={e.id}
               onClick={() => open(e)}
-              className={`w-full clay-sm p-4 text-left flex items-start gap-3 transition-all active:scale-[0.98] ${
+              className={`w-full clay-sm p-4 text-left flex items-start gap-3 transition-[transform,opacity,box-shadow] active:scale-[0.98] ${
                 !e.read ? 'ring-2 ring-grape-300/50' : 'opacity-80'
               }`}
             >

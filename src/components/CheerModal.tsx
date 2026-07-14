@@ -74,7 +74,7 @@ export default function CheerModal({ recipientName, onSend, onClose }: CheerModa
               aria-pressed={selectedEmoji === emoji}
               aria-label={`이모지 ${emoji}`}
               className={`
-                w-11 h-11 rounded-xl text-xl flex items-center justify-center transition-all
+                w-11 h-11 rounded-xl text-xl flex items-center justify-center transition-[transform,background-color,box-shadow]
                 ${selectedEmoji === emoji
                   ? 'clay-pressed scale-110 ring-2 ring-grape-300'
                   : 'clay-button'
@@ -95,7 +95,7 @@ export default function CheerModal({ recipientName, onSend, onClose }: CheerModa
                 key={value}
                 onClick={() => setSelectedMsg(value)}
                 className={`
-                  px-3 py-2 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-1 w-full
+                  px-3 py-2 rounded-xl text-sm font-medium transition-[color,background-color,box-shadow] flex items-center justify-center gap-1 w-full
                   ${selectedMsg === value
                     ? 'clay-pressed text-grape-600 ring-2 ring-grape-300'
                     : 'clay-button text-warm-text'

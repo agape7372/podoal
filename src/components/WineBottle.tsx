@@ -144,7 +144,7 @@ function WineBottleInner({ bottle, onSelect, selected = false }: WineBottleProps
       ref={rootRef}
       onClick={() => onSelect?.(bottle.boardId)}
       aria-pressed={selected}
-      className="group flex flex-col items-center gap-2 transition-all duration-300 hover:scale-105 hover:-rotate-1 active:scale-95"
+      className="group flex flex-col items-center gap-2 transition-[transform] duration-300 hover:scale-105 hover:-rotate-1 active:scale-95"
       aria-label={`${bottle.title} - ${bottle.vintage}년 빈티지${isNew ? ' (새 와인)' : ''}`}
       style={{
         // 구동 다이어트: 뷰포트 밖 병(노드 12개+blur 2개)의 paint를 통째 스킵.
@@ -332,7 +332,7 @@ function WineBottleInner({ bottle, onSelect, selected = false }: WineBottleProps
 
         {/* Soft shadow */}
         <div
-          className="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-grape-900/15 rounded-full blur-md transition-all duration-300 group-hover:bg-grape-900/22 group-hover:scale-110"
+          className="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-grape-900/15 rounded-full blur-md transition-[transform,background-color] duration-300 group-hover:bg-grape-900/22 group-hover:scale-110"
           style={{
             width: dim.width * 0.85,
             height: 7,

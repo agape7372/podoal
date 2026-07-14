@@ -1038,7 +1038,7 @@ export default function BoardDetailPage() {
       {isOwner && capsuleTeaser && (
         <button
           onClick={() => { feedbackTap(); setShowCapsule(true); }}
-          className={`w-full clay-sm px-4 py-2.5 mb-5 flex items-center gap-2 text-sm transition-all active:scale-[0.99] ${capsuleTeaser.glow ? 'reward-glow bg-amber-50/70' : ''}`}
+          className={`w-full clay-sm px-4 py-2.5 mb-5 flex items-center gap-2 text-sm transition-[transform,background-color] active:scale-[0.99] ${capsuleTeaser.glow ? 'reward-glow bg-amber-50/70' : ''}`}
         >
           <EmojiIcon emoji="💊" size={16} />
           <span className="flex-1 text-left text-warm-text">동결건조 · {capsuleTeaser.text}</span>
@@ -1053,7 +1053,7 @@ export default function BoardDetailPage() {
           role="switch"
           aria-checked={allowPlant}
           aria-label="친구가 깜짝 선물 심기"
-          className="w-full clay-sm px-4 py-3 mb-5 flex items-center justify-between transition-all active:scale-[0.99]"
+          className="w-full clay-sm px-4 py-3 mb-5 flex items-center justify-between transition-transform active:scale-[0.99]"
         >
           <span className="inline-flex items-center gap-2 text-sm text-warm-text">
             <EmojiIcon emoji="🎁" size={18} />
@@ -1214,7 +1214,7 @@ export default function BoardDetailPage() {
                     onClick={() => { if (unlocked) { feedbackTap(); openReward(r); } }}
                     disabled={!unlocked}
                     aria-label={`${r.triggerAt}알 중간 보상${unlocked ? (revealed ? ' 다시 보기' : ' 열기') : ' (잠김)'}`}
-                    className={`relative shrink-0 w-14 h-14 rounded-2xl clay-sm flex items-center justify-center transition-all
+                    className={`relative shrink-0 w-14 h-14 rounded-2xl clay-sm flex items-center justify-center transition-[transform,background-color,opacity]
                       ${unlocked ? 'cursor-pointer active:scale-95' : 'opacity-50'}
                       ${unlocked && !revealed ? 'reward-glow bg-amber-50/70' : ''}`}
                   >

@@ -56,7 +56,7 @@ export default function FriendActivityCard({
             : `${activity.actor.name}님에게 축하 보내기`
         }
         className={`
-          shrink-0 px-3 py-2 rounded-xl text-xs font-semibold transition-all inline-flex items-center gap-1
+          shrink-0 px-3 py-2 rounded-xl text-xs font-semibold transition-[background-color,border-color,box-shadow,color,opacity] inline-flex items-center gap-1
           ${sent
             ? 'clay-pressed text-warm-sub'
             : 'clay-button text-grape-700'

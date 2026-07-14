@@ -148,7 +148,7 @@ export default function CapsuleModal({ boardId, isOwner, onClose }: CapsuleModal
             <button
               onClick={() => { feedbackTap(); setTab('create'); }}
               className={`
-                flex-1 px-4 py-2.5 rounded-xl text-sm font-medium transition-all
+                flex-1 px-4 py-2.5 rounded-xl text-sm font-medium transition-[background-color,color,box-shadow]
                 ${tab === 'create'
                   ? 'clay-pressed text-grape-600 ring-2 ring-grape-300'
                   : 'clay-button text-warm-sub'
@@ -161,7 +161,7 @@ export default function CapsuleModal({ boardId, isOwner, onClose }: CapsuleModal
           <button
             onClick={() => { feedbackTap(); setTab('list'); }}
             className={`
-              flex-1 px-4 py-2.5 rounded-xl text-sm font-medium transition-all
+              flex-1 px-4 py-2.5 rounded-xl text-sm font-medium transition-[background-color,color,box-shadow]
               ${tab === 'list'
                 ? 'clay-pressed text-grape-600 ring-2 ring-grape-300'
                 : 'clay-button text-warm-sub'
@@ -210,7 +210,7 @@ export default function CapsuleModal({ boardId, isOwner, onClose }: CapsuleModal
                       aria-pressed={emoji === e}
                       aria-label={`이모지 ${e}`}
                       className={`
-                        w-full aspect-square rounded-xl flex items-center justify-center transition-all
+                        w-full aspect-square rounded-xl flex items-center justify-center transition-[background-color,box-shadow]
                         ${emoji === e
                           ? 'clay-pressed ring-2 ring-grape-400'
                           : 'clay-button'
@@ -298,7 +298,7 @@ export default function CapsuleModal({ boardId, isOwner, onClose }: CapsuleModal
                           key={capsule.id}
                           className={`
                             clay-sm p-4 bg-grape-50
-                            transition-all duration-500
+                            transition-[box-shadow] duration-500
                             ${isJustOpened ? 'capsule-open ring-2 ring-grape-300' : ''}
                           `}
                         >
@@ -340,7 +340,7 @@ export default function CapsuleModal({ boardId, isOwner, onClose }: CapsuleModal
                               className={`
                                 clay-button px-4 py-2 rounded-xl text-sm font-semibold
                                 bg-linear-to-br from-grape-400 to-grape-500 text-white
-                                transition-all
+                                transition-[opacity]
                                 ${isCurrentlyOpening ? 'opacity-50 cursor-not-allowed' : 'animate-pulse'}
                               `}
                             >

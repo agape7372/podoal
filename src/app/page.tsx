@@ -251,7 +251,7 @@ function AuthPageInner() {
                 setLoading(false);
               }}
               disabled={loading}
-              className="w-full py-2.5 min-h-[44px] rounded-2xl text-xs font-medium text-warm-sub hover:text-grape-700 transition-all"
+              className="w-full py-2.5 min-h-[44px] rounded-2xl text-xs font-medium text-warm-sub hover:text-grape-700 transition-colors"
             >
               {loading ? '진입중…' : <span className="inline-flex items-center gap-1"><EmojiIcon emoji="🛠️" size={14} /> 개발자 모드</span>}
             </button>
@@ -317,7 +317,7 @@ function AuthPageInner() {
                     type="button"
                     aria-label={av}
                     className={`
-                      w-12 h-12 rounded-2xl flex items-center justify-center transition-all
+                      w-12 h-12 rounded-2xl flex items-center justify-center transition-[transform,background-color,border-color,box-shadow]
                       ${avatar === av
                         ? 'clay-pressed scale-110'
                         : 'clay-button'

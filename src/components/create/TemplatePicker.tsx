@@ -80,7 +80,7 @@ export default function TemplatePicker({
           <button
             key={template.id}
             onClick={() => onSelectTemplate(template)}
-            className="clay p-4 text-left transition-all active:scale-[0.97] hover:bg-grape-50/40"
+            className="clay p-4 text-left transition-[transform,background-color] active:scale-[0.97] hover:bg-grape-50/40"
           >
             <div className="mb-2"><EmojiIcon emoji={template.icon} size={26} /></div>
             <p className="font-semibold text-sm text-grape-700 mb-1">{template.name}</p>

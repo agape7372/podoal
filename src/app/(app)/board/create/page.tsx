@@ -223,7 +223,7 @@ function CreateBoardInner() {
                 key={n}
                 onClick={() => { feedbackTap(); setTotalStickers(n); }}
                 aria-pressed={totalStickers === n}
-                className={`clay-button py-2.5 rounded-xl text-sm font-medium tabular-nums transition-all ${
+                className={`clay-button py-2.5 rounded-xl text-sm font-medium tabular-nums transition-[transform,background-color,box-shadow,color] ${
                   totalStickers === n ? 'ring-2 ring-grape-400 clay-pressed text-grape-700' : 'text-warm-sub'
                 }`}
               >

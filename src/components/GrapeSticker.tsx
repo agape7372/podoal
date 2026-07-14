@@ -45,7 +45,7 @@ export default function GrapeSticker({
       disabled={!canFill || isFilling}
       className={`
         w-full h-full rounded-full no-select relative
-        transition-all duration-200
+        transition-[transform,background-color,box-shadow,opacity] duration-200
         flex items-center justify-center
         ${isFilled
           ? `grape-filled ${isJustFilled ? 'grape-hit' : ''}`

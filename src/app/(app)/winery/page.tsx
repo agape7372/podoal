@@ -701,7 +701,7 @@ export default function WineryPage() {
                   <div
                     key={tier.level}
                     className={`
-                      relative flex items-center gap-3 py-3 px-3 rounded-2xl transition-all duration-300
+                      relative flex items-center gap-3 py-3 px-3 rounded-2xl transition-[box-shadow,opacity] duration-300
                       ${isCurrent ? 'shadow-xs' : ''}
                       ${isFuture ? 'opacity-40' : ''}
                     `}

@@ -269,7 +269,7 @@ export default function FriendsPage() {
       <div className="flex gap-2 mb-4">
         <button
           onClick={() => { feedbackTap(); setTab('friends'); }}
-          className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+          className={`px-4 py-2 rounded-xl text-sm font-medium transition-[background-color,border-color,color,box-shadow] ${
             tab === 'friends' ? 'clay-pressed text-grape-600' : 'clay-button text-warm-sub'
           }`}
         >
@@ -277,7 +277,7 @@ export default function FriendsPage() {
         </button>
         <button
           onClick={() => { feedbackTap(); setTab('favorite'); }}
-          className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+          className={`px-4 py-2 rounded-xl text-sm font-medium transition-[background-color,border-color,color,box-shadow] ${
             tab === 'favorite' ? 'clay-pressed text-grape-600' : 'clay-button text-warm-sub'
           }`}
         >
@@ -285,7 +285,7 @@ export default function FriendsPage() {
         </button>
         <button
           onClick={() => { feedbackTap(); setTab('podong'); }}
-          className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+          className={`px-4 py-2 rounded-xl text-sm font-medium transition-[background-color,border-color,color,box-shadow] ${
             tab === 'podong' ? 'clay-pressed text-grape-600' : 'clay-button text-warm-sub'
           }`}
         >
