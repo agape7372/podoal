@@ -1,7 +1,7 @@
 # podoal 로드맵
 
 > 미래 phase의 상위 인덱스. 각 phase: 목표 / 선행조건 / 완료 정의 / 착수 전 필독. 상세 스펙은 링크된 문서에 있고, 이 파일은 순서와 조건을 잡는다.
-> 원칙 `docs/PRINCIPLES.md` · 운영 `docs/PLAYBOOK.md` · 전략 `docs/PRODUCT_PLAN.md` · 감사 `docs/audit/AUDIT-2026-07-05.md`.
+> 원칙 `docs/PRINCIPLES.md` · 운영 `docs/PLAYBOOK.md` · 전략 `docs/PRODUCT_PLAN.md` · 감사 `docs/audit/AUDIT-2026-07-05.md`. 2026-07-14 통합 리드 리뷰와 제품 제안은 `docs/audit/LEAD-REVIEW-2026-07-14.md` 참고.
 
 ## 현황 스냅샷 (2026-07-14)
 
