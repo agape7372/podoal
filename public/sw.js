@@ -80,31 +80,50 @@ self.addEventListener('fetch', (event) => {
   // (첫 방문) 타임아웃 없이 기존과 동일하게 네트워크를 끝까지 기다린다.
   if (request.mode === 'navigate') {
     const NAV_TIMEOUT_MS = 3000;
+    // put 완주 추적 — waitUntil이 '응답 헤더 도착'이 아니라 '캐시 기록 완료'까지
+    // SW 수명을 연장하게 한다(put은 본문 스트리밍이 끝나야 완료). catch는 put 실패
+    // (quota 등)의 unhandled rejection 방지.
+    let putDone = Promise.resolve();
     const networkFetch = fetch(request).then((response) => {
       if (response.ok) {
         const clone = response.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+        putDone = caches
+          .open(CACHE_NAME)
+          .then((cache) => cache.put(request, clone))
+          .catch(() => {});
       }
       return response;
     });
     event.respondWith(
       (async () => {
-        const winner = await Promise.race([
-          networkFetch.catch(() => undefined),
-          new Promise((resolve) => setTimeout(() => resolve(undefined), NAV_TIMEOUT_MS)),
+        // 타임아웃(느리지만 살아있는 회선)과 거부(오프라인)를 구분한다 — 폴백 계약이
+        // 다르다: 타임아웃은 '같은 URL' 캐시 문서만 허용(딥링크에 '/home' 문서를
+        // 대신 서빙하면 주소와 화면이 어긋난 오문서가 된다), 오프라인은 종전대로
+        // 같은 URL → 앱 셸 '/home' 순 폴백.
+        const raced = await Promise.race([
+          networkFetch.then(
+            (res) => ({ kind: 'network', res }),
+            () => ({ kind: 'offline' })
+          ),
+          new Promise((resolve) =>
+            setTimeout(() => resolve({ kind: 'timeout' }), NAV_TIMEOUT_MS)
+          ),
         ]);
-        if (winner) return winner;
-        const cached =
-          (await caches.match(request)) || (await caches.match('/home'));
-        if (cached) {
-          // respondWith가 캐시 문서로 확정되면 SW가 종료될 수 있다 — 진행 중인
-          // 네트워크 응답의 cache.put(다음 방문 갱신)이 완주하도록 수명을 연장한다.
-          event.waitUntil(networkFetch.catch(() => {}));
-          return cached;
+        if (raced.kind === 'network') return raced.res;
+        if (raced.kind === 'timeout') {
+          const cached = await caches.match(request);
+          if (cached) {
+            // 캐시 문서로 응답을 확정해도 진행 중인 네트워크 응답의 cache.put이
+            // 완주하도록 수명 연장(다음 방문 갱신 보장).
+            event.waitUntil(networkFetch.then(() => putDone, () => {}));
+            return cached;
+          }
+          // 같은 URL 캐시 없음(첫 방문 딥링크 등) — 네트워크를 끝까지 기다린다
+          // (종전 동작). 끝내 거부되면 종전 오프라인 폴백과 동일하게 앱 셸로.
+          return networkFetch.catch(() => caches.match('/home'));
         }
-        // 캐시 없음(첫 방문 등) — 네트워크가 끝까지 답하길 기다린다(종전 동작).
-        // 이 시점의 reject는 폴백도 없는 상태이므로 그대로 오류로 흘려보낸다.
-        return networkFetch;
+        // 오프라인(즉시 거부) — 종전 폴백 그대로.
+        return (await caches.match(request)) || (await caches.match('/home'));
       })()
     );
     return;

@@ -37,6 +37,15 @@
 - 낙관 채움 파이프라인·`isJustFilled` 600ms·mergeServerBoard 무접촉. SSE lastCheck 로직 무접촉(연결 시점만 지연).
 - 계정 전환 대비: 로그인·로그아웃·탈퇴·dev 로그인·auth 실패 5경로 전부 전소 배선 + 소유자 대조 백스톱.
 
+### 리뷰 라운드 (PR #132 — Gemini 봇 + 4렌즈 적대 워크플로, 확정분만 반영)
+- **fetchUser 3-상태화**: 일시 장애(오프라인/5xx/SW 503)를 확정 미인증(401/404)과 구분 — 구분 없인 비행기 모드 실행이 로그아웃+캐시 전소로 이어졌다(치명 회귀). 레이아웃은 미확정 동안 online/복귀 리스너로 재검증(계정 전환 직후 일시 장애 1회로 이전 스냅샷이 세션 내내 남던 창 폐쇄).
+- **캐시 epoch + 무소유 봉투 차단**: clearPageCache가 epoch를 올려 뒤늦은 미중단 응답의 재오염 차단, persistNow는 소유자 미확정(null) 시 no-op(로그아웃 후 pagehide 부활 + userId:null 봉투 입양 사슬 절단), 부팅 시드는 소유자 있는 봉투만 신뢰.
+- **하이드레이션 정합**: module-load 시드를 초기 state로 직접 쓰면 서버 프리렌더 HTML과 어긋나 React 19가 루트 전체를 recoverable 에러로 재렌더 — `hydrated` 게이트(useCachedApi 초기값·readCachedApi)와 `hydrateUserSnapshot()`(레이아웃·웰컴 effect)로 시드를 첫 커밋 이후로 이동. SPA 마운트는 동기 캐시 그대로.
+- **인박스 read-all 역전 경쟁**: 느린 mount GET(커밋 전 스냅샷)이 빠른 POST+mutate를 되덮던 것 — 피드 도착 후 POST 발사로 해소(콜드 캐시 mutate no-op도 함께).
+- **useCachedApi TTL 경로**: latestGuard.begin() 미호출로 직전 url의 늦은 응답이 새 화면을 덮던 역순 응답 클래스 재발 — begin()+에러 리셋 추가. url 전환 시 화면 state 캐시 동기화 + fetched 리셋(빈 상태 오분류 방지).
+- **SW 타임아웃 경로**: '/home' 폴백을 오프라인 분기 전용으로 격리(느린 회선의 첫 방문 딥링크에 오문서 서빙 방지 — 타임아웃은 같은 URL 캐시만), waitUntil이 put '완주'까지 수명 연장(putDone 체인), put에 catch. 미채택: 레이스 패배 응답 body?.cancel()(위생 수준 — 수용).
+- 미채택(아키텍처 제안): 세션 동반 쿠키(비-HttpOnly has-session)로 부팅 시드 게이트 — 인증 쿠키 발급 경로(§3 승인 영역) 변경이라 별도 결정 필요. 현 방어로 교차 계정 노출은 차단, 잔여 창은 '본인 세션 만료 후 본인 데이터 일시 표시'뿐.
+
 ### 검증법
 ```bash
 npx tsc --noEmit && npm run lint && npm test && npx next build

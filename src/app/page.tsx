@@ -10,7 +10,7 @@ import EmojiIcon from '@/components/EmojiIcon';
 import { AVATAR_OPTIONS } from '@/types';
 import { api, FETCH_USER_TRANSIENT, fetchUser } from '@/lib/api';
 import { clearPageCache } from '@/lib/cachedApi';
-import { useAppStore } from '@/lib/store';
+import { hydrateUserSnapshot, useAppStore } from '@/lib/store';
 import { describeAuthError } from '@/lib/authErrors';
 import { track, markOAuthStart } from '@/lib/analytics';
 
@@ -98,7 +98,8 @@ function AuthPageInner() {
     // 의 직렬 2왕복이었다. 세션이 실제로 죽었으면 (app) 레이아웃의 fetchUser가
     // 스냅샷을 비우고 /로 돌려보내므로(무한 왕복 없음) 한 번의 바운스로 수렴한다.
     // OAuth 에러 복귀는 방금 인증이 실패한 맥락이라 낙관 이동 없이 에러를 보여준다.
-    if (!oauthError && useAppStore.getState().user) {
+    // (스냅샷 주입은 하이드레이션 이후인 여기 effect에서 — store.ts 주석 참조.)
+    if (!oauthError && hydrateUserSnapshot()) {
       router.replace('/home');
       return;
     }

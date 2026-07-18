@@ -52,6 +52,17 @@ const PERSIST_MAX_CHARS = 300_000;
 let cacheOwnerId: string | null = null;
 let persistTimer: ReturnType<typeof setTimeout> | null = null;
 
+// 클리어 세대(epoch) — clearPageCache 이후 뒤늦게 도착한 미중단(no-abort) 응답이
+// 방금 비운 캐시를 이전 계정 데이터로 재오염시키는 것을 막는다: fetch 시작 시점의
+// epoch와 완료 시점의 epoch가 다르면 캐시/영속 쓰기를 버린다.
+let cacheEpoch = 0;
+
+// 하이드레이션 정합 게이트 — 서버 프리렌더 HTML은 캐시 없음(스켈레톤)으로 그려져
+// 있으므로, 첫(하이드레이션) 렌더의 useState 초기값이 module-load 시드를 그대로 쓰면
+// React가 전체 루트를 recoverable 에러와 함께 클라 재렌더한다. 첫 커밋의 effect부터
+// true — 이후 SPA 마운트는 동기 캐시 읽기(즉시 페인트)를 그대로 쓴다.
+let hydrated = false;
+
 /** 파라미터화된 상세 캐시 키(/api/boards/<id> 등) — 예산 초과 시 1순위로 탈락. */
 function isDetailKey(url: string): boolean {
   return /^\/api\/(boards|relays|friends)\/./.test(url);
@@ -59,6 +70,11 @@ function isDetailKey(url: string): boolean {
 
 function persistNow() {
   if (typeof window === 'undefined') return;
+  // 소유자 미확정 상태에선 영속하지 않는다 — (1) 로그아웃 직후 pagehide 플러시가
+  // 키를 되살리는 것, (2) userId:null '무소유 봉투'가 생겨 다음 계정이 이전 계정
+  // 데이터를 입양하는 것 둘 다 여기서 차단된다. 부팅 직후 소유자 확정 전에 받은
+  // 데이터는 setPageCacheOwner의 schedulePersist가 곧바로 따라잡는다.
+  if (cacheOwnerId === null) return;
   try {
     const entries: Record<string, unknown> = {};
     for (const [k, v] of cache) entries[k] = v;
@@ -96,8 +112,15 @@ if (typeof window !== 'undefined') {
     const raw = localStorage.getItem(PERSIST_KEY);
     if (raw) {
       const parsed = JSON.parse(raw) as { v?: unknown; userId?: unknown; entries?: unknown };
-      if (parsed && parsed.v === PERSIST_VERSION && parsed.entries && typeof parsed.entries === 'object') {
-        cacheOwnerId = typeof parsed.userId === 'string' ? parsed.userId : null;
+      if (
+        parsed &&
+        parsed.v === PERSIST_VERSION &&
+        parsed.entries &&
+        typeof parsed.entries === 'object' &&
+        // 소유자 없는 봉투는 신뢰하지 않는다(구버전/경쟁 잔재 방어) — 시드 없이 폐기.
+        typeof parsed.userId === 'string'
+      ) {
+        cacheOwnerId = parsed.userId;
         for (const [k, v] of Object.entries(parsed.entries as Record<string, unknown>)) {
           if (k.startsWith('/api/')) cache.set(k, v);
         }
@@ -124,6 +147,7 @@ export function setPageCacheOwner(userId: string) {
 /** 로그인/로그아웃(사용자 전환) 시 호출 — 이전 계정의 데이터가 새 계정 화면에 비치는 것 방지.
  *  메모리 캐시와 localStorage 영속 스냅샷을 함께 비운다. */
 export function clearPageCache() {
+  cacheEpoch += 1; // 진행 중이던 응답의 뒤늦은 캐시/영속 쓰기를 전부 무효화
   cache.clear();
   inflight.clear();
   lastSuccessAt.clear();
@@ -159,8 +183,11 @@ export function invalidateCachedApiPrefix(prefix: string) {
 }
 
 /** 훅 밖에서 캐시 스냅샷 읽기 — 다른 페이지가 받아둔 응답으로 선렌더할 때 사용
- *  (예: board/[id]가 홈의 /api/boards 캐시에서 보드 요약을 꺼내 제목을 즉시 표시). */
+ *  (예: board/[id]가 홈의 /api/boards 캐시에서 보드 요약을 꺼내 제목을 즉시 표시).
+ *  하이드레이션 렌더 중에는 undefined — 서버 HTML(캐시 없음)과의 정합을 위해
+ *  localStorage 시드는 첫 커밋 이후부터 노출된다(useState 초기값 소비자 공통). */
 export function readCachedApi<T>(url: string): T | undefined {
+  if (!hydrated) return undefined;
   return cache.get(url) as T | undefined;
 }
 
@@ -170,13 +197,15 @@ export function writeCachedApi<T>(url: string, value: T) {
   cacheSet(url, value);
 }
 
-/** 같은 키의 동시 fetch를 하나로 합치는 공유 fetch — 성공 시각(lastSuccessAt)도 기록. */
+/** 같은 키의 동시 fetch를 하나로 합치는 공유 fetch — 성공 시각(lastSuccessAt)도 기록.
+ *  시작 시점의 epoch를 캡처해, 완료 전에 clearPageCache가 지나갔으면 기록을 버린다. */
 function fetchShared<T>(url: string): Promise<T> {
   const existing = inflight.get(url);
   if (existing) return existing as Promise<T>;
+  const epochAtStart = cacheEpoch;
   const p = api<T>(url)
     .then((fresh) => {
-      lastSuccessAt.set(url, Date.now());
+      if (epochAtStart === cacheEpoch) lastSuccessAt.set(url, Date.now());
       return fresh;
     })
     .finally(() => {
@@ -187,7 +216,11 @@ function fetchShared<T>(url: string): Promise<T> {
 }
 
 export function useCachedApi<T>(url: string) {
-  const [data, setData] = useState<T | undefined>(() => cache.get(url) as T | undefined);
+  // 하이드레이션 렌더(hydrated=false)에선 서버 HTML과 동일하게 캐시 없음으로 시작 —
+  // 시드 데이터는 직후 mount effect의 setData가 그린다(체감 지연 없음, mismatch 없음).
+  const [data, setData] = useState<T | undefined>(() =>
+    hydrated ? (cache.get(url) as T | undefined) : undefined,
+  );
   const [error, setError] = useState(false);
   // 실패가 HTTP 응답이었을 때의 상태 코드 — 네트워크 단절(fetch TypeError)은 undefined.
   const [errorStatus, setErrorStatus] = useState<number | undefined>(undefined);
@@ -206,8 +239,12 @@ export function useCachedApi<T>(url: string) {
     lastRefreshAtRef.current = Date.now();
     setError(false);
     setErrorStatus(undefined);
+    const epochAtStart = cacheEpoch;
     try {
       const fresh = await fetchShared<T>(url);
+      // 완료 전에 clearPageCache(계정 전환/로그아웃)가 지나갔으면 이 응답은 이전
+      // 세션 소속 — 캐시·화면 어디에도 쓰지 않고 버린다(재오염 방지).
+      if (epochAtStart !== cacheEpoch) return;
       // 캐시는 자기 url 키로 항상 갱신(정확) — 화면 state만 최신 요청일 때 반영한다.
       cacheSet(url, fresh);
       if (!guardRef.current.isLatest(token)) return;
@@ -222,18 +259,27 @@ export function useCachedApi<T>(url: string) {
   }, [url]);
 
   useEffect(() => {
+    // 첫 커밋 도달 = 하이드레이션 종료 — 이후의 모든 마운트는 동기 캐시 읽기 허용.
+    hydrated = true;
     // url 전환(같은 훅 인스턴스 — friends/[id]·relay/[id] 등) 시 화면 state를 새 키의
     // 캐시로 즉시 동기화 — 이전 url 데이터가 새 화면에 잔류(stale flash)하지 않게 한다.
-    // 신규 mount에선 초기값과 동일 참조라 React가 리렌더를 생략하는 no-op.
+    // 신규 마운트에선 초기값과 동일 참조라 React가 리렌더를 생략하는 no-op.
+    // (하이드레이션 마운트에선 undefined 초기값 → 여기서 시드가 실제로 그려진다.)
     setData(cache.get(url) as T | undefined);
     // mount 재검증 TTL: 이 키가 방금(≤5초) 성공 응답을 받았다면 재발사하지 않는다.
     // (영속 시드 데이터는 lastSuccessAt 기록이 없어 여기 걸리지 않고 항상 재검증.)
     if (cache.has(url) && Date.now() - (lastSuccessAt.get(url) ?? 0) < MOUNT_REVALIDATE_TTL_MS) {
+      // 직전 url의 미완료 요청을 무효화 — TTL 경로는 refresh를 안 타므로 여기서
+      // begin()하지 않으면 늦게 도착한 이전 url 응답이 isLatest를 통과해 이 화면을
+      // 덮어쓴다(latestGuard가 막으려던 역순 응답 클래스의 재발).
+      guardRef.current.begin();
+      setError(false);
+      setErrorStatus(undefined);
       setFetched(true);
       return;
     }
     // url 전환 잔류 fetched 리셋 — 캐시 없는 새 키가 '빈 상태'가 아니라 스켈레톤으로
-    // 보이도록, 자기 재검증이 완료되기 전까지는 미확정으로 되돌린다(신규 mount에선 no-op).
+    // 보이도록, 자기 재검증이 완료되기 전까지는 미확정으로 되돌린다(신규 마운트에선 no-op).
     setFetched(false);
     refresh();
   }, [refresh, url]);

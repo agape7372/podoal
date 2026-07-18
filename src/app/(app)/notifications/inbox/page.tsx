@@ -56,6 +56,11 @@ export default function NotificationInboxPage() {
   const markedRef = useRef(false);
   useEffect(() => {
     if (markedRef.current) return;
+    // 피드가 도착한 뒤 1회 — mount GET(5쿼리 집계, 느림)과 POST(단건 UPDATE, 빠름)를
+    // 동시에 띄우면 커밋 전 스냅샷을 읽은 GET이 나중에 도착해 mutate를 미읽음 상태로
+    // 되덮는 역전 경쟁이 '일반 케이스'가 된다. 콜드 캐시(prev=undefined)에서 mutate가
+    // no-op 되는 문제도 같이 사라진다.
+    if (data === undefined) return;
     markedRef.current = true;
     api('/api/messages/read-all', { method: 'POST' })
       .then(() => {
@@ -74,7 +79,7 @@ export default function NotificationInboxPage() {
         });
       })
       .catch(() => {}); // 실패해도 다음 진입에서 재시도(멱등)
-  }, [mutate]);
+  }, [data, mutate]);
 
   const open = (e: NotificationEvent) => {
     feedbackTap();

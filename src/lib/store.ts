@@ -111,8 +111,20 @@ interface AppState {
   updateSettings: (partial: Partial<AppSettings>) => void;
 }
 
+/** user 스냅샷을 하이드레이션 이후에 주입 — (app) 레이아웃·웰컴('/')의 mount effect가
+ *  호출한다. 초기 state를 스냅샷으로 직접 시드하면 서버 프리렌더 HTML(user=null,
+ *  이름 스켈레톤)과 첫 렌더가 어긋나 React가 전체 루트를 recoverable 에러와 함께
+ *  재렌더한다. 이미 user가 있으면(같은 세션 재호출) no-op. 반환값 = 주입/기존 user. */
+export function hydrateUserSnapshot(): UserProfile | null {
+  const cur = useAppStore.getState().user;
+  if (cur) return cur;
+  const snap = loadUserSnapshot();
+  if (snap) useAppStore.setState({ user: snap });
+  return snap;
+}
+
 export const useAppStore = create<AppState>((set) => ({
-  user: loadUserSnapshot(),
+  user: null,
   boards: [],
   friends: [],
   messages: [],
