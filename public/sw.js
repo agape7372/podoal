@@ -1,7 +1,7 @@
 // IMPORTANT: bump CACHE_VERSION whenever you change which assets you want to
 // invalidate on the next deploy. The activate handler deletes every cache
 // whose name doesn't match the current value, so users get a fresh shell.
-const CACHE_VERSION = '2026-07-13-shell-cleanup';
+const CACHE_VERSION = '2026-07-18-nav-timeout';
 const CACHE_NAME = `podoal-${CACHE_VERSION}`;
 // HTML navigations are network-first (see fetch handler), so precached documents
 // are never served on normal navigations. '/' was true dead code (nothing
@@ -70,19 +70,37 @@ self.addEventListener('fetch', (event) => {
   // (e.g. an old board URL) must NOT be served from a stale cache — otherwise
   // it keeps loading old chunks and never picks up a deploy's UI changes.
   // Falls back to cache (then /home) when offline.
+  //
+  // 타임아웃 레이스(2026-07-18 스켈레톤 감사): 순수 network-first는 '느리지만 죽지는
+  // 않은' 회선에서 fetch가 reject될 때까지(수십 초의 브라우저 타임아웃) 흰 화면을
+  // 보였다. 3초 안에 문서가 안 오면 런타임 캐시 문서를 먼저 서빙한다 — 캐시 문서는
+  // 최악 '한 배포 전' 신선도로, 기존 오프라인 폴백과 동일한 계약이라 stale-chunk
+  // 버그 클래스(network-first를 택한 이유)를 깨지 않는다. 네트워크 응답은 레이스
+  // 패배 후에도 계속 진행돼 cache.put으로 다음 방문을 갱신한다. 캐시가 아예 없으면
+  // (첫 방문) 타임아웃 없이 기존과 동일하게 네트워크를 끝까지 기다린다.
   if (request.mode === 'navigate') {
+    const NAV_TIMEOUT_MS = 3000;
+    const networkFetch = fetch(request).then((response) => {
+      if (response.ok) {
+        const clone = response.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+      }
+      return response;
+    });
     event.respondWith(
-      fetch(request)
-        .then((response) => {
-          if (response.ok) {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
-          }
-          return response;
-        })
-        .catch(() =>
-          caches.match(request).then((cached) => cached || caches.match('/home'))
-        )
+      (async () => {
+        const winner = await Promise.race([
+          networkFetch.catch(() => undefined),
+          new Promise((resolve) => setTimeout(() => resolve(undefined), NAV_TIMEOUT_MS)),
+        ]);
+        if (winner) return winner;
+        const cached =
+          (await caches.match(request)) || (await caches.match('/home'));
+        if (cached) return cached;
+        // 캐시 없음(첫 방문 등) — 네트워크가 끝까지 답하길 기다린다(종전 동작).
+        // 이 시점의 reject는 폴백도 없는 상태이므로 그대로 오류로 흘려보낸다.
+        return networkFetch;
+      })()
     );
     return;
   }
