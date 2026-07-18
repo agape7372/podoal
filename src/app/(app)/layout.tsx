@@ -12,6 +12,7 @@ import { useAppStore } from '@/lib/store';
 import { useSSE } from '@/lib/useSSE';
 import { useReminderScheduler } from '@/lib/useReminderScheduler';
 import { fetchUser } from '@/lib/api';
+import { clearPageCache, setPageCacheOwner } from '@/lib/cachedApi';
 import { consentUnset, consumeOAuthPending, identifyUser, seedConsentFromServer } from '@/lib/analytics';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -33,14 +34,32 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     fetchUser().then((u) => {
       if (!u) {
+        // 세션 무효 — 영속 스냅샷(user·페이지 캐시)을 비우고 웰컴으로. 비우지 않으면
+        // '/'의 스냅샷 낙관 리다이렉트와 여기가 서로를 무한 왕복시킨다.
+        useAppStore.getState().setUser(null);
+        clearPageCache();
         router.replace('/');
         return;
       }
+      // 영속 페이지 캐시의 소유자 대조 — 다른 계정 스냅샷이면 여기서 전량 폐기된다.
+      setPageCacheOwner(u.id);
       // 내용이 같으면 setUser 생략 — 무조건 새 객체로 갈아끼우면 user를 deps로 둔
       // effect들(SSE 연결, 리마인더 페치)이 참조 변경만으로 전부 teardown+재실행되어
       // 웰컴→홈 진입 시 SSE 이중 연결 + reminders/settings 중복 페치가 발생했다.
       const cur = useAppStore.getState().user;
-      if (!cur || cur.id !== u.id || cur.name !== u.name || cur.email !== u.email || cur.avatar !== u.avatar) {
+      if (
+        !cur ||
+        cur.id !== u.id ||
+        cur.name !== u.name ||
+        cur.email !== u.email ||
+        cur.avatar !== u.avatar ||
+        // 스냅샷 시드(store.ts) 도입 후 cur가 구 세션 값일 수 있다 — auth/me만 내려주는
+        // 부가 필드(경계 시각·동의 등)도 대조해 스냅샷이 서버값으로 따라오게 한다.
+        cur.provider !== u.provider ||
+        cur.analyticsConsentAt !== u.analyticsConsentAt ||
+        cur.createdAt !== u.createdAt ||
+        cur.dayResetHour !== u.dayResetHour
+      ) {
         setUser(u);
       }
       // 계측(ANALYTICS_PLAN §4·§5) — 다른 기기에서 이미 동의했으면 배너 생략,

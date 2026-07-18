@@ -47,6 +47,37 @@ function saveSettings(settings: AppSettings): void {
   }
 }
 
+// ─── User snapshot (2026-07-18 스켈레톤 감사) ────────────────────
+// 본인 프로필 스냅샷을 localStorage에 남겨(additive 신규 키 — 기존 키 불변),
+// 콜드 스타트에서 auth/me 왕복을 기다리지 않고 헤더 이름·프로필·user 게이트
+// (보드 상세 capsule fetch, 채우기 탭)가 즉시 동작하게 한다. 레이아웃의 fetchUser가
+// 그대로 재검증하며, 401이면 레이아웃이 스냅샷·페이지 캐시를 비우고 /로 돌려보낸다.
+const USER_SNAPSHOT_KEY = 'podoal-user-snapshot-v1';
+
+function loadUserSnapshot(): UserProfile | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(USER_SNAPSHOT_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as UserProfile;
+    if (!parsed || typeof parsed.id !== 'string' || typeof parsed.name !== 'string' || typeof parsed.avatar !== 'string') {
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function saveUserSnapshot(user: UserProfile | null): void {
+  try {
+    if (user) localStorage.setItem(USER_SNAPSHOT_KEY, JSON.stringify(user));
+    else localStorage.removeItem(USER_SNAPSHOT_KEY);
+  } catch {
+    // localStorage may be unavailable
+  }
+}
+
 // ─── Store ─────────────────────────────────────────────────
 
 interface AppState {
@@ -81,7 +112,7 @@ interface AppState {
 }
 
 export const useAppStore = create<AppState>((set) => ({
-  user: null,
+  user: loadUserSnapshot(),
   boards: [],
   friends: [],
   messages: [],
@@ -91,7 +122,12 @@ export const useAppStore = create<AppState>((set) => ({
   popupMessage: null,
   settings: loadSettings(),
 
-  setUser: (user) => set({ user }),
+  setUser: (user) => {
+    // write-through: 스냅샷은 setUser와 항상 동행(null이면 제거) — 로그아웃/탈퇴 경로가
+    // setUser(null)만 불러도 스냅샷이 남지 않게 한다.
+    saveUserSnapshot(user);
+    set({ user });
+  },
   setBoards: (boards) => set({ boards }),
   setFriends: (friends) => set({ friends }),
   setMessages: (messages) => set({ messages }),

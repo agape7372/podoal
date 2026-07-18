@@ -40,21 +40,41 @@ export async function api<T = unknown>(
   return data as T;
 }
 
-export async function fetchUser() {
-  try {
-    const data = await api<{
-      user: {
-        id: string;
-        name: string;
-        email: string;
-        avatar: string;
-        provider?: string | null;
-        analyticsConsentAt?: string | null;
-        createdAt?: string;
-      };
-    }>('/api/auth/me');
-    return data.user;
-  } catch {
-    return null;
+type MeUser = {
+  id: string;
+  name: string;
+  email: string;
+  avatar: string;
+  provider?: string | null;
+  analyticsConsentAt?: string | null;
+  createdAt?: string;
+  /** "하루의 시작" 시각(0~6, C4-b additive) — auth/me만 내려준다. */
+  dayResetHour?: number;
+};
+
+// fetchUser 성공 결과 단기 메모 — '/' 진입(웰컴의 auth 확인)과 (app) 레이아웃 mount가
+// 몇 초 간격으로 같은 /api/auth/me를 연달아 부르던 중복을 없앤다. 실패/미로그인은
+// 메모하지 않으므로(로그인 직후 등) 다음 호출이 즉시 재확인한다.
+const USER_FETCH_TTL_MS = 10_000;
+let userFetchMemo: { at: number; promise: Promise<MeUser | null> } | null = null;
+
+export async function fetchUser(): Promise<MeUser | null> {
+  if (userFetchMemo && Date.now() - userFetchMemo.at < USER_FETCH_TTL_MS) {
+    return userFetchMemo.promise;
   }
+  const memo = {
+    at: Date.now(),
+    promise: (async () => {
+      try {
+        const data = await api<{ user: MeUser }>('/api/auth/me');
+        return data.user;
+      } catch {
+        return null;
+      }
+    })(),
+  };
+  userFetchMemo = memo;
+  const user = await memo.promise;
+  if (!user && userFetchMemo === memo) userFetchMemo = null;
+  return user;
 }
