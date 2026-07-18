@@ -6,6 +6,9 @@ import { api } from './api';
 import type { ReminderInfo, NotificationSettingInfo } from '@/types';
 
 const CHECK_INTERVAL_MS = 60_000;
+// 첫 refresh 지연 — 실행 직후 임계 fetch와의 콜드 자원 경쟁 회피. 리마인더 판정은
+// 분 단위(tick 60초)라 몇 초 지연은 의미 차이가 없다.
+const INITIAL_REFRESH_DELAY_MS = 4_000;
 const FIRED_KEY = 'podoal-reminder-fired';
 const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
 
@@ -73,6 +76,10 @@ export function useReminderScheduler() {
     let lastFetch = 0;
 
     async function refresh() {
+      // 알림 권한이 없으면 fetch 자체를 건너뛴다 — tick()이 어차피 권한 없이는
+      // 아무것도 발사하지 못하는데 reminders+settings 2건을 매번 받아오던 낭비
+      // (권한을 나중에 허용하면 다음 60초 tick의 refresh가 자연히 받아온다).
+      if (Notification.permission !== 'granted') return;
       const now = Date.now();
       // Re-fetch reminders every 5 minutes to pick up edits.
       if (now - lastFetch < 5 * 60_000) return;
@@ -127,13 +134,16 @@ export function useReminderScheduler() {
       if (dirty) saveFired(fired);
     }
 
-    refresh().then(tick);
+    const initialTimer = setTimeout(() => {
+      refresh().then(tick);
+    }, INITIAL_REFRESH_DELAY_MS);
     const id = setInterval(() => {
       refresh().then(tick);
     }, CHECK_INTERVAL_MS);
 
     return () => {
       cancelled = true;
+      clearTimeout(initialTimer);
       clearInterval(id);
     };
   }, [userId]);

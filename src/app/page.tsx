@@ -8,9 +8,9 @@ import InstallPrompt from '@/components/InstallPrompt';
 import Podo from '@/components/mascot/Podo';
 import EmojiIcon from '@/components/EmojiIcon';
 import { AVATAR_OPTIONS } from '@/types';
-import { api, fetchUser } from '@/lib/api';
+import { api, FETCH_USER_TRANSIENT, fetchUser } from '@/lib/api';
 import { clearPageCache } from '@/lib/cachedApi';
-import { useAppStore } from '@/lib/store';
+import { hydrateUserSnapshot, useAppStore } from '@/lib/store';
 import { describeAuthError } from '@/lib/authErrors';
 import { track, markOAuthStart } from '@/lib/analytics';
 
@@ -93,11 +93,24 @@ function AuthPageInner() {
       url.searchParams.delete('provider');
       window.history.replaceState({}, '', url.toString());
     }
+    // 낙관 리다이렉트(스켈레톤 감사): user 스냅샷이 있으면 auth/me 왕복을 기다리지
+    // 않고 즉시 /home으로 — 기존엔 "스플래시 → auth/me → 이동 → 그제서야 데이터 fetch"
+    // 의 직렬 2왕복이었다. 세션이 실제로 죽었으면 (app) 레이아웃의 fetchUser가
+    // 스냅샷을 비우고 /로 돌려보내므로(무한 왕복 없음) 한 번의 바운스로 수렴한다.
+    // OAuth 에러 복귀는 방금 인증이 실패한 맥락이라 낙관 이동 없이 에러를 보여준다.
+    // (스냅샷 주입은 하이드레이션 이후인 여기 effect에서 — store.ts 주석 참조.)
+    if (!oauthError && hydrateUserSnapshot()) {
+      router.replace('/home');
+      return;
+    }
+    // 로그인 폼을 보게 될 사용자를 위해 /home 청크를 미리 — 로그인 성공 직후 이동이 빨라진다.
+    router.prefetch('/home');
     fetchUser().then((u) => {
-      if (u) {
+      if (u && u !== FETCH_USER_TRANSIENT) {
         setUser(u);
         router.replace('/home');
       } else {
+        // 미인증(null)과 판정 불가(일시 장애) 모두 웰컴 표시 — 종전 동작 유지.
         setChecking(false);
       }
     });

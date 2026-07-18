@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
+import { useCachedApi } from '@/lib/cachedApi';
 import ClayButton from '@/components/ClayButton';
 import ClayInput from '@/components/ClayInput';
 import NumberStepper from '@/components/NumberStepper';
@@ -35,25 +36,23 @@ export default function CreatePodongPage() {
   const [rewardTitle, setRewardTitle] = useState('');
   const [rewardContent, setRewardContent] = useState('');
 
-  const [friends, setFriends] = useState<FriendInfo[]>([]);
   const [selectedFriendIds, setSelectedFriendIds] = useState<string[]>([]);
-  const [loadingFriends, setLoadingFriends] = useState(true);
-  const [friendsError, setFriendsError] = useState(false);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
 
-  const fetchFriends = useCallback(async () => {
-    setFriendsError(false);
-    try {
-      const data = await api<{ friends: FriendInfo[] }>('/api/friends');
-      setFriends((data.friends || []).filter((f) => f.status === 'accepted'));
-    } catch {
-      setFriendsError(true);
-    }
-    setLoadingFriends(false);
-  }, []);
-
-  useEffect(() => { fetchFriends(); }, [fetchFriends]);
+  // 친구 목록은 친구 탭과 같은 '/api/friends' SWR 캐시를 공유 — 친구 탭을 거쳐 왔으면
+  // 즉시 렌더 + 무음 재검증이고, 실행 폭주에 중복 요청도 얹지 않는다(스켈레톤 감사:
+  // 예전엔 raw api() + 로컬 state라 캐시를 우회했다).
+  const {
+    data: friendsData,
+    loading: loadingFriends,
+    error: friendsError,
+    refresh: fetchFriends,
+  } = useCachedApi<{ friends: FriendInfo[] }>('/api/friends');
+  const friends = useMemo(
+    () => (friendsData?.friends ?? []).filter((f) => f.status === 'accepted'),
+    [friendsData],
+  );
 
   const handleSelectTemplate = (template: HabitTemplate) => {
     feedbackTap();

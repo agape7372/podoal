@@ -6,7 +6,7 @@ import { api } from '@/lib/api';
 import { invalidateCachedApi } from '@/lib/cachedApi';
 import { useCachedApi } from '@/lib/cachedApi';
 import { useAppStore } from '@/lib/store';
-import { countUnread, refreshUnreadCount } from '@/lib/notifications';
+import { countUnread } from '@/lib/notifications';
 import Avatar from '@/components/Avatar';
 import EmojiIcon from '@/components/EmojiIcon';
 import EmptyState from '@/components/EmptyState';
@@ -31,7 +31,7 @@ export default function NotificationInboxPage() {
   const router = useRouter();
   const setUnreadCount = useAppStore((s) => s.setUnreadCount);
   // SWR 캐시: 재방문 시 직전 피드로 즉시 렌더 + 무음 재검증.
-  const { data, loading, error, refresh } = useCachedApi<{ events: NotificationEvent[] }>('/api/notifications');
+  const { data, loading, error, refresh, mutate } = useCachedApi<{ events: NotificationEvent[] }>('/api/notifications');
   const events = data?.events ?? [];
 
   // 방금 받은 피드가 곧 배지의 단일 출처 — 추가 fetch 없이 store를 같은 값으로 동기화
@@ -49,18 +49,37 @@ export default function NotificationInboxPage() {
   // 알림함을 '열어서 봤으면' 응원·축하·선물 메시지는 읽음으로 간주 — 메시지함에서
   // 카드를 또 일일이 탭해야 배지가 안 빠지던 불일치를 해소한다(보상/친구요청/초대는
   // 수락·개봉 등 별도 처리가 필요하므로 그대로 둔다). 마운트당 1회만 발사.
+  // 성공 후 피드·배지는 로컬 반영(mutate + countUnread) — 예전엔 refresh()+
+  // refreshUnreadCount(force)로 같은 5쿼리 집계를 2번 더 받아왔다(스켈레톤 감사:
+  // 인박스 1회 방문 = 동일 피드 3중 fetch). 서버 확정값과의 수렴은 다음
+  // 마운트/복귀 재검증이 보장한다.
   const markedRef = useRef(false);
   useEffect(() => {
     if (markedRef.current) return;
+    // 피드가 도착한 뒤 1회 — mount GET(5쿼리 집계, 느림)과 POST(단건 UPDATE, 빠름)를
+    // 동시에 띄우면 커밋 전 스냅샷을 읽은 GET이 나중에 도착해 mutate를 미읽음 상태로
+    // 되덮는 역전 경쟁이 '일반 케이스'가 된다. 콜드 캐시(prev=undefined)에서 mutate가
+    // no-op 되는 문제도 같이 사라진다.
+    if (data === undefined) return;
     markedRef.current = true;
     api('/api/messages/read-all', { method: 'POST' })
       .then(() => {
         invalidateCachedApi('/api/messages'); // 메시지함 재진입 시 읽음 상태 반영
-        refresh(); // 알림함 피드 자체도 메시지 read 반영
-        refreshUnreadCount({ force: true }); // 배지 즉시 갱신
+        // 배지는 별도 호출 불필요 — 위 39행 effect가 data 변경을 감지해
+        // countUnread로 동기화한다(업데이터는 순수 함수로 유지).
+        mutate((prev) => {
+          if (!prev) return prev;
+          return {
+            events: prev.events.map((e) =>
+              e.type === 'cheer' || e.type === 'celebration' || e.type === 'gift'
+                ? { ...e, read: true }
+                : e,
+            ),
+          };
+        });
       })
       .catch(() => {}); // 실패해도 다음 진입에서 재시도(멱등)
-  }, [refresh]);
+  }, [data, mutate]);
 
   const open = (e: NotificationEvent) => {
     feedbackTap();

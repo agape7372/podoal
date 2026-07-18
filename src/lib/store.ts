@@ -47,6 +47,37 @@ function saveSettings(settings: AppSettings): void {
   }
 }
 
+// ─── User snapshot (2026-07-18 스켈레톤 감사) ────────────────────
+// 본인 프로필 스냅샷을 localStorage에 남겨(additive 신규 키 — 기존 키 불변),
+// 콜드 스타트에서 auth/me 왕복을 기다리지 않고 헤더 이름·프로필·user 게이트
+// (보드 상세 capsule fetch, 채우기 탭)가 즉시 동작하게 한다. 레이아웃의 fetchUser가
+// 그대로 재검증하며, 401이면 레이아웃이 스냅샷·페이지 캐시를 비우고 /로 돌려보낸다.
+const USER_SNAPSHOT_KEY = 'podoal-user-snapshot-v1';
+
+function loadUserSnapshot(): UserProfile | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(USER_SNAPSHOT_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as UserProfile;
+    if (!parsed || typeof parsed.id !== 'string' || typeof parsed.name !== 'string' || typeof parsed.avatar !== 'string') {
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function saveUserSnapshot(user: UserProfile | null): void {
+  try {
+    if (user) localStorage.setItem(USER_SNAPSHOT_KEY, JSON.stringify(user));
+    else localStorage.removeItem(USER_SNAPSHOT_KEY);
+  } catch {
+    // localStorage may be unavailable
+  }
+}
+
 // ─── Store ─────────────────────────────────────────────────
 
 interface AppState {
@@ -80,6 +111,18 @@ interface AppState {
   updateSettings: (partial: Partial<AppSettings>) => void;
 }
 
+/** user 스냅샷을 하이드레이션 이후에 주입 — (app) 레이아웃·웰컴('/')의 mount effect가
+ *  호출한다. 초기 state를 스냅샷으로 직접 시드하면 서버 프리렌더 HTML(user=null,
+ *  이름 스켈레톤)과 첫 렌더가 어긋나 React가 전체 루트를 recoverable 에러와 함께
+ *  재렌더한다. 이미 user가 있으면(같은 세션 재호출) no-op. 반환값 = 주입/기존 user. */
+export function hydrateUserSnapshot(): UserProfile | null {
+  const cur = useAppStore.getState().user;
+  if (cur) return cur;
+  const snap = loadUserSnapshot();
+  if (snap) useAppStore.setState({ user: snap });
+  return snap;
+}
+
 export const useAppStore = create<AppState>((set) => ({
   user: null,
   boards: [],
@@ -91,7 +134,12 @@ export const useAppStore = create<AppState>((set) => ({
   popupMessage: null,
   settings: loadSettings(),
 
-  setUser: (user) => set({ user }),
+  setUser: (user) => {
+    // write-through: 스냅샷은 setUser와 항상 동행(null이면 제거) — 로그아웃/탈퇴 경로가
+    // setUser(null)만 불러도 스냅샷이 남지 않게 한다.
+    saveUserSnapshot(user);
+    set({ user });
+  },
   setBoards: (boards) => set({ boards }),
   setFriends: (friends) => set({ friends }),
   setMessages: (messages) => set({ messages }),

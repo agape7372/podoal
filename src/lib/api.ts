@@ -40,21 +40,50 @@ export async function api<T = unknown>(
   return data as T;
 }
 
-export async function fetchUser() {
-  try {
-    const data = await api<{
-      user: {
-        id: string;
-        name: string;
-        email: string;
-        avatar: string;
-        provider?: string | null;
-        analyticsConsentAt?: string | null;
-        createdAt?: string;
-      };
-    }>('/api/auth/me');
-    return data.user;
-  } catch {
-    return null;
+type MeUser = {
+  id: string;
+  name: string;
+  email: string;
+  avatar: string;
+  provider?: string | null;
+  analyticsConsentAt?: string | null;
+  createdAt?: string;
+  /** "하루의 시작" 시각(0~6, C4-b additive) — auth/me만 내려준다. */
+  dayResetHour?: number;
+};
+
+/** fetchUser의 '일시 장애' 결과 — 네트워크 단절·5xx·오프라인 SW 503 등, 세션의
+ *  유효/무효를 판정할 수 없는 실패. null(확정 미인증: 401/404)과 반드시 구분한다 —
+ *  구분 없이 null로 뭉개면 비행기 모드에서 앱을 연 사용자가 로그아웃당하고
+ *  영속 캐시까지 전소된다(레이아웃의 미인증 처리 경로). */
+export const FETCH_USER_TRANSIENT = 'transient-error' as const;
+export type FetchUserResult = MeUser | null | typeof FETCH_USER_TRANSIENT;
+
+// fetchUser 성공 결과 단기 메모 — '/' 진입(웰컴의 auth 확인)과 (app) 레이아웃 mount가
+// 몇 초 간격으로 같은 /api/auth/me를 연달아 부르던 중복을 없앤다. 실패/미로그인은
+// 메모하지 않으므로(로그인 직후 등) 다음 호출이 즉시 재확인한다.
+const USER_FETCH_TTL_MS = 10_000;
+let userFetchMemo: { at: number; promise: Promise<FetchUserResult> } | null = null;
+
+export async function fetchUser(): Promise<FetchUserResult> {
+  if (userFetchMemo && Date.now() - userFetchMemo.at < USER_FETCH_TTL_MS) {
+    return userFetchMemo.promise;
   }
+  const memo = {
+    at: Date.now(),
+    promise: (async (): Promise<FetchUserResult> => {
+      try {
+        const data = await api<{ user: MeUser }>('/api/auth/me');
+        return data.user;
+      } catch (e) {
+        // 401(미인증)/404(계정 삭제)만 '확정 로그아웃'. 그 외는 판정 불가.
+        if (e instanceof ApiError && (e.status === 401 || e.status === 404)) return null;
+        return FETCH_USER_TRANSIENT;
+      }
+    })(),
+  };
+  userFetchMemo = memo;
+  const user = await memo.promise;
+  if ((!user || user === FETCH_USER_TRANSIENT) && userFetchMemo === memo) userFetchMemo = null;
+  return user;
 }

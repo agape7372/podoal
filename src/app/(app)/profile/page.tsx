@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useAppStore } from '@/lib/store';
 import { api } from '@/lib/api';
+import { clearPageCache } from '@/lib/cachedApi';
 import { AVATAR_OPTIONS, type UserProfile } from '@/types';
 import { feedbackError, feedbackSuccess, feedbackTap } from '@/lib/feedback';
 import { describeAuthError } from '@/lib/authErrors';
@@ -113,6 +114,10 @@ function ProfileView({ user }: { user: UserProfile }) {
       // 네트워크 실패해도 클라에서 나가는 흐름은 유지 — 쿠키가 안 지워졌을 가능성은
       // 있으나, 사용자를 로그아웃 시트에 무한정 가둬두는 것보다 안전한 폴백.
     } finally {
+      // 하드 이동은 메모리만 리셋한다 — localStorage 영속(user 스냅샷·페이지 캐시)은
+      // 명시적으로 비워야 다음 사용자에게 이전 계정 데이터가 비치지 않는다.
+      setUser(null);
+      clearPageCache();
       window.location.href = '/';
     }
   };
@@ -152,6 +157,9 @@ function ProfileView({ user }: { user: UserProfile }) {
     setDeleting(true);
     try {
       await api('/api/auth/me', { method: 'DELETE' });
+      // 로그아웃과 동일 — localStorage 영속(user 스냅샷·페이지 캐시)까지 비운다.
+      setUser(null);
+      clearPageCache();
       window.location.href = '/';
     } catch (e) {
       setDeleting(false);
