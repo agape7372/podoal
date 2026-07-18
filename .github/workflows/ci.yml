@@ -3,9 +3,16 @@ on:
   push:
     branches: [main]
   pull_request:
+permissions:
+  contents: read
+# 같은 ref에 연속 푸시 시 이전 실행 취소 — superseded 런이 러너를 계속 점유하지 않게.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   check:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     env:
       # Dummy values so module-load-time guards (auth.ts JWT_SECRET) and Prisma
       # client construction don't throw during `next build`. No real database is
@@ -36,6 +43,7 @@ jobs:
   # 마지막 칸 동시 채움 race(Serializable+재시도)가 회귀하면 여기서 빨개진다.
   integration:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     services:
       postgres:
         image: postgres:16
