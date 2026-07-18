@@ -222,15 +222,19 @@ export function useCachedApi<T>(url: string) {
   }, [url]);
 
   useEffect(() => {
+    // url 전환(같은 훅 인스턴스 — friends/[id]·relay/[id] 등) 시 화면 state를 새 키의
+    // 캐시로 즉시 동기화 — 이전 url 데이터가 새 화면에 잔류(stale flash)하지 않게 한다.
+    // 신규 mount에선 초기값과 동일 참조라 React가 리렌더를 생략하는 no-op.
+    setData(cache.get(url) as T | undefined);
     // mount 재검증 TTL: 이 키가 방금(≤5초) 성공 응답을 받았다면 재발사하지 않는다.
     // (영속 시드 데이터는 lastSuccessAt 기록이 없어 여기 걸리지 않고 항상 재검증.)
     if (cache.has(url) && Date.now() - (lastSuccessAt.get(url) ?? 0) < MOUNT_REVALIDATE_TTL_MS) {
-      // url 전환 복귀(같은 훅 인스턴스, friends/[id] 등)면 화면 state가 직전 url 데이터로
-      // 남아 있다 — 캐시 값으로 동기화한다. 신규 mount에선 초기값과 동일 참조라 no-op.
-      setData(cache.get(url) as T);
       setFetched(true);
       return;
     }
+    // url 전환 잔류 fetched 리셋 — 캐시 없는 새 키가 '빈 상태'가 아니라 스켈레톤으로
+    // 보이도록, 자기 재검증이 완료되기 전까지는 미확정으로 되돌린다(신규 mount에선 no-op).
+    setFetched(false);
     refresh();
   }, [refresh, url]);
 

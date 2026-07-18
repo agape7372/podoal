@@ -8,7 +8,7 @@ import InstallPrompt from '@/components/InstallPrompt';
 import Podo from '@/components/mascot/Podo';
 import EmojiIcon from '@/components/EmojiIcon';
 import { AVATAR_OPTIONS } from '@/types';
-import { api, fetchUser } from '@/lib/api';
+import { api, FETCH_USER_TRANSIENT, fetchUser } from '@/lib/api';
 import { clearPageCache } from '@/lib/cachedApi';
 import { useAppStore } from '@/lib/store';
 import { describeAuthError } from '@/lib/authErrors';
@@ -105,10 +105,11 @@ function AuthPageInner() {
     // 로그인 폼을 보게 될 사용자를 위해 /home 청크를 미리 — 로그인 성공 직후 이동이 빨라진다.
     router.prefetch('/home');
     fetchUser().then((u) => {
-      if (u) {
+      if (u && u !== FETCH_USER_TRANSIENT) {
         setUser(u);
         router.replace('/home');
       } else {
+        // 미인증(null)과 판정 불가(일시 장애) 모두 웰컴 표시 — 종전 동작 유지.
         setChecking(false);
       }
     });

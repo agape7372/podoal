@@ -11,7 +11,7 @@ import OfflineBanner from '@/components/OfflineBanner';
 import { useAppStore } from '@/lib/store';
 import { useSSE } from '@/lib/useSSE';
 import { useReminderScheduler } from '@/lib/useReminderScheduler';
-import { fetchUser } from '@/lib/api';
+import { FETCH_USER_TRANSIENT, fetchUser } from '@/lib/api';
 import { clearPageCache, setPageCacheOwner } from '@/lib/cachedApi';
 import { consentUnset, consumeOAuthPending, identifyUser, seedConsentFromServer } from '@/lib/analytics';
 
@@ -33,6 +33,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   // (그 전까지 잠깐 보이는 빈 셸은 수용 — API가 어차피 401로 데이터를 막는다).
   useEffect(() => {
     fetchUser().then((u) => {
+      // 판정 불가(오프라인·5xx·SW 503) — 세션이 죽었다는 증거가 아니다. 스냅샷·캐시를
+      // 유지한 채 그대로 둔다(오프라인 배너가 UX를 담당, 복귀 시 재검증이 따라잡음).
+      // null(확정 401/404)과 구분하지 않으면 비행기 모드에서 로그아웃+캐시 전소가 난다.
+      if (u === FETCH_USER_TRANSIENT) return;
       if (!u) {
         // 세션 무효 — 영속 스냅샷(user·페이지 캐시)을 비우고 웰컴으로. 비우지 않으면
         // '/'의 스냅샷 낙관 리다이렉트와 여기가 서로를 무한 왕복시킨다.

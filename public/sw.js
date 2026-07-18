@@ -96,7 +96,12 @@ self.addEventListener('fetch', (event) => {
         if (winner) return winner;
         const cached =
           (await caches.match(request)) || (await caches.match('/home'));
-        if (cached) return cached;
+        if (cached) {
+          // respondWith가 캐시 문서로 확정되면 SW가 종료될 수 있다 — 진행 중인
+          // 네트워크 응답의 cache.put(다음 방문 갱신)이 완주하도록 수명을 연장한다.
+          event.waitUntil(networkFetch.catch(() => {}));
+          return cached;
+        }
         // 캐시 없음(첫 방문 등) — 네트워크가 끝까지 답하길 기다린다(종전 동작).
         // 이 시점의 reject는 폴백도 없는 상태이므로 그대로 오류로 흘려보낸다.
         return networkFetch;

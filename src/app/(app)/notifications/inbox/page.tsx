@@ -60,21 +60,21 @@ export default function NotificationInboxPage() {
     api('/api/messages/read-all', { method: 'POST' })
       .then(() => {
         invalidateCachedApi('/api/messages'); // 메시지함 재진입 시 읽음 상태 반영
+        // 배지는 별도 호출 불필요 — 위 39행 effect가 data 변경을 감지해
+        // countUnread로 동기화한다(업데이터는 순수 함수로 유지).
         mutate((prev) => {
           if (!prev) return prev;
-          const next = {
+          return {
             events: prev.events.map((e) =>
               e.type === 'cheer' || e.type === 'celebration' || e.type === 'gift'
                 ? { ...e, read: true }
                 : e,
             ),
           };
-          setUnreadCount(countUnread(next.events)); // 배지도 같은 피드에서 즉시 파생
-          return next;
         });
       })
       .catch(() => {}); // 실패해도 다음 진입에서 재시도(멱등)
-  }, [mutate, setUnreadCount]);
+  }, [mutate]);
 
   const open = (e: NotificationEvent) => {
     feedbackTap();
