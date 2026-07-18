@@ -4,16 +4,22 @@ name: Reminders
 # GitHub 스케줄 최소 간격은 5분(부하 시 더 지연될 수 있음). 라우트가 due-매칭
 # (time <= now + 당일 1회 dedupe)이라 5분 주기로도 각 리마인더가 설정시각 직후 1회 발송된다.
 # 활성화: repo Settings → Secrets and variables → Actions 에 CRON_SECRET 설정(Vercel env와 동일 값).
+# 주의: 저장소에 60일간 커밋 활동이 없으면 GitHub가 schedule 워크플로를 자동 비활성화한다
+# (리마인더가 조용히 멈춤) — Actions 탭에서 re-enable 필요.
 on:
   schedule:
     - cron: '*/5 * * * *'
   workflow_dispatch: {}
 
+permissions: {}
+
 jobs:
   ping:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: Trigger reminder dispatch
         run: |
-          curl -fsS -X GET "https://podoal-rouge.vercel.app/api/cron/reminders" \
+          curl -fsS --retry 3 --retry-all-errors --max-time 120 -X GET \
+            "${{ vars.APP_BASE_URL || 'https://podoal-rouge.vercel.app' }}/api/cron/reminders" \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
