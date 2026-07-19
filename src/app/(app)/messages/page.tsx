@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
-import { useCachedApi } from '@/lib/cachedApi';
+import { useCachedApi, invalidateCachedApi } from '@/lib/cachedApi';
 import { useAppStore } from '@/lib/store';
 import { refreshUnreadCount } from '@/lib/notifications';
 import Avatar from '@/components/Avatar';
@@ -59,7 +59,14 @@ export default function MessagesPage() {
     );
     try {
       await api(`/api/messages/${id}`, { method: 'PATCH', json: {} });
+      // 알림함 캐시 무효화 — 읽음이 이 화면(메시지함) 캐시에만 반영되고 통합 알림함
+      // 캐시는 그대로 남아 마운트된 인박스가 갱신 안 되던 결함. invalidate를
+      // refreshUnreadCount보다 먼저 호출: force refresh가 받아오는 최신 피드가
+      // 이 invalidate로 비운 캐시 위에 write-through되도록 순서를 고정한다.
+      invalidateCachedApi('/api/notifications');
       // 서버 반영이 끝난 뒤 배지를 피드 기준으로 동기화(force: 스로틀 우회).
+      // (refreshUnreadCount가 이제 피드를 write-through도 하므로 위 invalidate와
+      // 합쳐 인박스 캐시가 최신 상태로 채워진다.)
       refreshUnreadCount({ force: true });
     } catch {
       mutate((prev) =>
@@ -76,6 +83,9 @@ export default function MessagesPage() {
     mutate((prev) => prev?.filter((m) => m.id !== id));
     try {
       await api(`/api/messages/${id}`, { method: 'DELETE' });
+      // 알림함 캐시 무효화 — 삭제된 메시지가 통합 피드에도 반영되게 한다(위 handleMarkRead와
+      // 동일 이유). refreshUnreadCount보다 먼저 호출.
+      invalidateCachedApi('/api/notifications');
       // 서버 반영이 끝난 뒤 배지를 피드 기준으로 동기화(force: 스로틀 우회).
       refreshUnreadCount({ force: true });
     } catch {

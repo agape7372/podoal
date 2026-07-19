@@ -4,8 +4,8 @@ import { useEffect, useLayoutEffect, useState, useMemo, useCallback, useRef } fr
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAppStore } from '@/lib/store';
-import { api } from '@/lib/api';
-import { useCachedApi, readCachedApi, writeCachedApi } from '@/lib/cachedApi';
+import { api, ApiError } from '@/lib/api';
+import { useCachedApi, readCachedApi, writeCachedApi, localWriteAt, invalidateCachedApi } from '@/lib/cachedApi';
 import SwipeableBoardCard, { SWIPE_TRANSITION } from '@/components/SwipeableBoardCard';
 import StreakCard, { type StreakInfo } from '@/components/StreakCard';
 import ClayButton from '@/components/ClayButton';
@@ -185,10 +185,18 @@ export default function HomePage() {
     const t = window.setTimeout(async () => {
       for (const b of targets) {
         if (cancelled) return;
-        if (readCachedApi(`/api/boards/${b.id}`)) continue;
+        const detailKey = `/api/boards/${b.id}`;
+        if (readCachedApi(detailKey)) continue;
+        // fetch 시작 전 시각 — 응답 도착까지 그 사이 더 신선한 로컬 쓰기(예: 유저가 직접
+        // 들어가 채움)가 있었는지 판별하는 기준선.
+        const t0 = Date.now();
         try {
-          const d = await api<{ board: BoardDetail }>(`/api/boards/${b.id}`);
-          writeCachedApi(`/api/boards/${b.id}`, d.board);
+          const d = await api<{ board: BoardDetail }>(detailKey);
+          // effect가 그새 정리됐거나(재마운트/언마운트), fetch 도중 더 신선한 로컬 쓰기가
+          // 있었으면 좀비 응답으로 덮어쓰지 않는다.
+          if (cancelled) return;
+          if (localWriteAt(detailKey) > t0) continue;
+          writeCachedApi(detailKey, d.board);
         } catch { /* 프리페치 실패는 조용히 무시 — 진입 시 정상 fetch가 커버 */ }
       }
     }, 1500);
@@ -642,9 +650,14 @@ export default function HomePage() {
       await api(`/api/boards/${board.id}`, { method: 'PATCH', json: { harvested } });
       // 수확(true)만 계측 — 되돌리기(un-harvest) 토글은 지표 아님(§2).
       if (harvested) track('board_harvested', { boardId: board.id, totalStickers: board.totalStickers });
+      // 와이너리 데이터는 서버 파생(수확 즉시 새 병) — 무효화해 다음 진입에서 새로 받게 한다.
+      invalidateCachedApi('/api/winery');
     } catch {
       mutateBoards((prev) =>
         prev && { ...prev, boards: prev.boards.map((b) => (b.id === board.id ? { ...b, harvestedAt: harvested ? null : board.harvestedAt ?? null } : b)) });
+      // persistOrder 실패 토스트 패턴 선례 — 롤백만 하고 무음이면 유저는 왜 카드가
+      // 되돌아왔는지 모른다.
+      showToast('수확하지 못했어요. 잠시 후 다시 시도해주세요.');
     }
   };
 
@@ -655,6 +668,15 @@ export default function HomePage() {
     try {
       await api(`/api/boards/${id}`, { method: 'DELETE' });
       mutateBoards((prev) => prev && { ...prev, boards: prev.boards.filter((b) => b.id !== id) });
+    } catch (err) {
+      // 404 = 이미 삭제됨(다른 탭/재시도 등) → 성공 경로와 동일하게 목록에서 제거.
+      // 그 외 실패는 카드를 유지하고 토스트로 알린다 — 무음 실패면 보드가 안 지워진
+      // 채 다이얼로그만 닫혀 유저가 삭제된 줄 착각한다(persistOrder 실패 토스트 선례).
+      if (err instanceof ApiError && err.status === 404) {
+        mutateBoards((prev) => prev && { ...prev, boards: prev.boards.filter((b) => b.id !== id) });
+      } else {
+        showToast('삭제하지 못했어요. 잠시 후 다시 시도해주세요.');
+      }
     } finally {
       setDeleting(false);
       setDeleteTarget(null);

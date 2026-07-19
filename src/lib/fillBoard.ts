@@ -158,12 +158,14 @@ export async function fillBoardGrape(
 
         // If all positions are filled, mark the board as completed
         let relayAdvanced = false;
+        let completedAt: Date | null = null;
         if (filledCount >= board.totalStickers) {
+          completedAt = new Date();
           await tx.board.update({
             where: { id: boardId },
             data: {
               isCompleted: true,
-              completedAt: new Date(),
+              completedAt,
             },
           });
 
@@ -277,6 +279,10 @@ export async function fillBoardGrape(
           sticker,
           filledCount,
           isCompleted: filledCount >= board.totalStickers,
+          // additive(2026-07-19 정합 감사): 완료 시각을 응답에 동봉 — 클라가 홈 리스트
+          // write-through에 isCompleted:true·completedAt:null 조합을 만들지 않게 한다.
+          // 미완료면 undefined → JSON에서 필드 생략, 기존 클라 무영향.
+          completedAt: completedAt ?? undefined,
           unlockedReward,
           plantedGift: plantedGifts[0] ?? null, // back-compat: first gift
           plantedGifts,

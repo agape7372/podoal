@@ -26,7 +26,7 @@ export function applyOptimisticFill(prev: BoardDetail, sticker: StickerInfo): Bo
 export function applyFillResult(
   prev: BoardDetail,
   tempId: string,
-  result: { sticker: StickerInfo; isCompleted: boolean },
+  result: { sticker: StickerInfo; isCompleted: boolean; completedAt?: string | null },
 ): BoardDetail {
   const stickers = [
     ...prev.stickers.filter((s) => s.id !== tempId && s.position !== result.sticker.position),
@@ -37,6 +37,10 @@ export function applyFillResult(
     stickers,
     filledCount: stickers.length,
     isCompleted: prev.isCompleted || result.isCompleted,
+    // 완료 응답의 completedAt(additive, 2026-07-19)을 단조로 흡수 — 이걸 실어야
+    // 좀비 reconcile의 홈 write-through가 isCompleted:true·completedAt:null 조합
+    // 없이 와이너리 '숙성 기간' 파생값까지 즉시 정확해진다.
+    completedAt: prev.completedAt ?? result.completedAt ?? null,
   };
 }
 
@@ -67,9 +71,15 @@ export function mergeServerBoard(prev: BoardDetail | null, server: BoardDetail):
   // 수 있어(page.tsx summary 메모와 같은 방어 철학), 다른 보드의 잔여 상태에 병합하면
   // A의 스티커가 B에 영구 보존된다. id가 다르면 서버 스냅샷 그대로.
   if (!prev || prev.id !== server.id) return server;
+  // giftOpenedAt 단조 병합 — 개봉 POST 실패를 무시하고 로컬은 열림으로 두는 정책
+  // (handleOpenGift)인데, 이후 stale GET의 null이 되덮으면 선물이 도로 '미개봉'으로
+  // 잠겨 보인다. isCompleted와 같은 단조 규칙을 적용한다(개봉 취소 기능 없음).
+  const giftOpenedAt = server.giftOpenedAt ?? prev.giftOpenedAt;
   const serverPositions = new Set(server.stickers.map((s) => s.position));
   const localExtras = prev.stickers.filter((s) => !serverPositions.has(s.position));
-  if (localExtras.length === 0 && !prev.isCompleted) return server;
+  if (localExtras.length === 0 && !prev.isCompleted) {
+    return giftOpenedAt === server.giftOpenedAt ? server : { ...server, giftOpenedAt };
+  }
   const stickers = [...server.stickers, ...localExtras];
   return {
     ...server,
@@ -77,6 +87,7 @@ export function mergeServerBoard(prev: BoardDetail | null, server: BoardDetail):
     filledCount: stickers.length,
     isCompleted: server.isCompleted || prev.isCompleted,
     completedAt: server.completedAt ?? prev.completedAt,
+    giftOpenedAt,
   };
 }
 

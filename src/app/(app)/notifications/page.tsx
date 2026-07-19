@@ -10,6 +10,7 @@ import type { NotificationSettingInfo, ReminderInfo, BoardSummary } from '@/type
 import { stripTitleEmoji } from '@/lib/title';
 import { usePush } from '@/lib/usePush';
 import { useAppStore } from '@/lib/store';
+import { invalidateReminderCache } from '@/lib/useReminderScheduler';
 // 공용 `src/components/Toggle.tsx`가 정본 (2026-07-13 FE-1) — size:'large' 변형은 그대로 지원.
 import Toggle from '@/components/Toggle';
 import RetryButton from '@/components/RetryButton';
@@ -71,6 +72,9 @@ export default function NotificationsPage() {
         method: 'PUT',
         json: { [key]: value },
       });
+      // 리마인더 스케줄러의 클로저 캐시(최대 5분)를 무효화 — globalEnabled/
+      // reminderEnabled/DND 변경이 다음 tick에 바로 반영되게 한다.
+      invalidateReminderCache();
     } catch {
       // Revert on error
       setSettings(settings);
@@ -88,6 +92,8 @@ export default function NotificationsPage() {
         method: 'PUT',
         json: { isActive: newActive },
       });
+      // 리마인더 스케줄러의 클로저 캐시(최대 5분)를 무효화 — 토글이 다음 tick에 바로 반영되게 한다.
+      invalidateReminderCache();
     } catch {
       // Revert on error
       setReminders((prev) =>
@@ -102,6 +108,8 @@ export default function NotificationsPage() {
 
     try {
       await api(`/api/notifications/reminders/${id}`, { method: 'DELETE' });
+      // 리마인더 스케줄러의 클로저 캐시(최대 5분)를 무효화 — 삭제가 다음 tick에 바로 반영되게 한다.
+      invalidateReminderCache();
     } catch {
       setReminders(prev);
     }
@@ -121,6 +129,9 @@ export default function NotificationsPage() {
     setShowReminderModal(false);
     setEditingReminder(undefined);
     fetchData();
+    // ReminderModal의 onSave는 생성/수정 API가 성공한 뒤에만 호출된다 — 리마인더
+    // 스케줄러의 클로저 캐시(최대 5분)를 무효화해 다음 tick에 바로 반영되게 한다.
+    invalidateReminderCache();
   };
 
   const push = usePush();

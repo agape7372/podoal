@@ -2,6 +2,7 @@
 
 import { api } from './api';
 import { useAppStore } from './store';
+import { writeCachedApi } from './cachedApi';
 import type { NotificationEvent } from '@/types';
 
 /** 통합 알림 피드 이벤트 중 미읽음 개수를 센다(순수 함수). */
@@ -23,6 +24,11 @@ let lastRefreshAt = 0;
  *   바꿔서 확실히 동기화해야 할 때는 `{ force: true }`로 우회한다.
  * - 피드는 최신 40개만 반환하므로 카운트는 40에 캡 — 표시가 '9+'라 실사용 영향 없음.
  * - 실패 시 기존 값을 유지한다(다음 트리거에서 재시도).
+ *
+ * 정합 감사: 이 함수는 카운트를 뽑으려 전체 피드를 받아놓고 그동안 버려왔다 — 알림함이
+ * 마운트돼 있어도 그 화면은 이 fetch 결과를 전혀 못 봤다. writeCachedApi로 같은 캐시 키
+ * ('/api/notifications')에 write-through하면 cachedApi의 키별 구독자 통지(notifyKey)가
+ * 마운트된 알림함을 즉시 리페인트한다(카운트도 그 피드에서 파생 — 이중 fetch 아님).
  */
 export async function refreshUnreadCount(options?: { force?: boolean }): Promise<void> {
   const now = Date.now();
@@ -30,6 +36,7 @@ export async function refreshUnreadCount(options?: { force?: boolean }): Promise
   lastRefreshAt = now;
   try {
     const data = await api<{ events: NotificationEvent[] }>('/api/notifications');
+    writeCachedApi('/api/notifications', data);
     useAppStore.getState().setUnreadCount(countUnread(data.events));
   } catch {
     // 네트워크/일시 오류 — 배지는 마지막으로 알던 값을 유지한다.

@@ -21,10 +21,27 @@ import { createLatestGuard } from '@/lib/latestGuard';
 
 const cache = new Map<string, unknown>();
 
+// 키별 구독자 레지스트리(2026-07-19 정합 감사) — cachedApi의 근본 결함이던 "외부
+// writeCachedApi가 이미 마운트된 훅 화면에 영원히 안 보임"을 고친다. cacheSet(쓰기)과
+// invalidate(무효화)가 해당 키 구독자에게 통지하고, useCachedApi가 자기 키를 구독한다.
+// (마지막 알 채움의 write-through가 홈을 즉시 리페인트하지 못해 수확이 막히던 원버그.)
+const listeners = new Map<string, Set<(v: unknown) => void>>();
+
+function notifyKey(url: string) {
+  const subs = listeners.get(url);
+  if (!subs) return;
+  const value = cache.get(url);
+  for (const fn of subs) fn(value);
+}
+
 // 같은 키의 동시 재검증을 하나의 요청으로 합치는 in-flight 공유 — 홈↔통계처럼
 // 같은 키('/api/stats')를 쓰는 화면 전환에서 미중단(no-abort) 직전 요청과 새 mount
 // 재검증이 겹칠 때 중복 왕복을 없앤다.
 const inflight = new Map<string, Promise<unknown>>();
+
+// 키별 마지막 '로컬 쓰기'(write-through/mutate) 시각 — 그보다 먼저 출발한 재검증
+// GET의 스냅샷이 더 신선한 로컬 확정값을 되덮는 역행을 refresh에서 걸러낸다.
+const lastLocalWriteAt = new Map<string, number>();
 
 // 키별 마지막 '성공' 수신 시각 — mount 재검증 TTL의 기준. 영속 시드 데이터는 여기
 // 기록이 없으므로(구 세션) 항상 재검증된다.
@@ -98,10 +115,38 @@ function schedulePersist() {
   persistTimer = setTimeout(persistNow, PERSIST_DEBOUNCE_MS);
 }
 
-/** cache.set의 단일 관문 — 메모리 갱신 + 영속 스냅샷 예약. */
+/** cache.set의 단일 관문 — 메모리 갱신 + 영속 스냅샷 예약 + 마운트된 구독자 통지. */
 function cacheSet(url: string, value: unknown) {
   cache.set(url, value);
   schedulePersist();
+  notifyKey(url);
+}
+
+/** 로컬 쓰기 기록 — 역행 GET 가드(lastLocalWriteAt) + TTL 오염(다음 mount는 5초 창
+ *  안이라도 재검증). refresh 경로에는 걸지 않는다(성공 스탬프를 지우면 TTL 무력화). */
+function recordLocalWrite(url: string) {
+  lastLocalWriteAt.set(url, Date.now());
+  lastSuccessAt.delete(url);
+}
+
+/** TTL만 오염(캐시 값은 유지 — 스켈레톤으로 되돌리지 않음): 다른 화면의 변이가 이
+ *  키의 서버 파생값을 바꿨을 때(예: 채움 → '/api/stats' 스트릭) 다음 mount가 5초 창
+ *  안이라도 무음 재검증하게 한다. */
+export function markCachedApiStale(url: string) {
+  lastSuccessAt.delete(url);
+}
+
+/** 접두 일치 일괄 TTL 오염 — 파라미터화된 키 일족(예: '/api/boards') 공용. */
+export function markCachedApiStalePrefix(prefix: string) {
+  for (const key of lastSuccessAt.keys()) {
+    if (key.startsWith(prefix)) lastSuccessAt.delete(key);
+  }
+}
+
+/** 키의 마지막 로컬 쓰기 시각(없으면 0) — 프리페치류가 "내가 fetch를 시작한 뒤 다른
+ *  로컬 쓰기가 있었나"를 검사해 좀비 응답으로 최신 캐시를 덮지 않게 할 때 사용. */
+export function localWriteAt(url: string): number {
+  return lastLocalWriteAt.get(url) ?? 0;
 }
 
 // 부팅 시드: 모듈 로드 시 1회, 마지막 세션의 스냅샷으로 Map을 채운다.
@@ -151,6 +196,7 @@ export function clearPageCache() {
   cache.clear();
   inflight.clear();
   lastSuccessAt.clear();
+  lastLocalWriteAt.clear();
   cacheOwnerId = null;
   if (persistTimer) {
     clearTimeout(persistTimer);
@@ -163,23 +209,35 @@ export function clearPageCache() {
   }
 }
 
-/** 특정 키만 무효화 (다음 mount에서 스켈레톤부터 시작하게 하고 싶을 때). */
+/** 특정 키만 무효화 (다음 mount에서 스켈레톤부터 시작하게 하고 싶을 때).
+ *  마운트된 구독자에게도 통지 — 훅은 값 삭제를 '지금 재검증하라'로 해석해 refetch한다
+ *  (예전엔 무효화가 다음 mount에만 반영돼, 채움 완료의 릴레이 무효화가 이미 떠 있는
+ *  relay/[id] 화면에 안 닿았다). */
 export function invalidateCachedApi(url: string) {
   cache.delete(url);
   lastSuccessAt.delete(url);
   schedulePersist();
+  notifyKey(url);
 }
 
 /** 접두 일치 키 일괄 무효화 — 파라미터화된 상세 캐시 일족(예: '/api/relays')을
- *  키를 모르는 채로 비울 때. 다음 진입은 캐시 없이 서버 기준으로 시작한다. */
+ *  키를 모르는 채로 비울 때. 다음 진입은 캐시 없이 서버 기준으로 시작하고,
+ *  마운트된 구독자는 즉시 재검증한다. */
 export function invalidateCachedApiPrefix(prefix: string) {
+  const hit = new Set<string>();
   for (const key of cache.keys()) {
     if (key.startsWith(prefix)) {
       cache.delete(key);
       lastSuccessAt.delete(key);
+      hit.add(key);
     }
   }
+  // 캐시엔 없지만 구독자만 있는 키(마운트 직후 첫 fetch 전 무효화)도 통지 대상.
+  for (const key of listeners.keys()) {
+    if (key.startsWith(prefix)) hit.add(key);
+  }
   schedulePersist();
+  for (const key of hit) notifyKey(key);
 }
 
 /** 훅 밖에서 캐시 스냅샷 읽기 — 다른 페이지가 받아둔 응답으로 선렌더할 때 사용
@@ -194,14 +252,20 @@ export function readCachedApi<T>(url: string): T | undefined {
 /** 훅 밖에서 캐시 적재 — 프리페치(홈이 상위 보드 상세를 미리 받아둠)나
  *  페이지 로컬 상태의 스냅샷 동기화(보드 상세의 마지막 상태 보존)용. */
 export function writeCachedApi<T>(url: string, value: T) {
+  recordLocalWrite(url);
   cacheSet(url, value);
 }
 
 /** 같은 키의 동시 fetch를 하나로 합치는 공유 fetch — 성공 시각(lastSuccessAt)도 기록.
- *  시작 시점의 epoch를 캡처해, 완료 전에 clearPageCache가 지나갔으면 기록을 버린다. */
-function fetchShared<T>(url: string): Promise<T> {
-  const existing = inflight.get(url);
-  if (existing) return existing as Promise<T>;
+ *  시작 시점의 epoch를 캡처해, 완료 전에 clearPageCache가 지나갔으면 기록을 버린다.
+ *  bypassInflight(변이 직후의 명시적 refresh): 변이 **이전에** 출발한 진행 중 요청에
+ *  합류하면 스테일 스냅샷을 받으므로, 새 요청을 발사하고 inflight 항목을 교체한다
+ *  (이후 join하는 쪽도 최신 요청에 붙는다). */
+function fetchShared<T>(url: string, bypassInflight = false): Promise<T> {
+  if (!bypassInflight) {
+    const existing = inflight.get(url);
+    if (existing) return existing as Promise<T>;
+  }
   const epochAtStart = cacheEpoch;
   const p = api<T>(url)
     .then((fresh) => {
@@ -209,7 +273,7 @@ function fetchShared<T>(url: string): Promise<T> {
       return fresh;
     })
     .finally(() => {
-      inflight.delete(url);
+      if (inflight.get(url) === p) inflight.delete(url);
     });
   inflight.set(url, p);
   return p;
@@ -234,17 +298,22 @@ export function useCachedApi<T>(url: string) {
   // 늦게 도착한 이전 요청이 새 화면 state를 덮어쓰지 않게 한다. 인스턴스당 하나 유지.
   const guardRef = useRef(createLatestGuard());
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (bypassInflight = false) => {
     const token = guardRef.current.begin();
     lastRefreshAtRef.current = Date.now();
     setError(false);
     setErrorStatus(undefined);
     const epochAtStart = cacheEpoch;
+    const startedAt = Date.now();
     try {
-      const fresh = await fetchShared<T>(url);
+      const fresh = await fetchShared<T>(url, bypassInflight === true);
       // 완료 전에 clearPageCache(계정 전환/로그아웃)가 지나갔으면 이 응답은 이전
       // 세션 소속 — 캐시·화면 어디에도 쓰지 않고 버린다(재오염 방지).
       if (epochAtStart !== cacheEpoch) return;
+      // 역행 가드: 이 fetch가 출발한 뒤에 로컬 쓰기(write-through/mutate)가 있었다면
+      // 이 스냅샷이 더 오래된 상태다 — 캐시·화면을 되덮지 않고 버린다(예: 홈 재검증
+      // GET이 마지막 알 커밋 전 DB를 읽고, 그 사이 채움 확정이 write-through된 경우).
+      if ((lastLocalWriteAt.get(url) ?? 0) > startedAt) return;
       // 캐시는 자기 url 키로 항상 갱신(정확) — 화면 state만 최신 요청일 때 반영한다.
       cacheSet(url, fresh);
       if (!guardRef.current.isLatest(token)) return;
@@ -284,6 +353,30 @@ export function useCachedApi<T>(url: string) {
     refresh();
   }, [refresh, url]);
 
+  // 키 구독(정합 감사) — 다른 화면/좀비 큐의 write-through(cacheSet)나 무효화가 이
+  // 키에 닿으면 마운트 상태에서도 즉시 반영한다: 값 통지는 화면 동기화, 무효화(값
+  // 없음) 통지는 '지금 재검증'(join 가능 — 같은 키 구독자들이 한 요청에 합류).
+  useEffect(() => {
+    const onNotify = (v: unknown) => {
+      if (v === undefined) {
+        refresh();
+      } else {
+        setData(v as T);
+        setFetched(true);
+      }
+    };
+    let subs = listeners.get(url);
+    if (!subs) {
+      subs = new Set();
+      listeners.set(url, subs);
+    }
+    subs.add(onNotify);
+    return () => {
+      subs.delete(onNotify);
+      if (subs.size === 0) listeners.delete(url);
+    };
+  }, [url, refresh]);
+
   // 백그라운드 복귀 재검증 — PWA/탭이 visible로 돌아오면 조용히 다시 받아온다.
   // 라우트 전환 없이 오래 떠 있던 화면(예: relay 상세)이 스테일로 고착되는 것 방지.
   useEffect(() => {
@@ -305,6 +398,9 @@ export function useCachedApi<T>(url: string) {
     };
   }, [refresh]);
 
+  // 변이 직후용 명시적 refresh — join 우회 고정(이벤트 인자 등 truthy 오염 무해화).
+  const freshRefresh = useCallback(() => refresh(true), [refresh]);
+
   // 낙관적/로컬 갱신용 — 캐시와 화면을 함께 갱신해 다음 방문에도 일관되게 보인다.
   // updater가 undefined를 반환하면 no-op (아직 데이터가 없는 상태에서의 갱신 시도 가드).
   const mutate = useCallback(
@@ -314,6 +410,8 @@ export function useCachedApi<T>(url: string) {
           ? (updater as (prev: T | undefined) => T | undefined)(cache.get(url) as T | undefined)
           : updater;
       if (next === undefined) return;
+      // 로컬 변이 = 역행 가드·TTL 오염 대상(이보다 먼저 출발한 GET은 폐기, 다음 mount는 재검증)
+      recordLocalWrite(url);
       cacheSet(url, next);
       setData(next);
     },
@@ -334,7 +432,9 @@ export function useCachedApi<T>(url: string) {
     refreshFailedStatus: errorStatus,
     /** 이번 mount의 재검증이 완료됐는가 — '서버 기준 확정값'이 필요한 분기(온보딩 등)용. */
     validated: fetched,
-    refresh,
+    /** 명시적 재검증 — 변이 직후 호출을 전제로 in-flight join을 우회(새 요청 발사).
+     *  mount/복귀/무효화-통지의 내부 재검증은 기존대로 join해 중복 왕복을 피한다. */
+    refresh: freshRefresh,
     mutate,
   };
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { useAppStore } from './store';
+import { refreshUnreadCount } from './notifications';
 import type { MessageInfo } from '@/types';
 
 // 서버(/api/messages/sse)는 DB 폴링 10초 · 스트림 수명 4분으로 운영된다.
@@ -68,7 +69,16 @@ export function useSSE() {
         try {
           const message: MessageInfo = JSON.parse(event.data);
           addMessage(message);
-          showPopup(message);
+          // 팝업은 설정의 '메시지 팝업' 토글이 켜져 있을 때만 — addMessage(store 반영)과
+          // 배지 증가는 이 토글과 무관하게 항상 일어나야 하므로 게이트하지 않는다
+          // (이 토글이 지금까지 소비자가 없던 죽은 스위치였다).
+          if (useAppStore.getState().settings.showMessagePopup) {
+            showPopup(message);
+          }
+          // 정합 감사: SSE로 도착한 메시지가 마운트된 알림함 피드에 안 보이던 결함 —
+          // refreshUnreadCount가 이제 피드를 캐시에 write-through하므로(src/lib/notifications.ts),
+          // 여기서 강제 호출하면 마운트된 인박스가 실시간으로 갱신된다.
+          refreshUnreadCount({ force: true });
         } catch {
           // ignore parse errors
         }

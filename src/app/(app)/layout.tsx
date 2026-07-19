@@ -49,7 +49,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         if (!u) {
           // 세션 무효 — 영속 스냅샷(user·페이지 캐시)을 비우고 웰컴으로. 비우지 않으면
           // '/'의 스냅샷 낙관 리다이렉트와 여기가 서로를 무한 왕복시킨다.
+          // 휘발 슬라이스(messages/boards 등)도 함께 리셋 — 계정 전환 잔재 차단.
           useAppStore.getState().setUser(null);
+          useAppStore.getState().resetEphemeral();
           clearPageCache();
           router.replace('/');
           return;

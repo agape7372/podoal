@@ -26,7 +26,8 @@ const CapsuleModal = dynamic(() => import('@/components/CapsuleModal'), { ssr: f
 const GiftBoardModal = dynamic(() => import('@/components/GiftBoardModal'), { ssr: false });
 const EditBoardInfoModal = dynamic(() => import('@/components/EditBoardInfoModal'), { ssr: false });
 const CustomImageModal = dynamic(() => import('@/components/CustomImageModal'), { ssr: false });
-import { invalidateCachedApi, invalidateCachedApiPrefix, readCachedApi, writeCachedApi } from '@/lib/cachedApi';
+import { invalidateCachedApi, invalidateCachedApiPrefix, markCachedApiStale, readCachedApi, writeCachedApi } from '@/lib/cachedApi';
+import { createLatestGuard } from '@/lib/latestGuard';
 import {
   applyOptimisticFill,
   applyFillResult,
@@ -119,6 +120,16 @@ function syncBoardCaches(id: string, snapshot: BoardDetail) {
   }
 }
 
+/** 삭제 확정 후 캐시 정리(정합 감사: 삭제 고스트) — 상세 키 무효화 + 홈 리스트에서
+ *  제거 write-through. 구독 알림으로 마운트/5초 창 재진입 홈이 고스트 없이 그려진다. */
+function purgeBoardFromCaches(id: string) {
+  invalidateCachedApi(`/api/boards/${id}`);
+  const home = readCachedApi<{ boards: BoardSummary[] }>('/api/boards');
+  if (home?.boards.some((b) => b.id === id)) {
+    writeCachedApi('/api/boards', { ...home, boards: home.boards.filter((b) => b.id !== id) });
+  }
+}
+
 export default function BoardDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
@@ -130,6 +141,11 @@ export default function BoardDetailPage() {
     () => readCachedApi<BoardDetail>(`/api/boards/${id}`) ?? null,
   );
   const [loading, setLoading] = useState<boolean>(() => !readCachedApi(`/api/boards/${id}`));
+  // 이 보드 id로 서버 검증(fetchBoard 성공)이 있었는가 — 그 전의 캐시 시드를
+  // syncBoardCaches로 write-back하면, 상세 캐시가 홈 리스트보다 오래된 경우 스테일이
+  // 리스트로 역류하고 구독 알림이 그것을 홈에 '라이브로' 그려버린다. id 키 state라
+  // 인스턴스 재사용(/board/A→/board/B)에도 자동으로 게이트가 닫힌다.
+  const [serverSyncedId, setServerSyncedId] = useState<string | null>(null);
   // 보드 상태 스냅샷을 캐시에 동기화 — 채움/보상 등 모든 로컬 변화가 다음 진입에도
   // 보인다. 단 temp-* 낙관 스티커는 빼고 저장한다: POST 실패+페이지 이탈 조합에서
   // 롤백이 aliveRef 가드로 스킵되는데, temp를 캐시에 남기면 재진입 시드 → fetchBoard
@@ -142,8 +158,10 @@ export default function BoardDetailPage() {
     // 새 id의 캐시에 이전 보드 스냅샷이 적힐 수 있다(현행 내비게이션엔 그 경로가
     // 없지만 비용 0의 방어 — summary useMemo의 id 키 메모와 같은 철학).
     if (!board || board.id !== id) return;
+    // 서버 검증 전(캐시 시드만 있는 상태)의 write-back 금지 — 위 serverSyncedId 주석 참조.
+    if (serverSyncedId !== id) return;
     syncBoardCaches(id, stripTempsForCache(board));
-  }, [board, id]);
+  }, [board, id, serverSyncedId]);
   // 홈이 받아둔 /api/boards 캐시에서 이 보드의 요약을 꺼내 스켈레톤 동안 제목·진행
   // 숫자를 실값으로 선렌더 — '이미 아는 정보를 다시 기다리는' 체감 제거.
   // id 키로 메모 — 같은 컴포넌트 인스턴스가 다른 보드로 재사용돼도 이전 보드의
@@ -198,6 +216,16 @@ export default function BoardDetailPage() {
   // 캐시로 시드됐다면 '첫 로드 완료'로 취급 — 재검증 실패 시 홈으로 튕기는 대신
   // 기존 화면 + 동기화 실패 배너를 유지한다(fetchBoard catch 분기 참조).
   const initialLoadDoneRef = useRef(board !== null);
+  // 최신 board 스냅샷 ref — 직렬 큐 콜백(postFillSticker)이 stale 클로저 없이
+  // 정적 속성(inRelay 등)을 읽을 때 사용. 파이프라인 로직에는 관여하지 않는다.
+  const boardRef = useRef<BoardDetail | null>(board);
+  useEffect(() => {
+    boardRef.current = board;
+  }, [board]);
+  // fetchBoard 역순 응답 가드 — mount/좀비 드레인/복귀 재검증이 겹칠 때 먼저 출발한
+  // 느린 응답이 나중 응답을 덮지 않게 한다(임계 필드는 mergeServerBoard 단조 병합이
+  // 이중 방어).
+  const fetchGuardRef = useRef(createLatestGuard());
   // 언마운트 가드 — 큐에서 늦게 도착한 reconcile/rollback이 떠난 화면을 만지지 않게.
   const aliveRef = useRef(true);
   useEffect(() => {
@@ -209,8 +237,10 @@ export default function BoardDetailPage() {
 
   const fetchBoard = useCallback(async () => {
     lastFetchAtRef.current = Date.now();
+    const token = fetchGuardRef.current.begin();
     try {
       const data = await api<{ board: BoardDetail }>(`/api/boards/${id}`);
+      if (!fetchGuardRef.current.isLatest(token)) return; // 역순 응답 폐기
       // 서버 스냅샷에 없는 position의 로컬 스티커는 temp든 실 스티커든 전부 보존
       // 병합한다. temp만 보존하던 시절(#66)엔 중간 보상 unlock 등으로 큐 드레인
       // 도중 발사된 stale GET이 'GET의 DB 읽기 이후 reconcile로 확정된' 실 스티커를
@@ -219,7 +249,9 @@ export default function BoardDetailPage() {
       setBoard((prev) => mergeServerBoard(prev, data.board));
       setErrorMessage(null);
       initialLoadDoneRef.current = true;
+      setServerSyncedId(id); // 이제부터 이 id의 캐시 write-back 허용(시드 역류 게이트 해제)
     } catch (err) {
+      if (!fetchGuardRef.current.isLatest(token)) return; // 역순 실패도 무시(배너/바운스 오발 방지)
       // First load failure → board genuinely missing or no permission, bail home.
       // Later failures → keep the UI mounted; surface a banner so the user can retry.
       // 단 접근 상실(404 삭제/403 권한 해제)은 예외 — 복귀 재검증 리스너가 닫은
@@ -456,6 +488,8 @@ export default function BoardDetailPage() {
         plantedGift: PlantedGiftInfo | null;
         plantedGifts?: PlantedGiftInfo[];
         relayAdvanced?: boolean;
+        /** additive(2026-07-19): 완료 시각 — 홈 write-through의 completedAt 공백 제거용. */
+        completedAt?: string;
       }>(`/api/boards/${id}/stickers`, {
         method: 'POST',
         json: isBackfill
@@ -473,9 +507,19 @@ export default function BoardDetailPage() {
       // 캐시에 남는데, 완료 응답 시점에 비워두면 다음 진입이 서버 기준으로 시작한다.
       // aliveRef 가드보다 먼저 실행: 핵심 경합이 '채우고 곧장 포도동 진입'이라 완료
       // 응답은 대개 이 페이지가 떠난 뒤 도착한다(화면 상태가 아닌 모듈 캐시 조작).
-      if (result.isCompleted || result.relayAdvanced) {
+      if (result.isCompleted || result.relayAdvanced || boardRef.current?.inRelay) {
+        // 포도동 연결 보드는 **모든** 채움이 릴레이 진행 미니포도에 반영된다 — 완료/
+        // 바통 전달 때만 무효화하던 구멍(일반 채움이 relay 상세에 안 보임)을 메운다.
+        // 마운트된 relay 화면은 무효화 통지로 즉시 재검증한다(cachedApi 구독).
         invalidateCachedApiPrefix('/api/relays');
       }
+      // 파생 키 TTL 오염(정합 감사) — 채움은 스트릭·덩굴을, 완료는 와이너리 집계까지
+      // 바꾼다. 값은 남겨 SWR 페인트를 유지하고, 다음 mount가 5초 창 안이라도 무음
+      // 재검증하게만 한다.
+      markCachedApiStale('/api/stats');
+      markCachedApiStale('/api/vine');
+      if (result.isCompleted) markCachedApiStale('/api/winery');
+      if (result.unlockedReward) markCachedApiStale('/api/rewards');
       // 계측(A3) — 동기 fire-and-forget, 큐/reconcile 파이프라인 무간섭.
       if (result.isCompleted) track('board_completed', { boardId: id, totalStickers });
 
@@ -835,6 +879,7 @@ export default function BoardDetailPage() {
   const handleDeclineGift = async () => {
     try {
       await api(`/api/boards/${id}`, { method: 'DELETE' });
+      purgeBoardFromCaches(id); // 삭제 성공 확정 시에만 — 홈 고스트 방지
     } catch {
       // ignore — navigate away regardless
     }
@@ -901,6 +946,9 @@ export default function BoardDetailPage() {
     setDeleting(true);
     try {
       await api(`/api/boards/${id}`, { method: 'DELETE' });
+      // 캐시에서 즉시 제거 — 예전엔 아무것도 안 지워서 홈이 삭제된 보드를 계속
+      // 그렸고(5초 TTL 창에선 교정 fetch도 없음), 고스트 탭 → 404 무음 바운스가 났다.
+      purgeBoardFromCaches(id);
       router.replace('/home');
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : '삭제에 실패했어요';

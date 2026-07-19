@@ -109,6 +109,14 @@ interface AppState {
   hidePopup: () => void;
   toggleFavorite: (friendId: string) => void;
   updateSettings: (partial: Partial<AppSettings>) => void;
+  /**
+   * 계정 전환 시 이전 사용자의 휘발 슬라이스 잔재를 지운다(2026-07-19 결함 수정).
+   * messages/unreadCount/popupMessage/boards/friends/relays/capsules는 어떤 전환
+   * 지점에서도 자동으로 비워지지 않았다 — 로그인/가입/로그아웃/탈퇴 직후 clearPageCache()
+   * 옆에서 호출한다. user와 settings는 각각 별도 계약(스냅샷 write-through, 영속 설정)이라
+   * 여기서 건드리지 않는다.
+   */
+  resetEphemeral: () => void;
 }
 
 /** user 스냅샷을 하이드레이션 이후에 주입 — (app) 레이아웃·웰컴('/')의 mount effect가
@@ -166,5 +174,15 @@ export const useAppStore = create<AppState>((set) => ({
       const updated = { ...state.settings, ...partial };
       saveSettings(updated);
       return { settings: updated };
+    }),
+  resetEphemeral: () =>
+    set({
+      boards: [],
+      friends: [],
+      messages: [],
+      relays: [],
+      capsules: [],
+      unreadCount: 0,
+      popupMessage: null,
     }),
 }));
