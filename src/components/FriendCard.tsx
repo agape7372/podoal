@@ -42,6 +42,9 @@ export default function FriendCard({
     try {
       await onAccept?.(friend.id);
       feedbackSuccess();
+    } catch {
+      // 실패 안내(토스트)는 호출부(friends/page.tsx)가 담당 — 여기서 삼키지 않으면
+      // unhandled rejection 콘솔 노이즈만 남는다. 성공 피드백은 자연히 생략된다.
     } finally {
       setLoading(false);
     }

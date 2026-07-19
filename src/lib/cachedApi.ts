@@ -31,7 +31,13 @@ function notifyKey(url: string) {
   const subs = listeners.get(url);
   if (!subs) return;
   const value = cache.get(url);
-  for (const fn of subs) fn(value);
+  for (const fn of subs) {
+    try {
+      fn(value);
+    } catch {
+      // 한 구독자의 예외가 나머지 통지와 쓰기 경로(cacheSet 호출자)를 끊지 않게 격리.
+    }
+  }
 }
 
 // 같은 키의 동시 재검증을 하나의 요청으로 합치는 in-flight 공유 — 홈↔통계처럼
