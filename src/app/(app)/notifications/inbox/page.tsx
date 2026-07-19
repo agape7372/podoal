@@ -31,7 +31,7 @@ export default function NotificationInboxPage() {
   const router = useRouter();
   const setUnreadCount = useAppStore((s) => s.setUnreadCount);
   // SWR 캐시: 재방문 시 직전 피드로 즉시 렌더 + 무음 재검증.
-  const { data, loading, error, refresh, mutate } = useCachedApi<{ events: NotificationEvent[] }>('/api/notifications');
+  const { data, loading, error, refresh, mutate, validated } = useCachedApi<{ events: NotificationEvent[] }>('/api/notifications');
   const events = data?.events ?? [];
 
   // 방금 받은 피드가 곧 배지의 단일 출처 — 추가 fetch 없이 store를 같은 값으로 동기화
@@ -60,7 +60,11 @@ export default function NotificationInboxPage() {
     // 동시에 띄우면 커밋 전 스냅샷을 읽은 GET이 나중에 도착해 mutate를 미읽음 상태로
     // 되덮는 역전 경쟁이 '일반 케이스'가 된다. 콜드 캐시(prev=undefined)에서 mutate가
     // no-op 되는 문제도 같이 사라진다.
-    if (data === undefined) return;
+    // validated 게이트(정합 감사 추가) — 웜 캐시 mount는 data가 즉시 채워져도 이번
+    // mount의 재검증(GET)이 아직 끝나기 전이라, data===undefined만으로는 위에서 말한
+    // "mount GET과 POST 역전"을 못 막는다. validated(=fetched)까지 함께 봐서, 이번
+    // mount의 GET이 실제로 완료된 뒤에만 read-all POST를 쏜다.
+    if (!validated || data === undefined) return;
     markedRef.current = true;
     api('/api/messages/read-all', { method: 'POST' })
       .then(() => {
@@ -79,7 +83,7 @@ export default function NotificationInboxPage() {
         });
       })
       .catch(() => {}); // 실패해도 다음 진입에서 재시도(멱등)
-  }, [data, mutate]);
+  }, [data, mutate, validated]);
 
   const open = (e: NotificationEvent) => {
     feedbackTap();

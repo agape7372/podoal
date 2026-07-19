@@ -12,6 +12,15 @@ const INITIAL_REFRESH_DELAY_MS = 4_000;
 const FIRED_KEY = 'podoal-reminder-fired';
 const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
 
+// 모듈 레벨 무효화 신호 — reminders/settings는 클로저에 5분(lastFetch) 캐시되는데
+// 무효화 수단이 없으면 알림 설정 페이지의 생성/수정/삭제/토글이 최대 5분간
+// 스케줄러에 반영되지 않는다(구버전 리마인더로 계속 발화). 알림 설정 페이지의
+// 변이 성공 지점이 이 카운터를 올리면, 다음 refresh가 TTL을 무시하고 강제 재조회한다.
+let cacheEpoch = 0;
+export function invalidateReminderCache() {
+  cacheEpoch += 1;
+}
+
 interface FiredMap {
   [reminderId: string]: string; // last "YYYY-MM-DDTHH:mm" key we fired for
 }
@@ -74,6 +83,9 @@ export function useReminderScheduler() {
     let reminders: ReminderInfo[] = [];
     let settings: NotificationSettingInfo | null = null;
     let lastFetch = 0;
+    // 이 effect 인스턴스가 마지막으로 관측한 epoch — invalidateReminderCache()가
+    // 이후 올렸다면 아래 refresh에서 TTL을 무시하고 강제 재조회한다.
+    let lastEpoch = cacheEpoch;
 
     async function refresh() {
       // 알림 권한이 없으면 fetch 자체를 건너뛴다 — tick()이 어차피 권한 없이는
@@ -81,6 +93,12 @@ export function useReminderScheduler() {
       // (권한을 나중에 허용하면 다음 60초 tick의 refresh가 자연히 받아온다).
       if (Notification.permission !== 'granted') return;
       const now = Date.now();
+      // 알림 설정 페이지의 리마인더/설정 변이가 캐시를 무효화했다면 5분 TTL을
+      // 무시하고 즉시 재조회 — 구버전 클로저 캐시로 계속 발화하는 것을 막는다.
+      if (cacheEpoch !== lastEpoch) {
+        lastEpoch = cacheEpoch;
+        lastFetch = 0;
+      }
       // Re-fetch reminders every 5 minutes to pick up edits.
       if (now - lastFetch < 5 * 60_000) return;
       try {

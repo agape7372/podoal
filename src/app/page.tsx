@@ -69,6 +69,7 @@ function AuthPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const setUser = useAppStore((s) => s.setUser);
+  const resetEphemeral = useAppStore((s) => s.resetEphemeral);
   const [mode, setMode] = useState<Mode>('welcome');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -142,6 +143,9 @@ function AuthPageInner() {
       }
       // 사용자 전환 가능 지점 — 이전 계정의 페이지 캐시가 새 계정 화면에 비치지 않게 비움.
       clearPageCache();
+      // 휘발 슬라이스(messages/unreadCount/popupMessage/boards/friends/relays/capsules)도
+      // 함께 리셋 — 그렇지 않으면 이전 계정의 데이터가 새 계정 화면에 잠깐 비칠 수 있다.
+      resetEphemeral();
       router.replace('/home');
     } catch (e) {
       setError(describeAuthError(e instanceof Error ? e.message : '오류가 발생했어요'));
@@ -256,6 +260,7 @@ function AuthPageInner() {
                   if (data.user) {
                     setUser(data.user);
                     clearPageCache(); // 사용자 전환 가능 지점
+                    resetEphemeral(); // 이전 계정의 휘발 슬라이스 잔재 제거
                     router.replace('/home');
                   }
                 } catch {

@@ -6,6 +6,7 @@ import { feedbackTap } from '@/lib/feedback';
 import { useAppStore } from '@/lib/store';
 import { getConsent, setConsent } from '@/lib/analytics';
 import { api } from '@/lib/api';
+import { markCachedApiStale, markCachedApiStalePrefix } from '@/lib/cachedApi';
 import EmojiIcon from '@/components/EmojiIcon';
 import Chevron from '@/components/Chevron';
 // 공용 `src/components/Toggle.tsx`가 정본 (2026-07-13 FE-1) — 이 페이지의 구현이 그 시각 정본의 원본.
@@ -69,6 +70,11 @@ export default function SettingsPage() {
         json: { dayResetHour: hour },
       });
       setUser({ ...prevUser, dayResetHour: data.user.dayResetHour ?? hour });
+      // 날짜 경계가 바뀌면 스트릭·히트맵·텀 판정 등 파생값이 전부 달라진다 —
+      // 캐시 값은 유지하되 다음 mount의 5초 TTL만 오염시켜 무음 재검증을 유도한다.
+      markCachedApiStale('/api/stats');
+      markCachedApiStale('/api/vine');
+      markCachedApiStalePrefix('/api/boards');
     } catch {
       setUser(prevUser);
       setHourError('저장하지 못했어요. 다시 시도해주세요.');

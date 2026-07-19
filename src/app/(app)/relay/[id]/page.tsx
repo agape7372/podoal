@@ -3,8 +3,9 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { api } from '@/lib/api';
-import { useCachedApi } from '@/lib/cachedApi';
+import { invalidateCachedApi, useCachedApi } from '@/lib/cachedApi';
 import { useAppStore } from '@/lib/store';
+import { refreshUnreadCount } from '@/lib/notifications';
 import ClayButton from '@/components/ClayButton';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import Modal, { useModalClose } from '@/components/Modal';
@@ -97,6 +98,11 @@ export default function RelayDetailPage() {
       await api(`/api/relays/${relayId}/accept`, { method: 'POST' });
       feedbackSuccess();
       setMessage({ text: '포도동에 참여했어요.', kind: 'success' });
+      // 알림함 캐시 무효화 — 초대 수락이 통합 피드/배지에 반영 안 되던 결함(messages/page.tsx와
+      // 동일 순서: invalidate를 refreshUnreadCount보다 먼저 호출해 force refresh의 최신 피드가
+      // 이 invalidate로 비운 캐시 위에 write-through되게 한다).
+      invalidateCachedApi('/api/notifications');
+      refreshUnreadCount({ force: true });
       await fetchRelay();
     } catch (e) {
       setMessage({ text: e instanceof Error ? e.message : '수락에 실패했어요', kind: 'error' });
@@ -112,6 +118,9 @@ export default function RelayDetailPage() {
       await api(`/api/relays/${relayId}/decline`, { method: 'POST' });
       feedbackTap();
       setConfirmDecline(false);
+      // 알림함 캐시 무효화 — 초대 거절도 통합 피드/배지에 반영되어야 한다(위 handleAccept와 동일 이유·순서).
+      invalidateCachedApi('/api/notifications');
+      refreshUnreadCount({ force: true });
       router.replace('/relay');
     } catch (e) {
       setMessage({ text: e instanceof Error ? e.message : '거절에 실패했어요', kind: 'error' });

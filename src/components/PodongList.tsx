@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppStore } from '@/lib/store';
-import { api } from '@/lib/api';
+import { useCachedApi } from '@/lib/cachedApi';
 import ClayButton from '@/components/ClayButton';
 import Avatar from '@/components/Avatar';
 import type { RelayInfo } from '@/types';
@@ -21,13 +21,12 @@ const MOVE_TOL = 10;
 
 export default function PodongList({ heading = true }: PodongListProps) {
   const router = useRouter();
-  const relays = useAppStore((s) => s.relays);
-  const setRelays = useAppStore((s) => s.setRelays);
+  // SWR 캐시('/api/relays'): 마운트 재검증뿐 아니라 채움 경로의
+  // invalidateCachedApiPrefix('/api/relays')(board/[id])도 여기 즉시 닿는다 —
+  // store.relays 이중 저장은 그 무효화를 못 받아 배지/진행률이 낡은 채로 남던 결함.
+  const { data, loading, error: loadError, refresh: loadRelays } = useCachedApi<{ relays: RelayInfo[] }>('/api/relays');
+  const relays = useMemo(() => data?.relays ?? [], [data]);
   const user = useAppStore((s) => s.user);
-  // 스토어에 직전 방문의 relays가 살아 있으면 즉시 그리고 조용히 재검증 —
-  // 스켈레톤은 캐시가 비어 있는 진짜 첫 로드에만 보여준다(stale-while-revalidate).
-  const [loading, setLoading] = useState(relays.length === 0);
-  const [loadError, setLoadError] = useState(false);
   const [showCompleted, setShowCompleted] = useState(false);
 
   // 진행중 포도동 개인 정렬(REQ12) — 서버 변경 없이 localStorage에 사용자별로 보관.
@@ -60,17 +59,6 @@ export default function PodongList({ heading = true }: PodongListProps) {
     touchBlocker.current = block;
   }, []);
   useEffect(() => unblockNativeScroll, [unblockNativeScroll]);
-
-  const loadRelays = useCallback(() => {
-    // setLoading(true) 금지 — 재검증 중에도 기존 목록을 계속 보여준다.
-    setLoadError(false);
-    api<{ relays: RelayInfo[] }>('/api/relays')
-      .then((data) => setRelays(data.relays))
-      .catch(() => setLoadError(true))
-      .finally(() => setLoading(false));
-  }, [setRelays]);
-
-  useEffect(() => { loadRelays(); }, [loadRelays]);
 
   useEffect(() => {
     try {
