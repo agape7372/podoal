@@ -8,10 +8,11 @@ import InstallPrompt from '@/components/InstallPrompt';
 import AnalyticsConsentBanner from '@/components/AnalyticsConsentBanner';
 import UnreadSync from '@/components/UnreadSync';
 import OfflineBanner from '@/components/OfflineBanner';
-import { useAppStore } from '@/lib/store';
+import { hydrateUserSnapshot, useAppStore } from '@/lib/store';
 import { useSSE } from '@/lib/useSSE';
 import { useReminderScheduler } from '@/lib/useReminderScheduler';
-import { fetchUser } from '@/lib/api';
+import { FETCH_USER_TRANSIENT, fetchUser } from '@/lib/api';
+import { clearPageCache, setPageCacheOwner } from '@/lib/cachedApi';
 import { consentUnset, consumeOAuthPending, identifyUser, seedConsentFromServer } from '@/lib/analytics';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -31,26 +32,75 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   // 미인증 사용자는 fetchUser 실패 시 기존과 동일하게 / 로 리다이렉트한다
   // (그 전까지 잠깐 보이는 빈 셸은 수용 — API가 어차피 401로 데이터를 막는다).
   useEffect(() => {
-    fetchUser().then((u) => {
-      if (!u) {
-        router.replace('/');
-        return;
-      }
-      // 내용이 같으면 setUser 생략 — 무조건 새 객체로 갈아끼우면 user를 deps로 둔
-      // effect들(SSE 연결, 리마인더 페치)이 참조 변경만으로 전부 teardown+재실행되어
-      // 웰컴→홈 진입 시 SSE 이중 연결 + reminders/settings 중복 페치가 발생했다.
-      const cur = useAppStore.getState().user;
-      if (!cur || cur.id !== u.id || cur.name !== u.name || cur.email !== u.email || cur.avatar !== u.avatar) {
-        setUser(u);
-      }
-      // 계측(ANALYTICS_PLAN §4·§5) — 다른 기기에서 이미 동의했으면 배너 생략,
-      // 식별은 내부 cuid만. 둘 다 동의 게이트 뒤에서 no-op 가능한 안전 호출.
-      seedConsentFromServer(u.analyticsConsentAt);
-      setConsentPending(consentUnset());
-      identifyUser(u.id);
-      // OAuth 복귀(전체 리다이렉트) 시 웰컴에서 남긴 method 플래그를 여기서 1회 소비.
-      consumeOAuthPending(u);
-    });
+    // 하이드레이션 이후 스냅샷 주입 — 헤더 이름/프로필이 auth/me 왕복 없이 즉시 페인트.
+    hydrateUserSnapshot();
+
+    let cancelled = false;
+    let settled = false;
+    const verify = () => {
+      fetchUser().then((u) => {
+        if (cancelled || settled) return;
+        // 판정 불가(오프라인·5xx·SW 503) — 세션이 죽었다는 증거가 아니다. 스냅샷·캐시를
+        // 유지한 채 두고(오프라인 배너가 UX 담당), 아래 online/복귀 리스너가 재검증한다
+        // — 재시도 없이 방치하면 계정 전환 직후의 일시 장애 한 번으로 이전 스냅샷이
+        // 세션 내내 남는다. null(확정 401/404)과 뭉개면 비행기 모드 로그아웃+캐시 전소.
+        if (u === FETCH_USER_TRANSIENT) return;
+        settled = true;
+        if (!u) {
+          // 세션 무효 — 영속 스냅샷(user·페이지 캐시)을 비우고 웰컴으로. 비우지 않으면
+          // '/'의 스냅샷 낙관 리다이렉트와 여기가 서로를 무한 왕복시킨다.
+          // 휘발 슬라이스(messages/boards 등)도 함께 리셋 — 계정 전환 잔재 차단.
+          useAppStore.getState().setUser(null);
+          useAppStore.getState().resetEphemeral();
+          clearPageCache();
+          router.replace('/');
+          return;
+        }
+        // 영속 페이지 캐시의 소유자 대조 — 다른 계정 스냅샷이면 여기서 전량 폐기된다.
+        setPageCacheOwner(u.id);
+        // 내용이 같으면 setUser 생략 — 무조건 새 객체로 갈아끼우면 user를 deps로 둔
+        // effect들(SSE 연결, 리마인더 페치)이 참조 변경만으로 전부 teardown+재실행되어
+        // 웰컴→홈 진입 시 SSE 이중 연결 + reminders/settings 중복 페치가 발생했다.
+        const cur = useAppStore.getState().user;
+        if (
+          !cur ||
+          cur.id !== u.id ||
+          cur.name !== u.name ||
+          cur.email !== u.email ||
+          cur.avatar !== u.avatar ||
+          // 스냅샷 시드(store.ts) 도입 후 cur가 구 세션 값일 수 있다 — auth/me만 내려주는
+          // 부가 필드(경계 시각·동의 등)도 대조해 스냅샷이 서버값으로 따라오게 한다.
+          cur.provider !== u.provider ||
+          cur.analyticsConsentAt !== u.analyticsConsentAt ||
+          cur.createdAt !== u.createdAt ||
+          cur.dayResetHour !== u.dayResetHour
+        ) {
+          setUser(u);
+        }
+        // 계측(ANALYTICS_PLAN §4·§5) — 다른 기기에서 이미 동의했으면 배너 생략,
+        // 식별은 내부 cuid만. 둘 다 동의 게이트 뒤에서 no-op 가능한 안전 호출.
+        seedConsentFromServer(u.analyticsConsentAt);
+        setConsentPending(consentUnset());
+        identifyUser(u.id);
+        // OAuth 복귀(전체 리다이렉트) 시 웰컴에서 남긴 method 플래그를 여기서 1회 소비.
+        consumeOAuthPending(u);
+      });
+    };
+    // 세션 미확정 동안의 재검증 트리거 — 연결 복구·앱 복귀 시 따라잡는다.
+    const onRetry = () => {
+      if (settled || cancelled) return;
+      if (document.visibilityState !== 'visible') return;
+      if (navigator.onLine === false) return;
+      verify();
+    };
+    window.addEventListener('online', onRetry);
+    document.addEventListener('visibilitychange', onRetry);
+    verify();
+    return () => {
+      cancelled = true;
+      window.removeEventListener('online', onRetry);
+      document.removeEventListener('visibilitychange', onRetry);
+    };
   }, [router, setUser]);
 
   useEffect(() => {

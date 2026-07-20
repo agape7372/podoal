@@ -13,8 +13,21 @@ export async function GET() {
       );
     }
 
+    // select 좁히기(스켈레톤 감사) — 예전엔 전 컬럼(bcrypt 해시·providerId 포함)을
+    // 끌어와 8필드만 쓰고 버렸다. 응답(profile) 계약은 그대로, 전송·직렬화만 준다.
+    // 해시가 매 페이지 로드마다 메모리에 실리는 위생 문제도 함께 제거.
     const user = await prisma.user.findUnique({
       where: { id: userId },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        avatar: true,
+        provider: true,
+        analyticsConsentAt: true,
+        createdAt: true,
+        dayResetHour: true,
+      },
     });
 
     if (!user) {

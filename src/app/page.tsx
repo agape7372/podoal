@@ -8,9 +8,9 @@ import InstallPrompt from '@/components/InstallPrompt';
 import Podo from '@/components/mascot/Podo';
 import EmojiIcon from '@/components/EmojiIcon';
 import { AVATAR_OPTIONS } from '@/types';
-import { api, fetchUser } from '@/lib/api';
+import { api, FETCH_USER_TRANSIENT, fetchUser } from '@/lib/api';
 import { clearPageCache } from '@/lib/cachedApi';
-import { useAppStore } from '@/lib/store';
+import { hydrateUserSnapshot, useAppStore } from '@/lib/store';
 import { describeAuthError } from '@/lib/authErrors';
 import { track, markOAuthStart } from '@/lib/analytics';
 
@@ -69,6 +69,7 @@ function AuthPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const setUser = useAppStore((s) => s.setUser);
+  const resetEphemeral = useAppStore((s) => s.resetEphemeral);
   const [mode, setMode] = useState<Mode>('welcome');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -93,11 +94,24 @@ function AuthPageInner() {
       url.searchParams.delete('provider');
       window.history.replaceState({}, '', url.toString());
     }
+    // 낙관 리다이렉트(스켈레톤 감사): user 스냅샷이 있으면 auth/me 왕복을 기다리지
+    // 않고 즉시 /home으로 — 기존엔 "스플래시 → auth/me → 이동 → 그제서야 데이터 fetch"
+    // 의 직렬 2왕복이었다. 세션이 실제로 죽었으면 (app) 레이아웃의 fetchUser가
+    // 스냅샷을 비우고 /로 돌려보내므로(무한 왕복 없음) 한 번의 바운스로 수렴한다.
+    // OAuth 에러 복귀는 방금 인증이 실패한 맥락이라 낙관 이동 없이 에러를 보여준다.
+    // (스냅샷 주입은 하이드레이션 이후인 여기 effect에서 — store.ts 주석 참조.)
+    if (!oauthError && hydrateUserSnapshot()) {
+      router.replace('/home');
+      return;
+    }
+    // 로그인 폼을 보게 될 사용자를 위해 /home 청크를 미리 — 로그인 성공 직후 이동이 빨라진다.
+    router.prefetch('/home');
     fetchUser().then((u) => {
-      if (u) {
+      if (u && u !== FETCH_USER_TRANSIENT) {
         setUser(u);
         router.replace('/home');
       } else {
+        // 미인증(null)과 판정 불가(일시 장애) 모두 웰컴 표시 — 종전 동작 유지.
         setChecking(false);
       }
     });
@@ -129,6 +143,9 @@ function AuthPageInner() {
       }
       // 사용자 전환 가능 지점 — 이전 계정의 페이지 캐시가 새 계정 화면에 비치지 않게 비움.
       clearPageCache();
+      // 휘발 슬라이스(messages/unreadCount/popupMessage/boards/friends/relays/capsules)도
+      // 함께 리셋 — 그렇지 않으면 이전 계정의 데이터가 새 계정 화면에 잠깐 비칠 수 있다.
+      resetEphemeral();
       router.replace('/home');
     } catch (e) {
       setError(describeAuthError(e instanceof Error ? e.message : '오류가 발생했어요'));
@@ -243,6 +260,7 @@ function AuthPageInner() {
                   if (data.user) {
                     setUser(data.user);
                     clearPageCache(); // 사용자 전환 가능 지점
+                    resetEphemeral(); // 이전 계정의 휘발 슬라이스 잔재 제거
                     router.replace('/home');
                   }
                 } catch {

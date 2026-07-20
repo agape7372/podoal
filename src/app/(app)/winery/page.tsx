@@ -1,13 +1,14 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useCachedApi } from '@/lib/cachedApi';
+import { useCachedApi, readCachedApi, writeCachedApi } from '@/lib/cachedApi';
 import {
   WINERY_TIERS,
   BOTTLE_SIZE_LABELS,
   type WineryTier,
   type WineBottle as WineBottleType,
 } from '@/lib/winery';
+import type { BoardDetail, BoardSummary } from '@/types';
 import Link from 'next/link';
 import WineBottle, { BOTTLE_BASELINE_H, BOTTLE_ROW_H } from '@/components/WineBottle';
 import EmojiIcon from '@/components/EmojiIcon';
@@ -164,6 +165,24 @@ export default function WineryPage() {
     try {
       await api(`/api/boards/${boardId}`, { method: 'PATCH', json: { harvested: true } });
       feedbackBottle();
+      // 정합 버그 수정(2026-07-19): PATCH 응답이 {ok:true}뿐이라 harvestedAt을 직접
+      // 못 받으므로 지금 시각으로 write-through. 이걸 빼면 refresh()는 이 화면의
+      // '/api/winery'만 재검증하고, 홈이 읽는 '/api/boards' 리스트(탭 카운트·수확
+      // 배지·스와이프 트레이 게이트)와 '/api/boards/{id}' 상세는 5초 TTL 동안 미수확
+      // 상태로 고착 — 그 창에서 홈 스와이프를 다시 하면 서버 harvestedAt이 리셋된다.
+      // board/[id]/page.tsx의 syncBoardCaches와 같은 패턴(참고만, 그쪽은 미수정).
+      const harvestedAt = new Date().toISOString();
+      const home = readCachedApi<{ boards: BoardSummary[] }>('/api/boards');
+      if (home?.boards.some((b) => b.id === boardId)) {
+        writeCachedApi('/api/boards', {
+          ...home,
+          boards: home.boards.map((b) => (b.id === boardId ? { ...b, harvestedAt } : b)),
+        });
+      }
+      const detail = readCachedApi<BoardDetail>(`/api/boards/${boardId}`);
+      if (detail) {
+        writeCachedApi(`/api/boards/${boardId}`, { ...detail, harvestedAt });
+      }
       refresh();
     } catch {
       feedbackError();
