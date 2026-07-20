@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { api } from '@/lib/api';
-import { useCachedApi } from '@/lib/cachedApi';
+import { api, ApiError } from '@/lib/api';
+import { useCachedApi, readCachedApi, writeCachedApi, invalidateCachedApi } from '@/lib/cachedApi';
 import FriendCard from '@/components/FriendCard';
 import CheerModal from '@/components/CheerModal';
 import ConfirmDialog from '@/components/ConfirmDialog';
@@ -17,6 +17,12 @@ import type { FriendInfo, SearchedUser } from '@/types';
 import { feedbackSuccess, feedbackTap } from '@/lib/feedback';
 import { track } from '@/lib/analytics';
 import { DEV_TOOLS } from '@/lib/devtools';
+import { refreshUnreadCount } from '@/lib/notifications';
+
+// 친구 상세(friends/[id])가 같은 friendship을 다른 캐시 키('/api/friends/{userId}/boards')로
+// 들고 있다 — 즐겨찾기 토글 시 그 캐시가 떠 있으면 같은 방향으로 교차 반영한다(정확한 응답
+// 스키마는 friends/[id]/page.tsx의 FriendBoardsResponse; 여기선 건드리는 필드만 좁혀 잡는다).
+type FriendDetailCache = { friendship: { id: string; isFavorite: boolean } } & Record<string, unknown>;
 
 export default function FriendsPage() {
   const router = useRouter();
@@ -40,6 +46,15 @@ export default function FriendsPage() {
   const [rejecting, setRejecting] = useState(false);
   const [seeding, setSeeding] = useState(false);
   const [seedInfo, setSeedInfo] = useState('');
+
+  // 가벼운 토스트(수락/거절 실패 안내) — home/page.tsx와 동일한 자체 관리 토스트 선례를 따른다.
+  const [toast, setToast] = useState<string | null>(null);
+  const toastTimer = useRef<number | null>(null);
+  const showToast = useCallback((msg: string) => {
+    setToast(msg);
+    if (toastTimer.current) window.clearTimeout(toastTimer.current);
+    toastTimer.current = window.setTimeout(() => setToast(null), 2600);
+  }, []);
 
   const fetchFriends = refresh;
 
@@ -102,9 +117,26 @@ export default function FriendsPage() {
   };
 
   const handleAccept = async (id: string) => {
-    await api(`/api/friends/${id}`, { method: 'PATCH', json: { action: 'accept' } });
-    track('friend_accepted'); // 소셜 KPI(§3-3) — 관계 이벤트, 속성 없음
-    fetchFriends();
+    try {
+      await api(`/api/friends/${id}`, { method: 'PATCH', json: { action: 'accept' } });
+      track('friend_accepted'); // 소셜 KPI(§3-3) — 관계 이벤트, 속성 없음
+      // 수락은 통합 알림 피드(친구요청 항목)를 없애야 하므로 캐시를 무효화하고
+      // 배지를 서버 기준으로 즉시 재동기화한다 — 안 그러면 처리한 요청이 알림함/배지에
+      // 계속 남아 보인다(확정 결함 #2).
+      invalidateCachedApi('/api/notifications');
+      refreshUnreadCount({ force: true });
+      await fetchFriends();
+    } catch (e) {
+      // 404 = 상대가 그 사이 요청을 철회함 — 에러가 아니라 목록을 다시 맞추면 끝.
+      if (e instanceof ApiError && e.status === 404) {
+        await fetchFriends();
+        return;
+      }
+      showToast('요청을 처리하지 못했어요. 잠시 후 다시 시도해주세요.');
+      // FriendCard의 await onAccept?.(...)로 실패를 전달해 성공 피드백(feedbackSuccess)을
+      // 건너뛰게 한다 — 로딩 해제 자체는 FriendCard의 finally가 맡는다(확정 결함 #3).
+      throw e;
+    }
   };
 
   const handleToggleFavorite = async (id: string) => {
@@ -114,10 +146,29 @@ export default function FriendsPage() {
     const flip = (prev: typeof data) =>
       prev && { ...prev, friends: prev.friends.map((f) => (f.id === id ? { ...f, isFavorite: !f.isFavorite } : f)) };
     mutate(flip);
+
+    // 형제 키 교차 반영(확정 결함 #1): friends/[id]가 같은 friendship을
+    // `/api/friends/{userId}/boards` 키로 캐싱하고 있으면 같이 뒤집는다 — 목록↔상세를
+    // 5초 안에 왕복해도 별 상태가 모순되지 않게. 캐시가 없으면(상세를 아직 안 열어봄) no-op.
+    const target = friends.find((f) => f.id === id);
+    const detailKey = target ? `/api/friends/${target.user.id}/boards` : null;
+    const flipDetail = () => {
+      if (!detailKey) return;
+      const prev = readCachedApi<FriendDetailCache>(detailKey);
+      if (prev && prev.friendship.id === id) {
+        writeCachedApi<FriendDetailCache>(detailKey, {
+          ...prev,
+          friendship: { ...prev.friendship, isFavorite: !prev.friendship.isFavorite },
+        });
+      }
+    };
+    flipDetail();
+
     try {
       await api(`/api/friends/${id}`, { method: 'PATCH', json: { action: 'favorite' } });
     } catch {
       mutate(flip);
+      flipDetail(); // 같은 플립을 다시 적용해 형제 키도 롤백
     }
   };
 
@@ -150,6 +201,9 @@ export default function FriendsPage() {
     setRejecting(true);
     try {
       await api(`/api/friends/${id}`, { method: 'DELETE' });
+      // 거절도 수락과 마찬가지로 통합 알림 피드에서 이 항목을 없애야 한다(확정 결함 #2).
+      invalidateCachedApi('/api/notifications');
+      refreshUnreadCount({ force: true });
       await fetchFriends();
     } finally {
       setRejecting(false);
@@ -363,6 +417,17 @@ export default function FriendsPage() {
         onConfirm={confirmReject}
         onCancel={() => { if (!rejecting) setRejectTarget(null); }}
       />
+
+      {/* 가벼운 토스트 (수락/거절 처리 실패 안내) — home/page.tsx와 동일한 선례. */}
+      {toast && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed bottom-24 left-1/2 -translate-x-1/2 z-80 max-w-[88%] px-4 py-2.5 rounded-2xl clay-float bg-warm-text text-white text-sm font-medium text-center animate-fade-in"
+        >
+          {toast}
+        </div>
+      )}
     </div>
   );
 }

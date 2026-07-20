@@ -36,9 +36,18 @@ export default function FriendCard({
 
   const handleAccept = async () => {
     setLoading(true);
-    await onAccept?.(friend.id);
-    feedbackSuccess();
-    setLoading(false);
+    // finally에서 로딩을 해제해야 실패 시에도 스피너가 고착되지 않는다(확정 결함 #3).
+    // 에러 표시 자체는 호출부(friends/page.tsx handleAccept)의 토스트가 맡으므로 여기선
+    // 잡지 않고 그대로 흘려보낸다 — 그래야 실패 시 feedbackSuccess()도 건너뛴다.
+    try {
+      await onAccept?.(friend.id);
+      feedbackSuccess();
+    } catch {
+      // 실패 안내(토스트)는 호출부(friends/page.tsx)가 담당 — 여기서 삼키지 않으면
+      // unhandled rejection 콘솔 노이즈만 남는다. 성공 피드백은 자연히 생략된다.
+    } finally {
+      setLoading(false);
+    }
   };
 
   const bg = friend.isFavorite

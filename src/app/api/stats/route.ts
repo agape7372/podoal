@@ -27,6 +27,9 @@ export async function GET() {
     boardsReceived,
     // 유예 레거시 날짜 + 경계 설정(timezone/dayResetHour) — 아래 날짜 버킷팅에 쓴다.
     boundaryUser,
+    // 카테고리 집계용 보드 목록 — userId에만 의존하는 독립 쿼리라 첫 배치에 동승
+    // (예전엔 GROUP BY 뒤 3번째 직렬 왕복이었다 — 스켈레톤 감사, 응답 계약 불변).
+    boardsWithStickers,
   ] = await Promise.all([
     prisma.board.count({ where: { ownerId: userId } }),
     prisma.board.count({ where: { ownerId: userId, isCompleted: true } }),
@@ -44,6 +47,13 @@ export async function GET() {
     prisma.user.findUnique({
       where: { id: userId },
       select: { streakFreezeDate: true, timezone: true, dayResetHour: true },
+    }),
+    prisma.board.findMany({
+      where: { ownerId: userId },
+      select: {
+        templateId: true,
+        _count: { select: { stickers: true } },
+      },
     }),
   ]);
 
@@ -143,15 +153,7 @@ export async function GET() {
     monthlyTrend.push({ month: ym, count: monthSums.get(ym) || 0 });
   }
 
-  // Category breakdown by board templateId prefix.
-  const boardsWithStickers = await prisma.board.findMany({
-    where: { ownerId: userId },
-    select: {
-      templateId: true,
-      _count: { select: { stickers: true } },
-    },
-  });
-
+  // Category breakdown by board templateId prefix (boardsWithStickers는 첫 배치에서 수신).
   const categoryMap = new Map<string, number>();
   const categoryNameMap = new Map<string, string>();
   for (const cat of TEMPLATE_CATEGORIES) categoryNameMap.set(cat.id, cat.name);

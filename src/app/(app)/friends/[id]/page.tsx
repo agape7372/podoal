@@ -3,13 +3,13 @@
 import { useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { api } from '@/lib/api';
-import { useCachedApi } from '@/lib/cachedApi';
+import { useCachedApi, readCachedApi, writeCachedApi } from '@/lib/cachedApi';
 import Avatar from '@/components/Avatar';
 import BoardCard from '@/components/BoardCard';
 import ClayButton from '@/components/ClayButton';
 import CheerModal from '@/components/CheerModal';
 import EmojiIcon from '@/components/EmojiIcon';
-import type { BoardSummary, UserProfile } from '@/types';
+import type { BoardSummary, FriendInfo, UserProfile } from '@/types';
 
 interface FriendBoardsResponse {
   friend: UserProfile;
@@ -18,6 +18,13 @@ interface FriendBoardsResponse {
     id: string;
     isFavorite: boolean;
   };
+}
+
+// 친구 목록 페이지(friends/page.tsx)가 같은 friendship을 '/api/friends' 키의
+// friends[] 배열 항목으로 캐싱한다 — 즐겨찾기 토글 시 그 캐시가 떠 있으면 교차 반영한다.
+interface FriendsListCache {
+  friends: FriendInfo[];
+  pendingRequests: FriendInfo[];
 }
 
 export default function FriendDetailPage() {
@@ -51,6 +58,22 @@ export default function FriendDetailPage() {
     const flip = (prev: typeof data) =>
       prev && { ...prev, friendship: { ...prev.friendship, isFavorite: !prev.friendship.isFavorite } };
     mutate(flip);
+
+    // 형제 키 교차 반영(확정 결함 #1): friends/page.tsx가 같은 friendship을 '/api/friends'의
+    // friends[] 배열 항목(friendship id 매칭)으로 캐싱하고 있으면 같이 뒤집는다 — 상세↔목록을
+    // 5초 안에 왕복해도 별 상태가 모순되지 않게. 캐시가 없으면(목록을 아직 안 열어봄) no-op.
+    const flipList = () => {
+      const prev = readCachedApi<FriendsListCache>('/api/friends');
+      if (!prev) return;
+      writeCachedApi<FriendsListCache>('/api/friends', {
+        ...prev,
+        friends: prev.friends.map((f) =>
+          f.id === friendshipId ? { ...f, isFavorite: !f.isFavorite } : f,
+        ),
+      });
+    };
+    flipList();
+
     try {
       await api(`/api/friends/${friendshipId}`, {
         method: 'PATCH',
@@ -58,6 +81,7 @@ export default function FriendDetailPage() {
       });
     } catch {
       mutate(flip);
+      flipList(); // 같은 플립을 다시 적용해 형제 키도 롤백
     }
   };
 

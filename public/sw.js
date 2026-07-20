@@ -1,7 +1,7 @@
 // IMPORTANT: bump CACHE_VERSION whenever you change which assets you want to
 // invalidate on the next deploy. The activate handler deletes every cache
 // whose name doesn't match the current value, so users get a fresh shell.
-const CACHE_VERSION = '2026-07-13-shell-cleanup';
+const CACHE_VERSION = '2026-07-18-nav-timeout';
 const CACHE_NAME = `podoal-${CACHE_VERSION}`;
 // HTML navigations are network-first (see fetch handler), so precached documents
 // are never served on normal navigations. '/' was true dead code (nothing
@@ -70,19 +70,61 @@ self.addEventListener('fetch', (event) => {
   // (e.g. an old board URL) must NOT be served from a stale cache — otherwise
   // it keeps loading old chunks and never picks up a deploy's UI changes.
   // Falls back to cache (then /home) when offline.
+  //
+  // 타임아웃 레이스(2026-07-18 스켈레톤 감사): 순수 network-first는 '느리지만 죽지는
+  // 않은' 회선에서 fetch가 reject될 때까지(수십 초의 브라우저 타임아웃) 흰 화면을
+  // 보였다. 3초 안에 문서가 안 오면 런타임 캐시 문서를 먼저 서빙한다 — 캐시 문서는
+  // 최악 '한 배포 전' 신선도로, 기존 오프라인 폴백과 동일한 계약이라 stale-chunk
+  // 버그 클래스(network-first를 택한 이유)를 깨지 않는다. 네트워크 응답은 레이스
+  // 패배 후에도 계속 진행돼 cache.put으로 다음 방문을 갱신한다. 캐시가 아예 없으면
+  // (첫 방문) 타임아웃 없이 기존과 동일하게 네트워크를 끝까지 기다린다.
   if (request.mode === 'navigate') {
+    const NAV_TIMEOUT_MS = 3000;
+    // put 완주 추적 — waitUntil이 '응답 헤더 도착'이 아니라 '캐시 기록 완료'까지
+    // SW 수명을 연장하게 한다(put은 본문 스트리밍이 끝나야 완료). catch는 put 실패
+    // (quota 등)의 unhandled rejection 방지.
+    let putDone = Promise.resolve();
+    const networkFetch = fetch(request).then((response) => {
+      if (response.ok) {
+        const clone = response.clone();
+        putDone = caches
+          .open(CACHE_NAME)
+          .then((cache) => cache.put(request, clone))
+          .catch(() => {});
+      }
+      return response;
+    });
     event.respondWith(
-      fetch(request)
-        .then((response) => {
-          if (response.ok) {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+      (async () => {
+        // 타임아웃(느리지만 살아있는 회선)과 거부(오프라인)를 구분한다 — 폴백 계약이
+        // 다르다: 타임아웃은 '같은 URL' 캐시 문서만 허용(딥링크에 '/home' 문서를
+        // 대신 서빙하면 주소와 화면이 어긋난 오문서가 된다), 오프라인은 종전대로
+        // 같은 URL → 앱 셸 '/home' 순 폴백.
+        const raced = await Promise.race([
+          networkFetch.then(
+            (res) => ({ kind: 'network', res }),
+            () => ({ kind: 'offline' })
+          ),
+          new Promise((resolve) =>
+            setTimeout(() => resolve({ kind: 'timeout' }), NAV_TIMEOUT_MS)
+          ),
+        ]);
+        if (raced.kind === 'network') return raced.res;
+        if (raced.kind === 'timeout') {
+          const cached = await caches.match(request);
+          if (cached) {
+            // 캐시 문서로 응답을 확정해도 진행 중인 네트워크 응답의 cache.put이
+            // 완주하도록 수명 연장(다음 방문 갱신 보장).
+            event.waitUntil(networkFetch.then(() => putDone, () => {}));
+            return cached;
           }
-          return response;
-        })
-        .catch(() =>
-          caches.match(request).then((cached) => cached || caches.match('/home'))
-        )
+          // 같은 URL 캐시 없음(첫 방문 딥링크 등) — 네트워크를 끝까지 기다린다
+          // (종전 동작). 끝내 거부되면 종전 오프라인 폴백과 동일하게 앱 셸로.
+          return networkFetch.catch(() => caches.match('/home'));
+        }
+        // 오프라인(즉시 거부) — 종전 폴백 그대로.
+        return (await caches.match(request)) || (await caches.match('/home'));
+      })()
     );
     return;
   }

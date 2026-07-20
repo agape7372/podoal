@@ -8,23 +8,37 @@ export async function GET() {
   if (!userId) return authResponse('Unauthorized');
 
   try {
-    const acceptedFriendships = await prisma.friendship.findMany({
-      where: {
-        status: 'accepted',
-        OR: [
-          { requesterId: userId },
-          { receiverId: userId },
-        ],
-      },
-      include: {
-        requester: {
-          select: PUBLIC_USER_SELECT,
+    // 두 쿼리는 상호 독립 → 병렬(순차 2왕복이던 것을 1왕복 폭으로) — 응답 계약 불변.
+    const [acceptedFriendships, pendingRequests] = await Promise.all([
+      prisma.friendship.findMany({
+        where: {
+          status: 'accepted',
+          OR: [
+            { requesterId: userId },
+            { receiverId: userId },
+          ],
         },
-        receiver: {
-          select: PUBLIC_USER_SELECT,
+        include: {
+          requester: {
+            select: PUBLIC_USER_SELECT,
+          },
+          receiver: {
+            select: PUBLIC_USER_SELECT,
+          },
         },
-      },
-    });
+      }),
+      prisma.friendship.findMany({
+        where: {
+          receiverId: userId,
+          status: 'pending',
+        },
+        include: {
+          requester: {
+            select: PUBLIC_USER_SELECT,
+          },
+        },
+      }),
+    ]);
 
     const friends = acceptedFriendships.map((friendship) => {
       const friend =
@@ -38,18 +52,6 @@ export async function GET() {
         createdAt: friendship.createdAt,
         user: friend,
       };
-    });
-
-    const pendingRequests = await prisma.friendship.findMany({
-      where: {
-        receiverId: userId,
-        status: 'pending',
-      },
-      include: {
-        requester: {
-          select: PUBLIC_USER_SELECT,
-        },
-      },
     });
 
     const pending = pendingRequests.map((friendship) => ({

@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { api } from '@/lib/api';
-import { useCachedApi } from '@/lib/cachedApi';
+import { invalidateCachedApi, useCachedApi } from '@/lib/cachedApi';
+import { refreshUnreadCount } from '@/lib/notifications';
 import EmojiIcon from './EmojiIcon';
 import EmptyState from './EmptyState';
 import RetryButton from './RetryButton';
@@ -47,6 +48,10 @@ export default function RewardList() {
       setOpened({ reward: data.reward, boardId: r.board.id });
       mutate((prev) =>
         prev && { ...prev, rewards: prev.rewards.map((x) => (x.id === r.id ? { ...x, ...data.reward } : x)) });
+      // 알림함 캐시 무효화 — 보상 열람(reveal)이 통합 피드/배지에 반영 안 되던 결함
+      // (messages/page.tsx와 동일 순서: invalidate를 refreshUnreadCount보다 먼저 호출).
+      invalidateCachedApi('/api/notifications');
+      refreshUnreadCount({ force: true });
     } catch {
       // /api/rewards가 본문을 동봉하므로(마스킹 정렬) 내용이 있으면 그대로 연다 —
       // reveal(열람 기록)만 다음 탭으로 미뤄진다. imageUrl 전용 보상(내용 없는

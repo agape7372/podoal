@@ -145,6 +145,30 @@ export function setConsent(granted: boolean): void {
   }
 }
 
+/**
+ * 동의를 "미응답" 상태로 되돌린다(2026-07-19 결함 수정) — 로그아웃/탈퇴 시 호출.
+ * 동의 키가 계정이 아닌 기기 전역이라, 비우지 않으면 다음 계정이 이전 사용자의
+ * 동의/거부를 그대로 상속해 배너가 다시 뜨지 않는 문제가 있었다. posthog가 이미
+ * 로드돼 있으면 opt-out + reset으로 식별자도 함께 지운다(setConsent(false)와 동일 패턴).
+ */
+export function resetConsent(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.removeItem(CONSENT_KEY);
+  } catch {
+    /* no-op */
+  }
+  if (phInstance) {
+    try {
+      phInstance.opt_out_capturing();
+      phInstance.reset();
+    } catch {
+      /* no-op */
+    }
+  }
+  pendingUserId = null;
+}
+
 /** 내부 cuid만 전달(§2 공통 원칙 — 이메일·이름 금지). 동의 전이면 보관했다가 로딩 시 반영. */
 export function identifyUser(userId: string): void {
   pendingUserId = userId;
