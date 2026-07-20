@@ -25,6 +25,11 @@ interface SwipeableBoardCardProps {
   /** The finger is actively swiping this card (axis locked to x). Turns the
    *  declarative transition off and hides the ⋮ menu. */
   dragging: boolean;
+  /** Home is awaiting this board's fill-queue drain before committing the harvest
+   *  (last grape POST not yet confirmed) — swaps the tray button to a "수확 중…"
+   *  disabled state. Distinct from `canHarvest`: this is a transient wait, not
+   *  "board isn't full yet", so it gets its own (also disabled-styled) branch. */
+  harvesting?: boolean;
   /** Pixel width of the revealed action tray. */
   trayWidth: number;
   onHarvest: () => void;
@@ -49,6 +54,7 @@ export default function SwipeableBoardCard({
   offset,
   lifted,
   dragging,
+  harvesting = false,
   trayWidth,
   onHarvest,
   onDelete,
@@ -98,15 +104,18 @@ export default function SwipeableBoardCard({
           <button
             type="button"
             onClick={onHarvest}
-            aria-disabled={!canHarvest}
-            title={canHarvest ? undefined : '포도판을 다 채우면 수확할 수 있어요'}
+            disabled={harvesting}
+            aria-disabled={!canHarvest || harvesting}
+            title={harvesting ? undefined : canHarvest ? undefined : '포도판을 다 채우면 수확할 수 있어요'}
             tabIndex={revealed ? 0 : -1}
             className={`w-[88px] rounded-2xl text-xs font-semibold flex flex-col items-center justify-center gap-[3px] transition-[transform,background-color] duration-150 active:scale-[0.96] group-data-[commit=1]/tray:scale-110 ${
-              harvested
-                ? 'text-leaf-700 hover:bg-leaf-100/40 active:bg-leaf-100/60 group-data-[commit=1]/tray:bg-leaf-100/70'
-                : canHarvest
-                  ? 'text-grape-700 hover:bg-grape-300/15 active:bg-grape-300/25 group-data-[commit=1]/tray:bg-grape-300/30'
-                  : 'text-warm-sub cursor-not-allowed'
+              harvesting
+                ? 'text-warm-sub cursor-not-allowed'
+                : harvested
+                  ? 'text-leaf-700 hover:bg-leaf-100/40 active:bg-leaf-100/60 group-data-[commit=1]/tray:bg-leaf-100/70'
+                  : canHarvest
+                    ? 'text-grape-700 hover:bg-grape-300/15 active:bg-grape-300/25 group-data-[commit=1]/tray:bg-grape-300/30'
+                    : 'text-warm-sub cursor-not-allowed'
             }`}
           >
             {/* 시안 v2 1번의 단색 포도(currentColor) — 컬러 fluent 이모지는 고스트 톤을 깸 */}
@@ -117,7 +126,7 @@ export default function SwipeableBoardCard({
               <circle cx="15.5" cy="13.5" r="3.1" fill="currentColor" />
               <circle cx="12" cy="18.7" r="3.1" fill="currentColor" />
             </svg>
-            {harvested ? '되돌리기' : '수확'}
+            {harvesting ? '수확 중…' : harvested ? '되돌리기' : '수확'}
           </button>
         </div>
 

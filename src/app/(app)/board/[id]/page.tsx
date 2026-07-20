@@ -30,9 +30,12 @@ import { invalidateCachedApi, invalidateCachedApiPrefix, readCachedApi, writeCac
 import {
   applyOptimisticFill,
   applyFillResult,
+  applyBatchFillResult,
+  planFillBatches,
   rollbackFill,
   mergeServerBoard,
   stripTempsForCache,
+  FILL_BATCH_MAX,
 } from '@/lib/boardFillState';
 import type { BoardDetail, BoardSummary, PlantedGiftInfo, RewardInfo, RewardType, TimeCapsuleInfo } from '@/types';
 import { REWARD_TYPE_ICON, ICON } from '@/lib/icons';
@@ -41,33 +44,9 @@ import { stripTitleEmoji } from '@/lib/title';
 import { computePaceState, type PaceState } from '@/lib/cadence';
 import { track, trackFirst } from '@/lib/analytics';
 
-// ── 채움 POST 직렬화 큐 (보드 단위, 모듈 레벨) ──────────────────────────────
-// 연타 시 낙관적 UI는 즉시 반영하되 서버 POST는 한 번에 1개씩 순차 발송한다.
-// 동시 요청들끼리의 Serializable 자기 경합(P2034 재시도 소진 → 일부 채움 유실)을
-// 원천 제거하고, 응답 도착 순서도 발사 순서와 같아진다.
-//
-// 컴포넌트 ref가 아닌 **모듈 레벨**인 이유(2026-06-12 진단): 큐가 인스턴스 단위면
-// 이탈 후에도 잔여 POST가 계속 도는데(좀비 큐), 재진입한 새 인스턴스가 새 큐로
-// 같은 보드에 병렬 POST를 쏴 직렬화 전제가 인스턴스 경계에서 무너졌다(P2034 부활,
-// 같은 칸 중복 POST→409). 모듈 큐는 재진입 탭을 좀비 잔여분 *뒤에* 이어 붙인다.
-// (직렬화 범위는 JS 컨텍스트 = 단일 탭 한정 — 두 탭 동시 연타는 서버 재시도와
-//  클라 409 처리가 수습한다.)
-//
-// fillResumeAt: 항목이 (409 외로) 실패하면 그 position을 기록한다 — 그보다 높은
-// position의 항목은 발사 *직전에* 폐기(낙관 스티커만 회수)된다. 실패 칸을 건너뛴
-// 후속 성공이 서버에 비연속 구멍(영구 미완성 보드)을 만들기 때문이며, 서버는
-// position 연속성을 검증하지 않는다(서로 다른 칸 동시 채움 허용 계약 —
-// fillBoard.integration.test 참조). '카운터(epoch)'가 아닌 '재개 지점(position)'인
-// 이유: 실패 직후 롤백이 화면에 그려지기 전(stale 렌더 창)에 들어온 탭은 어떤
-// 카운터를 캡처해도 통과하지만, position 비교는 발사 시점 큐 이력만으로 차단된다.
-// 기록은 실패 지점 이하를 다시 채우는 발사가 나타날 때 해제된다.
-const fillQueues = new Map<string, Promise<void>>();
-const fillResumeAt = new Map<string, number>();
-const fillPendingCounts = new Map<string, number>();
-// 큐에 들어갔지만 아직 확정(reconcile/rollback)되지 않은 position들 — 재진입한
-// 인스턴스가 이 칸들을 낙관 temp로 재주입해 '비어 보이는 in-flight 칸'을 재탭
-// (→확정 409)하지 않게 한다.
-const fillPendingPositions = new Map<string, Set<number>>();
+// 채움 POST 직렬화 큐 — 재진입에도 살아남는 모듈 레벨 상태라 라우트 전환 없이
+// 홈에서도 참조할 수 있게 src/lib/fillQueue.ts로 이전됨. 상세 설계 근거는 그쪽 주석.
+import { fillQueues, fillResumeAt, fillPendingCounts, fillPendingPositions } from '@/lib/fillQueue';
 
 interface LiveBoardHandle {
   setBoard: Dispatch<SetStateAction<BoardDetail | null>>;
@@ -79,6 +58,43 @@ interface LiveBoardHandle {
 // 흐른다. 재진입 화면이 드레인 진행을 실시간으로 따라가고, 좀비 항목의 실패가
 // 새 인스턴스의 탭을 '무음으로' 폐기하는 일이 없어진다.
 const liveBoards = new Map<string, LiveBoardHandle>();
+
+// ── 배치 코얼레싱 버퍼 (FREE 보드 전용, 모듈 레벨) ──────────────────────────
+// 연타 탭을 칸당 POST 대신 버퍼에 모아 ~200ms 아이들 디바운스로 한 번에 영속한다
+// (배치 API {positions[]}). 큐 Map들과 같은 이유로 모듈 레벨: 버퍼가 인스턴스에
+// 묶이면 이탈 시 타이머가 사라져 버퍼분이 유실된다(#88 좀비 의미론 — 타이머·버퍼가
+// 화면보다 오래 살아 플러시를 완주하고, 결과는 liveBoards/캐시로 흐른다).
+// resolve: 그 탭의 handleFillSticker 반환 Promise를 배치 확정 시점에 푼다.
+type FillBatchEntry = { position: number; tempId: string; resolve: () => void };
+const fillBatchBuffers = new Map<
+  string,
+  { entries: FillBatchEntry[]; totalStickers: number; triggerAts: number[] }
+>();
+const fillBatchTimers = new Map<string, ReturnType<typeof setTimeout>>();
+const FILL_BATCH_DEBOUNCE_MS = 200;
+
+// M1(리뷰): 백그라운드 전환/앱 종료 시 버퍼 유실 방지. 연타(<200ms 간격)는 디바운스를
+// 계속 리셋하므로, 마지막 탭 직후 홈 제스처로 JS가 정지되면(iOS PWA) 타이머가 영영 안
+// 울리고 스와이프킬/OS 축출 시 낙관 표시된 채움이 전부 유실됐다(구 단건 경로는 첫
+// POST부터 점진 커밋이라 없던 회귀). pagehide·visibilitychange(hidden)에서 모든 보드의
+// 대기 버퍼를 즉시 플러시하고, 이 경로의 POST만 keepalive로 발사해 페이지 teardown
+// 후에도 브라우저가 완송한다(배치 본문은 수백 바이트 — keepalive 64KB 캡과 무관.
+// 일반 플러시는 keepalive 불필요라 미사용). 페이지 내 내비게이션은 종전대로 좀비
+// 타이머가 커버 — 이 리스너는 '정지/킬' 갭 전용이다. 플러시 함수는 인스턴스 콜백이라
+// 버퍼에 탭이 쌓일 때 최신 것을 레지스트리에 등록해 모듈 리스너가 호출한다.
+const fillBatchFlushers = new Map<string, (opts?: { keepalive?: boolean }) => void>();
+if (typeof window !== 'undefined') {
+  const flushAllFillBatches = () => {
+    // flush가 레지스트리 엔트리를 지우므로 스냅샷 순회. 이중 발화(pagehide와 hidden이
+    // 연달아 옴)는 무해 — 버퍼 드레인이 take-and-clear(동기 get+delete)라 두 번째
+    // 호출은 빈 버퍼를 보고 no-op.
+    for (const flush of [...fillBatchFlushers.values()]) flush({ keepalive: true });
+  };
+  window.addEventListener('pagehide', flushAllFillBatches);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') flushAllFillBatches();
+  });
+}
 
 /** 채움 상태 전이를 현재 살아있는 인스턴스의 상태에, 없으면 캐시에 적용한다.
  *  캐시 경로는 temp를 벗겨 '서버 확인 상태'만 남긴다(라이브 경로는 컴포넌트의
@@ -408,6 +424,85 @@ export default function BoardDetailPage() {
     setBoard((b) => (b ? { ...b, backfillAvailable: false } : b));
   }, [board, id]);
 
+  // 해제된 보상 1건의 팝업/reveal 배관 — 단건(postFillSticker)과 배치(postFillBatch)가
+  // 같은 본문을 공유한다(종전 postFillSticker 인라인 블록을 그대로 추출 — 드리프트 방지).
+  const processUnlockedReward = useCallback((
+    u: {
+      id: string;
+      type: string;
+      title: string;
+      triggerAt: number;
+      content?: string;
+      imageUrl?: string;
+    },
+    totalStickers: number,
+  ) => {
+    track('reward_unlocked', { type: u.type, isMid: u.triggerAt < totalStickers });
+    // 중간 보상: GrapeBoard가 컨페티와 같은 비트에 팝업을 이미 열었음
+    // (onMidRewardReached). unlock 응답에 실려 온 내용으로 **즉시** 채운다 —
+    // 예전엔 reveal 왕복을 한 번 더 기다렸고(직렬 큐를 그만큼 또 막음),
+    // reveal이 실패하면 스켈레톤에 갇혔다. reveal은 이제 '열어봤다' 영속화
+    // 전용으로 비차단 발사한다(멱등 — 실패해도 다음 열람이 재시도).
+    // 최종 보상은 팝업 자동 오픈 없이 카드 탭으로 연다.
+    if (u.triggerAt < totalStickers) {
+      const body = { title: u.title, content: u.content ?? '', imageUrl: u.imageUrl ?? '' };
+      // 비트가 아직 팝업을 안 열었을 수 있다(빠른 응답이 +300ms를 추월) —
+      // 버퍼에 먼저 보관하고, 이미 열려 있으면 즉시 머지(id 일치 시에만 —
+      // loading 해제도 같은 updater 안에서만 일어나 교차 소거가 없다).
+      pendingUnlockContentRef.current.set(u.id, body);
+      setRewardPopup((prev) =>
+        prev && prev.reward.id === u.id
+          ? { reward: { ...prev.reward, ...body }, loading: false }
+          : prev,
+      );
+      api(`/api/boards/${id}/rewards/${u.id}/reveal`, { method: 'POST' })
+        .catch(() => {})
+        .then(() => {
+          if (aliveRef.current) fetchBoard();
+        });
+    } else {
+      // 완성 보상도 같은 즉시-채움 경로를 탄다 — 마지막 채움이 느린 사이 사용자가
+      // 카드를 먼저 탭해 스켈레톤 팝업을 열어둔 경우(2026-06-13 영상: 편지 무소식),
+      // 이 unlock 응답이 서버가 내용을 아는 가장 이른 순간이다.
+      const body = { title: u.title, content: u.content ?? '', imageUrl: u.imageUrl ?? '' };
+      pendingUnlockContentRef.current.set(u.id, body);
+      setRewardPopup((prev) =>
+        prev && prev.reward.id === u.id
+          ? { reward: { ...prev.reward, ...body }, loading: false }
+          : prev,
+      );
+      fetchBoard();
+      // 완성 자동 개봉(W1-B ④): 완성 연출의 사운드/샤인 비트(임팩트+1650ms)가
+      // 지나간 뒤 완성 보상을 자동으로 연다 — '완성했는데 보상이 안 나온다'는
+      // 보고(2026-07-06)의 기대 정렬. 사용자가 먼저 탭해 팝업이 열려 있으면
+      // no-op(prev 유지 — updater는 순수, StrictMode 이중 실행 안전). reveal은
+      // openReward와 중복될 수 있으나 멱등이라 '열어봤다' 영속화만 보장한다.
+      window.setTimeout(() => {
+        if (!aliveRef.current) return;
+        if (rewardSeenRef.current.has(u.id)) return; // 그 사이 직접 열어봤으면 재개봉 금지
+        const buffered = pendingUnlockContentRef.current.get(u.id) ?? body;
+        pendingUnlockContentRef.current.delete(u.id);
+        setRewardPopup((prev) => prev ?? {
+          reward: {
+            id: u.id,
+            // 서버 보상 type은 validateRewards가 letter|giftcard|wish로 강제 — 단언 안전.
+            type: u.type as RewardType,
+            title: buffered.title,
+            content: buffered.content,
+            imageUrl: buffered.imageUrl,
+            triggerAt: u.triggerAt,
+            unlockedAt: null,
+            revealedAt: null,
+          },
+          loading: false,
+        });
+        api(`/api/boards/${id}/rewards/${u.id}/reveal`, { method: 'POST' })
+          .catch(() => {})
+          .then(() => { if (aliveRef.current) fetchBoard(); });
+      }, CELEBRATION_PEAK_MS + 750); // 완성 비트(임팩트+1650ms) 뒤 ~0.75초 = 종전 2400ms
+    }
+  }, [id, fetchBoard]);
+
   // 실제 서버 POST + reconcile/rollback. 보드 단위 모듈 큐 체인에서 한 번에
   // 하나씩 실행된다. 에러는 내부에서 처리(롤백+배너)하고 reject하지 않되, 실패
   // 시 그 position을 재개 지점으로 기록해 더 높은 position의 항목은 발사 전에
@@ -490,73 +585,8 @@ export default function BoardDetailPage() {
 
       // Reward unlocks are rare; only re-fetch when one fires so the
       // reward card can update from "locked" to "tap to reveal".
-      if (result.unlockedReward) {
-        const u = result.unlockedReward;
-        track('reward_unlocked', { type: u.type, isMid: u.triggerAt < totalStickers });
-        // 중간 보상: GrapeBoard가 컨페티와 같은 비트에 팝업을 이미 열었음
-        // (onMidRewardReached). unlock 응답에 실려 온 내용으로 **즉시** 채운다 —
-        // 예전엔 reveal 왕복을 한 번 더 기다렸고(직렬 큐를 그만큼 또 막음),
-        // reveal이 실패하면 스켈레톤에 갇혔다. reveal은 이제 '열어봤다' 영속화
-        // 전용으로 비차단 발사한다(멱등 — 실패해도 다음 열람이 재시도).
-        // 최종 보상은 팝업 자동 오픈 없이 카드 탭으로 연다.
-        if (u.triggerAt < totalStickers) {
-          const body = { title: u.title, content: u.content ?? '', imageUrl: u.imageUrl ?? '' };
-          // 비트가 아직 팝업을 안 열었을 수 있다(빠른 응답이 +300ms를 추월) —
-          // 버퍼에 먼저 보관하고, 이미 열려 있으면 즉시 머지(id 일치 시에만 —
-          // loading 해제도 같은 updater 안에서만 일어나 교차 소거가 없다).
-          pendingUnlockContentRef.current.set(u.id, body);
-          setRewardPopup((prev) =>
-            prev && prev.reward.id === u.id
-              ? { reward: { ...prev.reward, ...body }, loading: false }
-              : prev,
-          );
-          api(`/api/boards/${id}/rewards/${u.id}/reveal`, { method: 'POST' })
-            .catch(() => {})
-            .then(() => {
-              if (aliveRef.current) fetchBoard();
-            });
-        } else {
-          // 완성 보상도 같은 즉시-채움 경로를 탄다 — 마지막 채움이 느린 사이 사용자가
-          // 카드를 먼저 탭해 스켈레톤 팝업을 열어둔 경우(2026-06-13 영상: 편지 무소식),
-          // 이 unlock 응답이 서버가 내용을 아는 가장 이른 순간이다.
-          const body = { title: u.title, content: u.content ?? '', imageUrl: u.imageUrl ?? '' };
-          pendingUnlockContentRef.current.set(u.id, body);
-          setRewardPopup((prev) =>
-            prev && prev.reward.id === u.id
-              ? { reward: { ...prev.reward, ...body }, loading: false }
-              : prev,
-          );
-          fetchBoard();
-          // 완성 자동 개봉(W1-B ④): 완성 연출의 사운드/샤인 비트(임팩트+1650ms)가
-          // 지나간 뒤 완성 보상을 자동으로 연다 — '완성했는데 보상이 안 나온다'는
-          // 보고(2026-07-06)의 기대 정렬. 사용자가 먼저 탭해 팝업이 열려 있으면
-          // no-op(prev 유지 — updater는 순수, StrictMode 이중 실행 안전). reveal은
-          // openReward와 중복될 수 있으나 멱등이라 '열어봤다' 영속화만 보장한다.
-          window.setTimeout(() => {
-            if (!aliveRef.current) return;
-            if (rewardSeenRef.current.has(u.id)) return; // 그 사이 직접 열어봤으면 재개봉 금지
-            const buffered = pendingUnlockContentRef.current.get(u.id) ?? body;
-            pendingUnlockContentRef.current.delete(u.id);
-            setRewardPopup((prev) => prev ?? {
-              reward: {
-                id: u.id,
-                // 서버 보상 type은 validateRewards가 letter|giftcard|wish로 강제 — 단언 안전.
-                type: u.type as RewardType,
-                title: buffered.title,
-                content: buffered.content,
-                imageUrl: buffered.imageUrl,
-                triggerAt: u.triggerAt,
-                unlockedAt: null,
-                revealedAt: null,
-              },
-              loading: false,
-            });
-            api(`/api/boards/${id}/rewards/${u.id}/reveal`, { method: 'POST' })
-              .catch(() => {})
-              .then(() => { if (aliveRef.current) fetchBoard(); });
-          }, CELEBRATION_PEAK_MS + 750); // 완성 비트(임팩트+1650ms) 뒤 ~0.75초 = 종전 2400ms
-        }
-      }
+      // (팝업/reveal 배관은 배치 경로와 공유 — processUnlockedReward로 추출됨.)
+      if (result.unlockedReward) processUnlockedReward(result.unlockedReward, totalStickers);
 
       // Friends' hidden surprises on this grape — queue them for sequential
       // reveal with confetti. (plantedGifts is the full list; plantedGift is the
@@ -608,7 +638,147 @@ export default function BoardDetailPage() {
         fillPendingCounts.set(id, remaining);
       }
     }
-  }, [id, fetchBoard]);
+  }, [id, processUnlockedReward]);
+
+  // 배치 POST + reconcile/rollback — postFillSticker의 배치판(FREE 보드 전용).
+  // 세그먼트(planFillBatches) 하나가 왕복 1번. 재개 지점·롤백·북키핑 의미론은 단건과
+  // 동일하되, 서버가 중복 칸을 관대 수용(skipDuplicates)하므로 409 경로가 없고 모든
+  // 에러는 배치 전체 실패(연속 구간이라 부분 성공을 가정할 수 없다 — 통째 롤백).
+  const postFillBatch = useCallback(async (
+    entries: FillBatchEntry[],
+    totalStickers: number,
+    // M1: pagehide/hidden 플러시 전용 — teardown 후에도 브라우저가 POST를 완송한다.
+    keepalive = false,
+  ) => {
+    const positions = entries.map((e) => e.position);
+    const minPos = positions[0];
+    try {
+      const resume = fillResumeAt.get(id);
+      if (resume !== undefined) {
+        if (minPos > resume) {
+          // 더 낮은 칸의 실패가 기록돼 있다 — 발사하면 서버에 비연속 구멍이 생긴다.
+          // 배치 전체를 폐기하고 낙관 스티커만 회수(단건 경로와 동일 규칙).
+          applyBoardUpdate(id, (prev) =>
+            entries.reduce((b, e) => rollbackFill(b, e.tempId, e.position), prev),
+          );
+          return;
+        }
+        fillResumeAt.delete(id);
+      }
+      const result = await api<{
+        stickers: BoardDetail['stickers'];
+        filledCount: number;
+        isCompleted: boolean;
+        completedAt: string | null;
+        unlockedRewards: {
+          id: string;
+          type: string;
+          title: string;
+          triggerAt: number;
+          content?: string;
+          imageUrl?: string;
+        }[];
+        plantedGifts: (PlantedGiftInfo & { position: number })[];
+        relayAdvanced?: boolean;
+      }>(`/api/boards/${id}/stickers`, {
+        method: 'POST',
+        json: { positions },
+        // 단건과 동일한 큐 행(hang) 방지 시한. (페이지가 죽으면 abort 타이머도 함께
+        // 사라지므로 keepalive 완송을 방해하지 않는다 — 살아있는 경우에만 유효.)
+        signal: AbortSignal.timeout(20000),
+        // 일반 플러시 경로는 종전과 byte-identical하게 keepalive 미지정.
+        ...(keepalive ? { keepalive: true } : {}),
+      });
+      if (result.isCompleted || result.relayAdvanced) {
+        invalidateCachedApiPrefix('/api/relays');
+      }
+      if (result.isCompleted) track('board_completed', { boardId: id, totalStickers });
+
+      // Reconcile: 응답 스티커 전체(이미 차 있던 칸 포함)를 fold — completedAt까지
+      // write-through된다(배치 응답의 additive win, syncBoardCaches의 null 주의 해소).
+      applyBoardUpdate(id, (prev) => applyBatchFillResult(prev, entries, result));
+
+      if (!aliveRef.current) return;
+      setErrorMessage(null);
+
+      // 세그먼트 경계(planFillBatches) 덕에 보통 ≤1개 — 그래도 배열 전체를 단건과
+      // 같은 배관으로 순회 처리한다(예외적으로 2개+가 와도 pendingUnlockContentRef가
+      // 보상 id 키라 각 팝업이 자기 내용을 정확히 소비한다). 팝업 오픈 비트 자체는
+      // GrapeBoard가 탭 시점 로컬 카운트로 이미 처리했다(+300ms/완성 시퀀스).
+      for (const u of result.unlockedRewards) processUnlockedReward(u, totalStickers);
+
+      // 깜짝선물 — position 동봉 배열. 순차 공개 큐 병합은 단건과 동일.
+      if (result.plantedGifts.length > 0) {
+        setSurpriseQueue((q) => [...q, ...result.plantedGifts]);
+        setConfettiTrigger((t) => t + 1);
+      }
+    } catch (err) {
+      // 재개 지점 = 배치 최소 칸 — 이후 발사는 폐기되고, 이 지점 이하 재채움에서 재개.
+      fillResumeAt.set(id, Math.min(fillResumeAt.get(id) ?? Infinity, minPos));
+      applyBoardUpdate(id, (prev) =>
+        entries.reduce((b, e) => rollbackFill(b, e.tempId, e.position), prev),
+      );
+      // 실패율 지표의 분모(grape_filled)가 탭당이므로 실패도 칸당 계측(비율 보존).
+      for (const p of positions) track('grape_fill_failed', { boardId: id, position: p });
+      if (aliveRef.current) {
+        // 단건과 동일: 본문 대기 중(loading) 팝업만 닫는다.
+        setRewardPopup((prev) => (prev && prev.loading ? null : prev));
+      }
+      const msg = err instanceof ApiError ? err.message : '포도알을 채우지 못했어요';
+      liveBoards.get(id)?.onFillFailure(msg);
+    } finally {
+      const pendingSet = fillPendingPositions.get(id);
+      for (const p of positions) pendingSet?.delete(p);
+      // 각 탭의 반환 Promise 해소 — GrapeBoard의 isFilling 해제가 단건과 같은
+      // '서버 확정 시점'에 일어난다(성공·실패·폐기 공통).
+      for (const e of entries) e.resolve();
+      const remaining = Math.max(0, (fillPendingCounts.get(id) ?? positions.length) - positions.length);
+      if (remaining === 0) {
+        // 드레인 종료 — 단건 경로와 동일(fillResumeAt만 보존, 그쪽 주석 참조).
+        fillQueues.delete(id);
+        fillPendingCounts.delete(id);
+        fillPendingPositions.delete(id);
+      } else {
+        fillPendingCounts.set(id, remaining);
+      }
+    }
+  }, [id, processUnlockedReward]);
+
+  // 버퍼 플러시 — planFillBatches로 세그먼트를 나눠 기존 직렬 큐 체인에 배치 단위로
+  // 연결한다(보드당 in-flight 1개, 비행 중 탭은 다음 버퍼에 쌓임). 타이머·버퍼가
+  // 모듈 레벨이라 이탈 후에도 완주한다(#88 좀비 의미론) — reconcile은
+  // applyBoardUpdate의 라이브/캐시 경로로 흐른다. /board/A→B 인스턴스 재사용 시에도
+  // A의 타이머는 A의 id를 클로저로 잡고 있어 자기 버퍼만 플러시한다.
+  const flushFillBatch = useCallback((opts?: { keepalive?: boolean }) => {
+    const timer = fillBatchTimers.get(id);
+    if (timer !== undefined) {
+      clearTimeout(timer);
+      fillBatchTimers.delete(id);
+    }
+    fillBatchFlushers.delete(id); // 드레인되는 버퍼의 리스너 등록 해제(재탭이 재등록)
+    // take-and-clear(동기 get+delete, await 없음) — 리스너·타이머 이중 플러시가
+    // 겹쳐도 두 번째는 빈 버퍼를 보고 no-op(M1 이중 발화 무해성의 근거).
+    const buf = fillBatchBuffers.get(id);
+    fillBatchBuffers.delete(id);
+    if (!buf || buf.entries.length === 0) return;
+    // 순차 채움 계약: 첫 칸 발사 직전의 서버 확정 카운트 == 첫 칸의 position
+    // (그보다 낮은 칸은 전부 확정됐거나 큐에서 이 배치보다 먼저 발사된다).
+    const segments = planFillBatches(
+      buf.entries.map((e) => e.position),
+      buf.triggerAts,
+      buf.entries[0].position,
+      buf.totalStickers,
+    );
+    let offset = 0;
+    for (const seg of segments) {
+      const segEntries = buf.entries.slice(offset, offset + seg.length);
+      offset += seg.length;
+      const queued = (fillQueues.get(id) ?? Promise.resolve()).then(
+        () => postFillBatch(segEntries, buf.totalStickers, opts?.keepalive === true),
+      );
+      fillQueues.set(id, queued.catch(() => {}));
+    }
+  }, [id, postFillBatch]);
 
   const handleFillSticker = useCallback((position: number): Promise<void> => {
     if (!board || !user) return Promise.resolve();
@@ -648,12 +818,56 @@ export default function BoardDetailPage() {
     }
     pendingSet.add(position);
     fillPendingCounts.set(id, (fillPendingCounts.get(id) ?? 0) + 1);
-    const queued = (fillQueues.get(id) ?? Promise.resolve()).then(
-      () => postFillSticker(position, tempId, totalStickers),
-    );
-    fillQueues.set(id, queued.catch(() => {})); // 방어: 예기치 못한 reject로 체인 단절 방지
-    return queued;
-  }, [board, user, id, postFillSticker]);
+
+    // 텀 있는 보드(오버라이드/보충 ref 배관 포함)는 기존 단건 POST 경로 그대로 —
+    // 배치는 FREE 보드 전용(RipeningSheet은 FREE에서 안 열리므로 early/backfill
+    // 플래그가 배치에 실릴 일이 없다). 두 경로 모두 fillQueues를 공유해 순서는
+    // 어떤 조합에서도 직렬이다.
+    const isFree = !board.cadenceType || board.cadenceType === 'FREE';
+    if (!isFree) {
+      const queued = (fillQueues.get(id) ?? Promise.resolve()).then(
+        () => postFillSticker(position, tempId, totalStickers),
+      );
+      fillQueues.set(id, queued.catch(() => {})); // 방어: 예기치 못한 reject로 체인 단절 방지
+      return queued;
+    }
+
+    // 배치 코얼레싱: 탭을 버퍼에 쌓고 ~200ms 아이들 디바운스로 플러시 — 연타 N번이
+    // 왕복 1번(세그먼트당)으로 영속된다. 반환 Promise는 이 칸이 속한 배치의 서버
+    // 확정(reconcile/rollback/폐기)에 묶인다 — GrapeBoard isFilling 해제 시점 보존.
+    const settled = new Promise<void>((resolve) => {
+      let buf = fillBatchBuffers.get(id);
+      if (!buf) {
+        buf = { entries: [], totalStickers, triggerAts: [] };
+        fillBatchBuffers.set(id, buf);
+      }
+      // 최신 보드 상태로 갱신(보상 심기 직후의 탭도 새 triggerAt을 반영).
+      buf.totalStickers = totalStickers;
+      buf.triggerAts = board.rewards.map((r) => r.triggerAt);
+      buf.entries.push({ position, tempId, resolve });
+    });
+    // M1: 정지/킬 리스너가 이 버퍼를 플러시할 수 있게 최신 플러시 함수를 등록.
+    fillBatchFlushers.set(id, flushFillBatch);
+    const prevTimer = fillBatchTimers.get(id);
+    if (prevTimer !== undefined) clearTimeout(prevTimer);
+    // 즉시 플러시 경계 — 순차 채움이라 칸 p를 채우면 카운트는 p+1로 결정적이다:
+    // ① 보상 임계 도달(응답당 보상 ≤1 유지 → 기존 단일 보상 팝업 흐름 재사용)
+    // ② 완성 칸(빠른 완성이 목적 — 디바운스로 완성 커밋을 늦추지 않는다)
+    // ③ 버퍼 캡. 그 외엔 디바운스 재장전(아이들 200ms 후 플러시).
+    const cum = position + 1;
+    const bufNow = fillBatchBuffers.get(id);
+    if (
+      bufNow &&
+      (bufNow.triggerAts.includes(cum) ||
+        cum >= totalStickers ||
+        bufNow.entries.length >= FILL_BATCH_MAX)
+    ) {
+      flushFillBatch();
+    } else {
+      fillBatchTimers.set(id, setTimeout(flushFillBatch, FILL_BATCH_DEBOUNCE_MS));
+    }
+    return settled;
+  }, [board, user, id, postFillSticker, flushFillBatch]);
 
   // GrapeBoard에 내려가는 콜백들을 안정화 — 인라인 화살표로 주면 배너·컨페티·캡슐
   // 티저 등 보드와 무관한 페이지 상태 변화마다 memo(GrapeBoardInner)가 무력화돼,

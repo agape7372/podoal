@@ -52,6 +52,64 @@ export function rollbackFill(prev: BoardDetail, tempId: string, position?: numbe
   return { ...prev, stickers, filledCount: stickers.length };
 }
 
+/** 배치 채움 한 묶음의 최대 칸 수 — 서버 캡(60)의 절반, 한 세그먼트 왕복이 과대해지지 않게. */
+export const FILL_BATCH_MAX = 30;
+
+/** 코얼레싱된 연타 칸들을 배치 POST 단위로 분할하는 순수 플래너.
+ *  보상은 filledCount가 triggerAt에 "도달"하는 순간 해제되므로, 누적 확정 카운트
+ *  (serverFilledCount + 배치 소비분)가 triggerAt에 닿는 칸에서 세그먼트를 끊는다 —
+ *  응답당 unlockedRewards가 ≤1개로 유지돼 기존 단일 보상 팝업 흐름을 배치마다
+ *  재사용할 수 있다. 완성 칸(누적 == totalStickers)과 길이 캡도 경계.
+ *  pendingPositions는 오름차순(순차 채움 계약). serverFilledCount = 첫 칸 발사
+ *  직전의 확정 카운트(연속 채움에선 첫 칸의 position과 같다). */
+export function planFillBatches(
+  pendingPositions: number[],
+  rewardTriggerAts: number[],
+  serverFilledCount: number,
+  totalStickers: number,
+  cap: number = FILL_BATCH_MAX,
+): number[][] {
+  const triggers = new Set(rewardTriggerAts);
+  const segments: number[][] = [];
+  let seg: number[] = [];
+  for (let i = 0; i < pendingPositions.length; i++) {
+    seg.push(pendingPositions[i]);
+    const cum = serverFilledCount + i + 1;
+    if (triggers.has(cum) || cum >= totalStickers || seg.length >= cap) {
+      segments.push(seg);
+      seg = [];
+    }
+  }
+  if (seg.length > 0) segments.push(seg);
+  return segments;
+}
+
+/** 배치 POST 성공 reconcile — 응답의 스티커 전체를 applyFillResult 규칙으로 fold.
+ *  서버는 요청 칸 "전체"(이미 차 있던 칸 포함)를 돌려주므로, temp가 없는 position의
+ *  스티커도 온다 — applyFillResult의 position 매칭이 중복 없이 흡수한다(tempId '').
+ *  불변식(filledCount ≡ stickers.length)은 fold가 보존하고, isCompleted/completedAt은
+ *  단조 병합(mergeServerBoard와 동일 철학). completedAt은 배치 응답의 additive win —
+ *  단건 POST엔 없어 write-through가 못 채우던 값이다. */
+export function applyBatchFillResult(
+  prev: BoardDetail,
+  temps: { tempId: string; position: number }[],
+  result: { stickers: StickerInfo[]; isCompleted: boolean; completedAt?: string | null },
+): BoardDetail {
+  const tempByPos = new Map(temps.map((t) => [t.position, t.tempId]));
+  let next = prev;
+  for (const s of result.stickers) {
+    next = applyFillResult(next, tempByPos.get(s.position) ?? '', {
+      sticker: s,
+      isCompleted: false, // 완성 병합은 아래에서 한 번에(단조)
+    });
+  }
+  return {
+    ...next,
+    isCompleted: prev.isCompleted || result.isCompleted,
+    completedAt: next.completedAt ?? result.completedAt ?? null,
+  };
+}
+
 /** fetchBoard 응답을 로컬 상태에 병합.
  *  서버 스냅샷에 없는 position의 로컬 스티커는 **전부** 보존한다:
  *  - temp(큐 대기/in-flight 낙관분) — 통째 교체하면 진행바 역행 + grape-next가

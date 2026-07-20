@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useAppStore } from '@/lib/store';
 import { api } from '@/lib/api';
 import { useCachedApi, readCachedApi, writeCachedApi } from '@/lib/cachedApi';
+import { pendingFillCount, drainPromise, applyPendingOverlay } from '@/lib/fillQueue';
 import SwipeableBoardCard, { SWIPE_TRANSITION } from '@/components/SwipeableBoardCard';
 import StreakCard, { type StreakInfo } from '@/components/StreakCard';
 import ClayButton from '@/components/ClayButton';
@@ -74,6 +75,12 @@ export default function HomePage() {
   // 참조 안정화: `?? []`가 매 렌더 새 빈 배열을 만들면 boards에 의존하는 memo/effect가
   // 전부 무효화된다. 데이터가 같으면 같은 배열을 유지한다.
   const boards = useMemo(() => boardsData?.boards ?? [], [boardsData?.boards]);
+  // 홈 낙관 오버레이 — 보드 상세에서 방금 채운(POST 미확정) 그램이 홈에 돌아왔을 때도
+  // filledCount/isCompleted가 즉시 반영되게 겹쳐 보여준다. pending 변화(드레인 감소)는
+  // 항상 보드상세의 reconcile→syncBoardCaches→writeCachedApi('/api/boards') notify→
+  // boards 새 참조와 짝이므로 [boards] dep으로 충분하다. 탭 enqueue는 보드 상세 화면에서만
+  // 발생(홈은 그 시점엔 언마운트 상태)하므로 이 memo 자체가 큐 변화를 직접 구독할 필요는 없다.
+  const effectiveBoards = useMemo(() => boards.map((b) => applyPendingOverlay(b)), [boards]);
   const [filter, setFilter] = useState<Filter>('all');
   // 렌더마다 계산(매우 저렴) — 앱을 오래 켜둬도 시간대가 바뀌면 인사말이 따라간다.
   const greeting = timeOfDayGreeting();
@@ -88,6 +95,10 @@ export default function HomePage() {
   const [deleteTarget, setDeleteTarget] = useState<BoardSummary | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  // 수확 드레인 대기 — 트레이 탭과 풀스와이프 커밋 두 경로가 같은 보드에 동시에 들어오는 걸
+  // 막는 가드(ref, 렌더 불필요)와, 드레인 대기 중임을 카드에 표시하는 상태(보이는 보드만 리렌더).
+  const harvestingRef = useRef<Set<string>>(new Set());
+  const [harvestingId, setHarvestingId] = useState<string | null>(null);
 
   const ONBOARDED_KEY = 'podoal-onboarded';
   const dismissOnboarding = useCallback(() => {
@@ -241,7 +252,7 @@ export default function HomePage() {
   // 필터·정렬·카운트는 boards/filter에만 의존 — 홈은 제스처/토스트/모달 등 보드와
   // 무관한 로컬 state 변화가 잦아, memo 없으면 매 렌더에서 5회 filter+sort를 다시 돈다.
   const displayBoards = useMemo(() => {
-    const visible = boards.filter((b) => {
+    const visible = effectiveBoards.filter((b) => {
       if (filter === 'harvested') return !!b.harvestedAt;
       if (b.harvestedAt) return false; // 수확한 판은 다른 탭에서 숨김
       if (filter === 'active') return !b.isCompleted;
@@ -249,17 +260,17 @@ export default function HomePage() {
       return true;
     });
     return [...visible].sort(sortByOrder);
-  }, [boards, filter]);
+  }, [effectiveBoards, filter]);
 
   const { allCount, activeCount, completedCount, harvestedCount } = useMemo(() => {
     let all = 0, active = 0, completed = 0, harvested = 0;
-    for (const b of boards) {
+    for (const b of effectiveBoards) {
       if (b.harvestedAt) { harvested++; continue; }
       all++;
       if (b.isCompleted) completed++; else active++;
     }
     return { allCount: all, activeCount: active, completedCount: completed, harvestedCount: harvested };
-  }, [boards]);
+  }, [effectiveBoards]);
 
   const canReorder = filter === 'all'; // 정렬은 '전체'에서만(필터된 부분집합 정렬은 혼란)
 
@@ -633,18 +644,38 @@ export default function HomePage() {
   };
 
   const harvestBoard = async (board: BoardSummary) => {
+    if (harvestingRef.current.has(board.id)) return; // 트레이 탭 + 풀스와이프 이중진입 가드
+    harvestingRef.current.add(board.id);
     feedbackTap();
     setSwipeOpenId(null);
-    const harvested = !board.harvestedAt;
-    mutateBoards((prev) =>
-      prev && { ...prev, boards: prev.boards.map((b) => (b.id === board.id ? { ...b, harvestedAt: harvested ? new Date().toISOString() : null } : b)) });
     try {
-      await api(`/api/boards/${board.id}`, { method: 'PATCH', json: { harvested } });
-      // 수확(true)만 계측 — 되돌리기(un-harvest) 토글은 지표 아님(§2).
-      if (harvested) track('board_harvested', { boardId: board.id, totalStickers: board.totalStickers });
-    } catch {
+      // 아직 서버에 확정되지 않은 채움이 큐에 있으면(직전 화면에서 마지막 알을 채우고
+      // 바로 돌아온 경우 등) 그 드레인을 기다린 뒤 서버 기준으로 완성 여부를 재확인한다.
+      // 오버레이만 믿고 먼저 수확 PATCH를 쏘면, 드레인 중 실패로 실제론 미완성인 보드를
+      // 완성으로 오인해 수확해버릴 수 있다.
+      if (pendingFillCount(board.id) > 0) {
+        setHarvestingId(board.id); // 카드에 "수확 중…" 표시
+        await drainPromise(board.id)?.catch(() => {});
+        const fresh = readCachedApi<{ boards: BoardSummary[] }>('/api/boards')?.boards.find((b) => b.id === board.id);
+        if (!fresh?.isCompleted) {
+          showToast('포도판을 다 채우면 수확할 수 있어요');
+          return; // 드레인 후에도 미완성 — 수확 중단(오버레이는 자기교정되어 카드 표시가 정상 복귀)
+        }
+      }
+      const harvested = !board.harvestedAt;
       mutateBoards((prev) =>
-        prev && { ...prev, boards: prev.boards.map((b) => (b.id === board.id ? { ...b, harvestedAt: harvested ? null : board.harvestedAt ?? null } : b)) });
+        prev && { ...prev, boards: prev.boards.map((b) => (b.id === board.id ? { ...b, harvestedAt: harvested ? new Date().toISOString() : null } : b)) });
+      try {
+        await api(`/api/boards/${board.id}`, { method: 'PATCH', json: { harvested } });
+        // 수확(true)만 계측 — 되돌리기(un-harvest) 토글은 지표 아님(§2).
+        if (harvested) track('board_harvested', { boardId: board.id, totalStickers: board.totalStickers });
+      } catch {
+        mutateBoards((prev) =>
+          prev && { ...prev, boards: prev.boards.map((b) => (b.id === board.id ? { ...b, harvestedAt: harvested ? null : board.harvestedAt ?? null } : b)) });
+      }
+    } finally {
+      setHarvestingId((cur) => (cur === board.id ? null : cur));
+      harvestingRef.current.delete(board.id);
     }
   };
 
@@ -851,6 +882,7 @@ export default function HomePage() {
                   offset={offsetFor(board.id)}
                   lifted={liftedId === board.id}
                   dragging={swipeDragId === board.id}
+                  harvesting={harvestingId === board.id}
                   trayWidth={TRAY_W}
                   onHarvest={() => board.isCompleted ? harvestBoard(board) : showToast('포도판을 다 채우면 수확할 수 있어요')}
                   onDelete={() => { setSwipeOpenId(null); setDeleteTarget(board); }}
