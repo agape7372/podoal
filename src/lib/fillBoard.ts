@@ -300,3 +300,289 @@ export async function fillBoardGrape(
     }
   }
 }
+
+/** 배치 페이로드 최대 길이 — 보드 최대 칸 수(2~60 슬롯)와 동일. */
+export const BATCH_POSITIONS_MAX = 60;
+
+/**
+ * 배치 채움 페이로드 검증·정규화(순수 함수 — 라우트와 단위테스트가 공유).
+ * 배열·비어있지 않음·길이 캡·전 원소 정수·범위 내를 검사하고, 페이로드 내 중복을
+ * 제거해 오름차순으로 돌려준다. 유효하지 않으면 null(라우트가 400으로 매핑).
+ */
+export function normalizeBatchPositions(raw: unknown, totalStickers: number): number[] | null {
+  if (!Array.isArray(raw) || raw.length === 0 || raw.length > BATCH_POSITIONS_MAX) return null;
+  for (const p of raw) {
+    if (!Number.isInteger(p) || (p as number) < 0 || (p as number) >= totalStickers) return null;
+  }
+  return [...new Set(raw as number[])].sort((a, b) => a - b);
+}
+
+// 배치 채움 트랜잭션 — 연속된 여러 칸을 왕복 1번(트랜잭션 1개)에 영속한다(홈 라이브
+// 채움 배치용). 단건 fillBoardGrape와 동일한 Serializable + 재시도 정책을 쓰고,
+// 판정·완료·보상·깜짝선물 로직도 단건 경로를 칸별로 순차 적용한 것과 동등하게 유지한다.
+// 단건 경로는 건드리지 않는다(회귀 0 계약) — 공유 대신 최소 중복을 택했다.
+//
+// 단건과 다른 점(의도된 편차, 이유 포함):
+// 1. 완료 처리 exactly-once 가드 — 단건은 항상 스티커 1개를 생성하므로 임계 통과
+//    트랜잭션이 유일하지만, 배치는 전부 중복(skipDuplicates)인 no-op일 수 있어
+//    filledCount >= total 관측이 유일하지 않다. 트랜잭션 안에서 board.isCompleted를
+//    재확인해 완료 처리·릴레이 진행을 정확히 1회로 봉인한다.
+// 2. unlockedRewards는 배열 — 한 배치가 triggerAt 임계 여러 개를 한번에 넘을 수 있다.
+//    각 항목은 단건의 unlockedReward와 같은 형태(content/imageUrl 동봉 — 2026-06-13
+//    보상 무한로딩 수정의 전제)를 유지한다.
+// 3. strictMode 보드에서 익지 않은 칸이 섞이면 배치 전체가 롤백(StrictPaceError) —
+//    배치 호출은 FREE 보드 전용(클라 계약)이라 실전 도달 없음. 부분 성공보다
+//    all-or-nothing이 클라 화해(reconcile)에 단순하다.
+export async function fillBoardGrapeBatch(
+  prisma: PrismaClient,
+  board: { id: string; totalStickers: number },
+  positions: number[],
+  userId: string,
+  // 단건의 earlyFill/backfill 불리언을 칸 집합으로 일반화 — 텀 판정 구조를 칸별로
+  // 동일하게 유지한다(FREE면 pace 미전달 = 판정 없음, 단건과 같은 회귀 0 계약).
+  opts?: {
+    earlyFillPositions?: ReadonlySet<number>;
+    backfillPositions?: ReadonlySet<number>;
+    pace?: {
+      cadenceType: string;
+      cadenceN: number | null;
+      strictMode: boolean;
+      timezone: string;
+      dayResetHour: number;
+      createdAt?: Date;
+    };
+  },
+) {
+  const boardId = board.id;
+  // 방어적 정규화(중복 제거 + 오름차순) — 라우트가 이미 정규화하지만 함수 단독 호출
+  // (통합테스트 등)도 안전하게.
+  const wanted = [...new Set(positions)].sort((a, b) => a - b);
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await prisma.$transaction(async (tx) => {
+        // 기존 채움 전체 — 중복 제거(dedup)와 텀 판정 입력을 겸한다.
+        const existing = await tx.sticker.findMany({
+          where: { boardId },
+          select: { position: true, filledAt: true, isBackfill: true },
+        });
+        const filledSet = new Set(existing.map((s) => s.position));
+        const toCreate = wanted.filter((p) => !filledSet.has(p));
+
+        // 텀 판정 — 단건 경로를 칸별로 순차 적용한 것과 동등: 앞 칸의 채움이 뒤 칸
+        // 판정의 입력(fills)에 누적된다. FREE(pace 미전달)면 전부 건너뜀.
+        const now = new Date();
+        const fills: { filledAt: Date; isBackfill: boolean }[] = existing.map((s) => ({
+          filledAt: s.filledAt,
+          isBackfill: s.isBackfill,
+        }));
+        const rows: {
+          boardId: string;
+          position: number;
+          filledBy: string;
+          earlyFill: boolean;
+          isBackfill: boolean;
+        }[] = [];
+        const paceStates: { position: number; state: 'ripe' | 'early' | 'backfill' }[] = [];
+        for (const position of toCreate) {
+          let serverEarly = false;
+          let serverBackfill = false;
+          if (opts?.pace) {
+            if (opts.backfillPositions?.has(position)) {
+              const bf = computeBackfillEligibility(
+                { ...opts.pace, createdAt: opts.pace.createdAt ?? null },
+                fills,
+                now,
+                opts.pace.timezone,
+                opts.pace.dayResetHour,
+              );
+              if (bf?.eligible) serverBackfill = true;
+            }
+            if (!serverBackfill) {
+              const pace = computeFillPace(
+                opts.pace,
+                fills,
+                now,
+                opts.pace.timezone,
+                opts.pace.dayResetHour,
+              );
+              if (pace) {
+                if (!pace.ripe && opts.pace.strictMode) throw new StrictPaceError();
+                serverEarly = !pace.ripe;
+              }
+            }
+            paceStates.push({
+              position,
+              state: serverBackfill ? 'backfill' : serverEarly ? 'early' : 'ripe',
+            });
+          }
+          rows.push({
+            boardId,
+            position,
+            filledBy: userId,
+            earlyFill: opts?.earlyFillPositions?.has(position) === true || serverEarly,
+            isBackfill: serverBackfill,
+          });
+          fills.push({ filledAt: now, isBackfill: serverBackfill });
+        }
+
+        // DB unique [boardId,position]이 최종 방어선 — 동시 배치가 같은 칸을 만들면
+        // skipDuplicates가 삼킨다(단건의 P2002→409 대신 관대 수용; 배치는 화해가 목적).
+        if (rows.length > 0) {
+          await tx.sticker.createMany({ data: rows, skipDuplicates: true });
+        }
+
+        // createMany는 관계를 못 싣는다 — 요청 칸 전체를 StickerInfo 형태로 재조회
+        // (이미 차 있던 칸 포함: 클라 write-through가 요청 칸 전부를 화해할 수 있게).
+        const stickers = await tx.sticker.findMany({
+          where: { boardId, position: { in: wanted } },
+          include: { filler: { select: PUBLIC_USER_SELECT } },
+          orderBy: { position: 'asc' },
+        });
+
+        const filledCount = await tx.sticker.count({ where: { boardId } });
+
+        // 완료 처리 — 편차 1(상단 주석): isCompleted 재확인으로 exactly-once.
+        let relayAdvanced = false;
+        let completedAt: Date | null = null;
+        const isCompleted = filledCount >= board.totalStickers;
+        if (isCompleted) {
+          const fresh = await tx.board.findUnique({
+            where: { id: boardId },
+            select: { isCompleted: true, completedAt: true },
+          });
+          if (fresh && !fresh.isCompleted) {
+            completedAt = new Date();
+            await tx.board.update({
+              where: { id: boardId },
+              data: { isCompleted: true, completedAt },
+            });
+
+            // 포도동 자동 진행 — 단건 경로와 동일 블록(advanceRelayOnBoardComplete 단일화).
+            const participant = await tx.relayParticipant.findFirst({
+              where: { boardId },
+              include: { relay: { select: { id: true, status: true, mode: true } } },
+            });
+            if (
+              participant &&
+              participant.relay.status === 'active' &&
+              participant.status === 'active'
+            ) {
+              await advanceRelayOnBoardComplete(
+                tx,
+                { id: participant.relayId, mode: participant.relay.mode },
+                participant
+              );
+              relayAdvanced = true;
+            }
+          } else {
+            completedAt = fresh?.completedAt ?? null;
+          }
+        }
+
+        // 보상 단발 해제 — 단건과 같은 술어(unlockedAt:null이 single-shot 가드).
+        // 이번에 해제되는 정확한 집합을 알아야 하므로 같은 where로 먼저 읽고 updateMany
+        // 한다(단건의 사후 revealedAt:null 조회는 이전에 해제만 되고 안 열린 보상까지
+        // 섞일 수 있어 배열 반환에 부적합). Serializable이라 read-then-write도 원자적.
+        const claimable = await tx.reward.findMany({
+          where: { boardId, triggerAt: { lte: filledCount }, unlockedAt: null },
+          orderBy: { triggerAt: 'asc' },
+        });
+        let unlockedRewards: {
+          id: string;
+          type: string;
+          title: string;
+          triggerAt: number;
+          content: string;
+          imageUrl: string;
+        }[] = [];
+        if (claimable.length > 0) {
+          await tx.reward.updateMany({
+            where: { boardId, triggerAt: { lte: filledCount }, unlockedAt: null },
+            data: { unlockedAt: new Date() },
+          });
+          unlockedRewards = claimable.map((r) => ({
+            id: r.id,
+            type: r.type,
+            title: r.title,
+            triggerAt: r.triggerAt,
+            content: r.content,
+            imageUrl: r.imageUrl,
+          }));
+        }
+
+        // 깜짝선물 — 단건의 단일 position 조회를 in으로 확장. revealedAt:null 읽기가
+        // Serializable 아래 exactly-once를 보장(단건과 동일 기전). 각 항목에 position을
+        // 실어 클라가 칸별로 연출할 수 있게 한다.
+        type GiftOut = {
+          id: string;
+          position: number;
+          message: string;
+          emoji: string;
+          plantedBy: { id: string; name: string; avatar: string };
+        };
+        let plantedGifts: GiftOut[] = [];
+        const pendingGifts = await tx.plantedGift.findMany({
+          where: { boardId, position: { in: wanted }, revealedAt: null },
+          include: { plantedBy: { select: { id: true, name: true, avatar: true } } },
+          orderBy: [{ position: 'asc' }, { createdAt: 'asc' }],
+        });
+        if (pendingGifts.length > 0) {
+          await tx.plantedGift.updateMany({
+            where: { boardId, position: { in: wanted }, revealedAt: null },
+            data: { revealedAt: new Date() },
+          });
+          plantedGifts = pendingGifts.map((pg) => ({
+            id: pg.id,
+            position: pg.position,
+            message: pg.message,
+            emoji: pg.emoji,
+            plantedBy: pg.plantedBy,
+          }));
+          // 발견 메시지의 채운 사람 이름 — 단건은 sticker.filler.name을 썼지만 배치는
+          // 스티커가 이미 차 있던 칸일 수도 있어 채운 사람(userId)을 직접 조회.
+          const filler = await tx.user.findUnique({
+            where: { id: userId },
+            select: { name: true },
+          });
+          for (const pg of pendingGifts) {
+            if (pg.plantedById !== userId) {
+              await tx.message.create({
+                data: {
+                  senderId: userId,
+                  receiverId: pg.plantedById,
+                  boardId,
+                  type: 'celebration',
+                  emoji: '🎁',
+                  // 위치 포함(W2-A): 심은 사람이 어느 알이었는지 잊어도 복기 가능(단건과 동일).
+                  content: `${filler?.name ?? '친구'}님이 ${pg.position + 1}번째 알에 숨겨둔 선물을 발견했어요!`,
+                },
+              });
+            }
+          }
+        }
+
+        return {
+          stickers,
+          filledCount,
+          isCompleted,
+          // additive win: 클라 write-through가 완료 시각까지 즉시 반영할 수 있게 동봉.
+          completedAt,
+          unlockedRewards,
+          plantedGifts,
+          relayAdvanced,
+          // FREE·pace 미전달이면 undefined — JSON에서 필드 자체가 빠짐(단건과 동일 계약).
+          paceStates: paceStates.length > 0 ? paceStates : undefined,
+        };
+      }, { isolationLevel: 'Serializable' });
+    } catch (e) {
+      const code = (e as { code?: string }).code;
+      // skipDuplicates로 정상 경로에선 도달하지 않지만, 방어적으로 단건과 동일 매핑 유지.
+      if (code === 'P2002') throw new PositionTakenError();
+      if (isSerializationConflict(e) && attempt < P2034_MAX_RETRIES) {
+        await sleep(BACKOFF_BASE_MS * 2 ** attempt * (0.5 + Math.random()));
+        continue;
+      }
+      throw e;
+    }
+  }
+}

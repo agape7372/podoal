@@ -16,6 +16,47 @@ import { createLatestGuard } from '@/lib/latestGuard';
 
 const cache = new Map<string, unknown>();
 
+// 키 스코프 구독자 — write-through(예: 보드 상세의 syncBoardCaches)가 마운트된
+// 구독자(홈)를 즉시 리렌더시키는 채널. notify는 writeCachedApi에만 배선한다 —
+// refresh/mutate는 자기 인스턴스를 직접 setData하므로 notify가 불필요하고,
+// fetch→notify를 거기에도 걸면 되먹임(자기 자신을 재알림) 구조가 생긴다.
+const listeners = new Map<string, Set<() => void>>();
+
+/** url 키의 캐시 변경을 구독 — writeCachedApi가 그 키에 쓸 때마다 fn이 호출된다.
+ *  반환값은 구독 해제 함수(빈 Set은 정리해 Map이 무한히 자라지 않게 한다). */
+export function subscribeCachedApi(url: string, fn: () => void): () => void {
+  let set = listeners.get(url);
+  if (!set) {
+    set = new Set();
+    listeners.set(url, set);
+  }
+  set.add(fn);
+  return () => {
+    const cur = listeners.get(url);
+    if (!cur) return;
+    cur.delete(fn);
+    if (cur.size === 0) listeners.delete(url);
+  };
+}
+
+// 키별 write-through 버전 카운터 — refresh(fetch)가 진행 중일 때 writeCachedApi가 같은
+// 키에 끼어들면, fetch 쪽이 서버 DB를 더 먼저 읽었어도(콜드 쿼리 등) 응답 도착은 write-
+// through보다 늦을 수 있다. 그대로 반영하면 최신 상태를 스테일 스냅샷이 덮어써 카운트가
+// 역행한다 — mergeServerBoard의 단조 철학(boardFillState.ts)을 리스트 캐시로 확장한 것.
+const writeVersions = new Map<string, number>();
+
+/** refresh 시작 시점의 write 버전을 캡처 — 응답 도착 시 isWriteVersionCurrent로 그 사이
+ *  write-through가 끼어들었는지 판정한다. */
+export function captureWriteVersion(url: string): number {
+  return writeVersions.get(url) ?? 0;
+}
+
+/** captureWriteVersion으로 받은 버전이 아직 최신인지 — 다르면 그 사이 writeCachedApi가
+ *  같은 키에 개입했다는 뜻이라, 지금 도착한 fetch 응답은 스테일이므로 버려야 한다. */
+export function isWriteVersionCurrent(url: string, v: number): boolean {
+  return (writeVersions.get(url) ?? 0) === v;
+}
+
 // 백그라운드 복귀(visibilitychange/focus) 재검증의 최소 간격 — mount 직후 재검증과의
 // 중복 호출, 그리고 visibilitychange와 focus가 연달아 발화하는 이중 발사를 막는다.
 const FOCUS_REVALIDATE_THROTTLE_MS = 5000;
@@ -48,6 +89,12 @@ export function readCachedApi<T>(url: string): T | undefined {
  *  페이지 로컬 상태의 스냅샷 동기화(보드 상세의 마지막 상태 보존)용. */
 export function writeCachedApi<T>(url: string, value: T) {
   cache.set(url, value);
+  // 통지보다 먼저 버전을 올린다 — refresh가 이 시점 이후 도착하는 응답을 스테일로
+  // 판정하려면, 리스너 콜백(동기 realtime UI 갱신)이 도는 동안에도 이미 최신이어야 한다.
+  writeVersions.set(url, (writeVersions.get(url) ?? 0) + 1);
+  // 구독자에게 통지 — 반복 중 추가/해제가 섞여도 안전하도록 스냅샷(복사본)을 순회한다.
+  const set = listeners.get(url);
+  if (set) for (const fn of [...set]) fn();
 }
 
 export function useCachedApi<T>(url: string) {
@@ -67,15 +114,24 @@ export function useCachedApi<T>(url: string) {
 
   const refresh = useCallback(async () => {
     const token = guardRef.current.begin();
+    // M2 회귀 고정 — fetch가 도는 동안 write-through(예: 드레인 reconcile→syncBoardCaches)가
+    // 같은 키에 끼어들면 그 응답은 스테일이다(mergeServerBoard의 단조 철학을 리스트 캐시로
+    // 확장). guardRef(createLatestGuard)는 '같은 훅 인스턴스의 fetch끼리' 순서를 지키는
+    // 가드이고, 이 버전 체크는 '이 fetch vs 다른 쓰기 경로(write-through)' 사이의 단조성을
+    // 지킨다 — 서로 겹치지 않는 별개의 문제라 둘 다 유지한다.
+    const writeVersion = captureWriteVersion(url);
     lastRefreshAtRef.current = Date.now();
     setError(false);
     setErrorStatus(undefined);
     try {
       const fresh = await api<T>(url);
-      // 캐시는 자기 url 키로 항상 갱신(정확) — 화면 state만 최신 요청일 때 반영한다.
-      cache.set(url, fresh);
-      if (!guardRef.current.isLatest(token)) return;
-      setData(fresh);
+      // write 버전이 그대로일 때만 캐시를 갱신 — 다르면 그 사이 write-through가 이미
+      // 더 최신 상태를 반영했으므로, 늦게 도착한 이 스냅샷은 캐시도 화면도 건드리지
+      // 않고 버린다(fetch 자체는 성공이라 loading/error 상태는 정상 종료시킨다).
+      if (isWriteVersionCurrent(url, writeVersion)) {
+        cache.set(url, fresh);
+        if (guardRef.current.isLatest(token)) setData(fresh);
+      }
     } catch (e) {
       if (!guardRef.current.isLatest(token)) return;
       setError(true);
@@ -88,6 +144,10 @@ export function useCachedApi<T>(url: string) {
   useEffect(() => {
     refresh();
   }, [refresh]);
+
+  // 다른 인스턴스의 write-through(예: syncBoardCaches)를 실시간 반영 — 동일 참조
+  // 쓰기는 setData가 알아서 bail-out하므로 새 참조일 때만 리렌더된다.
+  useEffect(() => subscribeCachedApi(url, () => setData(cache.get(url) as T | undefined)), [url]);
 
   // 백그라운드 복귀 재검증 — PWA/탭이 visible로 돌아오면 조용히 다시 받아온다.
   // 라우트 전환 없이 오래 떠 있던 화면(예: relay 상세)이 스테일로 고착되는 것 방지.

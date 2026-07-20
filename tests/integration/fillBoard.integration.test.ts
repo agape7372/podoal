@@ -2,7 +2,7 @@ import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { fillBoardGrape, PositionTakenError } from '../../src/lib/fillBoard';
+import { fillBoardGrape, fillBoardGrapeBatch, PositionTakenError } from '../../src/lib/fillBoard';
 
 // 실 Postgres 통합테스트 — 마지막 칸 동시 채움 race(Serializable+재시도) 검증.
 // 기본 `npm test`(src/** 단위, DB 불필요)와 분리. TEST_DATABASE_URL 있을 때만 실행.
@@ -16,7 +16,9 @@ const skip = TEST_URL ? false : 'TEST_DATABASE_URL 미설정 — 통합테스트
 
 let prisma: PrismaClient;
 let userId: string;
+let planterId: string; // 배치 깜짝선물·릴레이 테스트용 두 번째 유저
 const createdBoardIds: string[] = [];
+const createdRelayIds: string[] = [];
 
 before(async () => {
   if (skip) return;
@@ -25,16 +27,25 @@ before(async () => {
     data: { email: `race-${Date.now()}@test.local`, name: '레이스테스터', avatar: 'grape' },
   });
   userId = user.id;
+  const planter = await prisma.user.create({
+    data: { email: `planter-${Date.now()}@test.local`, name: '플랜터', avatar: 'grape' },
+  });
+  planterId = planter.id;
 });
 
 after(async () => {
   if (skip || !prisma) return;
   // 자식부터 정리(명시적 — cascade 의존 없이)
+  await prisma.relayParticipant.deleteMany({ where: { relayId: { in: createdRelayIds } } });
+  await prisma.relay.deleteMany({ where: { id: { in: createdRelayIds } } });
+  await prisma.plantedGift.deleteMany({ where: { boardId: { in: createdBoardIds } } });
   await prisma.sticker.deleteMany({ where: { boardId: { in: createdBoardIds } } });
   await prisma.reward.deleteMany({ where: { boardId: { in: createdBoardIds } } });
-  await prisma.message.deleteMany({ where: { OR: [{ senderId: userId }, { receiverId: userId }] } });
+  await prisma.message.deleteMany({
+    where: { OR: [{ senderId: { in: [userId, planterId] } }, { receiverId: { in: [userId, planterId] } }] },
+  });
   await prisma.board.deleteMany({ where: { id: { in: createdBoardIds } } });
-  await prisma.user.deleteMany({ where: { id: userId } });
+  await prisma.user.deleteMany({ where: { id: { in: [userId, planterId] } } });
   await prisma.$disconnect();
 });
 
@@ -164,4 +175,175 @@ test('같은 칸을 동시에 채우면 한쪽만 성공하고 다른 쪽은 Pos
   assert.ok(rejected[0].reason instanceof PositionTakenError, 'PositionTakenError여야 함');
   // 스티커는 1개만
   assert.equal(await prisma.sticker.count({ where: { boardId: board.id } }), 1);
+});
+
+// ─── 배치 채움(fillBoardGrapeBatch) — 왕복 1번 영속 + 단건 경로와 동등한 부수효과 ───
+
+test('batch: 전체 칸 일괄 채움 — 완료·completedAt·완성보상 1회(content 동봉)', { skip }, async () => {
+  const board = await freshBoard(); // total 2 + 완성보상(triggerAt=2)
+  const r = await fillBoardGrapeBatch(prisma, board, [0, 1], userId);
+
+  assert.equal(r.filledCount, 2);
+  assert.equal(r.isCompleted, true);
+  assert.ok(r.completedAt instanceof Date, 'completedAt 동봉(클라 write-through용)');
+  assert.equal(r.stickers.length, 2);
+  assert.deepEqual(r.stickers.map((s) => s.position), [0, 1]);
+  assert.equal(r.stickers[0].filler.name, '레이스테스터', 'StickerInfo 형태(filler 동봉)');
+  assert.equal(r.paceStates, undefined, 'FREE 보드는 paceStates 없음');
+
+  // 보상은 정확히 1개, content/imageUrl 동봉(2026-06-13 무한로딩 수정의 전제)
+  assert.equal(r.unlockedRewards.length, 1);
+  assert.equal(r.unlockedRewards[0].content, '축하!');
+  assert.equal(r.unlockedRewards[0].triggerAt, 2);
+
+  const fresh = await prisma.board.findUnique({ where: { id: board.id } });
+  assert.equal(fresh?.isCompleted, true);
+  assert.notEqual(fresh?.completedAt, null);
+  const reward = await prisma.reward.findFirst({ where: { boardId: board.id } });
+  assert.notEqual(reward?.unlockedAt, null);
+});
+
+test('batch: 이미 채워진 칸·페이로드 중복 — skipDuplicates 관대 수용, throw 없음', { skip }, async () => {
+  const board = await freshBoardOf(10);
+  await fillBoardGrape(prisma, board, 0, userId); // 선점 채움
+
+  const r = await fillBoardGrapeBatch(prisma, board, [0, 0, 1, 2], userId);
+  assert.equal(r.filledCount, 3, '기존 1 + 신규 2 (중복은 스킵)');
+  assert.equal(r.stickers.length, 3, '요청 칸 전체를 StickerInfo로 반환(기존 칸 포함)');
+  assert.equal(await prisma.sticker.count({ where: { boardId: board.id } }), 3);
+  assert.equal(r.isCompleted, false);
+  assert.deepEqual(r.unlockedRewards, []);
+});
+
+test('batch: 동시 배치 2개 — 채움 유실 0 + 보상 이중 해제 0 (race)', { skip }, async () => {
+  for (let i = 0; i < 3; i++) {
+    const board = await prisma.board.create({
+      data: {
+        title: '동시 배치 보드', description: '', totalStickers: 10, ownerId: userId,
+        rewards: { create: { type: 'letter', title: '완성 보상', content: '축하!', imageUrl: '', triggerAt: 10 } },
+      },
+    });
+    createdBoardIds.push(board.id);
+
+    // 겹치는 칸(3,4) 포함 — skipDuplicates + Serializable 재시도로 둘 다 성공해야 함
+    const [a, b] = await Promise.all([
+      fillBoardGrapeBatch(prisma, board, [0, 1, 2, 3, 4], userId),
+      fillBoardGrapeBatch(prisma, board, [3, 4, 5, 6, 7, 8, 9], userId),
+    ]);
+
+    assert.equal(
+      await prisma.sticker.count({ where: { boardId: board.id } }),
+      10,
+      `iteration ${i}: 10칸 전부 저장(유실 0)`,
+    );
+    const fresh = await prisma.board.findUnique({ where: { id: board.id } });
+    assert.equal(fresh?.isCompleted, true, `iteration ${i}: 보드 완료`);
+
+    // 보상은 정확히 한쪽 응답에만 — 임계 통과 트랜잭션이 유일하게 claim
+    assert.equal(
+      a.unlockedRewards.length + b.unlockedRewards.length,
+      1,
+      `iteration ${i}: 보상 해제는 정확히 1회`,
+    );
+    const reward = await prisma.reward.findFirst({ where: { boardId: board.id } });
+    assert.notEqual(reward?.unlockedAt, null, `iteration ${i}: 보상 unlockedAt 설정`);
+  }
+});
+
+test('batch: triggerAt 임계 2개를 한 배치로 통과 — 둘 다 정확히 1회, 배열로 반환', { skip }, async () => {
+  const board = await prisma.board.create({
+    data: {
+      title: '이중 보상 보드', description: '', totalStickers: 6, ownerId: userId,
+      rewards: {
+        create: [
+          { type: 'letter', title: '중간 보상', content: '절반!', imageUrl: '', triggerAt: 3 },
+          { type: 'letter', title: '완성 보상', content: '축하!', imageUrl: '', triggerAt: 6 },
+        ],
+      },
+    },
+  });
+  createdBoardIds.push(board.id);
+
+  const r = await fillBoardGrapeBatch(prisma, board, [0, 1, 2, 3, 4, 5], userId);
+  assert.equal(r.unlockedRewards.length, 2, '임계 2개 모두 배열에 실림');
+  assert.deepEqual(r.unlockedRewards.map((x) => x.triggerAt), [3, 6], 'triggerAt 오름차순');
+  assert.deepEqual(r.unlockedRewards.map((x) => x.content), ['절반!', '축하!'], 'content 동봉');
+
+  const rewards = await prisma.reward.findMany({ where: { boardId: board.id } });
+  for (const rw of rewards) assert.notEqual(rw.unlockedAt, null);
+
+  // no-op 재배치(전 칸 중복) — 보상 재해제·완료 재처리 없음(exactly-once 가드)
+  const r2 = await fillBoardGrapeBatch(prisma, board, [0, 1, 2, 3, 4, 5], userId);
+  assert.equal(r2.unlockedRewards.length, 0, '재배치에서 보상 재해제 없음');
+  assert.equal(r2.isCompleted, true);
+});
+
+test('batch: 여러 칸의 깜짝선물 — 각 1회 공개 + 선물마다 발견 메시지 1통', { skip }, async () => {
+  const board = await freshBoardOf(5);
+  await prisma.plantedGift.create({
+    data: { boardId: board.id, position: 1, plantedById: planterId, message: '깜짝1', emoji: '🎁' },
+  });
+  await prisma.plantedGift.create({
+    data: { boardId: board.id, position: 3, plantedById: planterId, message: '깜짝2', emoji: '🎉' },
+  });
+
+  const r = await fillBoardGrapeBatch(prisma, board, [0, 1, 2, 3, 4], userId);
+  assert.equal(r.plantedGifts.length, 2);
+  assert.deepEqual(r.plantedGifts.map((g) => g.position), [1, 3], '칸별 연출용 position 동봉');
+  assert.equal(r.plantedGifts[0].plantedBy.id, planterId);
+
+  const gifts = await prisma.plantedGift.findMany({ where: { boardId: board.id } });
+  for (const g of gifts) assert.notEqual(g.revealedAt, null, '전부 공개됨');
+
+  // 심은 사람에게 선물당 1통 — 위치 복기 가능한 문구(W2-A, 단건과 동일)
+  const msgs = await prisma.message.findMany({
+    where: { senderId: userId, receiverId: planterId, boardId: board.id },
+  });
+  assert.equal(msgs.length, 2, '선물마다 발견 메시지 1통');
+  assert.ok(msgs.some((m) => m.content.includes('2번째')), '위치(2번째) 포함');
+  assert.ok(msgs.some((m) => m.content.includes('4번째')), '위치(4번째) 포함');
+
+  // 재배치 — 이미 공개된 선물은 다시 실리지 않음(revealedAt:null exactly-once)
+  const r2 = await fillBoardGrapeBatch(prisma, board, [1, 3], userId);
+  assert.equal(r2.plantedGifts.length, 0);
+  assert.equal(
+    (await prisma.message.count({ where: { senderId: userId, receiverId: planterId, boardId: board.id } })),
+    2,
+    '메시지 중복 발송 없음',
+  );
+});
+
+test('batch: 릴레이 참가자 보드를 배치로 완성 — 바통이 정확히 1회 넘어간다', { skip }, async () => {
+  const board = await freshBoardOf(3);
+  const relay = await prisma.relay.create({
+    data: {
+      title: '배치 릴레이', totalStickers: 3, creatorId: userId, mode: 'relay',
+      participants: {
+        create: [
+          { userId, boardId: board.id, order: 0, status: 'active' },
+          { userId: planterId, order: 1, status: 'pending' },
+        ],
+      },
+    },
+  });
+  createdRelayIds.push(relay.id);
+
+  const r = await fillBoardGrapeBatch(prisma, board, [0, 1, 2], userId);
+  assert.equal(r.isCompleted, true);
+  assert.equal(r.relayAdvanced, true);
+
+  const parts = await prisma.relayParticipant.findMany({
+    where: { relayId: relay.id }, orderBy: { order: 'asc' },
+  });
+  assert.equal(parts[0].status, 'completed', '내 참가는 완료');
+  assert.equal(parts[1].status, 'active', '다음 참가자에게 바통');
+  assert.equal((await prisma.relay.findUnique({ where: { id: relay.id } }))?.status, 'active');
+
+  // no-op 재배치 — isCompleted 재확인 가드로 릴레이 재진행 없음(exactly-once)
+  const r2 = await fillBoardGrapeBatch(prisma, board, [0, 1, 2], userId);
+  assert.equal(r2.relayAdvanced, false);
+  const parts2 = await prisma.relayParticipant.findMany({
+    where: { relayId: relay.id }, orderBy: { order: 'asc' },
+  });
+  assert.equal(parts2[1].status, 'active', '다음 참가자 상태 불변(재진행 없음)');
 });
