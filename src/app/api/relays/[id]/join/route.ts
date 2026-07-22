@@ -20,6 +20,11 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
   if (!relay) {
     return authResponse('포도동을 찾을 수 없어요', 404);
   }
+  // accept·pass와 같은 게이트 — 끝난 포도동에 새로 보드를 붙이면 completed 릴레이에
+  // 진행중 참가자가 생긴다.
+  if (relay.status !== 'active') {
+    return authResponse('이미 끝난 포도동이에요', 400);
+  }
 
   const participant = relay.participants.find((p) => p.userId === userId);
   if (!participant) {
@@ -49,6 +54,9 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
       if (!target) throw new Error('BOARD_NOT_FOUND');
       if (target.ownerId !== userId) throw new Error('BOARD_FORBIDDEN');
       if (target.isCompleted) throw new Error('BOARD_COMPLETED');
+      // 선검사는 사용자에게 정확한 문구를 주기 위한 것이고, 실제 강제는 아래 update가
+      // 걸리는 RelayParticipant.boardId 유니크 제약이 한다. 이 검사만으로는 두 포도동이
+      // 동시에 read-then-write 하는 경쟁을 막지 못한다(검사와 쓰기 사이에 창이 있다).
       const inUse = await tx.relayParticipant.findFirst({
         where: { boardId: target.id, NOT: { id: participant.id } },
         select: { id: true },
@@ -93,7 +101,12 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
       },
     });
     return { participantId: updated.id, boardId };
-  }).catch((err: Error) => err.message);
+  }).catch((err: Error) => {
+    // 유니크 위반(P2002 on boardId) = 위 선검사를 통과한 뒤 다른 포도동이 먼저 붙은 경쟁.
+    // 사용자에게는 선검사와 같은 문구를 준다.
+    if ((err as { code?: string }).code === 'P2002') return 'BOARD_IN_USE';
+    return err.message;
+  });
 
   if (typeof result === 'string') {
     switch (result) {

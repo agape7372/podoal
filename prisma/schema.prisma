@@ -58,6 +58,9 @@ model Board {
   giftedFromId  String?
   giftMessage   String    @default("") // optional note the gifter attaches
   giftOpenedAt  DateTime? // set when the recipient first "unwraps" a gifted board
+  // 선물 생성 멱등키(감사 H-01). 클라가 제출 1회당 하나를 만들어 재시도에도 같은 값을 보낸다.
+  // 타임아웃·중복 제출로 같은 선물이 두 개 생기는 것을 DB가 막는다. 선물이 아닌 보드는 null.
+  giftIdempotencyKey String?
   isCompleted   Boolean  @default(false)
   allowFriendPlant Boolean @default(true) // owner toggle: may friends plant surprise gifts here?
   completedAt   DateTime?
@@ -85,6 +88,9 @@ model Board {
   @@index([ownerId])    // 홈 보드 목록
   @@index([giftedToId]) // 받은 선물 보드·친구 활동 피드
   @@index([ownerId, isCompleted, completedAt]) // 와이너리 병 목록(완성 보드 completedAt desc) — 선두 ownerId라 홈 조회도 커버
+  // 같은 보내는 사람 + 같은 멱등키 = 같은 선물. Postgres NULLS DISTINCT라 선물이 아닌
+  // 보드(키 null)는 무제한이고, 기존 행 전부가 null이라 무중단 additive다.
+  @@unique([giftedFromId, giftIdempotencyKey])
 }
 
 model Sticker {
@@ -213,10 +219,13 @@ model RelayParticipant {
 
   @@unique([relayId, userId])
   @@unique([relayId, order])
+  // 포도판 하나는 최대 한 포도동에만 연결된다. 예전에는 join 라우트의 findFirst 선검사만
+  // 있어서, 두 포도동이 동시에 read-then-write 하면 같은 보드가 양쪽에 붙고 한쪽 바통이
+  // 영원히 멈췄다. nullable unique는 Postgres NULLS DISTINCT라 미참여(null) 행은 무제한.
+  // (unique가 인덱스도 겸하므로 기존 @@index([boardId])는 제거 — boards/[id] GET의
+  //  포도동 동료 열람 권한 체크는 이 unique 인덱스가 그대로 커버한다.)
+  @@unique([boardId])
   @@index([userId]) // 내 포도동/초대 조회 (unique 2개 모두 relayId 접두라 커버 안 됨)
-  // boards/[id] GET의 포도동 동료 열람 권한 체크가 boardId로 조회 — 인덱스 없으면
-  // 테이블 풀스캔(친구 아닌 릴레이 참가자의 보드 진입마다). 보드 상세는 최빈 전환.
-  @@index([boardId])
 }
 
 model NotificationSetting {
