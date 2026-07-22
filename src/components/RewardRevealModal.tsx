@@ -35,12 +35,15 @@ interface RewardRevealModalProps {
  */
 export default function RewardRevealModal({ reward, loading = false, loadingNote, boardId, onClose }: RewardRevealModalProps) {
   const { closeRef, requestClose } = useModalClose(onClose);
+  // ⚠ origin-top을 sheetClassName으로 주지 말 것 — Modal이 진입/이탈 클래스를 같은
+  // 요소에 합성해 닫힐 때도 남고, 이탈 애니가 위로 빨려 들어간다. rewardUnfold는
+  // transform-origin을 키프레임 안에 갖고 있다(globals.css 주석).
   return (
     <Modal
       variant="center"
       onClose={onClose}
       closeRef={closeRef}
-      enterClassName="animate-reward-reveal"
+      enterClassName="animate-reward-unfold"
       label={`보상 개봉 — ${reward.title}`}
       backdropClassName="z-95 bg-black/40 backdrop-blur-xs p-6"
       overlay={<Confetti trigger={1} />}
@@ -49,14 +52,17 @@ export default function RewardRevealModal({ reward, loading = false, loadingNote
         <EmojiIcon emoji={REWARD_TYPE_ICON[reward.type]} size={56} className="block mx-auto mb-2" />
         <div className="text-xs font-medium text-grape-600 mb-1">{REWARD_TYPE_LABELS[reward.type]}</div>
         <h3 className="font-display text-xl font-bold text-grape-700 mb-3 wrap-break-word">{reward.title}</h3>
+        {/* min-h-[72px]: 스켈레톤(h-4 ×2 + space-y-2 + p-4 = 72px)과 본문 박스의 최소 높이를
+            맞춘다 — 짧은 본문이 도착할 때 박스가 쪼그라들며 확인 버튼이 위로 튀던 시프트 제거.
+            긴 본문으로 늘어나는 방향은 막을 수 없다(내용 길이는 가변). */}
         {loading ? (
-          <div className="clay-sm bg-white p-4 mb-5 text-center space-y-2" aria-label="내용 불러오는 중">
+          <div className="clay-sm bg-white p-4 mb-5 text-center space-y-2 min-h-[72px]" aria-label="내용 불러오는 중">
             <div className="skeleton h-4 w-full" />
             <div className="skeleton h-4 w-2/3" />
             {loadingNote && <p className="text-xs text-warm-sub pt-1">{loadingNote}</p>}
           </div>
         ) : reward.content ? (
-          <div className="clay-sm bg-white p-4 mb-5 text-center">
+          <div className="clay-sm bg-white p-4 mb-5 text-center min-h-[72px] flex items-center justify-center">
             <p className="text-sm text-warm-text whitespace-pre-wrap leading-relaxed wrap-break-word">
               {reward.content}
             </p>

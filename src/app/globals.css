@@ -136,7 +136,7 @@
      로컬 정의를 가리는 회귀 선례(skeletonSweep 사건, 2026-06-11). */
   --animate-bounce-in: bounceIn 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97);
   --animate-slide-up: slideUp 0.4s ease-out;
-  --animate-reward-reveal: rewardReveal 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+  --animate-reward-unfold: rewardUnfold var(--motion-base) var(--ease-backout);
   --animate-shimmer: shimmer 2s infinite;
 
   @keyframes bounceIn {
@@ -162,23 +162,32 @@
       opacity: 1;
     }
   }
-  /* 보상 개봉 전용 3D 카드 플립 — 범용 bounce-in과 구분되는 '개봉감'.
-     perspective 없이는 rotateY가 가로 스쿼시로만 보이고, 180° 시작은 전반부에
-     미러 콘텐츠가 노출되므로 90°(모서리) 시작 + 오버슈트(-8°)로 재작성(2026-07). */
-  @keyframes rewardReveal {
-    0% {
-      transform: perspective(800px) rotateY(90deg) scale(0.7);
+  /* 보상 개봉 전용 '봉투 언폴드' — 위 모서리를 축으로 접혀 있다 펼쳐진다.
+     구 rewardReveal(perspective 800px + rotateY 90° 문짝 플립)은 사용자 판정으로 폐기
+     (2026-07-23): 시트폭 대비 2.34배의 과한 원근이 스윙 중 좌우 비대칭 팽창을 만들어
+     '옆에서 퉁 튕긴다'로 읽혔고, 3D 변환 동안 텍스트 서브픽셀 AA가 꺼져 종료 순간
+     '탁' 선명해지는 스냅이 한 번 더 붙었다. 언폴드는 회전·이동 성분이 없어 둘 다 없다.
+
+     ⚠ transform-origin은 **키프레임 안에** 둔다 — 호출부에 origin-top 클래스를 물리면
+     안 된다. Modal은 진입/이탈 클래스를 같은 요소에 합성하므로(Modal.tsx의 className
+     조합) 그 클래스가 닫힐 때도 살아남아, 이탈 애니 modalCenterOut(scale 1→0.92)이
+     top 원점으로 축소되며 모달이 '위로 빨려 들어간다'(실측 2026-07-23).
+     transform-origin은 애니메이션 가능 속성이라 여기 두면 구동 중에만 적용된다.
+
+     ⚠ 키프레임 스톱은 2개만 유지할 것. CSS는 animation-timing-function을 '전체'가
+     아니라 '구간마다' 재적용하므로, 중간 스톱을 넣으면 그 지점에서 곡선이 재시작해
+     방향 반전(=딱 끊기는 스냅)이 하나 늘어난다. 구 rewardReveal의 '퉁퉁퉁' 3연 스냅이
+     정확히 이것이었다(스톱 4개 × easeOutQuint). 오버슈트는 스톱이 아니라
+     --ease-backout 하나에 맡긴다(peak 진행률 ≈1.10 → scaleY 최대 ≈1.07, 단발). */
+  @keyframes rewardUnfold {
+    from {
+      transform-origin: top center;
+      transform: scaleY(0.34) translateY(-10px);
       opacity: 0;
     }
-    55% {
-      transform: perspective(800px) rotateY(-8deg) scale(1.04);
-      opacity: 1;
-    }
-    78% {
-      transform: perspective(800px) rotateY(3deg) scale(0.99);
-    }
-    100% {
-      transform: perspective(800px) rotateY(0deg) scale(1);
+    to {
+      transform-origin: top center;
+      transform: none;
       opacity: 1;
     }
   }

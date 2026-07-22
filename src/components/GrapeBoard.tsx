@@ -36,6 +36,11 @@ interface GrapeBoardProps {
   /** Fired (synced to the confetti beat) when a fill reaches a MID reward, so
    *  the board page can pop the reward open immediately. */
   onMidRewardReached?: (reward: RewardInfo) => void;
+  /** 완성 축하 시퀀스가 시작되는 순간(= 마지막 알 임팩트 t=0). 페이지가 이 시각을 기록해
+   *  완성 보상 자동개봉을 '탭 기준'으로 스케줄한다 — 종전엔 POST 응답 도착 시점에
+   *  CELEBRATION_PEAK_MS+750을 걸어 서버 왕복이 연출 뒤에 통째로 가산됐다(체감 3~4초).
+   *  reduced-motion 경로에서도 발화한다(연출은 생략돼도 개봉 기준점은 같아야 한다). */
+  onCompletionStart?: () => void;
   /** 채움 텀 C1(FILL_CADENCE_PLAN §3, W3): 다음 알(next position)의 익음 상태 — null/
    *  미전달이면 텀 없음(FREE)과 동일하게 현행 동작 그대로(회귀 0의 계약). owner 뷰에서만
    *  전달된다(canFill과 동일 조건, 페이지가 게이팅). */
@@ -395,7 +400,7 @@ function burstSparkles(container: HTMLElement): HTMLElement[] {
 // ── 완성 연출 끝 ─────────────────────────────────────────────────────────────
 
 const GrapeBoardInner = forwardRef<GrapeBoardHandle, GrapeBoardProps>(function GrapeBoardInner(
-  { board, onFill, canFill, onCelebrate, isOwner, onPlantReward, onPlantGift, onMidRewardReached, paceState, onRipeningTap },
+  { board, onFill, canFill, onCelebrate, isOwner, onPlantReward, onPlantGift, onMidRewardReached, onCompletionStart, paceState, onRipeningTap },
   ref,
 ) {
   const [fillingPos, setFillingPos] = useState<number | null>(null);
@@ -435,6 +440,8 @@ const GrapeBoardInner = forwardRef<GrapeBoardHandle, GrapeBoardProps>(function G
   //           + shineAll + glow + 스파클, 액체는 550ms 페이드아웃 시작
   //   3200ms  cleanup(레이어·glow·스파클 제거)
   const playCompletionSequence = useCallback(() => {
+    // 임팩트 t=0 통지 — reduced-motion 분기보다 먼저 두어 두 경로의 기준점이 같다.
+    onCompletionStart?.();
     // 이전 시퀀스 잔존물 제거(되돌리기 후 빠른 재완성 등 재트리거 대비)
     celebrationCleanupRef.current?.();
 
@@ -499,7 +506,7 @@ const GrapeBoardInner = forwardRef<GrapeBoardHandle, GrapeBoardProps>(function G
         timeouts.push(setTimeout(cleanup, 1550));
       }, CELEBRATION_PEAK_MS - 150)); // 비트 절대시각 − 액체 시작 오프셋(150ms) = 1500ms(종전과 동일)
     }, 150));
-  }, [onCelebrate]);
+  }, [onCelebrate, onCompletionStart]);
 
   const filledPositions = useMemo(
     () => new Set(board.stickers.map((s) => s.position)),

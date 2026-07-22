@@ -124,7 +124,7 @@ export default function WineryPage() {
   const [openYears, setOpenYears] = useState<string[] | null>(null);
 
   // ─── 수확(셀러 입고) 의식 ───────────────────────────────
-  // 홈의 수확 스와이프와 동일한 서버 상태(PATCH {harvested}) — 신규 쓰기 API 0.
+  // 홈의 수확 버튼과 동일한 서버 상태(PATCH {harvested}) — 신규 쓰기 API 0.
   // 성공 시 feedbackBottle(승급과 함께 이 사운드의 전용 용도) + 재검증으로
   // NEW 스탬프 소거. 홈 목록에서도 수확 탭으로 이동(기존 의미 그대로).
   const [harvesting, setHarvesting] = useState(false);
@@ -168,8 +168,8 @@ export default function WineryPage() {
       // 정합 버그 수정(2026-07-19): PATCH 응답이 {ok:true}뿐이라 harvestedAt을 직접
       // 못 받으므로 지금 시각으로 write-through. 이걸 빼면 refresh()는 이 화면의
       // '/api/winery'만 재검증하고, 홈이 읽는 '/api/boards' 리스트(탭 카운트·수확
-      // 배지·스와이프 트레이 게이트)와 '/api/boards/{id}' 상세는 5초 TTL 동안 미수확
-      // 상태로 고착 — 그 창에서 홈 스와이프를 다시 하면 서버 harvestedAt이 리셋된다.
+      // 배지·수확 버튼 라벨)와 '/api/boards/{id}' 상세는 5초 TTL 동안 미수확 상태로
+      // 고착 — 그 창에서 홈의 수확 버튼을 다시 누르면 서버 harvestedAt이 리셋된다.
       // board/[id]/page.tsx의 syncBoardCaches와 같은 패턴(참고만, 그쪽은 미수정).
       const harvestedAt = new Date().toISOString();
       const home = readCachedApi<{ boards: BoardSummary[] }>('/api/boards');

@@ -1,6 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import type { HTMLAttributes, ReactNode } from 'react';
 import type { BoardSummary } from '@/types';
 import EmojiIcon from './EmojiIcon';
 import { feedbackTap } from '@/lib/feedback';
@@ -13,6 +14,16 @@ interface BoardCardProps {
   asStatic?: boolean;
   /** Shift the source badge left so it doesn't sit under the ⋮ menu (home cards). */
   reserveTopRight?: boolean;
+  /** 카드 하단(진행바 행 아래)에 붙는 액션 영역 — 홈의 '수확하기' 버튼용.
+   *  ⚠ `asStatic`일 때만 렌더한다: 비정적 분기의 카드 루트는 `<button>`이라
+   *  버튼을 끼우면 중첩 버튼(무효 HTML + 클릭 삼킴)이 된다. 친구 상세
+   *  (friends/[id])는 비정적 사용이라 이 prop을 넘기지 않아 렌더 무변화. */
+  footer?: ReactNode;
+  /** `asStatic` 전용: 카드 '본문'(footer 제외)을 감싸는 요소에 얹을 속성 —
+   *  홈이 여기에 role="button"/tabIndex/onKeyDown을 넣어 키보드·스크린리더의
+   *  '보드 열기' 경로를 만든다. footer(수확 버튼)를 이 바깥에 두는 것이 요점이다:
+   *  안에 넣으면 role="button" 안의 <button> = 중첩 인터랙티브가 된다. */
+  bodyProps?: HTMLAttributes<HTMLDivElement>;
   className?: string;
 }
 
@@ -23,7 +34,7 @@ function sourceBadge(board: BoardSummary): { emoji: string; text: string; label:
   return null;
 }
 
-export default function BoardCard({ board, asStatic = false, reserveTopRight = false, className = '' }: BoardCardProps) {
+export default function BoardCard({ board, asStatic = false, reserveTopRight = false, footer, bodyProps, className = '' }: BoardCardProps) {
   const router = useRouter();
   const progress = progressPercent(board.filledCount, board.totalStickers);
   const badge = sourceBadge(board);
@@ -110,7 +121,12 @@ export default function BoardCard({ board, asStatic = false, reserveTopRight = f
   );
 
   if (asStatic) {
-    return <div className={`clay-float relative w-full p-4 text-left ${className}`}>{inner}</div>;
+    return (
+      <div className={`clay-float relative w-full p-4 text-left ${className}`}>
+        {bodyProps ? <div {...bodyProps}>{inner}</div> : inner}
+        {footer && <div className="mt-3">{footer}</div>}
+      </div>
+    );
   }
 
   return (

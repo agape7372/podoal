@@ -8,10 +8,10 @@ interface BoardCardMenuProps {
   onDelete: () => void;
 }
 
-// 카드의 보조 동작 진입점 — 현재는 '삭제' 단일 항목(제품 결정 2026-06-12: 열기=카드 탭,
-// 수확=스와이프 트레이로 일원화). 카드의 overflow-hidden 클립 '바깥'(형제)에 두어
-// 드롭다운이 잘리지 않고, 카드 포인터 핸들러로 이벤트가 새지 않게 pointer 계열을
-// stopPropagation 한다.
+// 카드의 보조 동작 진입점 — 현재는 '삭제' 단일 항목(열기=카드 탭, 수확=완성 카드의
+// CTA 버튼. 구 '수확=스와이프 트레이' 일원화 결정은 2026-07-23에 뒤집혔다 —
+// BoardRow.tsx 상단 주석). 카드 포인터 핸들러 '바깥'(형제)에 두어 드롭다운이 잘리지
+// 않고, 이벤트가 제스처 레이어로 새지 않게 pointer 계열을 stopPropagation 한다.
 export default function BoardCardMenu({ onDelete }: BoardCardMenuProps) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);

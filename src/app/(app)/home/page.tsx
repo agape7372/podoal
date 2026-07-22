@@ -7,7 +7,7 @@ import { useAppStore } from '@/lib/store';
 import { api, ApiError } from '@/lib/api';
 import { useCachedApi, readCachedApi, writeCachedApi, localWriteAt, invalidateCachedApi } from '@/lib/cachedApi';
 import { pendingFillCount, drainPromise, applyPendingOverlay } from '@/lib/fillQueue';
-import SwipeableBoardCard, { SWIPE_TRANSITION } from '@/components/SwipeableBoardCard';
+import BoardRow from '@/components/BoardRow';
 import StreakCard, { type StreakInfo } from '@/components/StreakCard';
 import ClayButton from '@/components/ClayButton';
 import ConfirmDialog from '@/components/ConfirmDialog';
@@ -47,13 +47,13 @@ const FILTERS: Filter[] = ['all', 'active', 'completed', 'harvested'];
 const FILTER_KEY = 'podoal-home-filter'; // 마지막으로 본 필터 탭 기억(기기별)
 
 const LIFT_MS = 450;   // 정지 후 이 시간 유지하면 카드를 들어 정렬 모드로
-const MOVE_TOL = 10;   // 이만큼 움직이면 제스처 방향(스크롤/스와이프)을 확정
-const TRAY_W = 120;    // 스와이프 슬라이드 거리(px) — 버튼은 88px 고정, 나머지는 여백(손맛)
-// 풀스와이프 즉시 수확(완성 보드 전용): 카드폭 대비 비율. 클램프(더 못 끌게 막는 지점)를
-// 커밋 임계보다 넓게 둬 '넘겼다'는 감각이 확실히 남는다. 미완성 보드는 기존 -TRAY_W 클램프.
-const FULL_CLAMP_FRAC = 0.55;
-const FULL_COMMIT_FRAC = 0.45;
+const MOVE_TOL = 10;   // 이만큼 움직이면 '탭이 아니다'로 확정(스크롤에 양보 + 롱프레스 취소)
+// 가로 스와이프 수확은 2026-07-23 폐지 — 근거는 BoardRow.tsx 상단 주석. 되살리지 말 것.
 const REORDER_TRANSITION = 'transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1)'; // 이웃 비켜주기·드롭 정착(FLIP) 공통 이징
+// 수확 전 채움 큐 드레인 대기 상한 — 항목당 POST 타임아웃이 20초라 무제한으로 기다리면
+// 버튼이 '수확 중…'에 그만큼 갇힌다. 넘기면 기다리지 않고 그냥 서버에 맡긴다(서버가
+// 미완성이면 400으로 정확히 거절한다).
+const HARVEST_DRAIN_WAIT_MS = 3000;
 const EDGE_ZONE = 96;       // 화면 위/아래 이 영역(px)에 손가락이 들어오면 자동 스크롤 시작
 const EDGE_MAX_SPEED = 16;  // 엣지 최내곽에서의 자동 스크롤 속도(px/frame)
 const NAV_INSET = 80;       // 하단 고정 네비/홈인디케이터가 가리는 높이 — 아래 트리거를 그 위로 올린다
@@ -85,18 +85,15 @@ export default function HomePage() {
   // 렌더마다 계산(매우 저렴) — 앱을 오래 켜둬도 시간대가 바뀌면 인사말이 따라간다.
   const greeting = timeOfDayGreeting();
 
-  // 정렬(드래그 리프트) + 스와이프 액션 상태.
-  // 상태는 '임계 전이'(리프트 시작/종료, 축 잠금, 트레이 열림/닫힘)만 표현한다 —
+  // 정렬(드래그 리프트) 상태. 상태는 '임계 전이'(리프트 시작/종료)만 표현한다 —
   // 손가락을 따라가는 픽셀 오프셋은 setState가 아니라 ref + style.transform 직접
   // 조작으로 처리해 pointermove마다 리스트 전체가 리렌더되지 않게 한다.
   const [liftedId, setLiftedId] = useState<string | null>(null);
-  const [swipeDragId, setSwipeDragId] = useState<string | null>(null);
-  const [swipeOpenId, setSwipeOpenId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<BoardSummary | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
-  // 수확 드레인 대기 — 트레이 탭과 풀스와이프 커밋 두 경로가 같은 보드에 동시에 들어오는 걸
-  // 막는 가드(ref, 렌더 불필요)와, 드레인 대기 중임을 카드에 표시하는 상태(보이는 보드만 리렌더).
+  // 수확 진행 가드 — 같은 보드에 연타가 들어오는 걸 막는 ref(렌더 불필요)와,
+  // 진행 중임을 카드 버튼에 표시하는 상태(보이는 보드만 리렌더).
   const harvestingRef = useRef<Set<string>>(new Set());
   const [harvestingId, setHarvestingId] = useState<string | null>(null);
 
@@ -116,9 +113,8 @@ export default function HomePage() {
   }, []);
 
   const cardRefs = useRef<Map<string, HTMLElement>>(new Map());
-  const moveLayerRefs = useRef<Map<string, HTMLElement>>(new Map()); // 카드의 '움직이는 레이어'(가로 스와이프 transform 대상)
 
-  // 정렬 드래그(롱프레스 후): 드래그 중 React 리렌더 0회(스와이프와 동일 철학).
+  // 정렬 드래그(롱프레스 후): 드래그 중 React 리렌더 0회.
   // 손가락 추적/이웃 비켜주기는 outer 요소(cardRefs)에 transform 직접 기록하고,
   // 행 순서는 손을 뗄 때 endLift에서 한 번만 커밋한다.
   const liftRef = useRef<{
@@ -138,14 +134,9 @@ export default function HomePage() {
   // 제스처 추적용 ref (렌더와 무관, 동기적 판정)
   const gStart = useRef<{ x: number; y: number } | null>(null);
   const gMoved = useRef(false);
-  const gAxis = useRef<'x' | 'y' | null>(null);
   const gPointerId = useRef<number | null>(null);
   const gEl = useRef<HTMLElement | null>(null);
   const gLpTimer = useRef<number | null>(null);
-  const gSwipeDx = useRef(0); // 라이브 스와이프 오프셋(리렌더 타이밍과 무관하게 onUp이 판정)
-  const gCardW = useRef(0); // 축잠금 시점의 카드폭 — 풀스와이프 임계(비율) 환산용
-  const gCommitArmed = useRef(false); // 풀스와이프 커밋 임계 통과 상태(햅틱 1회·트레이 강조 토글)
-  const gSwipeBase = useRef(0); // x축 잠금 시점의 누적 dx — y→x 늦은 승격 시 카드가 점프하지 않게 기준점 재설정
 
   // 리프트 중 네이티브 스크롤 차단 — touch-action은 터치 '접촉 시점'에 고정되므로
   // doLift의 늦은 'none' 설정은 진행 중인 터치에 무효. 유일한 수단은 non-passive
@@ -181,7 +172,7 @@ export default function HomePage() {
 
   // 보이는 보드의 상세 라우트를 미리 받아둔다 — board/[id]는 동적 라우트라
   // <Link> 없이는 카드 탭 시점에야 RSC 왕복이 시작돼 무반응 구간이 생긴다.
-  // (카드 자체는 스와이프 제스처와 얽혀 있어 Link화 대신 명령형 프리페치를 쓴다.)
+  // (카드 자체는 롱프레스 정렬 제스처를 소유해 Link화 대신 명령형 프리페치를 쓴다.)
   useEffect(() => {
     boards.slice(0, 8).forEach((b) => router.prefetch(`/board/${b.id}`));
   }, [boards, router]);
@@ -337,30 +328,6 @@ export default function HomePage() {
     tick();
   }, [applyLiftMove]);
 
-  // 스와이프 중 카드 이동은 React를 거치지 않고 DOM에 직접 쓴다(리스트 리렌더 0회).
-  // 제스처가 끝나면 같은 '정지 값'을 상태(swipeOpenId)로도 커밋해 선언적 스타일과 일치시킨다.
-  const setCardX = (id: string, x: number, animate: boolean) => {
-    const el = moveLayerRefs.current.get(id);
-    if (!el) return;
-    el.style.transition = animate ? SWIPE_TRANSITION : 'none';
-    el.style.transform = `translateX(${x}px) scale(1)`;
-    // 풀스와이프로 카드가 TRAY_W 너머까지 밀리면 트레이를 노출 폭만큼 넓힌다(우측 고정이라
-    // 왼쪽으로 확장, 버튼은 justify-center로 따라옴). React는 같은 prop 값을 다시 쓰지
-    // 않으므로 이 직접 쓰기는 재렌더에 안 지워진다 — 모든 정지/스냅 경로가 이 함수를
-    // 지나기에 여기서 항상 일관 값(-x와 TRAY_W 중 큰 쪽)으로 복원된다.
-    const tray = el.parentElement?.querySelector<HTMLElement>('[data-tray]');
-    if (tray) tray.style.width = `${Math.max(TRAY_W, -x)}px`;
-  };
-
-  // 풀스와이프 커밋 임계 통과 강조 — 트레이에 data-commit을 토글하면
-  // SwipeableBoardCard의 group-data 변형이 버튼을 키우고 틴트를 올린다.
-  const setTrayCommit = (id: string, on: boolean) => {
-    const tray = moveLayerRefs.current.get(id)?.parentElement?.querySelector<HTMLElement>('[data-tray]');
-    if (!tray) return;
-    if (on) tray.dataset.commit = '1';
-    else delete tray.dataset.commit;
-  };
-
   const persistOrder = useCallback((orderedIds: string[]) => {
     if (orderedIds.length === 0) return;
     // 실패를 조용히 삼키면 화면 순서와 서버 순서가 어긋난 채 재진입 시 슬그머니 원복됨 →
@@ -468,7 +435,6 @@ export default function HomePage() {
         dragEl.style.touchAction = '';
       }
       gStart.current = null;
-      gAxis.current = null;
       gMoved.current = true; // 이미 제스처가 소비됨 → 뒤이은 pointerup이 탭 경로로 빠지지 않게
     }, { signal: orientAc.signal });
   };
@@ -478,25 +444,23 @@ export default function HomePage() {
     // 정렬 리프트 진행 중엔 둘째 포인터(다른 손가락) 무시 — gPointerId를 덮어쓰면
     // 원래 캡처한 포인터가 releaseCapture에서 풀리지 않아 카드가 먹통이 된다.
     if (liftRef.current) return;
-    if (swipeOpenId && swipeOpenId !== board.id) setSwipeOpenId(null); // 다른 카드 트레이 닫기
     gStart.current = { x: e.clientX, y: e.clientY };
     gLastY.current = e.clientY;
     gMoved.current = false;
-    gAxis.current = null;
     gPointerId.current = e.pointerId;
     gEl.current = e.currentTarget as HTMLElement;
     clearLp();
-    // 트레이(수확/삭제) 위에서 시작한 누름은 길이와 무관하게 버튼 동작이어야 한다 —
-    // 리프트 타이머만 무장하지 않는다(스와이프 추적은 유지: 트레이에서 드래그로 닫기 가능).
-    if (!(e.target as HTMLElement).closest('[data-tray]')) {
+    // 수확 버튼 위에서 시작한 누름은 길이와 무관하게 버튼 동작이어야 한다 — 리프트가
+    // 포인터를 캡처하면 click이 삼켜져 '길게 누른 수확'이 정렬 리프트로 빠진다.
+    // 제스처 래퍼 안의 유일한 <button>이 수확 CTA다(⋮ 메뉴는 래퍼 바깥 형제).
+    if (!(e.target as HTMLElement).closest('button')) {
       gLpTimer.current = window.setTimeout(() => doLift(board), LIFT_MS);
     }
   };
 
   const onMove = (e: React.PointerEvent, board: BoardSummary) => {
     // 리프트 중엔 들어올린 그 포인터만 처리한다 — 둘째 손가락(다른 카드)이 gLastY를 가로채
-    // 자동 스크롤 tick과 드래그 추적을 엉뚱한 좌표로 끌고 가거나, 캡처 안 된 채 스와이프
-    // 로직으로 새는 것을 막는다(onDown은 이미 둘째 포인터를 무시하지만 onMove는 아니었다).
+    // 자동 스크롤 tick과 드래그 추적을 엉뚱한 좌표로 끌고 가는 것을 막는다.
     if (liftRef.current && e.pointerId !== gPointerId.current) return;
     gLastY.current = e.clientY;
     // 리프트 판정은 동기 ref로 — liftedId(state)는 doLift 직후 한 프레임 비어 있어,
@@ -516,60 +480,12 @@ export default function HomePage() {
     }
     const st = gStart.current;
     if (!st) return;
-    const dx = e.clientX - st.x;
-    const dy = e.clientY - st.y;
-    // x축 잠금 공통 절차 — 최초 판정과 y→x 늦은 승격 두 경로에서 호출.
-    // rebase: 잠금 시점의 누적 dx를 기준점으로 삼아 카드가 그 지점부터 0에서 끌리게
-    // 한다(늦은 승격 시 수십 px 점프 방지; 최초 잠금은 dx≈±10이라 체감 동일).
-    const lockX = () => {
-      gAxis.current = 'x';
-      gSwipeBase.current = dx;
-      gCardW.current = (e.currentTarget as HTMLElement).offsetWidth || 0;
-      gCommitArmed.current = false;
-      setSwipeDragId(board.id);
-      try { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); } catch { /* noop */ }
-    };
-    if (gAxis.current === null) {
-      if (Math.hypot(dx, dy) > MOVE_TOL) {
-        clearLp();
-        gMoved.current = true;
-        // 축 판정: x는 수평 우세면 즉시, y는 '확실한 세로'(|dy| > |dx|×1.75)에만 잠근다.
-        // 엄지 스와이프는 초기 몇 px에 세로 성분(아크)이 섞여, 첫 판정에서 y로 영구
-        // 확정하면 이후 수평 140px가 통째로 버려진다(2026-07-06 CDP 터치 실측 — 실기기
-        // '옆으로 밀어도 안 됨'의 원인). 대각은 잠금 보류 → 다음 move의 누적 벡터로 재평가.
-        if (Math.abs(dx) > Math.abs(dy)) {
-          lockX();
-        } else if (Math.abs(dy) > Math.abs(dx) * 1.75) {
-          gAxis.current = 'y';
-        }
-      }
-    } else if (gAxis.current === 'y') {
-      // y 잠금 후에도 pointermove가 계속 온다는 것 = 브라우저가 팬(스크롤)을 가져가지
-      // 않았다는 뜻(가져가면 touch-action: pan-y 규약상 pointercancel로 끊긴다).
-      // 그 상태에서 수평이 명백히 우세해지면(누적 |dx|≥32 && |dx|>|dy|×1.2) 사용자의
-      // 의도는 스와이프다 — x로 승격해 세로 시작 아크를 구제한다. 실스크롤 중에는
-      // 이 분기 자체가 도달 불가라 오탐 없음.
-      if (Math.abs(dx) >= 32 && Math.abs(dx) > Math.abs(dy) * 1.2) {
-        lockX();
-      }
-    }
-    if (gAxis.current === 'x') {
-      e.preventDefault();
-      const base = swipeOpenId === board.id ? -TRAY_W : 0;
-      // 완성 보드(수확/되돌리기 가능)만 트레이 너머 풀스와이프 허용.
-      const min = board.isCompleted ? -Math.round(gCardW.current * FULL_CLAMP_FRAC) : -TRAY_W;
-      const next = Math.max(min, Math.min(0, base + (dx - gSwipeBase.current)));
-      gSwipeDx.current = next;
-      // pointermove마다 setState 금지 — transform 직접 조작(상태 전이는 onUp에서만).
-      setCardX(board.id, next, false);
-      if (board.isCompleted) {
-        const committed = next <= -Math.round(gCardW.current * FULL_COMMIT_FRAC);
-        if (committed !== gCommitArmed.current) {
-          gCommitArmed.current = committed;
-          setTrayCommit(board.id, committed);
-          if (committed) feedbackTap(); // 임계 통과 순간 1회 — '여기서 놓으면 수확' 신호
-        }
-      }
+    // 슬롭을 넘으면 '탭이 아니다'로 확정하고 롱프레스 타이머를 푼다 — 이후 이 제스처는
+    // 브라우저의 세로 팬(touch-pan-y)에 온전히 넘긴다. 가로 스와이프 수확 폐지로 축 잠금·
+    // 늦은 승격 휴리스틱이 통째로 사라졌다(BoardRow.tsx 상단 주석).
+    if (!gMoved.current && Math.hypot(e.clientX - st.x, e.clientY - st.y) > MOVE_TOL) {
+      clearLp();
+      gMoved.current = true;
     }
   };
 
@@ -587,43 +503,11 @@ export default function HomePage() {
       gStart.current = null;
       return;
     }
-    if (gAxis.current === 'x') {
-      // 풀스와이프 커밋 — 완성 보드를 임계 너머에서 놓으면 트레이 정차 없이 바로
-      // 수확/되돌리기. 카드가 목록에서 빠지며(수확) 사라지거나(되돌리기도 탭 이동)
-      // 낙관 갱신이 처리하므로 스냅백은 닫힘 위치로 보낸다.
-      if (board.isCompleted && gCommitArmed.current) {
-        gCommitArmed.current = false;
-        setTrayCommit(board.id, false);
-        setCardX(board.id, 0, true);
-        setSwipeOpenId(null);
-        setSwipeDragId(null);
-        gSwipeDx.current = 0;
-        releaseCapture(e);
-        gStart.current = null;
-        harvestBoard(board);
-        return;
-      }
-      const open = gSwipeDx.current <= -TRAY_W / 2;
-      // 손을 뗀 지점 → 확정 위치 스냅백도 직접 조작으로 애니메이션한다.
-      // (열림/닫힘이 기존 상태와 같으면 React가 transform을 다시 쓰지 않으므로
-      //  이 수동 쓰기가 없으면 카드가 드래그 위치에 멈춘 채 남는다.)
-      setCardX(board.id, open ? -TRAY_W : 0, true);
-      setTrayCommit(board.id, false);
-      setSwipeOpenId(open ? board.id : null);
-      setSwipeDragId(null);
-      gSwipeDx.current = 0;
-      releaseCapture(e);
-      gStart.current = null;
-      return;
-    }
-    // 빠른 탭(이동·리프트 없음)
-    if (!gMoved.current) {
-      if (swipeOpenId === board.id) {
-        setSwipeOpenId(null); // 열린 트레이는 탭으로 닫기
-      } else {
-        feedbackTap();
-        router.push(`/board/${board.id}`);
-      }
+    // 빠른 탭(이동·리프트 없음) — 카드 본문을 눌렀다 떼면 상세로. 수확 버튼 탭은
+    // 여기 오지 않는다(버튼의 onClick이 먼저 처리하고, onDown이 리프트를 무장하지 않음).
+    if (!gMoved.current && !(e.target as HTMLElement).closest('button')) {
+      feedbackTap();
+      router.push(`/board/${board.id}`);
     }
     gStart.current = null;
   };
@@ -631,43 +515,34 @@ export default function HomePage() {
   const onCancel = (e: React.PointerEvent, board: BoardSummary) => {
     clearLp();
     if (liftRef.current?.id === board.id) { endLift(false); }
-    // swipeDragId(state)는 축 잠금 직후 취소되면 아직 stale일 수 있어 ref로도 판정.
-    if (gAxis.current === 'x' || swipeDragId === board.id) {
-      setSwipeDragId(null);
-      setCardX(board.id, swipeOpenId === board.id ? -TRAY_W : 0, true); // 직전 정지 위치로 복귀
-      setTrayCommit(board.id, false);
-      gCommitArmed.current = false;
-      gSwipeDx.current = 0;
-    }
     releaseCapture(e);
     gStart.current = null;
-    gAxis.current = null;
   };
 
-  // 카드의 '정지 상태' 오프셋만 상태로 표현한다(드래그 중 라이브 오프셋은 setCardX가 직접 씀).
-  const offsetFor = (id: string) => {
-    if (liftedId === id) return 0;
-    if (swipeOpenId === id) return -TRAY_W;
-    return 0;
-  };
-
+  // 수확/되돌리기. **완성 여부의 판정자는 서버 하나뿐이다**(PATCH가 board.isCompleted를
+  // 검사해 400 '완료된 포도판만 수확할 수 있어요'로 거절한다). 종전엔 여기서 드레인 후
+  // 홈 캐시를 다시 읽어 isCompleted를 사전 검사하고, 미완성으로 읽히면 조용히 return
+  // 했다 — 그 판정이 통과하려면 (1) 큐 드레인 (2) reconcile의 캐시 write-through
+  // (3) 홈 캐시 갱신 3단이 모두 성사돼야 해서, 어디 하나만 어긋나도 100% 카드가
+  // '다 채우면 수확할 수 있어요'라는 거짓 안내와 함께 수확되지 않았다(반복 재발한
+  // 원버그, 2026-07-23 제거). 이제 드레인은 '차단 조건'이 아니라 '짧은 대기'일 뿐이다.
   const harvestBoard = async (board: BoardSummary) => {
-    if (harvestingRef.current.has(board.id)) return; // 트레이 탭 + 풀스와이프 이중진입 가드
+    if (harvestingRef.current.has(board.id)) return; // 연타 이중진입 가드
     harvestingRef.current.add(board.id);
     feedbackTap();
-    setSwipeOpenId(null);
     try {
       // 아직 서버에 확정되지 않은 채움이 큐에 있으면(직전 화면에서 마지막 알을 채우고
-      // 바로 돌아온 경우 등) 그 드레인을 기다린 뒤 서버 기준으로 완성 여부를 재확인한다.
-      // 오버레이만 믿고 먼저 수확 PATCH를 쏘면, 드레인 중 실패로 실제론 미완성인 보드를
-      // 완성으로 오인해 수확해버릴 수 있다.
+      // 바로 돌아온 경우 등) 잠깐 기다렸다 쏜다 — 완성 커밋보다 수확 PATCH가 먼저 닿아
+      // 400을 맞는 흔한 레이스를 없애는 최적화다. 상한을 두는 이유: 항목당 POST 타임아웃이
+      // 20초라 드레인에 무제한으로 매달리면 버튼이 '수확 중…'에 그만큼 갇힌다.
       if (pendingFillCount(board.id) > 0) {
-        setHarvestingId(board.id); // 카드에 "수확 중…" 표시
-        await drainPromise(board.id)?.catch(() => {});
-        const fresh = readCachedApi<{ boards: BoardSummary[] }>('/api/boards')?.boards.find((b) => b.id === board.id);
-        if (!fresh?.isCompleted) {
-          showToast('포도판을 다 채우면 수확할 수 있어요');
-          return; // 드레인 후에도 미완성 — 수확 중단(오버레이는 자기교정되어 카드 표시가 정상 복귀)
+        setHarvestingId(board.id); // 버튼에 "수확 중…" 표시
+        const drain = drainPromise(board.id);
+        if (drain) {
+          await Promise.race([
+            drain.catch(() => {}),
+            new Promise((resolve) => window.setTimeout(resolve, HARVEST_DRAIN_WAIT_MS)),
+          ]);
         }
       }
       const harvested = !board.harvestedAt;
@@ -679,12 +554,18 @@ export default function HomePage() {
         if (harvested) track('board_harvested', { boardId: board.id, totalStickers: board.totalStickers });
         // 와이너리 데이터는 서버 파생(수확 즉시 새 병) — 무효화해 다음 진입에서 새로 받게 한다(#133).
         invalidateCachedApi('/api/winery');
-      } catch {
+      } catch (err) {
         mutateBoards((prev) =>
           prev && { ...prev, boards: prev.boards.map((b) => (b.id === board.id ? { ...b, harvestedAt: harvested ? null : board.harvestedAt ?? null } : b)) });
-        // persistOrder 실패 토스트 패턴 선례 — 롤백만 하고 무음이면 유저는 왜 카드가
-        // 되돌아왔는지 모른다(#133).
-        showToast('수확하지 못했어요. 잠시 후 다시 시도해주세요.');
+        // 400 = 서버가 아직 미완성으로 본다(채움 커밋이 상한 안에 안 끝났거나 실패).
+        // 카드는 100%인데 '다 채우면 수확할 수 있어요'는 거짓말이므로 상황을 그대로 말한다.
+        // 그 외 실패는 종전 문구. 무음 롤백은 금지(#133 선례 — 왜 카드가 돌아왔는지 모른다).
+        const stillSaving = err instanceof ApiError && err.status === 400;
+        showToast(stillSaving
+          ? '아직 저장 중인 포도알이 있어요. 잠시 후 다시 시도해주세요.'
+          : '수확하지 못했어요. 잠시 후 다시 시도해주세요.');
+        // 서버 기준으로 다시 맞춰 온다 — 400의 원인이 채움 유실이면 카드 진행도도 교정된다.
+        loadBoards();
       }
     } finally {
       setHarvestingId((cur) => (cur === board.id ? null : cur));
@@ -717,11 +598,6 @@ export default function HomePage() {
   const setCardRef = (id: string) => (el: HTMLElement | null) => {
     if (el) cardRefs.current.set(id, el);
     else cardRefs.current.delete(id);
-  };
-
-  const setMoveLayerRef = (id: string) => (el: HTMLElement | null) => {
-    if (el) moveLayerRefs.current.set(id, el);
-    else moveLayerRefs.current.delete(id);
   };
 
   // ── 친구 소식 피드 (보드 목록 아래 독립 섹션) ──────────────────────────────
@@ -840,7 +716,6 @@ export default function HomePage() {
               key={f}
               onClick={() => {
                 feedbackTap();
-                setSwipeOpenId(null);
                 setFilter(f);
                 try { localStorage.setItem(FILTER_KEY, f); } catch { /* noop */ }
               }}
@@ -892,25 +767,21 @@ export default function HomePage() {
         <>
           <ul className="space-y-3">
             {displayBoards.map((board, i) => (
-              // 스태거는 li(정적 래퍼)에만 — FLIP/스와이프가 잡는 transform 레이어는
-              // SwipeableBoardCard 내부(innerRef/moveLayerRef)라 인라인 transform과 충돌 없음.
+              // 스태거는 li(정적 래퍼)에만 — FLIP이 잡는 transform 레이어는 BoardRow의
+              // 루트(innerRef)라 인라인 transform과 충돌하지 않는다.
               <li
                 key={board.id}
                 className="stagger-item"
                 style={{ '--stagger-i': Math.min(i, 8) } as React.CSSProperties}
               >
-                <SwipeableBoardCard
+                <BoardRow
                   board={board}
-                  offset={offsetFor(board.id)}
                   lifted={liftedId === board.id}
-                  dragging={swipeDragId === board.id}
                   harvesting={harvestingId === board.id}
-                  trayWidth={TRAY_W}
-                  onHarvest={() => board.isCompleted ? harvestBoard(board) : showToast('포도판을 다 채우면 수확할 수 있어요')}
-                  onDelete={() => { setSwipeOpenId(null); setDeleteTarget(board); }}
+                  onHarvest={() => harvestBoard(board)}
+                  onDelete={() => setDeleteTarget(board)}
                   onOpen={() => { feedbackTap(); router.push(`/board/${board.id}`); }}
                   innerRef={setCardRef(board.id)}
-                  moveLayerRef={setMoveLayerRef(board.id)}
                   pointerHandlers={{
                     onPointerDown: (e) => onDown(e, board),
                     onPointerMove: (e) => onMove(e, board),
@@ -921,9 +792,11 @@ export default function HomePage() {
               </li>
             ))}
           </ul>
-          <p className="text-center text-[11px] text-warm-sub mt-4 text-balance">
-            {canReorder ? '꾹 눌러 위아래로 정렬 · 옆으로 밀어 수확' : '카드를 옆으로 밀어 수확할 수 있어요'}
-          </p>
+          {canReorder && (
+            <p className="text-center text-[11px] text-warm-sub mt-4 text-balance">
+              꾹 눌러 위아래로 정렬
+            </p>
+          )}
         </>
       )}
 
