@@ -36,7 +36,8 @@ import {
   rollbackFill,
   mergeServerBoard,
   stripTempsForCache,
-  FILL_BATCH_MAX,
+  shouldFlushFillBuffer,
+  needsSingleFillPost,
 } from '@/lib/boardFillState';
 import type { BoardDetail, BoardSummary, PlantedGiftInfo, RewardInfo, RewardType, TimeCapsuleInfo } from '@/types';
 import { REWARD_TYPE_ICON, ICON } from '@/lib/icons';
@@ -47,7 +48,15 @@ import { track, trackFirst } from '@/lib/analytics';
 
 // 채움 POST 직렬화 큐 — 재진입에도 살아남는 모듈 레벨 상태라 라우트 전환 없이
 // 홈에서도 참조할 수 있게 src/lib/fillQueue.ts로 이전됨. 상세 설계 근거는 그쪽 주석.
-import { fillQueues, fillResumeAt, fillPendingCounts, fillPendingPositions } from '@/lib/fillQueue';
+import {
+  fillQueues,
+  fillResumeAt,
+  fillPendingCounts,
+  fillPendingPositions,
+  markFillStart,
+  markFillEnd,
+  isFillInFlight,
+} from '@/lib/fillQueue';
 
 interface LiveBoardHandle {
   setBoard: Dispatch<SetStateAction<BoardDetail | null>>;
@@ -72,7 +81,14 @@ const fillBatchBuffers = new Map<
   { entries: FillBatchEntry[]; totalStickers: number; triggerAts: number[] }
 >();
 const fillBatchTimers = new Map<string, ReturnType<typeof setTimeout>>();
-const FILL_BATCH_DEBOUNCE_MS = 200;
+// ⚠ 2026-07-23: 종전 200ms **아이들 디바운스**를 폐기하고 큐 기반 코얼레싱으로 바꿨다
+// (판정은 shouldFlushFillBuffer). 실측 연타 간격이 ~320ms라 타이머가 탭 사이마다 울려
+// 배치가 1알씩 쪼개졌고, 15알 보드가 직렬 왕복 15번이 되면서 완성 응답(= 보상 content를
+// 실어오는 응답)이 마지막 탭 +10초에 도착했다. 이제 발사 시점은 시계가 아니라 큐 상태다.
+// 이 타이머는 그 대체가 아니라 **백스톱**이다: 어떤 이유로든 settle 웨이크업이 유실되면
+// 버퍼가 영영 안 나가 채움이 통째로 유실되므로, 대기로 갈 때마다 느슨한 시한을 걸어둔다.
+// 백스톱이 in-flight 중에 울려도 무해하다(직렬 큐라 뒤에 붙을 뿐 — 왕복 1회 추가가 전부).
+const FILL_BATCH_BACKSTOP_MS = 2000;
 
 // M1(리뷰): 백그라운드 전환/앱 종료 시 버퍼 유실 방지. 연타(<200ms 간격)는 디바운스를
 // 계속 리셋하므로, 마지막 탭 직후 홈 제스처로 JS가 정지되면(iOS PWA) 타이머가 영영 안
@@ -698,10 +714,16 @@ export default function BoardDetailPage() {
       } else {
         fillPendingCounts.set(id, remaining);
       }
+      // 큐 기반 코얼레싱 웨이크업 — 이 왕복이 끝났으니 대기 중이던 버퍼를 발사한다.
+      // 북키핑 **뒤**에 둔다: 플러시가 새 세그먼트를 체인에 걸고 fillQueues를 갱신하는데,
+      // 그 앞에서 하면 위 remaining===0 분기가 방금 건 체인을 지울 수 있다. markFillEnd가
+      // 먼저여야 플러시 안의 markFillStart가 0→1로 정확히 다시 센다.
+      markFillEnd(id);
+      fillBatchFlushers.get(id)?.();
     }
   }, [id, processUnlockedReward]);
 
-  // 배치 POST + reconcile/rollback — postFillSticker의 배치판(FREE 보드 전용).
+  // 배치 POST + reconcile/rollback — postFillSticker의 배치판.
   // 세그먼트(planFillBatches) 하나가 왕복 1번. 재개 지점·롤백·북키핑 의미론은 단건과
   // 동일하되, 서버가 중복 칸을 관대 수용(skipDuplicates)하므로 409 경로가 없고 모든
   // 에러는 배치 전체 실패(연속 구간이라 부분 성공을 가정할 수 없다 — 통째 롤백).
@@ -810,6 +832,9 @@ export default function BoardDetailPage() {
       } else {
         fillPendingCounts.set(id, remaining);
       }
+      // 단건과 동일 — 이 왕복 종료가 대기 버퍼의 발사 신호다(위 finally 주석 참조).
+      markFillEnd(id);
+      fillBatchFlushers.get(id)?.();
     }
   }, [id, processUnlockedReward]);
 
@@ -842,6 +867,10 @@ export default function BoardDetailPage() {
     for (const seg of segments) {
       const segEntries = buf.entries.slice(offset, offset + seg.length);
       offset += seg.length;
+      // 체인에 '거는' 시점에 in-flight로 센다(실행 시점이 아니라) — 큐에 이미 줄 선
+      // 세그먼트가 있는데 새 탭이 또 발사하면 코얼레싱이 무의미해진다. markFillEnd는
+      // postFillBatch의 finally가 정확히 한 번 짝을 맞춘다.
+      markFillStart(id);
       const queued = (fillQueues.get(id) ?? Promise.resolve()).then(
         () => postFillBatch(segEntries, buf.totalStickers, opts?.keepalive === true),
       );
@@ -888,12 +917,18 @@ export default function BoardDetailPage() {
     pendingSet.add(position);
     fillPendingCounts.set(id, (fillPendingCounts.get(id) ?? 0) + 1);
 
-    // 텀 있는 보드(오버라이드/보충 ref 배관 포함)는 기존 단건 POST 경로 그대로 —
-    // 배치는 FREE 보드 전용(RipeningSheet은 FREE에서 안 열리므로 early/backfill
-    // 플래그가 배치에 실릴 일이 없다). 두 경로 모두 fillQueues를 공유해 순서는
-    // 어떤 조합에서도 직렬이다.
-    const isFree = !board.cadenceType || board.cadenceType === 'FREE';
-    if (!isFree) {
+    // 단건 POST를 타는 건 **채움 텀 플래그가 붙은 칸뿐**이다(earlyFill/backfill —
+    // RipeningSheet 오버라이드·보충. 배치 본문에 실을 수 없어 칸 단위로 보낸다).
+    // 종전엔 텀 보드(DAILY_N 등) '전체'가 이 경로였고, 그래서 15알 연타가 왕복 15번이
+    // 됐다(2026-07-23 영상). 이제 보드 종류와 무관하게 플래그 없는 탭은 전부 배치다.
+    // 두 경로 모두 fillQueues를 공유하므로 순서는 어떤 조합에서도 직렬이며, 플래그 탭
+    // 앞에서는 대기 버퍼를 먼저 비워(flushFillBatch) 낮은 칸이 뒤로 밀리지 않게 한다.
+    if (needsSingleFillPost({
+      earlyFill: earlyPositionsRef.current.has(position),
+      backfill: backfillPositionsRef.current.has(position),
+    })) {
+      flushFillBatch();
+      markFillStart(id);
       const queued = (fillQueues.get(id) ?? Promise.resolve()).then(
         () => postFillSticker(position, tempId, totalStickers),
       );
@@ -901,8 +936,8 @@ export default function BoardDetailPage() {
       return queued;
     }
 
-    // 배치 코얼레싱: 탭을 버퍼에 쌓고 ~200ms 아이들 디바운스로 플러시 — 연타 N번이
-    // 왕복 1번(세그먼트당)으로 영속된다. 반환 Promise는 이 칸이 속한 배치의 서버
+    // 배치 코얼레싱: 탭을 버퍼에 쌓고 **큐가 빌 때** 플러시 — 연타 N번이 왕복 1번
+    // (세그먼트당)으로 영속된다. 반환 Promise는 이 칸이 속한 배치의 서버
     // 확정(reconcile/rollback/폐기)에 묶인다 — GrapeBoard isFilling 해제 시점 보존.
     const settled = new Promise<void>((resolve) => {
       let buf = fillBatchBuffers.get(id);
@@ -919,21 +954,26 @@ export default function BoardDetailPage() {
     fillBatchFlushers.set(id, flushFillBatch);
     const prevTimer = fillBatchTimers.get(id);
     if (prevTimer !== undefined) clearTimeout(prevTimer);
-    // 즉시 플러시 경계 — 순차 채움이라 칸 p를 채우면 카운트는 p+1로 결정적이다:
-    // ① 보상 임계 도달(응답당 보상 ≤1 유지 → 기존 단일 보상 팝업 흐름 재사용)
-    // ② 완성 칸(빠른 완성이 목적 — 디바운스로 완성 커밋을 늦추지 않는다)
-    // ③ 버퍼 캡. 그 외엔 디바운스 재장전(아이들 200ms 후 플러시).
-    const cum = position + 1;
+    // 발사 판정(shouldFlushFillBuffer): 경계(보상 임계·완성 칸·버퍼 캡)면 즉시,
+    // 아니면 **큐가 비어 있을 때만** 즉시. in-flight면 대기하고, 그 응답의 settle이
+    // 플러시를 깨운다(postFillBatch/postFillSticker의 finally) — 미결 왕복이 항상 ≤1개라
+    // 탭 속도와 무관하게 완성 응답이 마지막 탭 +1왕복 안에 온다.
     const bufNow = fillBatchBuffers.get(id);
     if (
       bufNow &&
-      (bufNow.triggerAts.includes(cum) ||
-        cum >= totalStickers ||
-        bufNow.entries.length >= FILL_BATCH_MAX)
+      shouldFlushFillBuffer({
+        // 순차 채움이라 칸 p를 채우면 카운트는 p+1로 결정적이다.
+        cum: position + 1,
+        rewardTriggerAts: bufNow.triggerAts,
+        totalStickers,
+        bufferedCount: bufNow.entries.length,
+        inFlight: isFillInFlight(id),
+      })
     ) {
       flushFillBatch();
     } else {
-      fillBatchTimers.set(id, setTimeout(flushFillBatch, FILL_BATCH_DEBOUNCE_MS));
+      // 대기 — 백스톱만 걸어둔다(웨이크업 유실 시 버퍼 유실 방지, 위 상수 주석 참조).
+      fillBatchTimers.set(id, setTimeout(flushFillBatch, FILL_BATCH_BACKSTOP_MS));
     }
     return settled;
   }, [board, user, id, postFillSticker, flushFillBatch]);
