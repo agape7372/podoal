@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useState } from 'react';
+import { Suspense, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import ClayButton from '@/components/ClayButton';
 import ClayInput from '@/components/ClayInput';
@@ -36,6 +36,9 @@ function CreateBoardInner() {
   const [cadenceN, setCadenceN] = useState(3);
   // 엄격 모드(C4-a additive) — cadenceType과 동일한 giftTo/FREE 이중 방어(아래 handleCreate).
   const [strictMode, setStrictMode] = useState(false);
+  // 선물 생성 멱등키 — 제출 시도 1회당 하나. 실패해도 유지해 재시도가 같은 키를 쓰고,
+  // 성공하면 비워 다음 선물이 새 키를 받는다 (감사 H-01).
+  const giftKeyRef = useRef<string | null>(null);
   const [rewardType, setRewardType] = useState<RewardType>('letter');
   const [rewardTitle, setRewardTitle] = useState('');
   const [rewardContent, setRewardContent] = useState('');
@@ -81,17 +84,47 @@ function CreateBoardInner() {
       { type: rewardType, title: rewardTitle.trim(), content: rewardContent.trim(), triggerAt: totalStickers },
     ];
 
-    // giftTo(선물 생성)는 v1 FREE 고정 — CadencePicker를 숨겨도 템플릿 자동제안으로
-    // state가 이미 채워져 있을 수 있어(예: giftTo 진입 전 템플릿에서 넘어온 값), 제출
-    // 시점에도 한 번 더 강제한다(이중 방어 — 근거: 위 handleSelectTemplate의 giftTo 분기와 쌍).
-    const effectiveCadenceType: CadenceType = giftTo ? 'FREE' : cadenceType;
-    const effectiveCadenceN =
-      !giftTo && (cadenceType === 'DAILY_N' || cadenceType === 'WEEKLY_N') ? cadenceN : undefined;
-    // 엄격 모드(C4-a) — giftTo/FREE는 이중 방어로 강제 false(cadenceType과 동일 패턴).
-    const effectiveStrictMode = !giftTo && effectiveCadenceType !== 'FREE' ? strictMode : false;
-
     setLoading(true);
     setError('');
+
+    if (giftTo) {
+      // 선물은 서버 command 한 번으로 끝난다 — 발신자 임시 보드를 만들지 않는다.
+      // 예전에는 보드 생성 → gift → 내 보드 삭제 3커밋을 클라가 돌아서, 중간 실패 시
+      // 고아 보드가 남거나 삭제 실패를 삼킨 채 성공 화면으로 넘어갔다(감사 H-01).
+      // 멱등키는 이 제출 시도에 고정 — 재시도해도 수신 보드는 하나다.
+      if (!giftKeyRef.current) giftKeyRef.current = crypto.randomUUID();
+      try {
+        await api('/api/gifts', {
+          method: 'POST',
+          json: {
+            friendId: giftTo,
+            title: title.trim(),
+            description: description.trim(),
+            totalStickers,
+            templateId,
+            rewards: rewardsPayload,
+            idempotencyKey: giftKeyRef.current,
+          },
+        });
+        track('gift_sent');
+        giftKeyRef.current = null; // 성공 — 다음 선물은 새 키
+        feedbackSuccess();
+        router.replace(`/friends/${giftTo}`);
+      } catch (e) {
+        // 키를 유지해 사용자가 다시 누르면 같은 키로 재시도된다(중복 생성 방지).
+        setError(e instanceof Error ? e.message : '선물 전송에 실패했어요');
+        setLoading(false);
+      }
+      return;
+    }
+
+    // 여기부터는 내 포도판 생성 경로다(선물은 위에서 반환). 선물 보드의 FREE 고정은
+    // 이제 서버 command가 cadence를 아예 받지 않는 것으로 강제된다 — 클라 이중 방어가
+    // 하던 역할을 계약이 대신한다.
+    const effectiveCadenceN =
+      cadenceType === 'DAILY_N' || cadenceType === 'WEEKLY_N' ? cadenceN : undefined;
+    const effectiveStrictMode = cadenceType !== 'FREE' ? strictMode : false;
+
     try {
       const data = await api<{ board: { id: string } }>('/api/boards', {
         method: 'POST',
@@ -100,7 +133,7 @@ function CreateBoardInner() {
           description: description.trim(),
           totalStickers,
           templateId,
-          cadenceType: effectiveCadenceType,
+          cadenceType,
           cadenceN: effectiveCadenceN,
           strictMode: effectiveStrictMode,
           rewards: rewardsPayload,
@@ -110,7 +143,7 @@ function CreateBoardInner() {
       track('board_created', {
         templateId,
         size: totalStickers,
-        cadenceType: effectiveCadenceType,
+        cadenceType,
         cadenceN: effectiveCadenceN ?? null,
       });
       const uid = useAppStore.getState().user?.id;
@@ -118,34 +151,9 @@ function CreateBoardInner() {
         trackFirst(uid, 'board', 'first_board_created', {
           templateId,
           size: totalStickers,
-          cadenceType: effectiveCadenceType,
+          cadenceType,
         });
       }
-      if (giftTo) {
-        // "선물하기": gift the freshly-made board to the friend (creates their
-        // copy), then remove our own copy so only the friend receives it —
-        // matching what the "선물하기" action implies.
-        try {
-          await api(`/api/boards/${data.board.id}/gift`, {
-            method: 'POST',
-            json: { friendId: giftTo },
-          });
-          track('gift_sent');
-        } catch (e) {
-          setError(e instanceof Error ? e.message : '선물 전송에 실패했어요');
-          setLoading(false);
-          return;
-        }
-        try {
-          await api(`/api/boards/${data.board.id}`, { method: 'DELETE' });
-        } catch {
-          // Best-effort cleanup; the friend already received their copy.
-        }
-        feedbackSuccess();
-        router.replace(`/friends/${giftTo}`);
-        return;
-      }
-
       feedbackSuccess();
       router.replace(`/board/${data.board.id}`);
     } catch (e) {

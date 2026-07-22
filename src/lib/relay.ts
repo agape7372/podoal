@@ -19,6 +19,23 @@ export function participantStatusForMode(mode: string): 'active' | 'pending' {
 }
 
 /**
+ * 포도동에 더 이상 행동할 참가자가 없으면 완료 처리한다. 완료했으면 true.
+ *
+ * 완료 판정이 필요한 지점이 셋인데(보드 완성으로 자동 진행 / group 마지막 참가자 /
+ * 마지막 남은 초대의 거절) 예전에는 앞의 둘만 있었다. 거절 경로에 없어서, group 모드에서
+ * 마지막 invited가 거절하면 남은 전원이 completed인데도 포도동이 영구 active로 남았다.
+ * 세 경로가 같은 함수를 쓰도록 여기로 모은다.
+ */
+export async function reevaluateRelayCompletion(tx: Tx, relayId: string): Promise<boolean> {
+  const remaining = await tx.relayParticipant.count({
+    where: { relayId, status: { not: 'completed' } },
+  });
+  if (remaining > 0) return false;
+  await tx.relay.update({ where: { id: relayId }, data: { status: 'completed' } });
+  return true;
+}
+
+/**
  * Single source of truth for advancing a relay (포도동) when a participant
  * finishes their board. Used by both the automatic path (filling the last
  * grape — see boards/[id]/stickers) and the manual /pass button so the two
@@ -49,13 +66,7 @@ export async function advanceRelayOnBoardComplete(
   });
 
   if (relay.mode === 'group') {
-    const remaining = await tx.relayParticipant.count({
-      where: { relayId: relay.id, status: { not: 'completed' } },
-    });
-    const relayCompleted = remaining === 0;
-    if (relayCompleted) {
-      await tx.relay.update({ where: { id: relay.id }, data: { status: 'completed' } });
-    }
+    const relayCompleted = await reevaluateRelayCompletion(tx, relay.id);
     return { relayCompleted, nextActivated: false };
   }
 

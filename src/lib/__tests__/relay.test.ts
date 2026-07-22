@@ -1,6 +1,6 @@
 import { test, mock } from 'node:test';
 import assert from 'node:assert/strict';
-import { advanceRelayOnBoardComplete, participantStatusForMode } from '../relay';
+import { advanceRelayOnBoardComplete, participantStatusForMode, reevaluateRelayCompletion } from '../relay';
 
 // advanceRelayOnBoardComplete는 포도동 진행의 단일 진실원(자동=stickers, 수동=/pass).
 // 실제 버그였던 부분 2가지를 mock tx로 고정한다(DB 불필요):
@@ -189,4 +189,44 @@ test('group 모드: 본인만 완료, 전원 완료 시에만 릴레이 완료 (
 test('participantStatusForMode: group=active, relay=pending', () => {
   assert.equal(participantStatusForMode('group'), 'active', 'group(동시)은 바통 없이 즉시 active');
   assert.equal(participantStatusForMode('relay'), 'pending', 'relay(순차)는 바통 대기열의 pending');
+});
+
+// ─── reevaluateRelayCompletion (감사 H-02) ────────────────────────────────
+// 완료 판정이 필요한 지점이 셋인데(보드 완성 자동 진행 / group 마지막 참가자 /
+// 마지막 남은 초대의 거절) 예전에는 거절 경로에 없었다. group 모드에서 마지막 invited가
+// 거절하면 남은 전원이 completed인데도 포도동이 영구 active로 남았다.
+
+test('reevaluateRelayCompletion: 미완료 참가자가 남아 있으면 완료하지 않는다', async () => {
+  const { tx, calls } = makeTx({ count: 2 });
+  const completed = await reevaluateRelayCompletion(tx as never, 'r1');
+
+  assert.equal(completed, false);
+  assert.equal(calls.relayUpdate.length, 0, '릴레이 상태를 건드리면 안 된다');
+  assert.deepEqual(calls.participantCount[0].args[0], {
+    where: { relayId: 'r1', status: { not: 'completed' } },
+  });
+});
+
+test('reevaluateRelayCompletion: 미완료 0명이면 포도동을 완료 처리한다', async () => {
+  const { tx, calls } = makeTx({ count: 0 });
+  const completed = await reevaluateRelayCompletion(tx as never, 'r1');
+
+  assert.equal(completed, true);
+  assert.deepEqual(calls.relayUpdate[0].args[0], { where: { id: 'r1' }, data: { status: 'completed' } });
+});
+
+test('reevaluateRelayCompletion: group 자동 진행이 같은 함수를 쓴다(로직 이중화 방지)', async () => {
+  // advanceRelayOnBoardComplete의 group 분기가 이 함수로 수렴했는지 — 미완료 0명일 때
+  // 두 경로가 동일한 count 조건과 동일한 relay update를 내야 한다.
+  const viaAdvance = makeTx({ count: 0 });
+  await advanceRelayOnBoardComplete(viaAdvance.tx as never, { id: 'r9', mode: 'group' }, { id: 'p', order: 0 });
+
+  const viaDirect = makeTx({ count: 0 });
+  await reevaluateRelayCompletion(viaDirect.tx as never, 'r9');
+
+  assert.deepEqual(
+    viaAdvance.calls.participantCount[0].args[0],
+    viaDirect.calls.participantCount[0].args[0],
+  );
+  assert.deepEqual(viaAdvance.calls.relayUpdate[0].args[0], viaDirect.calls.relayUpdate[0].args[0]);
 });
