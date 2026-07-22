@@ -229,6 +229,10 @@ export default function BoardDetailPage() {
   // 이 세션에서 이미 팝업으로 본 보상 id — 완성 자동 개봉(2.4s 타이머)이, 사용자가
   // 그 사이 직접 열었다 닫은 보상을 다시 들이밀지 않게 한다(적대 검증에서 잡힌 반례).
   const rewardSeenRef = useRef(new Set<string>());
+  // 마지막 알 임팩트 시각(GrapeBoard onCompletionStart) — 완성 보상 자동개봉을 '탭 기준'
+  // 으로 스케줄하기 위한 단일 기준점. null이면 이 세션에서 완성 연출이 없었다는 뜻이라
+  // (재진입 후 도착한 좀비 응답 등) 종전 동작(응답 도착 + 2.4초)으로 폴백한다.
+  const completionImpactAtRef = useRef<number | null>(null);
   // 캐시로 시드됐다면 '첫 로드 완료'로 취급 — 재검증 실패 시 홈으로 튕기는 대신
   // 기존 화면 + 동기화 실패 배너를 유지한다(fetchBoard catch 분기 참조).
   const initialLoadDoneRef = useRef(board !== null);
@@ -503,12 +507,21 @@ export default function BoardDetailPage() {
           ? { reward: { ...prev.reward, ...body }, loading: false }
           : prev,
       );
-      fetchBoard();
       // 완성 자동 개봉(W1-B ④): 완성 연출의 사운드/샤인 비트(임팩트+1650ms)가
       // 지나간 뒤 완성 보상을 자동으로 연다 — '완성했는데 보상이 안 나온다'는
       // 보고(2026-07-06)의 기대 정렬. 사용자가 먼저 탭해 팝업이 열려 있으면
       // no-op(prev 유지 — updater는 순수, StrictMode 이중 실행 안전). reveal은
       // openReward와 중복될 수 있으나 멱등이라 '열어봤다' 영속화만 보장한다.
+      //
+      // ⚠ 지연의 기준점은 '마지막 알 임팩트'다(2026-07-23). 종전엔 이 setTimeout이
+      // POST 응답 도착 시점에 걸려 서버 왕복(웜 0.4~0.8s, 콜드 2s+)이 2.4초 위에 통째로
+      // 가산됐다 — 연출이 끝나고도 1~2초 빈 화면이 남던 '보상 로딩이 오래 걸린다'의 실체.
+      // 보상 content는 이 응답에 이미 실려 있으므로(fillBoard.ts unlockedRewards) 남은
+      // 대기는 순수하게 연출 박자뿐이고, 응답이 박자보다 늦게 오면 delay 0 = 도착 즉시 개봉.
+      const impactAt = completionImpactAtRef.current;
+      const openDelay = impactAt === null
+        ? CELEBRATION_PEAK_MS + 750 // 이 세션에 완성 연출이 없었음(좀비 응답 등) — 종전 동작
+        : Math.max(0, CELEBRATION_PEAK_MS + 750 - (Date.now() - impactAt));
       window.setTimeout(() => {
         if (!aliveRef.current) return;
         if (rewardSeenRef.current.has(u.id)) return; // 그 사이 직접 열어봤으면 재개봉 금지
@@ -531,7 +544,11 @@ export default function BoardDetailPage() {
         api(`/api/boards/${id}/rewards/${u.id}/reveal`, { method: 'POST' })
           .catch(() => {})
           .then(() => { if (aliveRef.current) fetchBoard(); });
-      }, CELEBRATION_PEAK_MS + 750); // 완성 비트(임팩트+1650ms) 뒤 ~0.75초 = 종전 2400ms
+      }, openDelay);
+      // 보드 재동기화는 팝업 오픈 '뒤'로 미룬다 — 완성 직후가 네트워크가 가장 붐비는
+      // 구간이라(reveal POST + 파생 키 재검증) 전체 보드 GET을 그 앞에 끼우면 개봉이
+      // 밀린다. 응답 내용은 이미 손에 있어 화면 정합엔 영향이 없다.
+      window.setTimeout(() => { if (aliveRef.current) fetchBoard(); }, openDelay + 250);
     }
   }, [id, fetchBoard]);
 
@@ -925,6 +942,11 @@ export default function BoardDetailPage() {
   // 티저 등 보드와 무관한 페이지 상태 변화마다 memo(GrapeBoardInner)가 무력화돼,
   // 완성 연출(WAAPI) 중 직렬 큐 reconcile과 겹치며 전 셀 리렌더 폭이 커졌다(버벅).
   const handleCelebrate = useCallback(() => setConfettiTrigger((t) => t + 1), []);
+  // 마지막 알 임팩트(t=0) 기록 — processUnlockedReward가 완성 보상 개봉을 이 시각 기준
+  // 으로 스케줄한다. 신원 고정(빈 deps)이라 memo(GrapeBoardInner)를 무효화하지 않는다.
+  const handleCompletionStart = useCallback(() => {
+    completionImpactAtRef.current = Date.now();
+  }, []);
   const handlePlantReward = useCallback((pos: number) => {
     feedbackTap();
     setPlantPos(pos);
@@ -1458,6 +1480,7 @@ export default function BoardDetailPage() {
           onPlantReward={isOwner && !board.isCompleted && canManageRewards ? handlePlantReward : undefined}
           onPlantGift={!isOwner && !board.isCompleted ? handlePlantGift : undefined}
           onMidRewardReached={handleMidRewardReached}
+          onCompletionStart={handleCompletionStart}
           paceState={canFill ? paceState : null}
           onRipeningTap={canFill ? handleRipeningTap : undefined}
         />
