@@ -26,6 +26,29 @@ export const fillPendingCounts = new Map<string, number>();
 // (→확정 409)하지 않게 한다.
 export const fillPendingPositions = new Map<string, Set<number>>();
 
+// 실제로 네트워크에 나가 있는 요청 수(보드 단위). fillPendingCounts와 다르다 —
+// 저쪽은 '아직 확정 안 된 칸 수'라 배치 버퍼에서 대기 중인 탭도 포함하므로
+// "지금 왕복이 돌고 있나"를 물을 수 없다. 큐 기반 코얼레싱(shouldFlushFillBuffer)이
+// 발사 시점을 이 값에 건다. 모듈 레벨인 이유는 fillQueues와 동일(좀비 큐).
+export const fillInFlight = new Map<string, number>();
+
+/** POST 발사 직전. */
+export function markFillStart(boardId: string): void {
+  fillInFlight.set(boardId, (fillInFlight.get(boardId) ?? 0) + 1);
+}
+
+/** POST settle(성공·실패·폐기 무관) 직후. 0이 되면 키를 지운다. */
+export function markFillEnd(boardId: string): void {
+  const next = (fillInFlight.get(boardId) ?? 0) - 1;
+  if (next > 0) fillInFlight.set(boardId, next);
+  else fillInFlight.delete(boardId);
+}
+
+/** 이 보드의 채움 요청이 지금 네트워크에 나가 있나. */
+export function isFillInFlight(boardId: string): boolean {
+  return (fillInFlight.get(boardId) ?? 0) > 0;
+}
+
 /** 특정 보드의 in-flight(아직 확정되지 않은) 채움 개수 — 없으면 0. */
 export function pendingFillCount(boardId: string): number {
   return fillPendingCounts.get(boardId) ?? 0;

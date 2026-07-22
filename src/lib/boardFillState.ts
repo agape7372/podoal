@@ -88,6 +88,42 @@ export function planFillBatches(
   return segments;
 }
 
+/** 배치 버퍼를 지금 발사할지 판정 — **큐 기반 코얼레싱**(2026-07-23).
+ *
+ *  종전엔 200ms 아이들 디바운스였다. 실측 연타 간격이 ~320ms(영상 2026-07-23)라
+ *  타이머가 탭 *사이마다* 울려 배치가 1알씩 쪼개졌고, 직렬 큐에 1알짜리 POST가
+ *  15개 줄서면서 완성 응답(= 보상 content를 실어오는 응답)이 마지막에 도착했다 —
+ *  '완성했는데 보상이 몇 초간 스켈레톤'의 실체.
+ *
+ *  새 규칙: 발사 시점을 시계가 아니라 **큐 상태**에 건다.
+ *   - 큐가 비어 있으면 즉시 발사(선두 엣지 — 느린 탭의 체감 지연 0, 회귀 없음)
+ *   - in-flight면 대기: 그 응답이 settle될 때까지 들어온 탭을 전부 한 배치로 모은다
+ *     → 미결 왕복이 항상 ≤1개, 탭 속도와 무관하게 왕복 수가 상수급으로 눌린다
+ *   - 경계(보상 임계·완성 칸·버퍼 캡)는 in-flight여도 즉시 — 응답당 보상 ≤1 계약과
+ *     '완성 커밋을 늦추지 않는다' 원칙 유지(planFillBatches의 세그먼트 경계와 동일). */
+export function shouldFlushFillBuffer(opts: {
+  /** 이 탭이 확정되면 도달할 누적 카운트(순차 채움이라 position + 1로 결정적). */
+  cum: number;
+  rewardTriggerAts: number[];
+  totalStickers: number;
+  bufferedCount: number;
+  inFlight: boolean;
+  cap?: number;
+}): boolean {
+  const cap = opts.cap ?? FILL_BATCH_MAX;
+  if (opts.rewardTriggerAts.includes(opts.cum)) return true;
+  if (opts.cum >= opts.totalStickers) return true;
+  if (opts.bufferedCount >= cap) return true;
+  return !opts.inFlight;
+}
+
+/** 이 탭이 단건 POST를 타야 하는가 — 채움 텀 플래그(earlyFill/backfill)는 배치 본문에
+ *  실을 수 없어 그 칸만 단건으로 보낸다. 그 외엔 보드 종류(FREE·DAILY_N·WEEKLY_N)와
+ *  무관하게 전부 배치다(2026-07-23: 종전엔 텀 보드 전체가 칸당 1왕복이었다). */
+export function needsSingleFillPost(flags: { earlyFill: boolean; backfill: boolean }): boolean {
+  return flags.earlyFill || flags.backfill;
+}
+
 /** 배치 POST 성공 reconcile — 응답의 스티커 전체를 applyFillResult 규칙으로 fold.
  *  서버는 요청 칸 "전체"(이미 차 있던 칸 포함)를 돌려주므로, temp가 없는 position의
  *  스티커도 온다 — applyFillResult의 position 매칭이 중복 없이 흡수한다(tempId '').
