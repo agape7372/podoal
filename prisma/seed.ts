@@ -3,6 +3,19 @@ import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import bcrypt from 'bcryptjs';
+import { assertSeedAllowed, describeTarget } from '../src/lib/seedGuard';
+
+// ─── 대상 검증 (DB 연결 이전) ──────────────────────────────────────
+// 이 스크립트는 13개 테이블을 통째로 비운다. shell env가 운영/공유 DB를 가리킨
+// 한 번의 실수가 전량 삭제로 이어지므로, PrismaClient를 만들기 **전에** 대상을 판정한다.
+// 루프백은 자동 허용, 그 밖은 ALLOW_DESTRUCTIVE_SEED=true + SEED_CONFIRM_DATABASE 일치 요구.
+const verdict = assertSeedAllowed(process.env.DATABASE_URL, process.env);
+if (!verdict.allowed) {
+  console.error(`\n[seed] 중단 — 대상: ${describeTarget(verdict.target)}`);
+  console.error(`[seed] 이유: ${verdict.reason}\n`);
+  process.exit(1);
+}
+console.log(`[seed] 대상: ${describeTarget(verdict.target)} — ${verdict.reason}`);
 
 const prisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
@@ -11,19 +24,23 @@ const prisma = new PrismaClient({
 async function main() {
   // Clean existing data — user를 참조하는 모든 테이블을 FK 의존 순서로 먼저 비운다.
   // (seed 작성 이후 추가된 모델들이 빠져 있으면 user.deleteMany가 P2003으로 실패 — 멱등성 보장)
-  await prisma.message.deleteMany();
-  await prisma.pushSubscription.deleteMany();
-  await prisma.reminder.deleteMany();
-  await prisma.notificationSetting.deleteMany();
-  await prisma.relayParticipant.deleteMany();
-  await prisma.relay.deleteMany();
-  await prisma.plantedGift.deleteMany();
-  await prisma.timeCapsule.deleteMany();
-  await prisma.sticker.deleteMany();
-  await prisma.reward.deleteMany();
-  await prisma.board.deleteMany();
-  await prisma.friendship.deleteMany();
-  await prisma.user.deleteMany();
+  // 단일 트랜잭션으로 묶는다: 중간 실패 시 일부 테이블만 비워진 채 관계가 깨진 DB가
+  // 남는 것을 막는다(부분 삭제 = 복구가 전량 삭제보다 어려운 상태).
+  await prisma.$transaction([
+    prisma.message.deleteMany(),
+    prisma.pushSubscription.deleteMany(),
+    prisma.reminder.deleteMany(),
+    prisma.notificationSetting.deleteMany(),
+    prisma.relayParticipant.deleteMany(),
+    prisma.relay.deleteMany(),
+    prisma.plantedGift.deleteMany(),
+    prisma.timeCapsule.deleteMany(),
+    prisma.sticker.deleteMany(),
+    prisma.reward.deleteMany(),
+    prisma.board.deleteMany(),
+    prisma.friendship.deleteMany(),
+    prisma.user.deleteMany(),
+  ]);
 
   const pw = await bcrypt.hash('1234', 10);
 

@@ -1,39 +1,47 @@
-// prisma migrate deploy 래퍼 — 기존 DB의 1회 베이스라인 전환을 자동 처리한다.
+// prisma migrate deploy 래퍼 — 빌드가 쓰는 **유일한** 마이그레이션 경로.
 //
-// 배경: 이 저장소는 `prisma db push` 운영에서 `prisma migrate`로 전환했다(docs/MIGRATIONS.md).
-// 프로덕션(Neon)에는 스키마가 이미 db push로 적용돼 있으므로, 첫 `migrate deploy`는
-// P3005("database schema is not empty")로 실패한다. 그 한 경우에만 베이스라인(0_init)을
-// `migrate resolve --applied`로 마킹하고 다시 deploy한다 — Prisma 공식 baseline 절차.
+// 이 스크립트는 pending 마이그레이션을 적용하는 일만 한다. 스키마 이력(_prisma_migrations)을
+// 추정으로 조작하지 않는다.
 //
-// - 빈 새 DB(CI postgres 서비스, 로컬 docker): P3005가 나지 않고 0_init이 정상 적용된다.
-// - 이력 있는 DB(전환 후의 모든 배포): pending만 적용하는 평소 동작.
-// - resolve는 비파괴(_prisma_migrations에 행 1개 기록)이며 스키마/데이터를 건드리지 않는다.
+// 2026-07-22 변경(감사 H-04): 예전에는 P3005("database schema is not empty")가 보이면
+// 스키마 지문 확인 없이 baseline(0_init)을 applied로 마킹한 뒤 재시도했다. 그 경로는
+// **모든 Vercel 빌드(프리뷰 포함)** 에서 돌았기 때문에, 비어 있지 않은 엉뚱한 DB나 drift가
+// 생긴 DB도 "과거 db push DB"로 오인해 이력에 거짓 기록을 남길 수 있었다. 게다가 app build가
+// 뒤에서 실패해도 DB 변경은 이미 남았다.
+//
+// 이제 P3005는 **fail-closed** 다 — 빌드를 세우고 사람이 판단하게 한다.
+// 진짜 baseline이 필요한 경우의 절차: `npx tsx scripts/baseline-init.ts`
+// (승인 플래그 + 대상 DB명 재확인 + 스키마 지문 검사를 요구하는 일회성 운영 스크립트).
+// 상세: docs/MIGRATIONS.md §베이스라인.
 import { spawnSync } from 'node:child_process';
 
-const BASELINE = '0_init';
+const res = spawnSync('npx', ['prisma', 'migrate', 'deploy'], {
+  shell: true,
+  encoding: 'utf8',
+  stdio: 'pipe',
+});
 
-function run(args, { capture = false } = {}) {
-  const res = spawnSync('npx', ['prisma', ...args], {
-    shell: true,
-    encoding: 'utf8',
-    stdio: capture ? 'pipe' : 'inherit',
-  });
-  return res;
+process.stdout.write(res.stdout ?? '');
+process.stderr.write(res.stderr ?? '');
+
+if (res.status === 0) process.exit(0);
+
+const out = `${res.stdout ?? ''}${res.stderr ?? ''}`;
+if (out.includes('P3005')) {
+  console.error(`
+[migrate-deploy] P3005 — 대상 DB에 스키마는 있는데 마이그레이션 이력이 없습니다.
+
+자동 baseline은 제거됐습니다(감사 H-04). 이력 없는 DB를 자동으로 "적용됨"이라고
+기록하면, 실제로는 다른 스키마를 가진 DB에 이후 마이그레이션이 그대로 실행됩니다.
+
+다음 중 무엇인지 먼저 확인하세요:
+  1. 배포 대상 DATABASE_URL이 의도한 DB가 맞는가 (프리뷰/운영 혼선?)
+  2. 정말 db push로 운영되던 기존 DB를 이관하는 상황인가
+     → 백업/Neon 브랜치를 확보한 뒤 npx tsx scripts/baseline-init.ts
+  3. 그 밖이면 이 DB에 배포하면 안 됩니다.
+
+상세: docs/MIGRATIONS.md §베이스라인
+`);
 }
 
-const first = run(['migrate', 'deploy'], { capture: true });
-process.stdout.write(first.stdout ?? '');
-process.stderr.write(first.stderr ?? '');
-
-if (first.status === 0) process.exit(0);
-
-const out = `${first.stdout ?? ''}${first.stderr ?? ''}`;
-if (!out.includes('P3005')) process.exit(first.status ?? 1);
-
-console.log(`\n[migrate-deploy] P3005 감지 — db push로 운영되던 기존 DB. 베이스라인 ${BASELINE}을 적용됨으로 마킹합니다.`);
-const resolve = run(['migrate', 'resolve', '--applied', BASELINE]);
-if (resolve.status !== 0) process.exit(resolve.status ?? 1);
-
-console.log('[migrate-deploy] 베이스라인 마킹 완료 — migrate deploy 재시도.');
-const second = run(['migrate', 'deploy']);
-process.exit(second.status ?? 1);
+process.exit(res.status ?? 1);

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { sendPushToUser } from '@/lib/push';
+import { sendPushToUser, isTransientSkip } from '@/lib/push';
 import { shouldSendNudge } from '@/lib/nudge';
 import { verifyCronAuth } from '@/lib/cronAuth';
 
@@ -49,12 +49,17 @@ export async function GET(request: Request) {
   // 순차 await → 청크(CRON_PUSH_CHUNK) 단위 Promise.allSettled 배치(B6): 대상 증가 시
   // 서버리스 타임아웃 방지. 개별 실패 격리(현행 try/catch와 동등 — rejected=failed),
   // 발송 후 lastNudgeSentAt 마킹 순서·의미 불변.
+  // lastNudgeSentAt은 **실제로 전달된 경우에만** 갱신한다(감사 H-03 부수 수정).
+  // 예전에는 발송 여부와 무관하게 마킹해서, 09:23 KST가 사용자의 DND 안이거나
+  // globalEnabled=false면 푸시는 조용히 버려지고 하루치 중복 가드만 소모됐다.
+  // reminders 라우트의 ripe 분기가 이미 쓰는 "스킵이면 마킹도 안 한다" 규칙과 통일.
   let sent = 0;
   let failed = 0;
+  let suppressed = 0;
   for (let i = 0; i < toSend.length; i += CRON_PUSH_CHUNK) {
     const results = await Promise.allSettled(
       toSend.slice(i, i + CRON_PUSH_CHUNK).map(async (setting) => {
-        await sendPushToUser(
+        const result = await sendPushToUser(
           setting.userId,
           {
             title: '🍇 포도알',
@@ -64,22 +69,28 @@ export async function GET(request: Request) {
           },
           'reminder',
         );
+        if (isTransientSkip(result)) return result; // DND — 마킹 없이 다음 실행에 재시도
         await prisma.notificationSetting.update({
           where: { userId: setting.userId },
           data: { lastNudgeSentAt: new Date() },
         });
+        return result;
       }),
     );
-    sent += results.filter((x) => x.status === 'fulfilled').length;
-    failed += results.filter((x) => x.status === 'rejected').length;
+    for (const r of results) {
+      if (r.status === 'rejected') failed += 1;
+      else if (r.value.delivered > 0) sent += 1;
+      else suppressed += 1;
+    }
   }
 
   return NextResponse.json({
     ok: true,
     candidates: userIds.size,
     optedIn: optedIn.length,
-    sent,
-    skipped,
+    sent,          // 실제로 한 대 이상 기기에 전달된 사용자 수
+    suppressed,    // 대상이었으나 미설정·DND·구독없음 등으로 전달되지 않은 수
+    skipped,       // 오늘 이미 발송해 사전 제외된 수
     failed,
     at: `${date} KST`,
   });

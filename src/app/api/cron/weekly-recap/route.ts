@@ -9,9 +9,9 @@ import { verifyCronAuth } from '@/lib/cronAuth';
 // 베어러로 호출한다(Hobby는 Vercel Cron 일 1회 한도 — vercel.json에 크론 금지).
 // 카테고리 'weeklyRecap'이라 NotificationSetting(global/weeklyRecap/DND)으로
 // 게이팅된다. 기본 켜짐(default true)이라 daily-nudge와 반대로 "옵트아웃"만
-// 배치 조회해 후보에서 뺀다 — sendPushToUser의 카테고리 게이트는 발송 성공
-// 여부를 반환하지 않아(fire-and-forget) sent 카운트에 반영되지 않으므로,
-// 크론 응답으로 게이팅을 증명하려면 후보 산출 단계에서 걸러야 한다.
+// 배치 조회해 후보에서 뺀다 — 옵트아웃 규모를 크론 응답(optedOut)으로 바로
+// 증명하기 위해서다. (2026-07-22부터 sendPushToUser가 전달 결과를 반환하므로
+// sent/suppressed로도 실제 게이팅 결과가 보인다 — 감사 H-03.)
 const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
 // 푸시 발송 배치 크기(B6) — 순차 await 대신 이 크기의 Promise.allSettled 청크로 발송.
 const CRON_PUSH_CHUNK = 10;
@@ -51,10 +51,11 @@ export async function GET(request: Request) {
   // 순차 await → 청크(CRON_PUSH_CHUNK) 단위 Promise.allSettled 배치(B6): 대상 증가 시
   // 서버리스 타임아웃 방지. 개별 실패 격리(sendPushToUser는 throw 안 함 — push.ts).
   let sent = 0;
+  let suppressed = 0;
   for (let i = 0; i < recipients.length; i += CRON_PUSH_CHUNK) {
     const results = await Promise.allSettled(
-      recipients.slice(i, i + CRON_PUSH_CHUNK).map(async (w) => {
-        await sendPushToUser(
+      recipients.slice(i, i + CRON_PUSH_CHUNK).map((w) =>
+        sendPushToUser(
           w.filledBy,
           {
             title: '이번 주 포도 농사 결산 🍇',
@@ -63,17 +64,21 @@ export async function GET(request: Request) {
             tag: `weekly-recap-${date}`,
           },
           'weeklyRecap',
-        );
-      }),
+        ),
+      ),
     );
-    sent += results.filter((x) => x.status === 'fulfilled').length;
+    for (const x of results) {
+      if (x.status === 'fulfilled' && x.value.delivered > 0) sent += 1;
+      else suppressed += 1;
+    }
   }
 
   return NextResponse.json({
     ok: true,
     candidates: weekly.length,
     optedOut: optedOutIds.size,
-    sent,
+    sent,        // 실제로 전달된 수
+    suppressed,  // 대상이었으나 미설정·DND·구독없음 등으로 전달되지 않은 수
     at: `${date} KST`,
   });
 }

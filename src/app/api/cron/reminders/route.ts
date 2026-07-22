@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { sendPushToUser, inDnd } from '@/lib/push';
+import { sendPushToUser, inDnd, isTransientSkip } from '@/lib/push';
 import { computeFillPace } from '@/lib/pace';
 import { zonedDateKey } from '@/lib/streak';
 import { verifyCronAuth } from '@/lib/cronAuth';
@@ -70,13 +70,19 @@ export async function GET(request: Request) {
   const due = candidates.filter((r) => r.days.split(',').map((d) => parseInt(d, 10)).includes(dow));
 
   // 순차 await → 청크(CRON_PUSH_CHUNK) 단위 Promise.allSettled 배치(B6): 대상 증가 시
-  // 서버리스 타임아웃 방지. 발송 후 lastSentAt 마킹 순서·의미 불변, 개별 실패는 격리
-  // (sendPushToUser는 내부 try/catch로 throw 안 함 — push.ts).
+  // 서버리스 타임아웃 방지. 개별 실패는 격리(sendPushToUser는 throw 안 함 — push.ts).
+  //
+  // lastSentAt 마킹은 DND 스킵일 때만 건너뛴다(isTransientSkip). 아래 ripe 분기가
+  // 사전 inDnd 체크로 막아둔 "DND 삼킴 → 그날 알림 영구 유실" 함정이 이 시간 기반
+  // 분기에는 없었다 — 발송 결과를 보고 같은 규칙을 적용한다. 쿼리가 `time <= 지금`
+  // + 당일 미발송으로 후보를 뽑으므로, 마킹하지 않으면 다음 5분 틱이 자연 재시도한다.
   let sent = 0;
+  let suppressed = 0;
+  let failed = 0;
   for (let i = 0; i < due.length; i += CRON_PUSH_CHUNK) {
     const results = await Promise.allSettled(
       due.slice(i, i + CRON_PUSH_CHUNK).map(async (r) => {
-        await sendPushToUser(
+        const result = await sendPushToUser(
           r.userId,
           {
             title: '🍇 포도알 리마인더',
@@ -86,10 +92,16 @@ export async function GET(request: Request) {
           },
           'reminder'
         );
+        if (isTransientSkip(result)) return result;
         await prisma.reminder.update({ where: { id: r.id }, data: { lastSentAt: new Date() } });
+        return result;
       }),
     );
-    sent += results.filter((x) => x.status === 'fulfilled').length;
+    for (const x of results) {
+      if (x.status === 'rejected') failed += 1;
+      else if (x.value.delivered > 0) sent += 1;
+      else suppressed += 1;
+    }
   }
 
   // ─── ripe 리마인더 분기(C4-c, FILL_CADENCE_PLAN §7) ─────────────────────────
@@ -159,10 +171,11 @@ export async function GET(request: Request) {
   // 선별된 대상만 청크(CRON_PUSH_CHUNK) 배치 발송(B6) — 순차 await 제거, 발송 후 마킹
   // 순서·의미 불변, 개별 실패 격리.
   let ripeSent = 0;
+  let ripeSuppressed = 0;
   for (let i = 0; i < ripeToSend.length; i += CRON_PUSH_CHUNK) {
     const results = await Promise.allSettled(
       ripeToSend.slice(i, i + CRON_PUSH_CHUNK).map(async ({ r, todayKey }) => {
-        await sendPushToUser(
+        const result = await sendPushToUser(
           r.userId,
           {
             title: '🍇 포도알 리마인더',
@@ -172,18 +185,29 @@ export async function GET(request: Request) {
           },
           'reminder'
         );
+        if (isTransientSkip(result)) return result;
         await prisma.reminder.update({ where: { id: r.id }, data: { lastSentAt: now } });
+        return result;
       }),
     );
-    ripeSent += results.filter((x) => x.status === 'fulfilled').length;
+    for (const x of results) {
+      if (x.status === 'fulfilled' && x.value.delivered > 0) ripeSent += 1;
+      else ripeSuppressed += 1;
+    }
   }
 
+  // sent/ripeSent는 이제 "실제로 한 대 이상 기기에 전달된 건수"다. 예전에는
+  // sendPushToUser가 void라 VAPID 미설정·DND·구독 0건도 전부 성공으로 집계돼
+  // 운영 지표로 쓸 수 없었다(감사 H-03·M-05).
   return NextResponse.json({
     ok: true,
     checked: candidates.length,
     sent,
+    suppressed,
+    failed,
     ripeChecked: ripeReminders.length,
     ripeSent,
+    ripeSuppressed,
     at: `${date} ${hhmm} KST`,
   });
 }
