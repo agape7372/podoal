@@ -3,6 +3,32 @@
 > 미래 phase의 상위 인덱스. 각 phase: 목표 / 선행조건 / 완료 정의 / 착수 전 필독. 상세 스펙은 링크된 문서에 있고, 이 파일은 순서와 조건을 잡는다.
 > 원칙 `docs/PRINCIPLES.md` · 운영 `docs/PLAYBOOK.md` · 전략 `docs/PRODUCT_PLAN.md` · 감사 `docs/audit/AUDIT-2026-07-05.md`. 2026-07-14 통합 리드 리뷰와 제품 제안은 `docs/audit/LEAD-REVIEW-2026-07-14.md` 참고.
 
+## 현황 스냅샷 (2026-07-22)
+
+07-14 이후 main에 배포됐으나 이 문서에 없던 3건: **07-18 로딩 스켈레톤 감축**(`13c313f`) ·
+**07-19 캐시 정합 일괄 수정**(`625b9f7`, #133) · **07-20 연타 채움 배치화 + 홈 라이브**(`922e2dc` →
+`df63acb`). 아래 07-14 스냅샷의 "즉시착수 tier 전량 소진, 잔여는 사용자 액션뿐"은 그 시점의
+판단이고, 이후 사용자 제보로 Critical 2건이 더 나왔다 — **로드맵만 읽고 현황을 단정하지 말 것.**
+
+**2026-07-22 외부 감사 대응**: 저장소 루트의 `.gpt5.6sol.md`(GPT-5.6, 커밋 `9af907c` 기준 전수
+검토 — Critical 1 · High 7 · Medium 24 · Low 5 · Obs 4 = 41건)가 미착수 상태로 발견됐다.
+**"즉시 조치" 5건 처리·배포 완료**(PR #136, `63b462a`):
+
+- **C-01** seed 전량 삭제 가드 — `src/lib/seedGuard.ts`(DB 연결 전 판정, 루프백만 자동 허용) + 단일 트랜잭션
+- **H-04** baseline을 빌드에서 분리 — `migrate-deploy.mjs` fail-closed, `scripts/baseline-init.ts`(승인·DB명·**스키마 지문** 3관문)
+- **H-03** push endpoint 검증 — `src/lib/pushEndpoint.ts`(SSRF 차단), 구독 상한·레이트리밋·전송 타임아웃. 부수로 cron 3종의 거짓 `sent` 카운터와 DND dedupe 소모 수정
+- **H-01** 선물 원자화 — `POST /api/gifts`(단일 트랜잭션 + 멱등키). 클라 3커밋 saga 폐기
+- **H-02** 포도동 불변식 — accept/join status 게이트, `reevaluateRelayCompletion`, `RelayParticipant.boardId @unique`
+
+마이그레이션 2개(`20260722090000_relay_board_unique`·`20260722091000_gift_idempotency_key`) 적용됨.
+테스트 unit 246 / integration 22.
+
+**잔여 감사 33건**(Medium 24 · Low 5 · Obs 4)은 미착수 — 정본은 `.gpt5.6sol.md` §9, 묶음 제안은 §10.
+단기 후보: 날짜 정본 통합(H-05 계열 — 통계 date-key를 클라 타임존으로 재해석) · 핵심 접근성
+unblock(H-06 pointer 전용 진입 · H-07 대비) · API decoder/error 계약 · SSE·push 신뢰성 ·
+DB 경합 테스트 보강. 별도로 **크론 데드맨 부재**(GitHub Actions 60일 무커밋 자동 비활성화)와
+**`messageFriendGate.test.ts`가 CI 어느 잡에서도 실행되지 않는 문제**가 확인됨.
+
 ## 현황 스냅샷 (2026-07-14)
 
 습관 추적 PWA, 클레이모피즘. 코어 완성: 포도판 생성·채우기(낙관+Serializable)·보상·중간보상·캡슐·와이너리 7티어·친구·응원·선물·깜짝선물·릴레이(순차/그룹)·통계·바인·PWA·웹푸시·cron 3종. 전면 감사(2026-07-05) Critical/High 0 전건 수정. **2026-07-13 개발자 자율 마라톤**(`docs/audit/REVIEW-2026-07-13.md`, 카드 10장 전량 완료): 정합성 버그 근치(vine 유저 시간대 통일 — 통합테스트 2건) + 공용 컴포넌트(Toggle·RetryButton) 신설·중복 정리 + 에러 서피스 rose 통일 + 잠복 함정(생이모지·danger variant·빈홈 데드엔드) + 핫패스 인덱스 6종(#128) + cron 경화(상수시간 인증·청크 배치·쿼리 dedupe) + auth 경화(열거 오라클 봉쇄·RL 키 userId화). **2026-07-14 후속 패스**(`docs/audit/REVIEW-2026-07-14.md`): 07-13 전량 배포·잔여 게이트를 재확인하고 공용 버튼의 폼 submit 기본 동작, 선물 모달 친구 조회 실패 오인·재시도, textarea 라벨 연결을 보강했다. **현재 최대 병목은 코드가 아니라 친구 베타 1라운드**(P1 완료 정의·실사용 신호의 유일한 출처) + 사용자 액션 3종(PostHog A1 키·OAuth 실키·실기기 QA). **2026-07-14 개발자 비전 세션**(`docs/VISION_2026-07-14.md` — 5표면 병렬 심층분석): 🔴 OAuth 콜백 자동병합 취약점(비밀번호 계정으로의 무검증 병합=잠재 계정탈취, 실키 등록 시 활성화)을 **최소 경화**(`decideAccountMerge` — 비밀번호 계정 자동병합 거부)+회귀 테스트로 처리 → **실OAuth 키 등록의 선행조건 해소** + 캐시 훅 역순 응답 가드 + 보안 순수모듈(cronAuth·oauth) 테스트 착수. **즉시착수 위생 배치도 완료·배포**(CI green): rose-500→700 AA 통일(4곳)·malformed-JSON 바디 가드(9개 변이 라우트 500→400)·순수 경계/CSRF 회귀 테스트(dayBoundary·cadence·winery·proxy matchesHost, test 178→197). **transition-all 레거시 스윕도 완료·배포**(49건/24파일 → 파일별 실변화 속성 스코핑, Workflow 24에이전트 병렬, 순수 토큰 스왑 검증): **즉시착수 tier 전량 소진**. 잔여는 사용자 액션(A1 키·OAuth 실키·실기기 QA·친구 베타) + 상위설계/사용자선택 성장 카드(다크모드·스킨·오프라인 큐·SSE)뿐.
