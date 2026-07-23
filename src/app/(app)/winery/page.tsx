@@ -96,6 +96,38 @@ function TierBadge({
   );
 }
 
+// 품종(카테고리) 라벨 아트 — WineBottle 상세패널 48px 아이콘 자리(docs/ILLUSTRATION_STYLE.md §C).
+// 키는 VARIETAL_FOIL(WineBottle.tsx)과 동일한 templateId 접두 7종. 미상·무템플릿은 폴백.
+const LABEL_ART: Record<string, string> = {
+  health: '/illustrations/labels/label-health-v1.webp',
+  growth: '/illustrations/labels/label-growth-v1.webp',
+  lifestyle: '/illustrations/labels/label-lifestyle-v1.webp',
+  work: '/illustrations/labels/label-work-v1.webp',
+  social: '/illustrations/labels/label-social-v1.webp',
+  hobby: '/illustrations/labels/label-hobby-v1.webp',
+  mental: '/illustrations/labels/label-mental-v1.webp',
+};
+
+// 라벨 아이콘 단일 렌더러 — LABEL_ART 유무/실패에 따라 아트 ↔ EmojiIcon 전환(TierBadge와 동일 패턴).
+function LabelBadge({ category, size }: { category: string | undefined; size: number }) {
+  const [failed, setFailed] = useState(false);
+  const art = category ? LABEL_ART[category] : undefined;
+  if (!art || failed) {
+    return <EmojiIcon emoji="🍷" size={Math.round(size * 0.54)} />;
+  }
+  return (
+    <img
+      src={art}
+      alt=""
+      aria-hidden
+      width={size}
+      height={size}
+      decoding="async"
+      onError={() => setFailed(true)}
+    />
+  );
+}
+
 // 셀러 앰비언트 조명 — 티어가 오르면 저장고의 빛이 바뀐다(공간 서사).
 // 인라인 radial-gradient rgba 리터럴이라 @source와 무관. 값은 @theme의
 // grape/sunshine 실제 hex에서 유도(low-opacity 워시).
@@ -575,10 +607,13 @@ export default function WineryPage() {
                 </button>
 
                 <div className="flex items-start gap-4">
-                  {/* Mini bottle icon area */}
+                  {/* Mini bottle icon area — 품종(카테고리) 라벨 아트, 미상은 기존 🍷 폴백 */}
                   <div className="shrink-0">
-                    <div className="w-12 h-12 rounded-xl bg-linear-to-br from-grape-500 to-grape-700 flex items-center justify-center shadow-md">
-                      <EmojiIcon emoji="🍷" size={26} />
+                    <div className="w-12 h-12 rounded-xl bg-linear-to-br from-grape-500 to-grape-700 flex items-center justify-center shadow-md overflow-hidden">
+                      <LabelBadge
+                        category={selectedBottle.templateId?.split('-')[0]}
+                        size={48}
+                      />
                     </div>
                   </div>
 

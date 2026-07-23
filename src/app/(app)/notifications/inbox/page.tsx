@@ -117,6 +117,7 @@ export default function NotificationInboxPage() {
         </div>
       ) : events.length === 0 ? (
         <EmptyState
+          art="/illustrations/empty/empty-inbox-v1.webp"
           fallbackEmoji="🔔"
           artSize={96}
           title="아직 알림이 없어요"
