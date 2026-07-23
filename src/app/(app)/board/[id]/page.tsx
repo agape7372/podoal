@@ -57,6 +57,15 @@ import {
   markFillEnd,
   isFillInFlight,
 } from '@/lib/fillQueue';
+import { withFillRetry } from '@/lib/fillRetry';
+
+// 채움 POST 일시 실패(네트워크 단절·타임아웃·5xx) 자동 재시도 — 롤백+fillResumeAt
+// 연쇄로 가기 전에 스스로 회복(2026-07-23 재현: 배치 1건 실패가 완성 보드를 실패
+// 지점까지 통째 되감겼다). 서버 멱등이라 안전. 최악 총 지연 ~3s 뒤 포기(각 시도는
+// 자체 20s abort). keepalive(pagehide) 경로는 페이지 소멸 중이라 재시도하지 않는다.
+const FILL_RETRY_MAX = 3;
+const FILL_RETRY_BASE_MS = 300;
+const fillSleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
 interface LiveBoardHandle {
   setBoard: Dispatch<SetStateAction<BoardDetail | null>>;
@@ -319,9 +328,15 @@ export default function BoardDetailPage() {
 
   // 라이브 핸들 등록 — 좀비 큐의 reconcile/rollback/실패 통지가 이 인스턴스로 흐른다.
   const onFillFailure = useCallback((msg: string | null) => {
-    if (msg) setErrorMessage(`${msg} — 잠시 후 다시 시도해주세요.`);
     // 실패 원인이 드리프트(이미 채워짐 등)일 수 있으니 서버 기준 재동기화.
-    fetchBoard().catch(() => {});
+    // ⚠ 안내(errorMessage)는 재동기화가 **끝난 뒤** 세운다: fetchBoard의 성공 경로가
+    //   setErrorMessage(null)로 방금 띄운 배너를 지워 '조용한 증발'이 되던 것을 막는다
+    //   (2026-07-23 재현: 배너가 번쩍 뜨고 재동기화에 삭제돼 사용자가 원인을 못 봤다).
+    fetchBoard()
+      .catch(() => {})
+      .finally(() => {
+        if (msg) setErrorMessage(`${msg} — 잠시 후 다시 시도해주세요.`);
+      });
   }, [fetchBoard]);
   useEffect(() => {
     const handle = { setBoard, onFillFailure };
@@ -601,7 +616,10 @@ export default function BoardDetailPage() {
       if (isBackfill) backfillPositionsRef.current.delete(position);
       const isEarlyFill = !isBackfill && earlyPositionsRef.current.has(position);
       if (isEarlyFill) earlyPositionsRef.current.delete(position);
-      const result = await api<{
+      // 일시 실패(네트워크·타임아웃·5xx)는 롤백 전에 백오프 재시도(withFillRetry) —
+      // 각 시도는 새 AbortSignal을 얻는다. 4xx(409 등)는 재시도 없이 즉시 throw되어
+      // 아래 catch의 기존 분기가 이어받는다.
+      const result = await withFillRetry(() => api<{
         sticker: BoardDetail['stickers'][number];
         filledCount: number;
         isCompleted: boolean;
@@ -629,7 +647,7 @@ export default function BoardDetailPage() {
         // 정지한다(후속 발사도 멈춤) — 시한을 걸어 실패(롤백+배너) 경로로 합류.
         // Neon 콜드 + Serializable 재시도 백오프(최악 ~9.6s)를 여유 있게 덮는 값.
         signal: AbortSignal.timeout(20000),
-      });
+      }), { maxRetries: FILL_RETRY_MAX, baseMs: FILL_RETRY_BASE_MS, sleep: fillSleep });
       // 보드 완성/포도동 자동 진행 시 relay 상세 캐시 일괄 무효화 — 연타 채움의
       // 직렬화 큐가 in-flight인 사이 relay 페이지가 재검증을 끝내면 미완성 카운트가
       // 캐시에 남는데, 완료 응답 시점에 비워두면 다음 진입이 서버 기준으로 시작한다.
@@ -699,7 +717,7 @@ export default function BoardDetailPage() {
       // ApiError(서버의 해요체 메시지)만 본문 그대로 — 네트워크/타임아웃 예외의
       // 영문 메시지가 배너에 새지 않게 한다. 배너+재동기화는 살아있는 화면으로
       // 라우팅 — 좀비 항목의 실패가 재진입 인스턴스의 탭을 무음 폐기하지 않게.
-      const msg = err instanceof ApiError ? err.message : '포도알을 채우지 못했어요';
+      const msg = err instanceof ApiError ? err.message : '네트워크가 불안정해 포도알이 저장되지 않았어요';
       liveBoards.get(id)?.onFillFailure(msg);
     } finally {
       fillPendingPositions.get(id)?.delete(position);
@@ -748,7 +766,7 @@ export default function BoardDetailPage() {
         }
         fillResumeAt.delete(id);
       }
-      const result = await api<{
+      const doPost = () => api<{
         stickers: BoardDetail['stickers'];
         filledCount: number;
         isCompleted: boolean;
@@ -772,6 +790,12 @@ export default function BoardDetailPage() {
         // 일반 플러시 경로는 종전과 byte-identical하게 keepalive 미지정.
         ...(keepalive ? { keepalive: true } : {}),
       });
+      // 일반 경로는 일시 실패를 백오프 재시도(withFillRetry) — 배치 1건 실패가
+      // fillResumeAt 연쇄로 뒤 세그먼트를 통째 폐기(완성 되감김)하던 것을 막는다.
+      // keepalive(pagehide) 경로는 페이지 소멸 중이라 재시도 없이 1회만 발사한다.
+      const result = keepalive
+        ? await doPost()
+        : await withFillRetry(doPost, { maxRetries: FILL_RETRY_MAX, baseMs: FILL_RETRY_BASE_MS, sleep: fillSleep });
       // 단건 경로와 동일 배선(#133 정합 감사): 포도동 연결 보드는 모든 채움이 릴레이
       // 진행 미니포도에 반영되므로 완료/바통 전달 외에도 relays prefix를 무효화한다.
       if (result.isCompleted || result.relayAdvanced || boardRef.current?.inRelay) {
@@ -815,7 +839,7 @@ export default function BoardDetailPage() {
         // 단건과 동일: 본문 대기 중(loading) 팝업만 닫는다.
         setRewardPopup((prev) => (prev && prev.loading ? null : prev));
       }
-      const msg = err instanceof ApiError ? err.message : '포도알을 채우지 못했어요';
+      const msg = err instanceof ApiError ? err.message : '네트워크가 불안정해 일부 포도알이 저장되지 않았어요';
       liveBoards.get(id)?.onFillFailure(msg);
     } finally {
       const pendingSet = fillPendingPositions.get(id);
