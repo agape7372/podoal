@@ -4,21 +4,6 @@ import type { PointerEventHandler } from 'react';
 import type { BoardSummary } from '@/types';
 import BoardCard from './BoardCard';
 import BoardCardMenu from './BoardCardMenu';
-import ClayButton from './ClayButton';
-
-/** 단색 포도 아이콘(currentColor) — 컬러 fluent 이모지는 버튼의 톤을 깬다.
- *  구 스와이프 트레이의 시안 자산을 그대로 이식했다. */
-function GrapeGlyph({ size = 16 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M12 2.6c1.7 0 3.2.9 4 2.3" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-      <circle cx="12" cy="8.2" r="3.1" fill="currentColor" />
-      <circle cx="8.5" cy="13.5" r="3.1" fill="currentColor" />
-      <circle cx="15.5" cy="13.5" r="3.1" fill="currentColor" />
-      <circle cx="12" cy="18.7" r="3.1" fill="currentColor" />
-    </svg>
-  );
-}
 
 interface BoardRowProps {
   board: BoardSummary;
@@ -106,18 +91,28 @@ export default function BoardRow({
           }}
           footer={
             showAction ? (
-              // joyful은 '보상 열기·릴레이 시작'과 같은 축하 CTA 전용 변형(CLAUDE.md) —
-              // 수확은 정확히 그 성격이다. 되돌리기는 파괴적이지 않은 되돌림이라 ghost.
-              <ClayButton
-                variant={harvested ? 'ghost' : 'joyful'}
-                size="sm"
-                fullWidth
+              // 풀폭 그라데이션 바 폐지(2026-07-23, "너무 튄다") → 지표 행 아래 우측 정렬
+              // 컴팩트 알약. 수확은 드문 축하 행위라 은은한 grape 틴트로 존재감만 남기고,
+              // 되돌리기는 비파괴 되돌림이라 무채색으로 더 죽인다. 아이콘 없음.
+              // clay-sm 그림자 톤을 따르되 탭 타깃 확보(min-h 34px). active:scale-95만
+              // (transition-all 금지 — motion 관례). 전역 focus-visible 링에 의존.
+              // ⚠ 이 알약은 반드시 카드 본문(role="button") 바깥 형제인 footer에 둔다 —
+              //   지표 행 안에 넣으면 중첩 인터랙티브가 된다(BoardCard.bodyProps 주석).
+              <button
+                type="button"
                 disabled={harvesting}
                 onClick={onHarvest}
+                className={`inline-flex items-center justify-center min-h-[34px] px-4 rounded-full
+                  text-[12.5px] font-bold border border-warm-border
+                  shadow-[1.5px_2px_0_rgba(73,50,100,0.05)] transition-transform active:scale-95
+                  disabled:opacity-60 disabled:active:scale-100 ${
+                    harvested
+                      ? 'bg-clay-surface text-warm-sub'
+                      : 'bg-grape-100 text-grape-700'
+                  }`}
               >
-                <GrapeGlyph />
                 {harvesting ? '수확 중…' : harvested ? '되돌리기' : '수확하기'}
-              </ClayButton>
+              </button>
             ) : null
           }
         />
