@@ -107,6 +107,7 @@ export default function RewardList() {
         </div>
       ) : filtered.length === 0 ? (
         <EmptyState
+          art="/illustrations/empty/empty-rewards-v1.webp"
           fallbackEmoji="🍇"
           artSize={80}
           title={filter === 'all' ? '아직 받은 보상이 없어요' : '이 종류의 보상이 없어요'}

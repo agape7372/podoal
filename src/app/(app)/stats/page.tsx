@@ -375,6 +375,7 @@ function CategoryBreakdown({ data }: { data: { category: string; count: number }
   if (data.length === 0) {
     return (
       <EmptyState
+        art="/illustrations/empty/empty-stats-v1.webp"
         fallbackEmoji="🍇"
         artSize={64}
         title="아직 카테고리 데이터가 없어요"
