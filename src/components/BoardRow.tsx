@@ -76,8 +76,9 @@ export default function BoardRow({
           board={board}
           asStatic
           reserveTopRight
-          // 키보드/스크린리더의 '열기' 경로는 카드 **본문**에만 건다 — 수확 버튼(footer)이
-          // 이 role="button" 안에 들어가면 중첩 인터랙티브가 된다(BoardCard.bodyProps 주석).
+          // 키보드/스크린리더의 '열기' 경로. asStatic BoardCard는 이 속성을 inner가 아닌
+          // absolute inset-0 오버레이(스트레치드 링크)에 얹어, 트레이 행의 수확 버튼(footer)이
+          // 이 role="button"의 자손 = 중첩 인터랙티브가 되지 않게 한다(BoardCard.bodyProps 주석).
           bodyProps={{
             role: 'button',
             tabIndex: lifted ? -1 : 0,
@@ -91,13 +92,14 @@ export default function BoardRow({
           }}
           footer={
             showAction ? (
-              // 풀폭 그라데이션 바 폐지(2026-07-23, "너무 튄다") → 지표 행 아래 우측 정렬
-              // 컴팩트 알약. 수확은 드문 축하 행위라 은은한 grape 틴트로 존재감만 남기고,
-              // 되돌리기는 비파괴 되돌림이라 무채색으로 더 죽인다. 아이콘 없음.
+              // 풀폭 그라데이션 바 폐지(2026-07-23, "너무 튄다") → 컴팩트 알약. 위치도
+              // 하단 독립 행에서 포도알 트레이 행 우측 인라인으로 이동(2026-07-23, 카드
+              // 세로 공간 절약). 수확은 드문 축하 행위라 은은한 grape 틴트로 존재감만
+              // 남기고, 되돌리기는 비파괴 되돌림이라 무채색으로 더 죽인다. 아이콘 없음.
               // clay-sm 그림자 톤을 따르되 탭 타깃 확보(min-h 34px). active:scale-95만
               // (transition-all 금지 — motion 관례). 전역 focus-visible 링에 의존.
-              // ⚠ 이 알약은 반드시 카드 본문(role="button") 바깥 형제인 footer에 둔다 —
-              //   지표 행 안에 넣으면 중첩 인터랙티브가 된다(BoardCard.bodyProps 주석).
+              // ⚠ 이 알약은 footer로 전달돼 트레이 행 우측에 렌더된다 — 중첩 인터랙티브가
+              //   안 되는 건 asStatic BoardCard의 스트레치드 오버레이가 보장(bodyProps 주석).
               <button
                 type="button"
                 disabled={harvesting}

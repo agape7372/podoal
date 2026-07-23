@@ -14,15 +14,16 @@ interface BoardCardProps {
   asStatic?: boolean;
   /** Shift the source badge left so it doesn't sit under the ⋮ menu (home cards). */
   reserveTopRight?: boolean;
-  /** 카드 하단(진행바 행 아래)에 붙는 액션 영역 — 홈의 '수확하기' 버튼용.
+  /** 미니 포도알 트레이 행 '오른쪽'에 인라인으로 붙는 액션 — 홈의 '수확하기' 버튼용.
    *  ⚠ `asStatic`일 때만 렌더한다: 비정적 분기의 카드 루트는 `<button>`이라
    *  버튼을 끼우면 중첩 버튼(무효 HTML + 클릭 삼킴)이 된다. 친구 상세
    *  (friends/[id])는 비정적 사용이라 이 prop을 넘기지 않아 렌더 무변화. */
   footer?: ReactNode;
-  /** `asStatic` 전용: 카드 '본문'(footer 제외)을 감싸는 요소에 얹을 속성 —
-   *  홈이 여기에 role="button"/tabIndex/onKeyDown을 넣어 키보드·스크린리더의
-   *  '보드 열기' 경로를 만든다. footer(수확 버튼)를 이 바깥에 두는 것이 요점이다:
-   *  안에 넣으면 role="button" 안의 <button> = 중첩 인터랙티브가 된다. */
+  /** `asStatic` 전용: 카드의 '보드 열기' role="button" 속성 — 홈이 여기에
+   *  role="button"/tabIndex/onKeyDown을 넣어 키보드·스크린리더의 '보드 열기' 경로를
+   *  만든다. asStatic 분기는 이 속성을 inner 래퍼가 아닌 `absolute inset-0` 오버레이
+   *  형제에 얹는다(스트레치드 링크): 그래야 트레이 행의 footer(수확 버튼)가
+   *  role="button"의 자손 = 중첩 인터랙티브가 되지 않는다. */
   bodyProps?: HTMLAttributes<HTMLDivElement>;
   className?: string;
 }
@@ -74,24 +75,32 @@ export default function BoardCard({ board, asStatic = false, reserveTopRight = f
           <p className="text-xs text-warm-sub truncate mb-3">{board.description}</p>
         )}
 
-        {/* Mini grape preview in inset tray */}
-        <div className="clay-pressed inline-flex flex-wrap gap-[3px] mb-3 px-2 py-1.5" style={{ borderRadius: '12px' }}>
-          {Array.from({ length: Math.min(board.totalStickers, 10) }, (_, i) => {
-            const isFilled = i < board.filledCount;
-            return (
-              <div
-                key={i}
-                className={`w-3.5 h-3.5 rounded-full ${
-                  isFilled ? 'grape-filled-mini' : 'grape-empty-mini'
-                }`}
-              />
-            );
-          })}
-          {board.totalStickers > 10 && (
-            <span className="text-[10px] text-warm-sub self-center ml-0.5">
-              +{board.totalStickers - 10}
-            </span>
-          )}
+        {/* Mini grape preview tray + (asStatic 전용) 우측 수확/되돌리기 알약.
+            트레이는 inline-flex라 왼쪽으로 수축 → 오른쪽 빈 공간에 알약을 flex
+            우측정렬로 얹는다(설명문 유무·픽셀계산 무관, items-center로 세로 자동정렬).
+            ⚠ 알약(footer)이 여기에 오려면 이 행이 role="button"(bodyProps)의 자손이
+            아니어야 한다 — asStatic 분기가 bodyProps를 inner 래퍼가 아닌 형제 오버레이로
+            두어 그 조건을 보장한다(아래 asStatic return 참고). */}
+        <div className="flex items-center justify-between gap-2 mb-3">
+          <div className="clay-pressed inline-flex flex-wrap gap-[3px] px-2 py-1.5" style={{ borderRadius: '12px' }}>
+            {Array.from({ length: Math.min(board.totalStickers, 10) }, (_, i) => {
+              const isFilled = i < board.filledCount;
+              return (
+                <div
+                  key={i}
+                  className={`w-3.5 h-3.5 rounded-full ${
+                    isFilled ? 'grape-filled-mini' : 'grape-empty-mini'
+                  }`}
+                />
+              );
+            })}
+            {board.totalStickers > 10 && (
+              <span className="text-[10px] text-warm-sub self-center ml-0.5">
+                +{board.totalStickers - 10}
+              </span>
+            )}
+          </div>
+          {asStatic && footer && <div className="shrink-0">{footer}</div>}
         </div>
 
         {/* Progress bar */}
@@ -121,10 +130,16 @@ export default function BoardCard({ board, asStatic = false, reserveTopRight = f
   );
 
   if (asStatic) {
+    // '보드 열기' role="button"을 inner 래퍼가 아닌 absolute inset-0 오버레이(스트레치드
+    // 링크 패턴)로 둔다 — inner가 role=button의 자손이 아니게 되어야 트레이 행의 수확 알약
+    // (footer)이 중첩 인터랙티브가 되지 않는다. 콘텐츠는 relative z-10로 오버레이 위에 두어
+    // 알약 클릭이 삼켜지지 않는다(오버레이는 positioned라 기본적으로 static 위에 그려짐).
+    // 오버레이는 키보드/SR '열기'만 담당(전역 :focus-visible 링이 카드 테두리에 표시).
+    // 탭=열기는 BoardRow 제스처 레이어 소유라 오버레이에 onClick은 없다.
     return (
       <div className={`clay-float relative w-full p-4 text-left ${className}`}>
-        {bodyProps ? <div {...bodyProps}>{inner}</div> : inner}
-        {footer && <div className="mt-2 flex justify-end">{footer}</div>}
+        {bodyProps && <div {...bodyProps} className="absolute inset-0 rounded-[28px]" />}
+        <div className="relative z-10">{inner}</div>
       </div>
     );
   }
