@@ -124,7 +124,7 @@ export default function BoardCard({ board, asStatic = false, reserveTopRight = f
     return (
       <div className={`clay-float relative w-full p-4 text-left ${className}`}>
         {bodyProps ? <div {...bodyProps}>{inner}</div> : inner}
-        {footer && <div className="mt-3">{footer}</div>}
+        {footer && <div className="mt-2 flex justify-end">{footer}</div>}
       </div>
     );
   }
