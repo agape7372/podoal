@@ -271,7 +271,9 @@ export default function HomePage() {
     return { allCount: all, activeCount: active, completedCount: completed, harvestedCount: harvested };
   }, [effectiveBoards]);
 
-  const canReorder = filter === 'all'; // 정렬은 '전체'에서만(필터된 부분집합 정렬은 혼란)
+  // 정렬은 모든 탭에서 허용. 필터된 부분집합 정렬도 endLift의 '그룹-위브'로 전역 order를
+  // 안전하게 보존한다(보이는 카드는 자기 슬롯끼리만 재배치, 안 보이는 형제는 제자리).
+  const canReorder = true;
 
   const clearLp = () => { if (gLpTimer.current) { window.clearTimeout(gLpTimer.current); gLpTimer.current = null; } };
 
@@ -350,21 +352,39 @@ export default function HomePage() {
     const L = liftRef.current;
     if (!L) return;
     liftRef.current = null;
-    const finalIds = arrayMove(L.ids, L.source, L.target);
     // FLIP First: 커밋 직전, 각 행의 현재 화면상 top(드래그 transform 포함)을 기록.
+    // (보이는 카드 = L.ids만 — FLIP은 렌더된 행에만 건다.)
     const first = new Map<string, number>();
     for (const id of L.ids) {
       const el = cardRefs.current.get(id);
       if (el) first.set(id, el.getBoundingClientRect().top);
     }
     flipRef.current = first;
-    // 커밋: finalIds 순서대로 order 부여 → displayBoards 재정렬 + 리프트 해제.
-    const orderMap = new Map(finalIds.map((id, i) => [id, i] as const));
+    // 그룹-위브 커밋: order는 전역 단일 시퀀스라, 부분집합(진행/완료 탭)에 0..n을 그대로
+    // 부여하면 안 보이는 형제 보드의 order와 뒤섞여 '전체' 탭 순서가 깨진다. 대신 이 정렬이
+    // 속한 order-그룹(수확 탭=수확 전체 / 그 외=비수확 전체 — 어떤 화면에서도 안 섞이는 독립
+    // 공간) 안에서, 보이는 카드는 자기들이 차지한 슬롯끼리만 재배치하고 안 보이는 멤버는
+    // 제자리에 둔다. '전체' 탭에선 group == 보이는 전부라 단순 재배치와 동일(회귀 0).
+    const reordered = arrayMove(L.ids, L.source, L.target);
+    const group = effectiveBoards
+      .filter((b) => (filter === 'harvested' ? !!b.harvestedAt : !b.harvestedAt))
+      .sort(sortByOrder);
+    const groupIds = group.map((b) => b.id);
+    const groupSet = new Set(groupIds);
+    // 드래그 중 외부 삭제 방어: 아직 그룹에 남아 있는 멤버만, 새 순서대로. 이러면 '보이는
+    // 슬롯' 수 == newVisible.length가 되어 아래 위브의 k가 정확히 소진된다(미배치 id로 인한
+    // 유실 없음 — 정렬 초창기 재발했던 버그 클래스).
+    const newVisible = reordered.filter((id) => groupSet.has(id));
+    const visibleSet = new Set(newVisible);
+    let k = 0;
+    const finalGroup = groupIds.map((id) => (visibleSet.has(id) ? newVisible[k++] : id));
+    // 커밋: finalGroup 순서대로 order 부여 → displayBoards 재정렬 + 리프트 해제.
+    const orderMap = new Map(finalGroup.map((id, i) => [id, i] as const));
     mutateBoards((prev) =>
       prev && { ...prev, boards: prev.boards.map((b) => (orderMap.has(b.id) ? { ...b, order: orderMap.get(b.id)! } : b)) });
     setLiftedId(null);
-    if (persist && L.target !== L.source) persistOrder(finalIds);
-  }, [mutateBoards, persistOrder, stopAutoScroll, unblockNativeScroll]);
+    if (persist && L.target !== L.source) persistOrder(finalGroup);
+  }, [mutateBoards, persistOrder, stopAutoScroll, unblockNativeScroll, effectiveBoards, filter]);
 
   // 드래그 중 백그라운드 재검증/외부 삭제로 들어올린 보드가 목록에서 사라지면, 멈춰줄
   // 포인터 이벤트(pointerup)가 영영 안 와 리프트가 매달린다 — 자동 스크롤 루프와 touchmove
